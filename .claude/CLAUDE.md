@@ -8,3 +8,10 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 <!-- CODEGRAPH_END -->
+
+## Contexto del proyecto
+
+Lee [`CONTEXT.md`](../CONTEXT.md) (raíz del repo) al iniciar una sesión: resume la arquitectura,
+las decisiones y convenciones, el estado actual y el registro de cambios. **Mantenlo actualizado**
+tras cada cambio relevante (sección _Estado actual_ + nueva entrada en _Registro de cambios_,
+con fecha absoluta), y commitéalo junto con el cambio para conservar el contexto entre equipos.

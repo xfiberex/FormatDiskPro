@@ -1,6 +1,11 @@
 # FormatDiskPro
 
-Herramienta de formateo y **gestión de unidades** para Windows con soporte para **5 sistemas de archivos**, diagnóstico S.M.A.R.T., verificación de capacidad real y protección de discos fijos.
+![Release](https://img.shields.io/github/v/release/xfiberex/FormatDiskPro?label=versión&color=blue)
+![.NET](https://img.shields.io/badge/.NET-10-512BD4)
+![Plataforma](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)
+![Licencia](https://img.shields.io/github/license/xfiberex/FormatDiskPro?label=licencia&color=green)
+
+Herramienta de formateo y **gestión de unidades** para Windows con soporte para **5 sistemas de archivos**, diagnóstico S.M.A.R.T., verificación de capacidad real, actualizaciones automáticas y protección del disco de sistema.
 
 Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada hasta convertirse en una utilidad seria de gestión de memorias USB.
 
@@ -40,8 +45,8 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 
 | Requisito | Versión mínima |
 |-----------|----------------|
-| Windows | 10 / 11 |
-| .NET | 10.0 |
+| Windows | 10 / 11 (x64) |
+| .NET | 10.0 — *solo para compilar desde código; el instalador lo incluye* |
 | Privilegios | Administrador (UAC requerido) |
 
 ## Instalación
@@ -70,18 +75,29 @@ src\FormatDiskPro\installer\build-installer.ps1
 
 Publica la app *self-contained* (win-x64) y compila el instalador en `src\FormatDiskPro\installer\Output\`.
 
+### Publicar una versión
+
+El script `release.ps1` (raíz del repo) corta una versión completa en un paso: valida, ejecuta las pruebas, actualiza `<Version>`, compila el instalador, hace commit + tag, lo sube y crea el **GitHub Release** con el instalador adjunto.
+
+```powershell
+.\release.ps1 -Version 1.2.0           # release completo
+.\release.ps1 -Version 1.2.0 -DryRun   # muestra el plan sin modificar nada
+```
+
+Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`. Los usuarios con una versión anterior recibirán el aviso de actualización automáticamente.
+
 ### Pruebas
 
 ```bash
 dotnet test
 ```
 
-Las pruebas unitarias (xUnit) cubren la lógica pura: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta y consistencia de presets.
+Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets y comparación de versiones de actualización.
 
 ## Uso
 
 1. Ejecutar como **Administrador** (el manifiesto UAC lo solicita automáticamente)
-2. Seleccionar una unidad **removible** en el desplegable
+2. Seleccionar la unidad a formatear en el desplegable (cualquiera **salvo la del sistema**, que aparece protegida)
 3. Elegir sistema de archivos, tamaño de cluster y etiqueta (o aplicar un **Preset** desde el menú *Configuración*)
 4. Pulsar **Iniciar**, escribir la letra de la unidad para confirmar y aceptar
 
@@ -129,6 +145,7 @@ src/FormatDiskPro/
 └─ Program.cs       Punto de entrada
 
 tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core
+release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
 ```
 
 ## Stack
@@ -138,3 +155,7 @@ tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core
 - `Format-Volume` / `format.com` (formateo) · `cipher` (borrado) · `Get-PhysicalDisk` (S.M.A.R.T.)
 - Comandos PowerShell vía `-EncodedCommand` (Base64 UTF-16LE) para evitar inyección
 - UAC: `requireAdministrator` en `app.manifest`
+
+## Licencia
+
+Distribuido bajo licencia **MIT**. Consulta el archivo [LICENSE](LICENSE) para más detalles.
