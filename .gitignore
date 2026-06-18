@@ -18,6 +18,10 @@ obj/
 # VS Code
 .vscode/
 
+# Inno Setup compiled installers (se publican como release assets, no en el repo)
+**/installer/Output/
+**/publish/
+
 # NuGet
 *.nupkg
 *.snupkg

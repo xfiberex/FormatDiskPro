@@ -42,15 +42,32 @@ public partial class MainForm : Form
     private DateTime _opStart;
     private char _healthLetter;
     private DiskService.HealthInfo? _lastHealth;
+    private readonly ToolStripMenuItem mnuUpdates = new();
 
     public MainForm()
     {
         InitializeComponent();
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
         BuildPresetsMenu();
+        BuildUpdatesMenu();
         ApplyTheme(dark: false);
         ApplyLanguage();
         LoadDrives();
+    }
+
+    /// <summary>Inserta "Buscar actualizaciones…" al inicio del menú Ayuda.</summary>
+    private void BuildUpdatesMenu()
+    {
+        mnuUpdates.Click += mnuUpdates_Click;
+        mnuHelp.DropDownItems.Insert(0, mnuUpdates);
+        mnuHelp.DropDownItems.Insert(1, new ToolStripSeparator());
+    }
+
+    /// <summary>Comprueba actualizaciones en segundo plano al mostrarse la ventana (silencioso si falla o ya está al día).</summary>
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        _ = CheckForUpdatesAsync(manual: false);
     }
 
     // ── Drive loading ────────────────────────────────────────────
@@ -660,7 +677,107 @@ public partial class MainForm : Form
     private void mnuHistory_Click(object? sender, EventArgs e) => History.Open();
 
     private void mnuAbout_Click(object? sender, EventArgs e) =>
-        MessageBox.Show(L.T("about.body"), L.T("about.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+        MessageBox.Show(L.T("about.body", AppInfo.VersionString), L.T("about.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+    // ── Updates ──────────────────────────────────────────────────
+
+    private async void mnuUpdates_Click(object? sender, EventArgs e) => await CheckForUpdatesAsync(manual: true);
+
+    /// <summary>
+    /// Comprueba si hay una versión más reciente. En modo <paramref name="manual"/> informa siempre;
+    /// en modo automático (inicio) solo actúa si hay actualización, en silencio ante errores.
+    /// </summary>
+    private async Task CheckForUpdatesAsync(bool manual)
+    {
+        if (_isBusy) return;
+
+        if (manual) { lblStatus.ForeColor = _normalText; lblStatus.Text = L.T("update.checking"); }
+
+        ReleaseInfo? rel;
+        try
+        {
+            rel = await UpdateService.CheckForUpdateAsync();
+        }
+        catch (Exception ex)
+        {
+            History.Log($"UPDATE CHECK ERROR: {ex.Message}");
+            if (manual)
+            {
+                lblStatus.Text = "";
+                MessageBox.Show(L.T("update.error", ex.Message), L.T("menu.updates"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            return;
+        }
+
+        if (manual) lblStatus.Text = "";
+
+        if (rel is null)
+        {
+            if (manual)
+                MessageBox.Show(L.T("update.uptodate", AppInfo.VersionString), L.T("menu.updates"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (_isBusy) return; // una operación pudo iniciarse mientras consultábamos
+
+        var ask = MessageBox.Show(
+            L.T("update.available", rel.Version, AppInfo.VersionString),
+            L.T("update.availTitle"), MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+        if (ask != DialogResult.Yes) return;
+
+        if (string.IsNullOrEmpty(rel.AssetUrl))
+        {
+            // La versión no trae instalador adjunto: abrir la página de releases.
+            MessageBox.Show(L.T("update.noasset", rel.Version), L.T("update.availTitle"),
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            UpdateService.OpenUrl(rel.HtmlUrl);
+            return;
+        }
+
+        await DownloadAndRunUpdateAsync(rel);
+    }
+
+    private async Task DownloadAndRunUpdateAsync(ReleaseInfo rel)
+    {
+        BeginOperation();
+        progressBar.Style = ProgressBarStyle.Blocks;
+        progressBar.Value = 0;
+
+        var progress = new Progress<int>(p =>
+        {
+            progressBar.Value = Math.Clamp(p, 0, 100);
+            lblStatus.ForeColor = _normalText;
+            lblStatus.Text = L.T("update.downloading", p);
+        });
+
+        try
+        {
+            string path = await UpdateService.DownloadAsync(rel, progress, _cts!.Token);
+            History.Log($"UPDATE DOWNLOADED {rel.Version}: {path}");
+            lblStatus.Text = L.T("update.launching");
+            UpdateService.LaunchInstaller(path);
+            Application.Exit();
+        }
+        catch (OperationCanceledException)
+        {
+            progressBar.Value = 0;
+            lblStatus.Text = L.T("status.cancelled");
+        }
+        catch (Exception ex)
+        {
+            progressBar.Value = 0;
+            lblStatus.Text = "";
+            History.Log($"UPDATE DOWNLOAD ERROR {rel.Version}: {ex.Message}");
+            MessageBox.Show(L.T("update.error", ex.Message), L.T("menu.updates"),
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
 
     // ── Language / theme ─────────────────────────────────────────
 
@@ -684,6 +801,7 @@ public partial class MainForm : Form
         mnuThemeDark.Text  = L.T("menu.theme.dark");
         mnuPresets.Text  = L.T("menu.presets");
         mnuHelp.Text     = L.T("menu.help");
+        mnuUpdates.Text  = L.T("menu.updates");
         mnuAbout.Text    = L.T("menu.about");
 
         lblDrive.Text       = L.T("drive.label");

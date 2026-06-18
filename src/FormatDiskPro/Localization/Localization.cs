@@ -68,6 +68,7 @@ public static class L
         ["menu.presets"]     = ("Presets", "Presets"),
         ["menu.help"]        = ("Ayuda", "Help"),
         ["menu.about"]       = ("Acerca de…", "About…"),
+        ["menu.updates"]     = ("Buscar actualizaciones…", "Check for updates…"),
 
         ["type.fixed"]       = ("Disco fijo", "Fixed disk"),
         ["type.removable"]   = ("USB / Removible", "USB / Removable"),
@@ -159,12 +160,24 @@ public static class L
                                 "Drive {0}: failed verification: data mismatch after {1}.\n\nIt is likely a counterfeit drive."),
 
         ["about.title"]      = ("Acerca de FormatDiskPro", "About FormatDiskPro"),
-        ["about.body"]       = ("FormatDiskPro v1.1\n\nHerramienta de formateo y gestión de unidades para Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · Windows Forms",
-                                "FormatDiskPro v1.1\n\nDisk format and management tool for Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · Windows Forms"),
+        ["about.body"]       = ("FormatDiskPro v{0}\n\nHerramienta de formateo y gestión de unidades para Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · Windows Forms",
+                                "FormatDiskPro v{0}\n\nDisk format and management tool for Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · Windows Forms"),
 
         ["preset.title"]     = ("Preset aplicado", "Preset applied"),
         ["preset.body"]      = ("Configuración «{0}» aplicada.", "Preset \"{0}\" applied."),
         ["preset.na"]        = ("El preset «{0}» no es compatible con esta unidad.",
                                 "Preset \"{0}\" is not compatible with this drive."),
+
+        ["update.checking"]  = ("Buscando actualizaciones…", "Checking for updates…"),
+        ["update.uptodate"]  = ("Ya tienes la última versión ({0}).", "You already have the latest version ({0})."),
+        ["update.availTitle"]= ("Actualización disponible", "Update available"),
+        ["update.available"] = ("Hay una nueva versión disponible: {0}\n(versión actual: {1})\n\n¿Descargar e instalar ahora?",
+                                "A new version is available: {0}\n(current version: {1})\n\nDownload and install now?"),
+        ["update.downloading"]=("Descargando actualización… {0}%", "Downloading update… {0}%"),
+        ["update.launching"] = ("Iniciando el instalador…", "Launching installer…"),
+        ["update.noasset"]   = ("La versión {0} no incluye un instalador descargable. Se abrirá la página de la versión.",
+                                "Release {0} has no downloadable installer. Opening the release page."),
+        ["update.error"]     = ("No se pudo completar la operación de actualización:\n{0}",
+                                "The update operation could not be completed:\n{0}"),
     };
 }

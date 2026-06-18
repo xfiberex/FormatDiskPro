@@ -16,8 +16,8 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Presets** de un clic (USB universal, consola/TV, datos Windows, comprimido, borrado seguro)
 
 ### Seguridad
-- **Protección de discos fijos**: marcados como `[Protegido]`, con todos los controles deshabilitados
-- **Doble guardia del disco de sistema** por letra de unidad
+- **Protección del disco de sistema**: la unidad de Windows se marca como `[Protegido]` con todos los controles de formato deshabilitados
+- **Doble guardia** del disco de sistema (al listar las unidades y de nuevo al iniciar el formateo)
 - **Confirmación reforzada**: hay que escribir la letra de la unidad para confirmar el formateo
 - **Validación de etiqueta de volumen** antes de la operación destructiva
 - **Revalidación de disponibilidad** de la unidad al iniciar (detecta USBs extraídos)
@@ -33,6 +33,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Expulsión segura** de unidades removibles
 - **Historial de operaciones** auditado en `%AppData%\FormatDiskPro\history.log`
 - **Timer de tiempo transcurrido** y **cancelación segura** de cualquier operación
+- **Actualizaciones integradas**: comprueba GitHub Releases al inicio y bajo demanda; descarga e instala la nueva versión
 - **Icono propio** de aplicación
 
 ## Requisitos
@@ -43,6 +44,14 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 | .NET | 10.0 |
 | Privilegios | Administrador (UAC requerido) |
 
+## Instalación
+
+Descarga el instalador más reciente desde la página de **[Releases](https://github.com/xfiberex/FormatDiskPro/releases)** (`FormatDiskPro-x.y.z-setup.exe`) y ejecútalo. El instalador es *self-contained*: **no requiere instalar .NET** por separado.
+
+### Actualizaciones
+
+La aplicación comprueba si hay una versión más reciente en GitHub Releases al iniciarse y mediante **Ayuda → Buscar actualizaciones…**. Si hay una nueva versión, ofrece descargar e instalar el nuevo instalador automáticamente.
+
 ## Construcción
 
 ```bash
@@ -50,6 +59,16 @@ dotnet build -c Release
 ```
 
 El ejecutable queda en `src\FormatDiskPro\bin\Release\net10.0-windows\FormatDiskPro.exe`.
+
+### Generar el instalador
+
+Requiere [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`):
+
+```powershell
+src\FormatDiskPro\installer\build-installer.ps1
+```
+
+Publica la app *self-contained* (win-x64) y compila el instalador en `src\FormatDiskPro\installer\Output\`.
 
 ### Pruebas
 
@@ -74,7 +93,7 @@ Las pruebas unitarias (xUnit) cubren la lógica pura: construcción de comandos 
 |------|----------|
 | **Herramientas** | Verificar capacidad real · Expulsar unidad · Ver historial |
 | **Configuración** | Idioma (ES/EN) · Tema (Claro/Oscuro) · Presets |
-| **Ayuda** | Acerca de |
+| **Ayuda** | Buscar actualizaciones · Acerca de |
 
 ## Sistemas de archivos disponibles
 
@@ -94,15 +113,19 @@ Separación por capas (lógica pura aislada de los efectos colaterales y de la U
 src/FormatDiskPro/
 ├─ Core/            Lógica pura y testeable
 │  ├─ FormatLogic.cs        Construcción de comandos, parseo de progreso, formato de bytes
+│  ├─ UpdateChecker.cs      Comparación de versiones para actualizaciones
+│  ├─ AppInfo.cs            Versión en ejecución y coordenadas del repositorio
 │  └─ Presets.cs            Configuraciones predefinidas
-├─ Services/        Efectos colaterales (procesos / disco)
+├─ Services/        Efectos colaterales (procesos / disco / red)
 │  ├─ DiskService.cs        S.M.A.R.T., expulsión y borrado seguro (PowerShell)
 │  ├─ CapacityVerifier.cs   Verificación de capacidad real
+│  ├─ UpdateService.cs      GitHub Releases: consulta, descarga e instalación
 │  └─ History.cs            Registro de auditoría
 ├─ UI/              Windows Forms
-│  ├─ Form1.cs / Form1.Designer.cs   Ventana principal y orquestación
-│  └─ ConfirmFormatDialog.cs         Confirmación reforzada
+│  ├─ MainForm.cs / MainForm.Designer.cs   Ventana principal y orquestación
+│  └─ ConfirmFormatDialog.cs               Confirmación reforzada
 ├─ Localization/    Cadenas ES/EN centralizadas
+├─ installer/       Inno Setup (installer.iss + build-installer.ps1 → Output/)
 └─ Program.cs       Punto de entrada
 
 tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core
