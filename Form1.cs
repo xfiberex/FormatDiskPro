@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace FormatDiskPro;
 
@@ -67,8 +66,7 @@ public partial class Form1 : Form
             string label;
             try { label = d.IsReady && !string.IsNullOrEmpty(d.VolumeLabel) ? $"{d.Name.TrimEnd('\\')} ({d.VolumeLabel})" : d.Name.TrimEnd('\\'); }
             catch { label = d.Name.TrimEnd('\\'); }
-            bool isFixed = d.DriveType == DriveType.Fixed;
-            cboDrive.Items.Add(new DriveItem(d.Name[0], label, d, isFixed));
+            cboDrive.Items.Add(new DriveItem(d.Name[0], label, d, IsSystemDrive(d.Name[0])));
         }
 
         int idx = -1;
@@ -236,11 +234,6 @@ public partial class Form1 : Form
         UpdateCompressionOption();
     }
 
-    private void chkQuickFormat_CheckedChanged(object sender, EventArgs e)
-    {
-        // El progreso real solo está disponible en formato completo (no rápido).
-    }
-
     private void UpdateAllocationUnits()
     {
         string? fs = cboFileSystem.SelectedItem?.ToString();
@@ -339,8 +332,7 @@ public partial class Form1 : Form
             return;
         }
 
-        char systemLetter = Path.GetPathRoot(Environment.SystemDirectory)![0];
-        if (char.ToUpper(driveItem.Letter) == char.ToUpper(systemLetter))
+        if (IsSystemDrive(driveItem.Letter))
         {
             MessageBox.Show(L.T("msg.systemBody"), L.T("msg.systemTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
@@ -369,6 +361,15 @@ public partial class Form1 : Form
             if (label.Any(c => invalidChars.Contains(c)))
             {
                 MessageBox.Show(L.T("msg.invalidLabel"), L.T("msg.invalidTitle"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtLabel.Focus();
+                return;
+            }
+
+            int maxLabel = FormatLogic.MaxLabelLength(fs);
+            if (label.Length > maxLabel)
+            {
+                MessageBox.Show(L.T("msg.labelLong", maxLabel, fs), L.T("msg.labelLongTitle"),
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtLabel.Focus();
                 return;
@@ -483,7 +484,8 @@ public partial class Form1 : Form
         char driveLetter, string fs, long allocBytes, string label,
         bool quickFormat, bool compress, CancellationToken ct)
     {
-        string args = BuildEncodedFormatCommand(driveLetter, fs, allocBytes, label, quickFormat, compress);
+        string script = FormatLogic.BuildVolumeScript(driveLetter, fs, allocBytes, label, quickFormat, compress);
+        string args   = FormatLogic.EncodeArguments(script);
         var psi = new ProcessStartInfo
         {
             FileName               = "powershell.exe",
@@ -509,18 +511,19 @@ public partial class Form1 : Form
         char driveLetter, string fs, long allocBytes, string label, CancellationToken ct)
     {
         string formatExe = Path.Combine(Environment.SystemDirectory, "format.com");
-        string args = $"{driveLetter}: /FS:{fs} /A:{allocBytes} /V:\"{label}\"";
 
         var psi = new ProcessStartInfo
         {
             FileName               = formatExe,
-            Arguments              = args,
             UseShellExecute        = false,
             RedirectStandardInput  = true,
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
             CreateNoWindow         = true,
         };
+        // ArgumentList escapa cada argumento por separado: la etiqueta no puede romper la línea de comandos.
+        foreach (string a in FormatLogic.BuildComArgumentList(driveLetter, fs, allocBytes, label))
+            psi.ArgumentList.Add(a);
 
         _activeProcess = new Process { StartInfo = psi };
         _activeProcess.Start();
@@ -539,16 +542,21 @@ public partial class Form1 : Form
         var sb = new StringBuilder();
         var buffer = new char[512];
         int read, lastPct = -1;
+        string carry = "";  // cola del fragmento previo, por si un token "NN%" queda partido entre lecturas
         var reader = _activeProcess.StandardOutput;
         while ((read = await reader.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
         {
-            sb.Append(buffer, 0, read);
-            int pct = ExtractPercent(new string(buffer, 0, read));
+            string chunk = new(buffer, 0, read);
+            sb.Append(chunk);
+
+            string scan = carry + chunk;
+            int pct = FormatLogic.ExtractPercent(scan);
             if (pct >= 0 && pct != lastPct)
             {
                 lastPct = pct;
                 progressBar.Value = Math.Clamp(pct, 0, 100);
             }
+            carry = scan.Length > 16 ? scan[^16..] : scan;
         }
 
         string err = await errTask;
@@ -559,35 +567,17 @@ public partial class Form1 : Form
         return (_activeProcess.ExitCode, output);
     }
 
-    private static int ExtractPercent(string chunk)
-    {
-        var matches = Regex.Matches(chunk, @"(\d{1,3})\s*(?:%|percent|por\s*ciento)", RegexOptions.IgnoreCase);
-        if (matches.Count == 0) return -1;
-        return int.TryParse(matches[^1].Groups[1].Value, out int v) ? v : -1;
-    }
-
-    private static string BuildEncodedFormatCommand(
-        char driveLetter, string fs, long allocBytes,
-        string label, bool quickFormat, bool compress)
-    {
-        var ps = new StringBuilder("Format-Volume");
-        ps.Append($" -DriveLetter {driveLetter}");
-        ps.Append($" -FileSystem {fs}");
-        ps.Append($" -AllocationUnitSize {allocBytes}");
-        if (!string.IsNullOrEmpty(label)) ps.Append($" -NewFileSystemLabel '{label.Replace("'", "''")}'");
-        if (!quickFormat)                 ps.Append(" -Full");
-        if (compress && fs == "NTFS")     ps.Append(" -Compress");
-        ps.Append(" -Confirm:$false -Force");
-
-        byte[] encoded = Encoding.Unicode.GetBytes(ps.ToString());
-        return $"-NonInteractive -NoProfile -EncodedCommand {Convert.ToBase64String(encoded)}";
-    }
-
     // ── Capacity verification ────────────────────────────────────
 
     private async void mnuVerify_Click(object? sender, EventArgs e)
     {
         if (_isBusy || cboDrive.SelectedItem is not DriveItem item) return;
+
+        if (item.IsProtected || IsSystemDrive(item.Letter))
+        {
+            MessageBox.Show(L.T("msg.protBody"), L.T("msg.protTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
 
         if (MessageBox.Show(L.T("verify.warn", item.Letter), L.T("verify.title"),
                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
@@ -817,6 +807,13 @@ public partial class Form1 : Form
 
     // ── Helpers ───────────────────────────────────────────────────
 
+    /// <summary>True si <paramref name="letter"/> es la unidad que contiene Windows.</summary>
+    private static bool IsSystemDrive(char letter)
+    {
+        char sys = Path.GetPathRoot(Environment.SystemDirectory)![0];
+        return char.ToUpper(letter) == char.ToUpper(sys);
+    }
+
     private void SetFormEnabled(bool enabled)
     {
         bool canFormat = enabled && !_isDriveProtected;
@@ -863,13 +860,7 @@ public partial class Form1 : Form
         e.DrawFocusRectangle();
     }
 
-    private static string FormatBytes(long bytes)
-    {
-        string[] u = ["B", "KB", "MB", "GB", "TB"];
-        double v = bytes; int i = 0;
-        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
-        return $"{v:F1} {u[i]}";
-    }
+    private static string FormatBytes(long bytes) => FormatLogic.FormatBytes(bytes);
 
     private static string DriveTypeName(DriveType t) => t switch
     {

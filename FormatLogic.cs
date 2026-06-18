@@ -1,0 +1,86 @@
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace FormatDiskPro;
+
+/// <summary>
+/// Lógica pura de construcción de comandos de formato y parseo de progreso.
+/// Sin estado ni dependencias de UI: es directamente testeable en aislamiento.
+/// </summary>
+public static partial class FormatLogic
+{
+    /// <summary>
+    /// Construye el script PowerShell <c>Format-Volume</c> (sin codificar).
+    /// La etiqueta se escapa para una cadena entre comillas simples de PowerShell.
+    /// </summary>
+    public static string BuildVolumeScript(
+        char driveLetter, string fs, long allocBytes,
+        string label, bool quickFormat, bool compress)
+    {
+        var ps = new StringBuilder("Format-Volume");
+        ps.Append($" -DriveLetter {driveLetter}");
+        ps.Append($" -FileSystem {fs}");
+        ps.Append($" -AllocationUnitSize {allocBytes}");
+        if (!string.IsNullOrEmpty(label)) ps.Append($" -NewFileSystemLabel '{label.Replace("'", "''")}'");
+        if (!quickFormat)                 ps.Append(" -Full");
+        if (compress && fs == "NTFS")     ps.Append(" -Compress");
+        ps.Append(" -Confirm:$false -Force");
+        return ps.ToString();
+    }
+
+    /// <summary>Codifica un script como argumentos <c>-EncodedCommand</c> (Base64 UTF-16LE) de powershell.exe.</summary>
+    public static string EncodeArguments(string script)
+    {
+        byte[] encoded = Encoding.Unicode.GetBytes(script);
+        return $"-NonInteractive -NoProfile -EncodedCommand {Convert.ToBase64String(encoded)}";
+    }
+
+    /// <summary>Decodifica los argumentos producidos por <see cref="EncodeArguments"/> de vuelta al script original.</summary>
+    public static string DecodeArguments(string arguments)
+    {
+        const string marker = "-EncodedCommand ";
+        int i = arguments.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0) return "";
+        string b64 = arguments[(i + marker.Length)..].Trim();
+        return Encoding.Unicode.GetString(Convert.FromBase64String(b64));
+    }
+
+    /// <summary>
+    /// Argumentos para <c>format.com</c> como lista (cada elemento se escapa de forma independiente
+    /// por el runtime, evitando inyección a través de la etiqueta).
+    /// </summary>
+    public static IReadOnlyList<string> BuildComArgumentList(char driveLetter, string fs, long allocBytes, string label)
+    {
+        var args = new List<string> { $"{driveLetter}:", $"/FS:{fs}", $"/A:{allocBytes}" };
+        if (!string.IsNullOrEmpty(label)) args.Add($"/V:{label}");
+        return args;
+    }
+
+    /// <summary>Longitud máxima de etiqueta de volumen permitida por sistema de archivos.</summary>
+    public static int MaxLabelLength(string fs) => fs switch
+    {
+        "NTFS" or "ReFS"            => 32,
+        "FAT32" or "FAT" or "exFAT" => 11,
+        _                           => 32,
+    };
+
+    /// <summary>Extrae el último porcentaje (0-100) de un fragmento de salida de <c>format.com</c>; -1 si no hay.</summary>
+    public static int ExtractPercent(string chunk)
+    {
+        var matches = PercentRegex().Matches(chunk);
+        if (matches.Count == 0) return -1;
+        return int.TryParse(matches[^1].Groups[1].Value, out int v) ? v : -1;
+    }
+
+    /// <summary>Formatea una cantidad de bytes en una cadena legible (B, KB, MB, GB, TB).</summary>
+    public static string FormatBytes(long bytes)
+    {
+        string[] u = ["B", "KB", "MB", "GB", "TB"];
+        double v = bytes; int i = 0;
+        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
+        return $"{v:F1} {u[i]}";
+    }
+
+    [GeneratedRegex(@"(\d{1,3})\s*(?:%|percent|por\s*ciento)", RegexOptions.IgnoreCase)]
+    private static partial Regex PercentRegex();
+}

@@ -410,7 +410,6 @@ namespace FormatDiskPro
             chkQuickFormat.Size = new Size(135, 24);
             chkQuickFormat.TabIndex = 0;
             chkQuickFormat.Text = "Formato rápido";
-            chkQuickFormat.CheckedChanged += chkQuickFormat_CheckedChanged;
             //
             // chkCompress
             //
