@@ -11,11 +11,4 @@
     <Version>1.1.0</Version>
   </PropertyGroup>
 
-  <!-- El proyecto de pruebas vive bajo este directorio; evitar que su código sea absorbido por el glob por defecto. -->
-  <ItemGroup>
-    <Compile Remove="tests/**/*.cs" />
-    <EmbeddedResource Remove="tests/**" />
-    <None Remove="tests/**" />
-  </ItemGroup>
-
 </Project>

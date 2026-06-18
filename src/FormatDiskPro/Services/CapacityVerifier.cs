@@ -6,8 +6,9 @@ namespace FormatDiskPro;
 /// </summary>
 public static class CapacityVerifier
 {
-    private const int BlockSize    = 8 * 1024 * 1024;  // 8 MB por bloque
-    private const long SafetyMargin = 64L * 1024 * 1024; // dejar 64 MB libres
+    private const int  BlockSize    = 8 * 1024 * 1024;          // 8 MB: unidad del patrón anti-aliasing
+    private const long MaxFileSize  = 1L * 1024 * 1024 * 1024;  // 1 GB por archivo (seguro incluso en FAT32)
+    private const long SafetyMargin = 64L * 1024 * 1024;        // dejar 64 MB libres
 
     public sealed record VerifyResult(bool Ok, long WrittenBytes, string FailureDetail);
 
@@ -19,7 +20,9 @@ public static class CapacityVerifier
         CancellationToken ct)
     {
         string dir = $"{letter}:\\__fdp_verify__";
-        var files = new List<(string Path, int Index, int Length)>();
+        // Cada archivo agrupa varios bloques de 8 MB; guardamos el índice de bloque global inicial
+        // para regenerar el patrón exacto durante la verificación (la detección de aliasing se preserva).
+        var files = new List<(string Path, int StartBlock, long Length)>();
         long totalWritten = 0;
 
         try
@@ -33,25 +36,35 @@ public static class CapacityVerifier
 
             // ── Fase de escritura ─────────────────────────────────
             var buffer = new byte[BlockSize];
-            int index = 0;
+            int blockIndex = 0;
+            int fileNo = 0;
             while (totalWritten < target)
             {
-                ct.ThrowIfCancellationRequested();
-                int size = (int)Math.Min(BlockSize, target - totalWritten);
-                FillPattern(buffer, index, size);
+                long fileTarget = Math.Min(MaxFileSize, target - totalWritten);
+                string path = Path.Combine(dir, $"vol_{fileNo:D4}.bin");
+                int startBlock = blockIndex;
+                long fileWritten = 0;
 
-                string path = Path.Combine(dir, $"blk_{index:D6}.bin");
                 await using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write,
                                  FileShare.None, 1 << 20, FileOptions.WriteThrough))
                 {
-                    await fs.WriteAsync(buffer.AsMemory(0, size), ct);
+                    while (fileWritten < fileTarget)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        int size = (int)Math.Min(BlockSize, fileTarget - fileWritten);
+                        FillPattern(buffer, blockIndex, size);
+                        await fs.WriteAsync(buffer.AsMemory(0, size), ct);
+
+                        fileWritten  += size;
+                        totalWritten += size;
+                        blockIndex++;
+                        int pct = target > 0 ? (int)(totalWritten * 100 / target) : 100;
+                        progress.Report((Phase.Writing, pct, totalWritten));
+                    }
                 }
 
-                files.Add((path, index, size));
-                totalWritten += size;
-                index++;
-                int pct = target > 0 ? (int)(totalWritten * 100 / target) : 100;
-                progress.Report((Phase.Writing, pct, totalWritten));
+                files.Add((path, startBlock, fileWritten));
+                fileNo++;
             }
 
             // ── Fase de lectura/verificación ──────────────────────
@@ -61,26 +74,34 @@ public static class CapacityVerifier
             foreach (var f in files)
             {
                 ct.ThrowIfCancellationRequested();
-                FillPattern(expected, f.Index, f.Length);
 
-                await using (var fs = new FileStream(f.Path, FileMode.Open, FileAccess.Read,
-                                 FileShare.None, 1 << 20, FileOptions.SequentialScan))
+                await using var fs = new FileStream(f.Path, FileMode.Open, FileAccess.Read,
+                                 FileShare.None, 1 << 20, FileOptions.SequentialScan);
+                long fileRead = 0;
+                int blk = f.StartBlock;
+                while (fileRead < f.Length)
                 {
+                    ct.ThrowIfCancellationRequested();
+                    int size = (int)Math.Min(BlockSize, f.Length - fileRead);
+                    FillPattern(expected, blk, size);
+
                     int total = 0, read;
-                    while (total < f.Length &&
-                           (read = await fs.ReadAsync(readBuf.AsMemory(total, f.Length - total), ct)) > 0)
+                    while (total < size &&
+                           (read = await fs.ReadAsync(readBuf.AsMemory(total, size - total), ct)) > 0)
                         total += read;
 
-                    if (total != f.Length)
-                        return new VerifyResult(false, verified, $"short-read@{f.Index}");
+                    if (total != size)
+                        return new VerifyResult(false, verified, $"short-read@{blk}");
 
-                    if (!readBuf.AsSpan(0, f.Length).SequenceEqual(expected.AsSpan(0, f.Length)))
-                        return new VerifyResult(false, verified, $"mismatch@{f.Index}");
+                    if (!readBuf.AsSpan(0, size).SequenceEqual(expected.AsSpan(0, size)))
+                        return new VerifyResult(false, verified, $"mismatch@{blk}");
+
+                    verified += size;
+                    fileRead += size;
+                    blk++;
+                    int pct = totalWritten > 0 ? (int)(verified * 100 / totalWritten) : 100;
+                    progress.Report((Phase.Reading, pct, verified));
                 }
-
-                verified += f.Length;
-                int pct = totalWritten > 0 ? (int)(verified * 100 / totalWritten) : 100;
-                progress.Report((Phase.Reading, pct, verified));
             }
 
             return new VerifyResult(true, totalWritten, "");

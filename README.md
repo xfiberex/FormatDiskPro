@@ -49,7 +49,15 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 dotnet build -c Release
 ```
 
-El ejecutable queda en `bin\Release\net10.0-windows\FormatDiskPro.exe`.
+El ejecutable queda en `src\FormatDiskPro\bin\Release\net10.0-windows\FormatDiskPro.exe`.
+
+### Pruebas
+
+```bash
+dotnet test
+```
+
+Las pruebas unitarias (xUnit) cubren la lógica pura: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta y consistencia de presets.
 
 ## Uso
 
@@ -58,7 +66,7 @@ El ejecutable queda en `bin\Release\net10.0-windows\FormatDiskPro.exe`.
 3. Elegir sistema de archivos, tamaño de cluster y etiqueta (o aplicar un **Preset** desde el menú *Configuración*)
 4. Pulsar **Iniciar**, escribir la letra de la unidad para confirmar y aceptar
 
-> **Nota de seguridad**: los discos fijos aparecen marcados como `[Protegido]` y todos sus controles de formato quedan deshabilitados. Solo es posible formatear unidades removibles y discos RAM.
+> **Nota de seguridad**: el disco del sistema (donde reside Windows) aparece marcado como `[Protegido]` y todos sus controles de formato quedan deshabilitados. El resto de unidades — removibles, discos de datos fijos y discos RAM — pueden formatearse. Antes de iniciar se exige confirmar escribiendo la letra de la unidad.
 
 ### Menú
 
@@ -80,15 +88,25 @@ El ejecutable queda en `bin\Release\net10.0-windows\FormatDiskPro.exe`.
 
 ## Arquitectura
 
-| Archivo | Responsabilidad |
-|---------|-----------------|
-| `Form1.cs` / `Form1.Designer.cs` | UI principal y orquestación |
-| `Localization.cs` | Cadenas ES/EN centralizadas |
-| `DiskService.cs` | S.M.A.R.T., expulsión y borrado seguro (PowerShell) |
-| `CapacityVerifier.cs` | Verificación de capacidad real |
-| `ConfirmFormatDialog.cs` | Confirmación reforzada |
-| `Presets.cs` | Configuraciones predefinidas |
-| `History.cs` | Registro de auditoría |
+Separación por capas (lógica pura aislada de los efectos colaterales y de la UI):
+
+```
+src/FormatDiskPro/
+├─ Core/            Lógica pura y testeable
+│  ├─ FormatLogic.cs        Construcción de comandos, parseo de progreso, formato de bytes
+│  └─ Presets.cs            Configuraciones predefinidas
+├─ Services/        Efectos colaterales (procesos / disco)
+│  ├─ DiskService.cs        S.M.A.R.T., expulsión y borrado seguro (PowerShell)
+│  ├─ CapacityVerifier.cs   Verificación de capacidad real
+│  └─ History.cs            Registro de auditoría
+├─ UI/              Windows Forms
+│  ├─ Form1.cs / Form1.Designer.cs   Ventana principal y orquestación
+│  └─ ConfirmFormatDialog.cs         Confirmación reforzada
+├─ Localization/    Cadenas ES/EN centralizadas
+└─ Program.cs       Punto de entrada
+
+tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core
+```
 
 ## Stack
 

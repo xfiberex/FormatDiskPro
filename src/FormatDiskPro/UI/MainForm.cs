@@ -3,7 +3,7 @@ using System.Text;
 
 namespace FormatDiskPro;
 
-public partial class Form1 : Form
+public partial class MainForm : Form
 {
     private static readonly Dictionary<string, (long[] Sizes, long Default)> FsDefaults = new()
     {
@@ -43,7 +43,7 @@ public partial class Form1 : Form
     private char _healthLetter;
     private DiskService.HealthInfo? _lastHealth;
 
-    public Form1()
+    public MainForm()
     {
         InitializeComponent();
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }

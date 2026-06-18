@@ -1,6 +1,6 @@
 namespace FormatDiskPro
 {
-    partial class Form1
+    partial class MainForm
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -478,7 +478,7 @@ namespace FormatDiskPro
             timerElapsed.Interval = 1000;
             timerElapsed.Tick += timerElapsed_Tick;
             //
-            // Form1
+            // MainForm
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -508,7 +508,7 @@ namespace FormatDiskPro
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            Name = "Form1";
+            Name = "MainForm";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "FormatDiskPro";
             menuStrip.ResumeLayout(false);

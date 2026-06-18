@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\FormatDiskPro.csproj" />
+    <ProjectReference Include="..\..\src\FormatDiskPro\FormatDiskPro.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="FormatDiskPro.csproj" />
+  <Project Path="src/FormatDiskPro/FormatDiskPro.csproj" />
   <Project Path="tests/FormatDiskPro.Tests/FormatDiskPro.Tests.csproj" />
 </Solution>
