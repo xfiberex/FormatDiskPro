@@ -15,3 +15,22 @@ Lee [`CONTEXT.md`](../CONTEXT.md) (raíz del repo) al iniciar una sesión: resum
 las decisiones y convenciones, el estado actual y el registro de cambios. **Mantenlo actualizado**
 tras cada cambio relevante (sección _Estado actual_ + nueva entrada en _Registro de cambios_,
 con fecha absoluta), y commitéalo junto con el cambio para conservar el contexto entre equipos.
+
+## Skills del proyecto (`.agents/skills/`)
+
+El repo incluye skills de buenas prácticas C#/.NET (registro `github/awesome-copilot`).
+**Consúltalas antes del trabajo correspondiente** (léelas en `.agents/skills/<nombre>/SKILL.md`,
+o invócalas con la herramienta Skill si están disponibles en la sesión):
+
+| Cuándo | Skill |
+|--------|-------|
+| Escribir/editar **pruebas** | `csharp-xunit` — el proyecto usa **xUnit** |
+| Código **async/await** (formateo, descargas, verificación de capacidad) | `csharp-async` |
+| **Documentación XML** (`/// <summary>`) | `csharp-docs` |
+| Cualquier código C#/.NET nuevo o refactor | `dotnet-best-practices` |
+| Revisión de **patrones de diseño** | `dotnet-design-pattern-review` |
+| **Actualizar la versión** del framework (.NET 10 → futuras) | `dotnet-upgrade` |
+
+> **Pruebas:** el framework del proyecto es **xUnit** (`csharp-xunit`). Las skills `csharp-mstest`,
+> `csharp-nunit` y `csharp-tunit` también están presentes pero **no se usan aquí**; no cambies de
+> framework de pruebas salvo que el usuario lo pida.

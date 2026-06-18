@@ -80,6 +80,9 @@ WinForms/Process/HttpClient). La UI y los servicios la consumen. Namespace únic
   (si no, los acentos rompen el parser). `release.ps1` ya lo tiene.
 - **`gh` (GitHub CLI):** si no está autenticado, los scripts reutilizan la credencial de git
   cacheada (`git credential fill` → `GH_TOKEN`), solo en local, sin imprimir el token.
+- **Skills de buenas prácticas** en `.agents/skills/` (registro `awesome-copilot`); ver la
+  tabla de uso en `.claude/CLAUDE.md`. Framework de pruebas del proyecto: **xUnit** (`csharp-xunit`);
+  no usar mstest/nunit/tunit aunque estén presentes.
 
 ## 5. Tareas comunes
 
@@ -110,6 +113,10 @@ WinForms/Process/HttpClient). La UI y los servicios la consumen. Namespace únic
 ---
 
 ## Registro de cambios
+
+### 2026-06-18 — docs: skills del proyecto en CLAUDE.md
+- Añadida a `.claude/CLAUDE.md` la tabla de uso de las skills de `.agents/skills/` (cuándo usar cada una).
+- Fijado **xUnit** como framework de pruebas (`csharp-xunit`); mstest/nunit/tunit presentes pero sin uso.
 
 ### 2026-06-18 — v1.1.0: arquitectura por capas, hardening, tests, actualizaciones e instalador
 
