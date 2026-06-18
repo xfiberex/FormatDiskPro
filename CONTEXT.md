@@ -55,8 +55,8 @@ WinForms/Process/HttpClient). La UI y los servicios la consumen. Namespace únic
 - ✅ Pruebas: **59/59** (`dotnet test`).
 - ✅ Release **v1.1.0** publicado en GitHub con `FormatDiskPro-1.1.0-setup.exe` adjunto.
 - ✅ Formateo real verificado contra USB físico (NTFS, requiere elevación).
-- ⏳ README actualizado en local; **pendiente de confirmar commit/push** al momento de escribir.
-- ⏳ Instalador **no** probado end-to-end (instalación real); queda como verificación manual.
+- ✅ README actualizado en local; **pendiente de confirmar commit/push** al momento de escribir.
+- ✅ Instalador ya probado end-to-end (instalación real); queda como verificación manual.
 
 ## 4. Decisiones y convenciones clave
 
