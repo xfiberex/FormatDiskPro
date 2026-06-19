@@ -55,8 +55,9 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
 - ✅ Pruebas: **59/59** (`dotnet test`).
 - ✅ Release **v1.1.0** publicado en GitHub con `FormatDiskPro-1.1.0-setup.exe` adjunto.
-- ✅ Barra de título: `ExtendsContentIntoTitleBar = true` + Mica uniforme + botones caption con colores nativos del sistema.
-- ✅ Tema: sigue el tema del sistema automáticamente (`UISettings.ColorValuesChanged`); opción manual Automático/Claro/Oscuro en menú.
+- ✅ Barra de título: **`Window.ExtendsContentIntoTitleBar = true`** (a nivel de Window) + `PreferredHeightOption = Tall` (48 px) + icono 16 px + `CaptionTextBlockStyle`. WinUI tematiza solo los botones caption (min/max/cerrar) según el tema **efectivo** del contenido.
+- ✅ Tema: sigue el tema del sistema automáticamente (`UISettings.ColorValuesChanged`); opción manual Automático/Claro/Oscuro en menú. Colores derivados de recursos/valores Fluent (`SystemFillColorCritical`, `TextFillColorPrimary`).
+- ✅ Ventana fija no redimensionable (`OverlappedPresenter.IsResizable/IsMaximizable = false`); Mica con degradación a Acrylic si el sistema no la soporta.
 - ✅ Verificación funcional pendiente: formato real en USB, verificación de capacidad, historial, actualizaciones.
 
 ## 4. Decisiones y convenciones clave
@@ -114,6 +115,28 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-19 — fix/ui: paridad Windows 11 25H2 y tematización de botones de caption
+
+**Botones de título (min/max/cerrar) — bug de tematización**
+- Causa raíz: `UpdateTitleBarColors()` derivaba el color de los botones de `UISettings.GetColorValue(UIColorType.Foreground)`, que refleja el **modo de aplicación del sistema**, no el tema **efectivo** de la app. Al forzar Claro/Oscuro desde el menú en contra del sistema, los glifos quedaban con el color equivocado (casi invisibles).
+- Solución: se sustituye `AppWindow.TitleBar.ExtendsContentIntoTitleBar` por la propiedad a nivel de **`Window.ExtendsContentIntoTitleBar = true`**; WinUI dibuja y tematiza los botones caption automáticamente siguiendo el `RequestedTheme` del contenido (incluye hover/pressed/inactive y el rojo de cerrar). Se elimina `UpdateTitleBarColors()`.
+- `AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall` (48 px, look 25H2); fila `AppTitleBar` a 48 px con icono 16 px (`BitmapImage` desde `FormatDiskPro.ico`) y `CaptionTextBlockStyle`.
+
+**Colores Fluent (en vez de hardcodeados)**
+- `ProtectedColor()` → valores de `SystemFillColorCritical` (`#C42B1C` claro / `#FF99A4` oscuro).
+- `DriveBrush()` no protegido → `TextFillColorPrimary` (`#E4000000` claro / `#FFFFFF` oscuro).
+- `ConfirmDialog`: `PromptText.Foreground` ahora usa `{ThemeResource SystemFillColorCriticalBrush}` en XAML (se resuelve contra el `RequestedTheme` del diálogo → corrige el contraste pobre del rojo fijo en modo oscuro).
+
+**Iconografía y accesibilidad**
+- Botón Refrescar: glifo Unicode `↻` → `FontIcon` Segoe Fluent Icons (`&#xE72C;`) + `AutomationProperties.Name` localizado.
+- Etiquetas de `Unidad`, `Sistema de archivos`, `Tamaño de unidad de asignación` y `Etiqueta del volumen` migradas de `TextBlock` suelto a la propiedad **`Header`** del `ComboBox`/`TextBox` (patrón Fluent + asociación para lectores de pantalla). `ApplyLanguage` ahora setea `.Header`.
+
+**Robustez**
+- Ventana fija no redimensionable (`OverlappedPresenter.IsResizable/IsMaximizable = false`).
+- `SetSystemBackdrop()`: Mica si `MicaController.IsSupported()`, si no degrada a `DesktopAcrylicBackdrop`.
+
+**Sin cambios**: `Core/`, `Services/`, `Localization/L.cs`, lógica de negocio. Build 0/0, 59/59 tests ✅.
 
 ### 2026-06-19 — feat: barra de título nativa, tema automático y colores de sistema
 

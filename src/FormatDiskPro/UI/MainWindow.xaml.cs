@@ -1,8 +1,10 @@
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics;
 using Windows.UI;
 using Windows.UI.ViewManagement;
@@ -63,10 +65,22 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        AppWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+
+        // Window-level title bar extension: WinUI draws and themes the caption
+        // (minimize/maximize/close) buttons automatically, following the content's
+        // effective theme — including when the user forces Light/Dark from the menu.
+        ExtendsContentIntoTitleBar = true;
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
 
         Title = "FormatDiskPro";
-        SystemBackdrop = new MicaBackdrop();
+        SetSystemBackdrop();
+
+        // Fixed-size utility window (per design): disable resize/maximize.
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.IsResizable   = false;
+            presenter.IsMaximizable = false;
+        }
         AppWindow.Resize(new SizeInt32(500, 840));
         CenterWindow();
 
@@ -75,7 +89,11 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing += AppWindow_Closing;
 
         var icoPath = Path.Combine(AppContext.BaseDirectory, "FormatDiskPro.ico");
-        if (File.Exists(icoPath)) AppWindow.SetIcon(icoPath);
+        if (File.Exists(icoPath))
+        {
+            AppWindow.SetIcon(icoPath);
+            TitleBarIcon.Source = new BitmapImage(new Uri(icoPath));
+        }
         SetTitleBar(AppTitleBar);
 
         DrivePicker.ItemsSource = _driveItems;
@@ -97,6 +115,15 @@ public sealed partial class MainWindow : Window
         AppWindow.Move(new PointInt32(
             (area.Width  - 500) / 2,
             (area.Height - 840) / 2));
+    }
+
+    /// <summary>Aplica Mica si el sistema lo soporta; si no, degrada a Acrylic de escritorio.</summary>
+    private void SetSystemBackdrop()
+    {
+        if (MicaController.IsSupported())
+            SystemBackdrop = new MicaBackdrop();
+        else if (DesktopAcrylicController.IsSupported())
+            SystemBackdrop = new DesktopAcrylicBackdrop();
     }
 
     private async void OnFirstActivated(object sender, WindowActivatedEventArgs e)
@@ -259,13 +286,15 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    // Fluent SystemFillColorCritical: #C42B1C (light) / #FF99A4 (dark).
     private Color ProtectedColor() =>
-        _darkMode ? Color.FromArgb(255, 255, 120, 120) : Color.FromArgb(255, 192, 0, 0);
+        _darkMode ? Color.FromArgb(255, 255, 153, 164) : Color.FromArgb(255, 196, 43, 28);
 
+    // Fluent TextFillColorPrimary: #E4000000 (light) / #FFFFFFFF (dark).
     private SolidColorBrush DriveBrush(bool isProtected) =>
         isProtected
             ? new SolidColorBrush(ProtectedColor())
-            : new SolidColorBrush(_darkMode ? Color.FromArgb(255, 250, 249, 248) : Color.FromArgb(255, 28, 27, 31));
+            : new SolidColorBrush(_darkMode ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(228, 0, 0, 0));
 
     private void UpdateInfo(DriveInfo drive)
     {
@@ -894,10 +923,10 @@ public sealed partial class MainWindow : Window
         MnuUpdates.Text  = L.T("menu.updates");
         MnuAbout.Text    = L.T("menu.about");
 
-        DriveLbl.Text        = L.T("drive.label");
-        FileSystemLbl.Text   = L.T("fs.label");
-        AllocUnitLbl.Text    = L.T("alloc.label");
-        VolumeLabelLbl.Text  = L.T("label.label");
+        DrivePicker.Header      = L.T("drive.label");
+        FileSystemPicker.Header = L.T("fs.label");
+        AllocUnitPicker.Header  = L.T("alloc.label");
+        VolumeLabelBox.Header   = L.T("label.label");
         OptionsGroupLbl.Text = L.T("options.group");
         QuickFormatCheck.Content = L.T("opt.quick");
         CompressCheck.Content    = L.T("opt.compress");
@@ -906,6 +935,7 @@ public sealed partial class MainWindow : Window
         StartButton.Content      = L.T("btn.start");
         if (!_isBusy) CloseButton.Content = L.T("btn.close");
         RefreshTooltip.Content   = L.T("tip.refresh");
+        AutomationProperties.SetName(RefreshButton, L.T("tip.refresh"));
 
         MnuLangEs.IsChecked = L.Current == AppLang.Es;
         MnuLangEn.IsChecked = L.Current == AppLang.En;
@@ -949,20 +979,6 @@ public sealed partial class MainWindow : Window
 
         if (_isDriveProtected)
             StatusText.Foreground = new SolidColorBrush(ProtectedColor());
-
-        UpdateTitleBarColors();
-    }
-
-    private void UpdateTitleBarColors()
-    {
-        if (!AppWindowTitleBar.IsCustomizationSupported()) return;
-        var tb   = AppWindow.TitleBar;
-        Color fg   = _uiSettings.GetColorValue(UIColorType.Foreground);
-        Color none = Color.FromArgb(0, 0, 0, 0);
-        tb.ButtonForegroundColor         = fg;
-        tb.ButtonInactiveForegroundColor = fg;
-        tb.ButtonBackgroundColor         = none;
-        tb.ButtonInactiveBackgroundColor = none;
     }
 
     // ── Operation lifecycle ───────────────────────────────────────

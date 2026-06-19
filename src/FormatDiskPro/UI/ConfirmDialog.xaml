@@ -20,7 +20,8 @@
             <TextBlock x:Name="SummaryText" TextWrapping="Wrap" FontSize="12.5"
                        FontFamily="Consolas" Margin="2,0" />
         </ScrollViewer>
-        <TextBlock x:Name="PromptText" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock x:Name="PromptText" FontWeight="SemiBold" TextWrapping="Wrap"
+                   Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
         <TextBox x:Name="InputBox" MaxLength="1" HorizontalAlignment="Stretch"
                  PlaceholderText="…" />
     </StackPanel>

@@ -1,6 +1,4 @@
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 
 namespace FormatDiskPro.UI;
 
@@ -25,7 +23,6 @@ public sealed partial class ConfirmDialog : ContentDialog
 
         SummaryText.Text = summary;
         PromptText.Text  = L.T("confirm.prompt", _letter);
-        PromptText.Foreground = new SolidColorBrush(Color.FromArgb(255, 192, 0, 0));
         InputBox.PlaceholderText = _letter;
 
         InputBox.TextChanged += (_, _) =>
