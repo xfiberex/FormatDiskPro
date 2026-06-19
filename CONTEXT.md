@@ -7,9 +7,9 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-19
-- **Versión actual:** 1.2.0 (publicada, pero con **defecto crítico de empaquetado**: el instalador
-  se generó sin `FormatDiskPro.pri` → la app crashea al iniciar. Corregido en el árbol; **requiere
-  reempaquetar y publicar 1.2.1**). 1.1.0 era la última estable funcional (Windows Forms).
+- **Versión actual:** 1.2.1 (publicada — corrige el crash de arranque de la 1.2.0, que se generó sin
+  `FormatDiskPro.pri`). La 1.2.0 queda obsoleta/rota; los usuarios atrapados en ella deben descargar
+  la 1.2.1 manualmente (su app no abre, así que el auto-updater no corre).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -56,15 +56,15 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
 - ✅ Pruebas: **59/59** (`dotnet test`).
-- ✅ Release **v1.1.0** publicado en GitHub con `FormatDiskPro-1.1.0-setup.exe` adjunto.
+- ✅ Release **v1.2.1** publicado en GitHub con `FormatDiskPro-1.2.1-setup.exe` adjunto (corrige el crash de la 1.2.0).
 - ✅ Barra de título: **`Window.ExtendsContentIntoTitleBar = true`** (a nivel de Window) + `PreferredHeightOption = Tall` (48 px) + icono 16 px + `CaptionTextBlockStyle`. WinUI tematiza solo los botones caption (min/max/cerrar) según el tema **efectivo** del contenido.
 - ✅ Tema: sigue el tema del sistema automáticamente (`UISettings.ColorValuesChanged`); opción manual Automático/Claro/Oscuro en menú. Colores derivados de recursos/valores Fluent (`SystemFillColorCritical`, `TextFillColorPrimary`).
 - ✅ Ventana fija no redimensionable (`OverlappedPresenter.IsResizable/IsMaximizable = false`); Mica con degradación a Acrylic si el sistema no la soporta.
 - ⚠️ **Instalador/empaquetado:** corregido el bug que hacía crashear la 1.2.0 al iniciar (`dotnet publish`
   no incluía `FormatDiskPro.pri`; ahora un target MSBuild lo copia). Instalador limpia la instalación
   previa (`[InstallDelete]`), cierra la app vía `AppMutex`, hace **auto-actualización silenciosa con
-  relanzado**, y soporta **firma Authenticode** opcional (`build-installer.ps1`/`release.ps1`). **Falta
-  publicar 1.2.1** (idealmente firmado) y la prueba end-to-end real (la hace el usuario).
+  relanzado**, y soporta **firma Authenticode** opcional (`build-installer.ps1`/`release.ps1`). **1.2.1
+  publicada** sin firmar (un cert OV/EV es lo único que quitaría SmartScreen).
 - ✅ Verificación funcional pendiente: formato real en USB, verificación de capacidad, historial, actualizaciones.
 
 ## 4. Decisiones y convenciones clave
@@ -122,6 +122,14 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-19 — release: v1.2.1
+
+- Publicada **v1.2.1** (`release: v1.2.1` en `master`, tag `v1.2.1`, GitHub Release con
+  `FormatDiskPro-1.2.1-setup.exe` adjunto, **sin firmar**). Corrige el crash de arranque de la 1.2.0
+  (faltaba `FormatDiskPro.pri`) e incorpora `[InstallDelete]`, `AppMutex` y auto-actualización silenciosa.
+- `gh` no estaba instalado: el Release se creó vía API de GitHub reutilizando la credencial git cacheada.
+- **Nota para usuarios en la 1.2.0 rota:** su auto-updater no corre (la app no abre) → descarga manual de la 1.2.1.
 
 ### 2026-06-19 — fix(crítico): instalador/actualización — la 1.2.0 crasheaba al iniciar
 
