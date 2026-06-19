@@ -4,8 +4,12 @@
 ;  o vía script:  build-installer.ps1  (publica self-contained y compila)
 ;
 ;  Parámetros opcionales (vía /D al invocar ISCC):
-;    /DMyAppVersion=1.2.0     versión a estampar (por defecto 1.1.0)
+;    /DMyAppVersion=X.Y.Z     versión a estampar (por defecto: ver #define abajo)
 ;    /DPublishDir=<ruta>      carpeta de publicación de .NET (self-contained)
+;
+;  Requisitos mínimos:
+;    Windows 10 v2004 (19041) o superior — requerido por Windows App SDK 1.8.
+;    Arquitectura: x64.
 ; ============================================================================
 
 #define MyAppName "FormatDiskPro"
@@ -18,8 +22,9 @@
 #endif
 
 ; Carpeta con el resultado de `dotnet publish -r win-x64 --self-contained true`.
+; TFM: net10.0-windows10.0.19041.0 (WinUI 3 / Windows App SDK 1.8).
 #ifndef PublishDir
-  #define PublishDir "..\bin\Release\net10.0-windows\win-x64\publish"
+  #define PublishDir "..\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish"
 #endif
 
 [Setup]
@@ -47,6 +52,8 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+; Windows App SDK 1.8 requiere como mínimo Windows 10 v2004 (build 19041).
+MinVersion=10.0.19041
 ; Cierra la app si está en ejecución (clave para actualizaciones in-place).
 CloseApplications=yes
 RestartApplications=no

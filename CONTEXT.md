@@ -6,9 +6,9 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-18
+- **Última actualización de este documento:** 2026-06-19
 - **Versión actual:** 1.1.0 (publicada como release con instalador)
-- **Stack:** C# 13 · .NET 10 · Windows Forms (`net10.0-windows`) · xUnit · Inno Setup 6
+- **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
 
@@ -34,9 +34,10 @@ src/FormatDiskPro/
 │  ├─ CapacityVerifier.cs  Verificación de capacidad real (patrón anti-aliasing por bloque)
 │  ├─ UpdateService.cs     GitHub Releases API: consulta, descarga con progreso, lanza instalador
 │  └─ History.cs           Auditoría en %AppData%\FormatDiskPro\history.log
-├─ UI/              Windows Forms
-│  ├─ MainForm.cs / MainForm.Designer.cs   Ventana principal + orquestación
-│  └─ ConfirmFormatDialog.cs               Confirmación reforzada (escribir la letra)
+├─ UI/              WinUI 3 (Windows App SDK)
+│  ├─ MainWindow.xaml / MainWindow.xaml.cs  Ventana principal + orquestación
+│  ├─ ConfirmDialog.xaml / .xaml.cs         ContentDialog — confirmación reforzada (escribir la letra)
+│  └─ DriveViewModel.cs                     Binding model para el ComboBox de unidades
 ├─ Localization/    L.cs — diccionario ES/EN, L.T("clave")
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
@@ -47,16 +48,16 @@ FormatDiskPro.slnx           Solución (app + tests)
 ```
 
 **Regla de oro:** la lógica de negocio testeable vive en `Core` (sin dependencias de
-WinForms/Process/HttpClient). La UI y los servicios la consumen. Namespace único `FormatDiskPro`.
+WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `FormatDiskPro`.
 
 ## 3. Estado actual
 
-- ✅ Build de solución: **0 advertencias / 0 errores**.
+- ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
 - ✅ Pruebas: **59/59** (`dotnet test`).
 - ✅ Release **v1.1.0** publicado en GitHub con `FormatDiskPro-1.1.0-setup.exe` adjunto.
-- ✅ Formateo real verificado contra USB físico (NTFS, requiere elevación).
-- ✅ README actualizado en local; **pendiente de confirmar commit/push** al momento de escribir.
-- ✅ Instalador ya probado end-to-end (instalación real); queda como verificación manual.
+- ✅ Barra de título: `ExtendsContentIntoTitleBar = true` + Mica uniforme + botones caption con colores nativos del sistema.
+- ✅ Tema: sigue el tema del sistema automáticamente (`UISettings.ColorValuesChanged`); opción manual Automático/Claro/Oscuro en menú.
+- ✅ Verificación funcional pendiente: formato real en USB, verificación de capacidad, historial, actualizaciones.
 
 ## 4. Decisiones y convenciones clave
 
@@ -68,8 +69,8 @@ WinForms/Process/HttpClient). La UI y los servicios la consumen. Namespace únic
   para `format.com` se usa `ArgumentList` (escape por argumento).
 - **Verificación de capacidad:** bloques de 8 MB (unidad del patrón anti-aliasing) agrupados
   en archivos de 1 GB (seguro en FAT32, pocos archivos).
-- **Publicación:** `dotnet publish` **self-contained** `win-x64` → el usuario final NO necesita
-  instalar .NET.
+- **Publicación:** `dotnet publish` **self-contained** `win-x64` (`WindowsAppSDKSelfContained=true`) →
+  el usuario final NO necesita instalar .NET ni Windows App SDK.
 - **Instalador (Inno Setup):** `AppId = {CEC07916-C9B5-4EA8-9102-3273384395AD}` — **no cambiar
   nunca** (permite actualización in-place). `PrivilegesRequired=admin`, `CloseApplications=yes`.
 - **Versionado:** fuente única en `src/FormatDiskPro/FormatDiskPro.csproj` `<Version>`.
@@ -113,6 +114,47 @@ WinForms/Process/HttpClient). La UI y los servicios la consumen. Namespace únic
 ---
 
 ## Registro de cambios
+
+### 2026-06-19 — feat: barra de título nativa, tema automático y colores de sistema
+
+**Barra de título (title bar)**
+- `ExtendsContentIntoTitleBar = true`: el contenido XAML se extiende hasta el borde superior; Mica cubre la ventana de forma uniforme (sin línea de separación sistema/XAML).
+- `AppTitleBar` XAML (Grid 32 px, Row 0): área de arrastre registrada con `SetTitleBar()`; el `TextBlock` "FormatDiskPro" hereda el foreground del tema automáticamente.
+- `SetIcon()` con `FormatDiskPro.ico` para la barra de tareas y ALT+Tab.
+- Eliminada la banda azul del encabezado (`Background="#FF006EB4"` con título + subtítulo de unidad) — la información de unidad ya está disponible en el ComboBox y el panel de info.
+
+**Colores de los botones de caption**
+- `UpdateTitleBarColors()` lee `UISettings.GetColorValue(UIColorType.Foreground)` para obtener el color exacto del sistema (sin valores hardcodeados), haciendo que los botones min/max/close sean visualmente idénticos a los nativos de Windows 11.
+- `ButtonBackgroundColor = transparent`: el área de fondo de los botones muestra Mica pura.
+
+**Tema del sistema**
+- La app sigue el tema de Windows en tiempo real: `UISettings.ColorValuesChanged` → `DispatcherQueue.TryEnqueue` → `ApplyTheme(IsSystemDark())`.
+- `IsSystemDark()` lee `UIColorType.Background` (fondo oscuro ↔ R < 128).
+- `((FrameworkElement)Content).RequestedTheme = ElementTheme.Default` se establece una vez en el constructor; WinUI 3 y Mica se adaptan solos.
+- Menú **Configuración → Tema** restaurado con tres opciones: **Automático** (por defecto, sigue el sistema), **Claro** (fuerza `ElementTheme.Light`) y **Oscuro** (fuerza `ElementTheme.Dark`). Los cambios del sistema solo se aplican si está activo el modo Automático (`_autoTheme`).
+- Clave de localización `menu.theme.auto` añadida (ES: "Automático" / EN: "Automatic").
+
+### 2026-06-19 — feat: migración UI de Windows Forms a WinUI 3 (Windows App SDK 1.8, unpackaged)
+
+**Cambios de UI (capa `UI/`)**
+- `MainForm.cs` + `MainForm.Designer.cs` → `MainWindow.xaml` + `MainWindow.xaml.cs` (WinUI 3)
+- `ConfirmFormatDialog.cs` → `ConfirmDialog.xaml` + `ConfirmDialog.xaml.cs` (ContentDialog)
+- Nuevo `DriveViewModel.cs` — modelo de binding con `INotifyPropertyChanged` para el ComboBox de unidades
+- Fondo Mica nativo (`MicaBackdrop`), controles Fluent Design 2, `MenuBar` + `ToggleMenuFlyoutItem`
+- Tema claro/oscuro via `ElementTheme` (sin hardcoding de colores de sistema)
+- `MessageBox` → `ContentDialog` helpers (`ShowInfoAsync`, `ShowConfirmAsync`)
+- `System.Windows.Forms.Timer` → `DispatcherTimer`
+- Ventana fija 500×840 px centrada en pantalla
+
+**Infraestructura**
+- `FormatDiskPro.csproj`: `net10.0-windows` → `net10.0-windows10.0.19041.0`; `UseWindowsForms` → `UseWinUI`; añadido `WindowsPackageType=None`, `WindowsAppSDKSelfContained=true`, `DISABLE_XAML_GENERATED_MAIN`; `PackageReference Microsoft.WindowsAppSDK 1.8.*`
+- `Program.cs`: entry point WinUI 3 con `DispatcherQueueSynchronizationContext`
+- `App.xaml` + `App.xaml.cs`: nuevo punto de entrada de aplicación XAML
+- `app.manifest`: añadida declaración DPI `PerMonitorV2`
+- `Localization.cs`: corregida referencia "Windows Forms" → "WinUI 3" en `about.body`
+- `FormatDiskPro.Tests.csproj`: TFM actualizado a `net10.0-windows10.0.19041.0` (compatible con main project)
+
+**Sin cambios**: `Core/`, `Services/`, `Localization/L.cs`, `installer/`, `release.ps1`, 59 tests ✅
 
 ### 2026-06-18 — docs: skills del proyecto en CLAUDE.md
 - Añadida a `.claude/CLAUDE.md` la tabla de uso de las skills de `.agents/skills/` (cuándo usar cada una).

@@ -94,12 +94,16 @@ try {
     $remoteTag = (& git ls-remote --tags origin $tag 2>$null)
     if ($remoteTag) { Die "El tag $tag ya existe en origin. Usa otra versión." }
 
-    # ¿Árbol limpio? (ignorando el .csproj que vamos a bumpear)
-    $dirty = (& git status --porcelain) | Where-Object { $_ -and ($_ -notmatch [regex]::Escape("FormatDiskPro.csproj")) }
-    if ($dirty -and -not $AllowDirty) {
-        Warn "Hay cambios sin commitear:"
-        $dirty | ForEach-Object { Write-Host "    $_" }
-        Die "Árbol de trabajo sucio. Commitea/descarta los cambios o usa -AllowDirty."
+    # ¿Hay archivos sin rastrear? (nuevos, no añadidos con git add)
+    # Estos NO se incluirán en el commit del release — el usuario debe añadirlos explícitamente.
+    $untracked = (& git status --porcelain) | Where-Object { $_ -match '^\?\?' }
+    if ($untracked -and -not $AllowDirty) {
+        Warn "Hay archivos nuevos sin rastrear (no se incluirán en el release):"
+        $untracked | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        Die "Añade los archivos que necesites con 'git add <archivo>' y reintenta, o usa -AllowDirty para ignorarlos."
+    } elseif ($untracked) {
+        Warn "Archivos sin rastrear ignorados (-AllowDirty):"
+        $untracked | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
     }
 
     # ── Pruebas ──────────────────────────────────────────────────────────────
@@ -136,8 +140,11 @@ try {
         Warn "DRY RUN — no se modificará nada. Plan:"
         Write-Host "    1. Actualizar <Version> a $Version en el .csproj" -ForegroundColor DarkGray
         Write-Host "    2. build-installer.ps1 -Version $Version" -ForegroundColor DarkGray
-        Write-Host "    3. git commit (bump) + git tag -a $tag" -ForegroundColor DarkGray
-        Write-Host "    4. git push origin $branch && git push origin $tag" -ForegroundColor DarkGray
+        Write-Host "    3. git add -u  (todos los archivos rastreados modificados)" -ForegroundColor DarkGray
+        Write-Host "       git commit -m 'release: v$Version'" -ForegroundColor DarkGray
+        Write-Host "       git tag -a $tag" -ForegroundColor DarkGray
+        Write-Host "    4. git push origin $branch" -ForegroundColor DarkGray
+        Write-Host "       git push origin $tag" -ForegroundColor DarkGray
         Write-Host "    5. gh release create $tag (asset: FormatDiskPro-$Version-setup.exe)" -ForegroundColor DarkGray
         if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
         Ok "Dry run completado."
@@ -145,12 +152,10 @@ try {
     }
 
     # ── 1. Bump de versión ───────────────────────────────────────────────────
-    $bumped = $false
     if ($currentVersion -ne $Version) {
         Info "Actualizando <Version> en el .csproj..."
         $newRaw = $csprojRaw -replace '<Version>.*?</Version>', "<Version>$Version</Version>"
         [System.IO.File]::WriteAllText($csproj, $newRaw, (New-Object System.Text.UTF8Encoding($false)))
-        $bumped = $true
     }
 
     # ── 2. Compilar instalador ─────────────────────────────────────────────────
@@ -163,13 +168,20 @@ try {
     Ok "Instalador: $setup ($sizeMB MB)"
 
     # ── 3. Commit + tag ──────────────────────────────────────────────────────
-    if ($bumped) {
-        Info "Commit del bump de versión..."
-        & git add -- $csproj
-        & git commit -m "release: v$Version" | Out-Null
+    # Añade todos los archivos rastreados modificados/eliminados (tracked changes).
+    # Los archivos nuevos sin rastrear requieren 'git add' manual previo.
+    Info "Preparando commit de release..."
+    & git add -u
+    if ($LASTEXITCODE -ne 0) { Die "git add -u falló." }
+    $staged = (& git diff --cached --name-only)
+    if ($staged) {
+        Info "Archivos incluidos en el commit:"
+        $staged | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        & git commit -m "release: v$Version"
         if ($LASTEXITCODE -ne 0) { Die "git commit falló." }
+        Ok "Commit de release creado."
     } else {
-        Info "Versión sin cambios; se etiqueta el HEAD actual."
+        Info "Sin cambios que commitear; se etiqueta el HEAD actual."
     }
     Info "Creando tag $tag..."
     & git tag -a $tag -m "FormatDiskPro $tag"

@@ -63,6 +63,7 @@ public static class L
         ["menu.lang.es"]     = ("Español", "Spanish"),
         ["menu.lang.en"]     = ("Inglés", "English"),
         ["menu.theme"]       = ("Tema", "Theme"),
+        ["menu.theme.auto"]  = ("Automático", "Automatic"),
         ["menu.theme.light"] = ("Claro", "Light"),
         ["menu.theme.dark"]  = ("Oscuro", "Dark"),
         ["menu.presets"]     = ("Presets", "Presets"),
@@ -160,8 +161,8 @@ public static class L
                                 "Drive {0}: failed verification: data mismatch after {1}.\n\nIt is likely a counterfeit drive."),
 
         ["about.title"]      = ("Acerca de FormatDiskPro", "About FormatDiskPro"),
-        ["about.body"]       = ("FormatDiskPro v{0}\n\nHerramienta de formateo y gestión de unidades para Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · Windows Forms",
-                                "FormatDiskPro v{0}\n\nDisk format and management tool for Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · Windows Forms"),
+        ["about.body"]       = ("FormatDiskPro v{0}\n\nHerramienta de formateo y gestión de unidades para Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · WinUI 3",
+                                "FormatDiskPro v{0}\n\nDisk format and management tool for Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · WinUI 3"),
 
         ["preset.title"]     = ("Preset aplicado", "Preset applied"),
         ["preset.body"]      = ("Configuración «{0}» aplicada.", "Preset \"{0}\" applied."),

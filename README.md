@@ -34,7 +34,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 
 ### Experiencia
 - **Interfaz bilingüe** Español / Inglés (conmutable en caliente)
-- **Tema claro / oscuro** (Windows 11, `Application.SetColorMode`)
+- **Tema automático / claro / oscuro**: sigue el tema del sistema Windows en tiempo real; opción de forzar claro u oscuro desde el menú
 - **Expulsión segura** de unidades removibles
 - **Historial de operaciones** auditado en `%AppData%\FormatDiskPro\history.log`
 - **Timer de tiempo transcurrido** y **cancelación segura** de cualquier operación
@@ -108,7 +108,7 @@ Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core`: construc
 | Menú | Opciones |
 |------|----------|
 | **Herramientas** | Verificar capacidad real · Expulsar unidad · Ver historial |
-| **Configuración** | Idioma (ES/EN) · Tema (Claro/Oscuro) · Presets |
+| **Configuración** | Idioma (ES/EN) · Tema (Automático/Claro/Oscuro) · Presets |
 | **Ayuda** | Buscar actualizaciones · Acerca de |
 
 ## Sistemas de archivos disponibles
@@ -137,9 +137,10 @@ src/FormatDiskPro/
 │  ├─ CapacityVerifier.cs   Verificación de capacidad real
 │  ├─ UpdateService.cs      GitHub Releases: consulta, descarga e instalación
 │  └─ History.cs            Registro de auditoría
-├─ UI/              Windows Forms
-│  ├─ MainForm.cs / MainForm.Designer.cs   Ventana principal y orquestación
-│  └─ ConfirmFormatDialog.cs               Confirmación reforzada
+├─ UI/              WinUI 3 (Windows App SDK)
+│  ├─ MainWindow.xaml / MainWindow.xaml.cs   Ventana principal y orquestación
+│  ├─ ConfirmDialog.xaml / .xaml.cs          ContentDialog — confirmación reforzada
+│  └─ DriveViewModel.cs                      Modelo de binding para el ComboBox de unidades
 ├─ Localization/    Cadenas ES/EN centralizadas
 ├─ installer/       Inno Setup (installer.iss + build-installer.ps1 → Output/)
 └─ Program.cs       Punto de entrada
@@ -151,7 +152,7 @@ release.ps1                  Corte de versión en un paso (build + tag + GitHub 
 ## Stack
 
 - C# 13 / .NET 10
-- Windows Forms (`net10.0-windows`)
+- **WinUI 3** (Windows App SDK 1.8, unpackaged) — Mica, Fluent Design 2, `ExtendsContentIntoTitleBar`
 - `Format-Volume` / `format.com` (formateo) · `cipher` (borrado) · `Get-PhysicalDisk` (S.M.A.R.T.)
 - Comandos PowerShell vía `-EncodedCommand` (Base64 UTF-16LE) para evitar inyección
 - UAC: `requireAdministrator` en `app.manifest`

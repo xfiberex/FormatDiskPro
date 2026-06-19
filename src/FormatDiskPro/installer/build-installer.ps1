@@ -26,17 +26,21 @@ $ErrorActionPreference = "Stop"
 $installerDir = $PSScriptRoot
 $projectDir   = Split-Path $installerDir -Parent          # src\FormatDiskPro
 $csproj       = Join-Path $projectDir "FormatDiskPro.csproj"
-$publishDir   = Join-Path $projectDir "bin\$Configuration\net10.0-windows\$Runtime\publish"
 
 if (-not (Test-Path $csproj)) { throw "No se encontró el proyecto: $csproj" }
 
-# --- Versión ---------------------------------------------------------------
+# --- Versión y TFM (leídos del .csproj) ------------------------------------
+$csprojXml = [xml](Get-Content $csproj)
+$tfm = ($csprojXml.Project.PropertyGroup.TargetFramework | Where-Object { $_ }) | Select-Object -First 1
+if (-not $tfm) { $tfm = "net10.0-windows10.0.19041.0" }
+
 if (-not $Version) {
-    $csprojXml = [xml](Get-Content $csproj)
     $Version = ($csprojXml.Project.PropertyGroup.Version | Where-Object { $_ }) | Select-Object -First 1
     if (-not $Version) { $Version = "1.0.0" }
 }
-Write-Host "==> Versión: $Version" -ForegroundColor Cyan
+
+$publishDir = Join-Path $projectDir "bin\$Configuration\$tfm\$Runtime\publish"
+Write-Host "==> Versión: $Version  (TFM: $tfm)" -ForegroundColor Cyan
 
 # --- Localizar ISCC --------------------------------------------------------
 $iscc = @(

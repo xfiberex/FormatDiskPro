@@ -1,17 +1,20 @@
-namespace FormatDiskPro
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using System.Threading;
+
+namespace FormatDiskPro;
+
+internal class Program
 {
-    internal static class Program
+    [STAThread]
+    static void Main()
     {
-        /// <summary>
-        ///  The main entry point for the application.
-        /// </summary>
-        [STAThread]
-        static void Main()
+        global::WinRT.ComWrappersSupport.InitializeComWrappers();
+        Application.Start(p =>
         {
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
-            ApplicationConfiguration.Initialize();
-            Application.Run(new MainForm());
-        }
+            var ctx = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
+            SynchronizationContext.SetSynchronizationContext(ctx);
+            _ = new App();
+        });
     }
 }
