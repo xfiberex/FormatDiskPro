@@ -22,6 +22,12 @@ obj/
 **/installer/Output/
 **/publish/
 
+# Certificados / claves de firma (NUNCA commitear material privado)
+*.pfx
+*.p12
+*.snk
+*.cer
+
 # NuGet
 *.nupkg
 *.snupkg

@@ -847,7 +847,8 @@ public sealed partial class MainWindow : Window
             string path = await UpdateService.DownloadAsync(rel, progress, _cts!.Token);
             History.Log($"UPDATE DOWNLOADED {rel.Version}: {path}");
             StatusText.Text = L.T("update.launching");
-            UpdateService.LaunchInstaller(path);
+            // Instalación silenciosa: el instalador cierra esta app, actualiza y la relanza.
+            UpdateService.LaunchInstaller(path, silent: true);
             Application.Current.Exit();
         }
         catch (OperationCanceledException)
