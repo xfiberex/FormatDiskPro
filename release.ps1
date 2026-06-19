@@ -207,10 +207,20 @@ try {
     if (-not $gh) { Die "gh (GitHub CLI) no está instalado. Instálalo: winget install GitHub.cli  — el tag YA está publicado; crea el release manualmente o reintenta." }
 
     # Asegurar autenticación: si gh no está logueado, reutilizar la credencial cacheada de git.
+    # PS 5.1: 2>$null en exes nativos con ErrorActionPreference=Stop genera NativeCommandError;
+    # se baja a SilentlyContinue solo durante las llamadas que necesitan suprimir stderr.
+    $eap = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
     & $gh auth status 2>$null
-    if ($LASTEXITCODE -ne 0) {
+    $authOk = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = $eap
+
+    if (-not $authOk) {
         Warn "gh no autenticado; reutilizando la credencial de git cacheada (local, no se muestra)."
+        $eap = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
         $cred = "protocol=https`nhost=github.com`n`n" | & git credential fill 2>$null
+        $ErrorActionPreference = $eap
         $pwdLine = $cred | Where-Object { $_ -like 'password=*' } | Select-Object -First 1
         if ($pwdLine) { $env:GH_TOKEN = $pwdLine.Substring(9) }
         if (-not $env:GH_TOKEN) { Die "No se pudo obtener credencial para gh. Ejecuta 'gh auth login' y reintenta (el tag ya está publicado)." }
