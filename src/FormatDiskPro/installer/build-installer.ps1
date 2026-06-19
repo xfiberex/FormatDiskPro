@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Publica FormatDiskPro (self-contained, win-x64) y compila el instalador con Inno Setup.
 
@@ -10,18 +10,94 @@
 .PARAMETER Version
     Versión a estampar (por defecto: la del .csproj).
 
+.PARAMETER CertThumbprint
+    Huella (SHA-1) de un certificado de firma instalado en el almacén de Windows. Si se indica
+    (o -CertFile), se firma el ejecutable publicado y el instalador con Authenticode.
+
+.PARAMETER CertFile
+    Ruta a un archivo .pfx para firmar (alternativa a -CertThumbprint).
+
+.PARAMETER CertPassword
+    Contraseña del .pfx (si la tiene).
+
+.PARAMETER TimestampUrl
+    Servidor de sellado de tiempo RFC3161 (por defecto el de DigiCert).
+
 .EXAMPLE
     .\build-installer.ps1
     .\build-installer.ps1 -Version 1.2.0
+    .\build-installer.ps1 -Version 1.2.1 -CertThumbprint A1B2C3...
+    .\build-installer.ps1 -Version 1.2.1 -CertFile cert.pfx -CertPassword ****
 #>
 [CmdletBinding()]
 param(
     [string]$Version,
     [string]$Configuration = "Release",
-    [string]$Runtime       = "win-x64"
+    [string]$Runtime       = "win-x64",
+    [string]$CertThumbprint,
+    [string]$CertFile,
+    [string]$CertPassword,
+    [string]$TimestampUrl  = "http://timestamp.digicert.com"
 )
 
 $ErrorActionPreference = "Stop"
+
+# --- Firma de código (opcional) --------------------------------------------
+$signEnabled = [bool]($CertThumbprint -or $CertFile)
+$signtool = $null
+
+function Find-SignTool {
+    # 1. PATH
+    $cmd = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+
+    # 2. Rutas fijas conocidas (App Certification Kit del Windows SDK, ClickOnce SDK)
+    $fixed = @(
+        "${env:ProgramFiles(x86)}\Windows Kits\10\App Certification Kit\signtool.exe",
+        "$env:ProgramFiles\Windows Kits\10\App Certification Kit\signtool.exe",
+        "${env:ProgramFiles(x86)}\Microsoft SDKs\ClickOnce\SignTool\signtool.exe"
+    )
+    foreach ($f in $fixed) { if (Test-Path $f) { return $f } }
+
+    # 3. Windows Kits\bin\<version>\<arch>\signtool.exe (version mas alta, arquitectura del host)
+    $arch  = if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
+    $bases = @(
+        "${env:ProgramFiles(x86)}\Windows Kits\10\bin", "$env:ProgramFiles\Windows Kits\10\bin",
+        "${env:ProgramFiles(x86)}\Windows Kits\8.1\bin", "$env:ProgramFiles\Windows Kits\8.1\bin"
+    )
+    foreach ($b in $bases) {
+        if (-not (Test-Path $b)) { continue }
+        $found = Get-ChildItem $b -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending |
+            ForEach-Object { Join-Path $_.FullName "$arch\signtool.exe" } |
+            Where-Object { Test-Path $_ } | Select-Object -First 1
+        if ($found) { return $found }
+        $direct = Join-Path $b "$arch\signtool.exe"   # layout antiguo: bin\x64\signtool.exe
+        if (Test-Path $direct) { return $direct }
+    }
+    return $null
+}
+
+function Invoke-Sign([string[]]$files) {
+    if (-not $signEnabled) { return }
+    $base = @("sign", "/fd", "SHA256", "/tr", $TimestampUrl, "/td", "SHA256")
+    if ($CertThumbprint)  { $base += @("/sha1", $CertThumbprint) }
+    elseif ($CertFile)    { $base += @("/f", $CertFile); if ($CertPassword) { $base += @("/p", $CertPassword) } }
+    foreach ($f in $files) {
+        if (-not (Test-Path $f)) { continue }
+        Write-Host "==> Firmando: $f" -ForegroundColor Cyan
+        & $signtool @base $f
+        if ($LASTEXITCODE -ne 0) { throw "signtool falló al firmar $f (código $LASTEXITCODE)" }
+    }
+}
+
+if ($signEnabled) {
+    $signtool = Find-SignTool
+    if (-not $signtool) { throw "Se pidió firmar pero no se encontró signtool.exe. Instala el Windows SDK o añádelo al PATH." }
+    Write-Host "==> Firma de código habilitada (signtool: $signtool)" -ForegroundColor Cyan
+} else {
+    Write-Warning "Firma de código DESHABILITADA (sin -CertThumbprint/-CertFile). El instalador no estará firmado: SmartScreen mostrará 'editor desconocido'."
+}
 
 $installerDir = $PSScriptRoot
 $projectDir   = Split-Path $installerDir -Parent          # src\FormatDiskPro
@@ -67,6 +143,14 @@ if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
     -o $publishDir
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish falló (código $LASTEXITCODE)" }
 
+# --- Firmar el ejecutable publicado (antes de empaquetar) ------------------
+if ($signEnabled) {
+    Invoke-Sign @(
+        (Join-Path $publishDir "FormatDiskPro.exe"),
+        (Join-Path $publishDir "FormatDiskPro.dll")
+    )
+}
+
 # --- Compilar instalador ---------------------------------------------------
 $iss = Join-Path $installerDir "installer.iss"
 Write-Host "==> Compilando instalador con Inno Setup..." -ForegroundColor Cyan
@@ -75,6 +159,8 @@ if ($LASTEXITCODE -ne 0) { throw "ISCC falló (código $LASTEXITCODE)" }
 
 $setup = Join-Path $installerDir "Output\FormatDiskPro-$Version-setup.exe"
 if (Test-Path $setup) {
+    # Firmar el instalador (lo que comprueba SmartScreen al descargarlo).
+    if ($signEnabled) { Invoke-Sign @($setup) }
     $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
     Write-Host "`n[OK] Instalador generado: $setup ($sizeMB MB)" -ForegroundColor Green
 } else {

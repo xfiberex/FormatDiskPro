@@ -63,7 +63,7 @@ La aplicación comprueba si hay una versión más reciente en GitHub Releases al
 dotnet build -c Release
 ```
 
-El ejecutable queda en `src\FormatDiskPro\bin\Release\net10.0-windows\FormatDiskPro.exe`.
+El ejecutable queda en `src\FormatDiskPro\bin\Release\net10.0-windows10.0.19041.0\win-x64\FormatDiskPro.exe`.
 
 ### Generar el instalador
 
@@ -73,18 +73,39 @@ Requiere [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSo
 src\FormatDiskPro\installer\build-installer.ps1
 ```
 
-Publica la app *self-contained* (win-x64) y compila el instalador en `src\FormatDiskPro\installer\Output\`.
+Publica la app *self-contained* (win-x64) y compila el instalador en `src\FormatDiskPro\installer\Output\`. El instalador limpia la instalación previa antes de copiar y, en una actualización in-place, cierra y relanza la app automáticamente.
+
+**Firma de código (opcional, recomendada):** sin firma, SmartScreen muestra "editor desconocido". Si tienes un certificado, fírmalo pasando la huella o un `.pfx`:
+
+```powershell
+# Certificado del almacén de Windows (por huella SHA-1):
+src\FormatDiskPro\installer\build-installer.ps1 -CertThumbprint A1B2C3...
+# O un archivo .pfx:
+src\FormatDiskPro\installer\build-installer.ps1 -CertFile cert.pfx -CertPassword ****
+```
+
+Firma el ejecutable publicado y el instalador (sellado de tiempo RFC3161). Requiere `signtool.exe` (Windows SDK).
+
+¿Sin certificado? El script `installer\new-selfsigned-cert.ps1` genera uno **autofirmado** de prueba y muestra su huella:
+
+```powershell
+src\FormatDiskPro\installer\new-selfsigned-cert.ps1          # crea el cert y muestra el thumbprint
+src\FormatDiskPro\installer\new-selfsigned-cert.ps1 -Trust   # (como admin) además lo hace de confianza en este equipo
+```
+
+> ⚠️ Un certificado autofirmado **no** elimina los avisos de SmartScreen para usuarios finales (su cadena no es de confianza). Sirve para validar el pipeline o para entornos controlados. Para distribución pública usa un certificado **OV/EV** de una CA reconocida.
 
 ### Publicar una versión
 
 El script `release.ps1` (raíz del repo) corta una versión completa en un paso: valida, ejecuta las pruebas, actualiza `<Version>`, compila el instalador, hace commit + tag, lo sube y crea el **GitHub Release** con el instalador adjunto.
 
 ```powershell
-.\release.ps1 -Version 1.2.0           # release completo
-.\release.ps1 -Version 1.2.0 -DryRun   # muestra el plan sin modificar nada
+.\release.ps1 -Version 1.2.1           # release completo
+.\release.ps1 -Version 1.2.1 -DryRun   # muestra el plan sin modificar nada
+.\release.ps1 -Version 1.2.1 -CertThumbprint A1B2C3...   # firmando el instalador
 ```
 
-Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`. Los usuarios con una versión anterior recibirán el aviso de actualización automáticamente.
+Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los de firma (`-CertThumbprint` / `-CertFile` / `-CertPassword` / `-TimestampUrl`, reenviados a `build-installer.ps1`). Los usuarios con una versión anterior recibirán el aviso de actualización automáticamente.
 
 ### Pruebas
 

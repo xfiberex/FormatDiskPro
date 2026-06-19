@@ -7,7 +7,9 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-19
-- **Versión actual:** 1.1.0 (publicada como release con instalador)
+- **Versión actual:** 1.2.0 (publicada, pero con **defecto crítico de empaquetado**: el instalador
+  se generó sin `FormatDiskPro.pri` → la app crashea al iniciar. Corregido en el árbol; **requiere
+  reempaquetar y publicar 1.2.1**). 1.1.0 era la última estable funcional (Windows Forms).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -58,6 +60,11 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 - ✅ Barra de título: **`Window.ExtendsContentIntoTitleBar = true`** (a nivel de Window) + `PreferredHeightOption = Tall` (48 px) + icono 16 px + `CaptionTextBlockStyle`. WinUI tematiza solo los botones caption (min/max/cerrar) según el tema **efectivo** del contenido.
 - ✅ Tema: sigue el tema del sistema automáticamente (`UISettings.ColorValuesChanged`); opción manual Automático/Claro/Oscuro en menú. Colores derivados de recursos/valores Fluent (`SystemFillColorCritical`, `TextFillColorPrimary`).
 - ✅ Ventana fija no redimensionable (`OverlappedPresenter.IsResizable/IsMaximizable = false`); Mica con degradación a Acrylic si el sistema no la soporta.
+- ⚠️ **Instalador/empaquetado:** corregido el bug que hacía crashear la 1.2.0 al iniciar (`dotnet publish`
+  no incluía `FormatDiskPro.pri`; ahora un target MSBuild lo copia). Instalador limpia la instalación
+  previa (`[InstallDelete]`), cierra la app vía `AppMutex`, hace **auto-actualización silenciosa con
+  relanzado**, y soporta **firma Authenticode** opcional (`build-installer.ps1`/`release.ps1`). **Falta
+  publicar 1.2.1** (idealmente firmado) y la prueba end-to-end real (la hace el usuario).
 - ✅ Verificación funcional pendiente: formato real en USB, verificación de capacidad, historial, actualizaciones.
 
 ## 4. Decisiones y convenciones clave
@@ -115,6 +122,27 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-19 — fix(crítico): instalador/actualización — la 1.2.0 crasheaba al iniciar
+
+**Causa raíz (crash al iniciar tras actualizar a 1.2.0)**
+- `dotnet publish` para WinUI 3 *unpackaged* (self-contained) **no copiaba `FormatDiskPro.pri`** (el índice de recursos propio de la app) a la carpeta de publicación; solo iban los PRI del framework (`Microsoft.UI.*.pri`). Sin ese PRI, WinUI no resuelve el XAML ni `XamlControlsResources` → la app **arranca y se cierra al instante**. Verificado: el `.pri` existe en `bin\...\win-x64\` pero faltaba en `...\publish\`.
+- No era específico de la actualización: una instalación limpia de la 1.2.0 también habría crasheado.
+
+**Correcciones**
+- `FormatDiskPro.csproj`: target MSBuild `CopyAppPriToPublish` (`AfterTargets="Publish"`) que copia `$(TargetName).pri` a `$(PublishDir)`. Verificado: tras el fix, el publish ya contiene `FormatDiskPro.pri` + los 3 PRI del framework.
+- `installer.iss`: nueva sección **`[InstallDelete]` `Type: filesandordirs; Name: "{app}\*"`** — limpia la instalación previa antes de copiar. Imprescindible al pasar de 1.1.0 (WinForms, framework-dependent) a 1.2.0 (WinUI 3, self-contained): el conjunto de archivos cambia por completo. No hay datos de usuario en `{app}` (historial en `%AppData%`).
+- `installer.iss` + `Program.cs`: **`AppMutex=Global\FormatDiskPro.Instance`** y mutex con nombre creado al iniciar la app → Setup detecta y cierra la app de forma fiable antes de actualizar (incluso elevada).
+
+**Soporte de actualización completado (misma fecha)**
+- **Auto-actualización silenciosa + relanzado:** `UpdateService.LaunchInstaller(silent)` invoca el instalador con `/VERYSILENT /NORESTART /AUTOUPDATE=1`; `installer.iss` (`[Code] IsAutoUpdate` + `[Run]` con `Check: IsAutoUpdate`, sin `runascurrentuser` para heredar la elevación y evitar un 2.º UAC) relanza la app al terminar. La instalación manual sigue mostrando el asistente (`postinstall skipifsilent`).
+- **Firma Authenticode (opcional, parametrizada):** `build-installer.ps1` acepta `-CertThumbprint` / `-CertFile` / `-CertPassword` / `-TimestampUrl`; firma el exe publicado y el instalador con sello de tiempo RFC3161. `Find-SignTool` localiza `signtool.exe` (Windows SDK App Cert Kit, ClickOnce SDK, o `bin\<ver>\<arch>`). `release.ps1` reenvía esos parámetros. Sin certificado, avisa y omite. Script `installer/new-selfsigned-cert.ps1` genera un certificado **autofirmado** de prueba (`-Trust` lo importa a Root/TrustedPublisher del equipo). **Validado end-to-end** con un autofirmado (firma OK + timestamp). ⚠️ Un autofirmado **NO** quita SmartScreen para usuarios finales (cadena no confiable); para distribución real hace falta un cert **OV/EV** de CA reconocida. `.pfx`/`.snk`/`.cer` ya están en `.gitignore`. (`build-installer.ps1` reconvertido a UTF-8 BOM.)
+- **Limpieza de temporales:** `UpdateService.DownloadAsync` purga `%Temp%\FormatDiskPro_update` antes de descargar.
+- Validado: solución compila 0/0, 59/59 tests, y `installer.iss` compila con ISCC (EXIT 0) incluyendo el PRI.
+
+**Acción pendiente del usuario**: cortar y publicar **1.2.1** con `release.ps1` (idealmente firmado). Los usuarios en 1.1.0 se actualizarán bien (auto-updater → instalador corregido). Quienes ya cayeron en la 1.2.0 rota deben **descargar 1.2.1 manualmente** (su app no abre, así que el auto-updater no corre). **Pendiente: prueba end-to-end real** (la realiza el usuario).
+
+**Recomendaciones restantes (opcionales)**: CI/CD que ejecute `release.ps1`; certificado de firma de código.
 
 ### 2026-06-19 — fix/ui: paridad Windows 11 25H2 y tematización de botones de caption
 

@@ -98,6 +98,11 @@ public static class UpdateService
             : release.AssetName!;
         string dir  = Path.Combine(Path.GetTempPath(), "FormatDiskPro_update");
         Directory.CreateDirectory(dir);
+
+        // Limpia descargas previas para no acumular instaladores viejos en %Temp%.
+        try { foreach (var old in Directory.GetFiles(dir)) File.Delete(old); }
+        catch { /* archivo en uso u otro problema: no es crítico */ }
+
         string path = Path.Combine(dir, fileName);
 
         using var resp = await Http.GetAsync(release.AssetUrl, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -124,9 +129,20 @@ public static class UpdateService
         return path;
     }
 
-    /// <summary>Ejecuta el instalador descargado (pedirá elevación UAC).</summary>
-    public static void LaunchInstaller(string installerPath)
-        => Process.Start(new ProcessStartInfo(installerPath) { UseShellExecute = true });
+    /// <summary>
+    /// Ejecuta el instalador descargado (pedirá elevación UAC).
+    /// </summary>
+    /// <param name="installerPath">Ruta del instalador (.exe) descargado.</param>
+    /// <param name="silent">
+    /// Si es <see langword="true"/>, lo ejecuta en modo silencioso (`/VERYSILENT`) y le indica
+    /// que relance la app al terminar (`/AUTOUPDATE=1`), para una actualización sin interrupción.
+    /// </param>
+    public static void LaunchInstaller(string installerPath, bool silent = false)
+    {
+        var psi = new ProcessStartInfo(installerPath) { UseShellExecute = true };
+        if (silent) psi.Arguments = "/VERYSILENT /NORESTART /AUTOUPDATE=1";
+        Process.Start(psi);
+    }
 
     /// <summary>Abre una URL en el navegador predeterminado.</summary>
     public static void OpenUrl(string url)

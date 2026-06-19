@@ -41,7 +41,12 @@ param(
     [string]$NotesFile,
     [switch]$SkipTests,
     [switch]$AllowDirty,
-    [switch]$DryRun
+    [switch]$DryRun,
+    # Firma de código (opcional): se reenvían a build-installer.ps1.
+    [string]$CertThumbprint,
+    [string]$CertFile,
+    [string]$CertPassword,
+    [string]$TimestampUrl
 )
 
 $ErrorActionPreference = "Stop"
@@ -138,8 +143,9 @@ try {
     if ($DryRun) {
         Write-Host ""
         Warn "DRY RUN — no se modificará nada. Plan:"
+        $signNote = if ($CertThumbprint -or $CertFile) { " (firmando con Authenticode)" } else { " (SIN firmar)" }
         Write-Host "    1. Actualizar <Version> a $Version en el .csproj" -ForegroundColor DarkGray
-        Write-Host "    2. build-installer.ps1 -Version $Version" -ForegroundColor DarkGray
+        Write-Host "    2. build-installer.ps1 -Version $Version$signNote" -ForegroundColor DarkGray
         Write-Host "    3. git add -u  (todos los archivos rastreados modificados)" -ForegroundColor DarkGray
         Write-Host "       git commit -m 'release: v$Version'" -ForegroundColor DarkGray
         Write-Host "       git tag -a $tag" -ForegroundColor DarkGray
@@ -160,7 +166,12 @@ try {
 
     # ── 2. Compilar instalador ─────────────────────────────────────────────────
     Info "Compilando el instalador..."
-    & $buildScript -Version $Version
+    $buildArgs = @{ Version = $Version }
+    if ($CertThumbprint) { $buildArgs.CertThumbprint = $CertThumbprint }
+    if ($CertFile)       { $buildArgs.CertFile       = $CertFile }
+    if ($CertPassword)   { $buildArgs.CertPassword   = $CertPassword }
+    if ($TimestampUrl)   { $buildArgs.TimestampUrl   = $TimestampUrl }
+    & $buildScript @buildArgs
     if ($LASTEXITCODE -ne 0) { Die "La compilación del instalador falló." }
     $setup = Join-Path $outputDir "FormatDiskPro-$Version-setup.exe"
     if (-not (Test-Path $setup)) { Die "No se encontró el instalador esperado: $setup" }

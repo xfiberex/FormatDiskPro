@@ -57,6 +57,9 @@ MinVersion=10.0.19041
 ; Cierra la app si está en ejecución (clave para actualizaciones in-place).
 CloseApplications=yes
 RestartApplications=no
+; Mutex que crea la app (Program.cs). Permite a Setup detectar que está corriendo y
+; cerrarla de forma fiable antes de actualizar, incluso elevada.
+AppMutex=Global\FormatDiskPro.Instance
 
 [Languages]
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
@@ -65,8 +68,15 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[InstallDelete]
+; Limpia la instalación previa ANTES de copiar los archivos nuevos. Imprescindible al
+; actualizar entre versiones cuyo conjunto de archivos cambia (p. ej. 1.1.0 Windows Forms
+; framework-dependent → 1.2.0 WinUI 3 self-contained): mezclar ambos deja la app inservible.
+; No hay datos de usuario en {app} (el historial vive en %AppData%), así que es seguro.
+Type: filesandordirs; Name: "{app}\*"
+
 [Files]
-; Todo el resultado de la publicación self-contained (incluye el runtime .NET).
+; Todo el resultado de la publicación self-contained (incluye el runtime .NET y los PRI de WinUI).
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -75,4 +85,15 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
+; Instalación interactiva: casilla "Ejecutar FormatDiskPro" en la página final (no en modo silencioso).
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser
+; Actualización silenciosa lanzada por la propia app (/AUTOUPDATE=1): relanza la app al terminar.
+; Sin runascurrentuser → hereda la elevación de Setup (la app es requireAdministrator) y evita un 2.º UAC.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait; Check: IsAutoUpdate
+
+[Code]
+{ True cuando la app invoca el instalador para auto-actualizarse (UpdateService.LaunchInstaller silent). }
+function IsAutoUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:AUTOUPDATE|0}') = '1';
+end;
