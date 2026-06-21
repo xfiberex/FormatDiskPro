@@ -7,11 +7,12 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-21
-- **Versión actual:** 1.2.2 (publicada — corrige el bug de cierre que bloqueaba la auto-actualización:
-  `AppWindow_Closing` cancelaba `Application.Current.Exit()` por `_isBusy` y mostraba "Operación en
-  progreso", impidiendo soltar el `AppMutex`/los archivos). La 1.2.1 (y anteriores) arrastran ese bug,
-  así que el salto a la 1.2.2 puede ser tosco; **desde la 1.2.2 en adelante** la auto-actualización es
-  silenciosa y limpia. La 1.2.0 sigue obsoleta/rota (no abre → descarga manual).
+- **Versión actual:** **1.4.0** (publicada — **Tier 1** de mejoras: persistencia de configuración,
+  ETA/velocidad en operaciones largas, borrado seguro con progreso real y visor de historial integrado).
+  La 1.3.0 trajo el rediseño UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa
+  aplica **desde la 1.2.2 en adelante** (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()`
+  por `_isBusy`). La 1.2.0 sigue obsoleta/rota (no abre → descarga manual).
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2/3 pendientes y lo deliberadamente fuera de alcance).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -57,8 +58,13 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **59/59** (`dotnet test`).
-- ✅ Release **v1.2.1** publicado en GitHub con `FormatDiskPro-1.2.1-setup.exe` adjunto (corrige el crash de la 1.2.0).
+- ✅ Pruebas: **94/94** (`dotnet test`) — 59 previas + 35 del Tier 1 (AppSettings, Throughput, SecureWipe, HistoryEntry).
+- ✅ Release **v1.4.0** publicado en GitHub con `FormatDiskPro-1.4.0-setup.exe` adjunto (probado por el usuario, OK).
+- ✅ **Tier 1 (publicado en 1.4.0):** persistencia de preferencias (`Services/AppSettings.cs` →
+  `%AppData%\FormatDiskPro\settings.json`: idioma/tema/última unidad); **ETA + velocidad** en operaciones con
+  bytes (`Core/Throughput.cs`, ventana deslizante en el timer); **borrado seguro con progreso real**
+  (`Services/SecureWipe.cs`, sobrescritor propio que reemplaza a `cipher /w`); **visor de historial integrado**
+  (`Core/HistoryEntry.cs` parser + `UI/HistoryDialog.xaml`). Decisión: 1 pasada por defecto en el wipe.
 - ✅ Barra de título: **`Window.ExtendsContentIntoTitleBar = true`** (a nivel de Window) + `PreferredHeightOption = Tall` (48 px) + icono 16 px + `CaptionTextBlockStyle`. WinUI tematiza solo los botones caption (min/max/cerrar) según el tema **efectivo** del contenido.
 - ✅ Tema: sigue el tema del sistema automáticamente (`UISettings.ColorValuesChanged`); opción manual Automático/Claro/Oscuro en menú. Colores derivados de recursos/valores Fluent (`SystemFillColorCritical`, `TextFillColorPrimary`).
 - ✅ **Sistema de diseño (UI/UX) inspirado en Win11Debloat (2026-06-21):** contenido organizado en **tarjetas de
@@ -123,6 +129,9 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 
 ## 6. Pendientes / ideas
 
+- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — Tier 2 (diagnóstico/gestión: S.M.A.R.T.
+  ampliado, chkdsk, protección de escritura, reinicializar unidad, benchmark) y Tier 3 (presets, idiomas,
+  avisos, firma/winget/CI), además de lo deliberadamente fuera de alcance.
 - Probar el instalador end-to-end (instalación + actualización in-place).
 - (Opcional) Workflow de GitHub Actions que ejecute `release.ps1` o equivalente.
 - (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
@@ -138,6 +147,36 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-21 — release: v1.4.0 — feat: Tier 1 de mejoras de UX/diagnóstico
+
+Cuatro features que no tocan la lógica de formateo, respetando la arquitectura por capas. Plan acordado
+con el usuario (sobrescritor propio para el borrado seguro, 1 pasada por defecto). Build **0/0**, **94/94 tests**.
+**Publicado como v1.4.0** (probado por el usuario, funcionando). Hoja de ruta restante en `ROADMAP.md`.
+
+1. **Persistencia de configuración** — `Services/AppSettings.cs` (`Load/Save` defensivos sobre
+   `%AppData%\FormatDiskPro\settings.json`, `System.Text.Json`). Persiste idioma, tema (auto/light/dark) y
+   última unidad. Cableado en `MainWindow`: se restaura en el constructor (nuevo `ApplyThemeMode`, refactor de
+   los handlers de tema/idioma) y se guarda en cada cambio. Tests: `AppSettingsTests` (round-trip + defaults
+   ante corrupto/ausente).
+2. **ETA + velocidad (MB/s)** — `Core/Throughput.cs` (`Eta`, `FormatSpeed`, `FormatEta`, puro). El timer de 1 s
+   compone `mm:ss · MB/s · ETA` con **velocidad instantánea por ventana deslizante** (campos `_opBytesDone/_opTotalBytes`),
+   alimentado por los callbacks de verificación y borrado seguro. Footer reorganizado a 2 columnas (estado truncable
+   + tiempo/velocidad a la derecha). Tests: `ThroughputTests`.
+3. **Borrado seguro con progreso real** — `Services/SecureWipe.cs` (estructura espejo de `CapacityVerifier`):
+   sobrescribe el espacio libre por bloques de 8 MB (archivos de 1 GB, margen de 64 MB) reportando %/bytes;
+   última pasada aleatoria, previas 0x00/0xFF; **1 pasada por defecto**. Reemplaza a `DiskService.SecureWipeAsync`
+   (cipher /w, **eliminado**) en `RunFormatAsync`, con barra determinista. Caveat documentado: TRIM en SSD.
+   Tests: `SecureWipeTests` (helpers `PlannedBytes`/`PassPattern`).
+4. **Visor de historial integrado** — `Core/HistoryEntry.cs` (parser puro: categoría + resultado a partir de las
+   líneas de `History.Log`); `UI/HistoryDialog.xaml(.cs)` (ListView con chip de color por resultado, abrir archivo,
+   vaciar con confirmación en flyout); `History.ReadLines()`/`Clear()`. `MnuHistory_Click` abre el visor.
+   Tests: `HistoryEntryTests`.
+
+**Localización:** nuevas claves `status.wiping.progress` y bloque `history.*` (ES/EN).
+**Pulido del visor:** `HistoryDialog` con botón de esquinas redondeadas (`CloseButtonStyle` CornerRadius 4) y
+ancho reducido (380) para alinearlo con la proporción de la app; colores del chip según el tema efectivo.
+**Verificación:** probada por el usuario (wipe, persistencia entre arranques, visor en claro/oscuro) — OK.
 
 ### 2026-06-21 — fix/ui: crash al cambiar el tema del sistema + botones de caption sin re-tematizar
 

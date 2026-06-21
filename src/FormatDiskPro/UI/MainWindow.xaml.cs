@@ -52,9 +52,16 @@ public sealed partial class MainWindow : Window
     // activo por la descarga) para soltar el AppMutex y los archivos y que el instalador la reemplace.
     private bool _closingForUpdate;
     private readonly UISettings _uiSettings = new();
+    private readonly AppSettings _settings = AppSettings.Load();
+    private char? _pendingInitialLetter;
     private Process? _activeProcess;
     private CancellationTokenSource? _cts;
     private DateTime _opStart;
+    // Seguimiento de rendimiento para operaciones con bytes (velocidad/ETA, ventana deslizante de 1 s).
+    private long _opBytesDone, _opTotalBytes, _speedLastBytes;
+    private DateTime _speedLastTime;
+    // Pasadas del borrado seguro (NIST 800-88: 1 pasada basta en discos modernos).
+    private const int SecureWipePasses = 1;
     private char _healthLetter;
     private DiskService.HealthInfo? _lastHealth;
     private DispatcherTimer _elapsedTimer = null!;
@@ -101,11 +108,14 @@ public sealed partial class MainWindow : Window
 
         DrivePicker.ItemsSource = _driveItems;
 
-        ((FrameworkElement)Content).RequestedTheme = ElementTheme.Default;
         ((FrameworkElement)Content).ActualThemeChanged += OnActualThemeChanged;
 
         BuildPresetsMenu();
-        ApplyTheme(IsSystemDark());
+
+        // Restaurar preferencias persistidas: idioma, tema y última unidad seleccionada.
+        L.Set(_settings.Language == "en" ? AppLang.En : AppLang.Es);
+        _pendingInitialLetter = ParseDriveLetter(_settings.LastDriveLetter);
+        ApplyThemeMode(_settings.Theme, save: false);
         ApplyLanguage();
         LoadDrives();
 
@@ -188,7 +198,9 @@ public sealed partial class MainWindow : Window
 
     private void LoadDrives()
     {
-        var prevLetter = (DrivePicker.SelectedItem as DriveViewModel)?.Letter;
+        // En el primer arranque no hay selección previa: usamos la última unidad persistida.
+        var prevLetter = (DrivePicker.SelectedItem as DriveViewModel)?.Letter ?? _pendingInitialLetter;
+        _pendingInitialLetter = null;
         _driveItems.Clear();
 
         foreach (var d in DriveInfo.GetDrives()
@@ -225,6 +237,11 @@ public sealed partial class MainWindow : Window
         }
 
         _isDriveProtected = item.IsProtected;
+        if (_settings.LastDriveLetter != item.Letter.ToString())
+        {
+            _settings.LastDriveLetter = item.Letter.ToString();
+            _settings.Save();
+        }
         UpdateInfo(item.Info);
         UpdateFileSystemOptions(item.Info);
         try { if (item.Info.IsReady) VolumeLabelBox.Text = item.Info.VolumeLabel; }
@@ -559,10 +576,33 @@ public sealed partial class MainWindow : Window
 
                 if (secureWipe)
                 {
+                    StatusText.ClearValue(TextBlock.ForegroundProperty);
                     StatusText.Text = L.T("status.wiping");
-                    FormatProgress.IsIndeterminate = true;
-                    await DiskService.SecureWipeAsync(driveLetter, _cts!.Token);
                     FormatProgress.IsIndeterminate = false;
+                    FormatProgress.Value = 0;
+
+                    var wipeProgress = new Progress<(int percent, long bytesDone, long totalBytes)>(p =>
+                    {
+                        FormatProgress.Value = Math.Clamp(p.percent, 0, 100);
+                        _opBytesDone  = p.bytesDone;
+                        _opTotalBytes = p.totalBytes;
+                        StatusText.Text = L.T("status.wiping.progress", FormatBytes(p.bytesDone));
+                    });
+
+                    try
+                    {
+                        await SecureWipe.RunAsync(driveLetter, SecureWipePasses, wipeProgress, _cts!.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _opTotalBytes = 0;
+                        FormatProgress.Value = 0;
+                        StatusText.Text = L.T("status.cancelled");
+                        History.Log($"WIPE CANCELLED {driveLetter}:");
+                        return;
+                    }
+
+                    _opTotalBytes = 0;   // detener velocidad/ETA: el resto del flujo no maneja bytes
                     FormatProgress.Value = 100;
                     if (_cancelRequested)
                     {
@@ -712,6 +752,8 @@ public sealed partial class MainWindow : Window
         var progress = new Progress<(CapacityVerifier.Phase phase, int percent, long bytes)>(p =>
         {
             FormatProgress.Value = Math.Clamp(p.percent, 0, 100);
+            _opBytesDone  = p.bytes;
+            _opTotalBytes = p.percent > 0 ? p.bytes * 100L / p.percent : 0;
             StatusText.ClearValue(TextBlock.ForegroundProperty);
             StatusText.Text = p.phase == CapacityVerifier.Phase.Writing
                 ? L.T("verify.writing", FormatBytes(p.bytes))
@@ -777,7 +819,11 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void MnuHistory_Click(object sender, RoutedEventArgs e) => History.Open();
+    private async void MnuHistory_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new HistoryDialog(_darkMode) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        await dlg.ShowAsync();
+    }
 
     private async void MnuAbout_Click(object sender, RoutedEventArgs e) =>
         await ShowInfoAsync(L.T("about.title"), L.T("about.body", AppInfo.VersionString));
@@ -879,32 +925,45 @@ public sealed partial class MainWindow : Window
 
     // ── Language / theme ──────────────────────────────────────────
 
-    private void MnuLangEs_Click(object sender, RoutedEventArgs e) { L.Set(AppLang.Es); ApplyLanguage(); }
-    private void MnuLangEn_Click(object sender, RoutedEventArgs e) { L.Set(AppLang.En); ApplyLanguage(); }
+    private void MnuLangEs_Click(object sender, RoutedEventArgs e) { L.Set(AppLang.Es); ApplyLanguage(); _settings.Language = "es"; _settings.Save(); }
+    private void MnuLangEn_Click(object sender, RoutedEventArgs e) { L.Set(AppLang.En); ApplyLanguage(); _settings.Language = "en"; _settings.Save(); }
 
-    private void MnuThemeAuto_Click(object sender, RoutedEventArgs e)
+    private void MnuThemeAuto_Click(object sender, RoutedEventArgs e)  => ApplyThemeMode("auto",  save: true);
+    private void MnuThemeLight_Click(object sender, RoutedEventArgs e) => ApplyThemeMode("light", save: true);
+    private void MnuThemeDark_Click(object sender, RoutedEventArgs e)  => ApplyThemeMode("dark",  save: true);
+
+    /// <summary>Aplica el modo de tema ("auto"/"light"/"dark"), sincroniza el menú y, opcionalmente, lo persiste.</summary>
+    private void ApplyThemeMode(string mode, bool save)
     {
-        _autoTheme = true;
-        ((FrameworkElement)Content).RequestedTheme = ElementTheme.Default;
-        ApplyTheme(IsSystemDark());
+        var root = (FrameworkElement)Content;
+        switch (mode)
+        {
+            case "light":
+                _autoTheme = false;
+                root.RequestedTheme = ElementTheme.Light;
+                ApplyTheme(dark: false);
+                break;
+            case "dark":
+                _autoTheme = false;
+                root.RequestedTheme = ElementTheme.Dark;
+                ApplyTheme(dark: true);
+                break;
+            default: // "auto"
+                _autoTheme = true;
+                root.RequestedTheme = ElementTheme.Default;
+                ApplyTheme(IsSystemDark());
+                break;
+        }
         SyncThemeMenu();
+        if (save)
+        {
+            _settings.Theme = mode is "light" or "dark" ? mode : "auto";
+            _settings.Save();
+        }
     }
 
-    private void MnuThemeLight_Click(object sender, RoutedEventArgs e)
-    {
-        _autoTheme = false;
-        ((FrameworkElement)Content).RequestedTheme = ElementTheme.Light;
-        ApplyTheme(dark: false);
-        SyncThemeMenu();
-    }
-
-    private void MnuThemeDark_Click(object sender, RoutedEventArgs e)
-    {
-        _autoTheme = false;
-        ((FrameworkElement)Content).RequestedTheme = ElementTheme.Dark;
-        ApplyTheme(dark: true);
-        SyncThemeMenu();
-    }
+    private static char? ParseDriveLetter(string? s)
+        => !string.IsNullOrEmpty(s) && char.IsLetter(s[0]) ? char.ToUpperInvariant(s[0]) : null;
 
     private void SyncThemeMenu()
     {
@@ -1037,6 +1096,8 @@ public sealed partial class MainWindow : Window
         ElapsedText.Text = "00:00";
         CloseButton.Content = L.T("btn.cancel");
         _opStart = DateTime.Now;
+        _opBytesDone = _opTotalBytes = _speedLastBytes = 0;
+        _speedLastTime = _opStart;
         _elapsedTimer.Start();
     }
 
@@ -1070,7 +1131,30 @@ public sealed partial class MainWindow : Window
 
     private void TimerElapsed_Tick(object? sender, object e)
     {
-        ElapsedText.Text = (DateTime.Now - _opStart).ToString(@"mm\:ss");
+        var now = DateTime.Now;
+        string text = (now - _opStart).ToString(@"mm\:ss");
+
+        // Operaciones con bytes (verificación / borrado seguro): añadir velocidad y ETA.
+        // Velocidad instantánea por ventana deslizante (delta de bytes entre ticks de 1 s),
+        // robusta frente a operaciones por fases (un delta negativo simplemente omite ese tick).
+        if (_opTotalBytes > 0)
+        {
+            double dt = (now - _speedLastTime).TotalSeconds;
+            long db = _opBytesDone - _speedLastBytes;
+            if (dt > 0 && db > 0)
+            {
+                double speed = db / dt;
+                var eta = Throughput.Eta(Math.Max(0, _opTotalBytes - _opBytesDone), speed);
+                string spd = Throughput.FormatSpeed(speed);
+                string etaStr = Throughput.FormatEta(eta);
+                if (spd.Length > 0)    text += $"  ·  {spd}";
+                if (etaStr.Length > 0) text += $"  ·  ETA {etaStr}";
+            }
+            _speedLastBytes = _opBytesDone;
+            _speedLastTime  = now;
+        }
+
+        ElapsedText.Text = text;
     }
 
     // ── Helpers ───────────────────────────────────────────────────

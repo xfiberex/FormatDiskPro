@@ -29,6 +29,29 @@ public static class History
         catch { /* el log nunca debe romper la operación */ }
     }
 
+    /// <summary>Lee las líneas del historial (vacío si no existe). Defensivo: nunca lanza.</summary>
+    public static IReadOnlyList<string> ReadLines()
+    {
+        try
+        {
+            string path = FilePath;
+            return File.Exists(path) ? File.ReadAllLines(path) : [];
+        }
+        catch { return []; }
+    }
+
+    /// <summary>Vacía el historial dejándolo con la cabecera. Defensivo: nunca lanza.</summary>
+    public static void Clear()
+    {
+        try
+        {
+            string path = FilePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, $"# FormatDiskPro — historial de operaciones{Environment.NewLine}");
+        }
+        catch { /* ignorar */ }
+    }
+
     /// <summary>Abre el archivo de historial en el editor predeterminado (lo crea si no existe).</summary>
     public static void Open()
     {

@@ -47,28 +47,6 @@ public static class DiskService
         return code == 0;
     }
 
-    /// <summary>Sobrescribe el espacio libre de la unidad (cipher /w) para borrado seguro de datos.</summary>
-    public static async Task<int> SecureWipeAsync(char letter, CancellationToken ct)
-    {
-        if (!char.IsLetter(letter)) return -1;
-
-        var psi = new ProcessStartInfo
-        {
-            FileName               = "cipher.exe",
-            Arguments              = $"/w:{letter}:\\",
-            UseShellExecute        = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            CreateNoWindow         = true,
-        };
-
-        using var proc = new Process { StartInfo = psi };
-        proc.Start();
-        using var reg = ct.Register(() => { try { proc.Kill(true); } catch { } });
-        await proc.WaitForExitAsync(CancellationToken.None);
-        return proc.ExitCode;
-    }
-
     // ── Internos ──────────────────────────────────────────────────
 
     private static ProcessStartInfo BuildPsi(string script, bool capture)
