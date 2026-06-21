@@ -7,11 +7,11 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-21
-- **Versión actual:** **1.5.0** (publicada — **Tier 2 #5: S.M.A.R.T. ampliado** — diálogo de salud del disco con
-  temperatura, horas de encendido, desgaste SSD, RPM y errores). La 1.4.0 trajo el **Tier 1** (persistencia,
-  ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño UI/UX inspirado en
-  Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante** (1.2.2 corrigió
-  el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota (descarga manual).
+- **Versión actual:** **1.6.0** (publicada — **Tier 2 #6 (chkdsk) + #7 (protección de escritura)**). La 1.5.0 trajo
+  el **#5 S.M.A.R.T. ampliado**; la 1.4.0 el **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real,
+  visor de historial); la 1.3.0 el rediseño UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización
+  silenciosa aplica **desde la 1.2.2 en adelante** (1.2.2 corrigió el bug de cierre que cancelaba
+  `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota (descarga manual).
 - **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2/3 pendientes y lo deliberadamente fuera de alcance).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
@@ -58,12 +58,16 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **102/102** (`dotnet test`) — 94 + 8 de `SmartInfo` (S.M.A.R.T. ampliado, Tier 2 #5).
+- ✅ Pruebas: **110/110** (`dotnet test`) — 102 + 8 de `CheckDisk.Interpret` (chkdsk, Tier 2 #6).
+- ✅ **Tier 2 #6 (chkdsk) + #7 (protección de escritura) — publicado en 1.6.0, probado por el usuario:**
+  `Services/CheckDisk.cs` + ítem *Herramientas → Comprobar errores (chkdsk)…* (modo solo-comprobar/reparar,
+  progreso parseado, reparación bloqueada en disco de sistema); `DiskService.IsDiskReadOnlyAsync`/`ClearReadOnlyAsync`
+  con chequeo automático al pulsar Iniciar + ítem *Quitar protección de escritura…*.
 - ✅ **Tier 2 #5 — S.M.A.R.T. ampliado (publicado en 1.5.0, probado por el usuario en claro/oscuro):**
   `Core/SmartInfo.cs` (modelo+parser), `DiskService.GetSmartAsync`, `UI/HealthDialog.xaml` abierto desde
   *Herramientas → Salud del disco (S.M.A.R.T.)…*: temperatura, horas de encendido, desgaste SSD, RPM y errores;
   consulta bajo demanda; "No disponible" para unidades sin contadores (USB).
-- ✅ Release **v1.5.0** publicado en GitHub con `FormatDiskPro-1.5.0-setup.exe` adjunto (probado por el usuario, OK).
+- ✅ Release **v1.6.0** publicado en GitHub con `FormatDiskPro-1.6.0-setup.exe` adjunto (probado por el usuario, OK).
 - ✅ **Tier 1 (publicado en 1.4.0):** persistencia de preferencias (`Services/AppSettings.cs` →
   `%AppData%\FormatDiskPro\settings.json`: idioma/tema/última unidad); **ETA + velocidad** en operaciones con
   bytes (`Core/Throughput.cs`, ventana deslizante en el timer); **borrado seguro con progreso real**
@@ -151,6 +155,28 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-21 — release: v1.6.0 — feat: Tier 2 #6 (chkdsk) + #7 (protección de escritura)
+
+Dos herramientas de diagnóstico/gestión, **sin tocar la lógica de formateo**. Build **0/0**, **110/110 tests**.
+**Publicado como v1.6.0** (probado por el usuario).
+
+**#7 — Protección de escritura** (decisión del usuario: auto + menú)
+- `DiskService.IsDiskReadOnlyAsync` (`(Get-Disk).IsReadOnly`) y `ClearReadOnlyAsync` (`Set-Disk -IsReadOnly $false`),
+  con el patrón seguro `-EncodedCommand` (sin diskpart).
+- **Chequeo automático en `StartButton_Click`**: si el disco está en solo lectura, ofrece quitar la protección
+  antes de formatear (evita el fallo críptico). Ítem manual *Herramientas → Quitar protección de escritura…*
+  (`MnuUnlock`), bloqueado en el disco de sistema.
+
+**#6 — chkdsk** (`Services/CheckDisk.cs`)
+- `RunAsync(letter, repair, progress, ct)`: lanza `chkdsk X:` (solo lectura, universal) o `chkdsk X: /f` (reparar),
+  espejo del runner de `RunFormatComAsync` (stream de stdout + `FormatLogic.ExtractPercent` → progreso; escribe "N"
+  por stdin para no colgarse si pide programar reinicio; cancelación por `Kill`). `Interpret(code, repair)` puro
+  (`enum CheckResult`), testeado. Ítem *Herramientas → Comprobar errores (chkdsk)…* (`MnuCheck`) con diálogo de
+  modo (solo-comprobar/reparar/cancelar); **reparación bloqueada en el disco de sistema** (no se ofrece el botón).
+
+**Localización:** `menu.check`, `menu.unlock` + bloques `unlock.*` y `check.*` (ES/EN).
+**Verificación:** probada por el usuario (chkdsk solo-comprobar/reparar; detección/quita de protección) — OK.
 
 ### 2026-06-21 — release: v1.5.0 — feat: Tier 2 #5 — S.M.A.R.T. ampliado (diálogo de salud del disco)
 

@@ -52,6 +52,36 @@ public static class DiskService
         return SmartInfo.Parse(output);
     }
 
+    /// <summary>
+    /// Indica si el disco físico de la unidad está en solo lectura (protegido contra escritura).
+    /// Devuelve <c>null</c> si no se puede determinar.
+    /// </summary>
+    public static async Task<bool?> IsDiskReadOnlyAsync(char letter)
+    {
+        if (!char.IsLetter(letter)) return null;
+
+        string script =
+            "$ErrorActionPreference='Stop';" +
+            $"(Get-Partition -DriveLetter {letter} | Get-Disk).IsReadOnly";
+
+        string output = (await RunCapturedAsync(script)).Trim();
+        if (output.Equals("True", StringComparison.OrdinalIgnoreCase)) return true;
+        if (output.Equals("False", StringComparison.OrdinalIgnoreCase)) return false;
+        return null;
+    }
+
+    /// <summary>Quita la protección de escritura del disco físico de la unidad. <c>true</c> si lo logra.</summary>
+    public static async Task<bool> ClearReadOnlyAsync(char letter)
+    {
+        if (!char.IsLetter(letter)) return false;
+
+        string script =
+            "$ErrorActionPreference='Stop';" +
+            $"Get-Partition -DriveLetter {letter} | Get-Disk | Set-Disk -IsReadOnly $false";
+
+        return await RunAsync(script) == 0;
+    }
+
     /// <summary>Expulsa una unidad removible usando el shell de Windows.</summary>
     public static async Task<bool> EjectAsync(char letter)
     {

@@ -29,17 +29,17 @@ abierto desde *Herramientas → Salud del disco (S.M.A.R.T.)…*.
 - Dónde: `Core/SmartInfo.cs` (modelo + parser testeable), `DiskService.GetSmartAsync`, `UI/HealthDialog.xaml`.
 - Consulta bajo demanda (no recarga el panel inline). Fallback "No disponible" para unidades sin contadores (USB).
 
-### 6. Verificar / reparar sistema de archivos (chkdsk)
-Herramienta "Comprobar errores": `chkdsk /scan` (solo lectura) y opción `/f` (reparar), con parseo de
-salida y progreso. Muy demandado para USBs con problemas.
-- Dónde: nuevo `Services/CheckDisk.cs` + entrada en el menú Herramientas + progreso en el footer.
-- Esfuerzo: medio.
+### 6. Verificar / reparar sistema de archivos (chkdsk) — ✅ implementado (publicado en v1.6.0)
+Herramienta *Herramientas → Comprobar errores (chkdsk)…* con modo **Solo comprobar** (read-only, universal)
+o **Comprobar y reparar** (`/f`), progreso parseado en el footer y diálogo de resultado.
+- Dónde: `Services/CheckDisk.cs` (`RunAsync` + `Interpret` puro testeable) + `MnuCheck` en `MainWindow`.
+- Reparación bloqueada en el disco de sistema (evita programar reinicio).
 
-### 7. Detección y quita de protección de escritura
-Detectar unidad *read-only* **antes** de formatear (causa típica de fallo) y ofrecer quitarla
-(`diskpart attributes disk clear readonly`). Mensajes claros en vez de un error críptico.
-- Dónde: `Services/DiskService.cs` (consulta de atributos) + flujo en `MainWindow`.
-- Esfuerzo: medio. Riesgo: bajo-medio (diskpart).
+### 7. Detección y quita de protección de escritura — ✅ implementado (publicado en v1.6.0)
+Detecta unidad *read-only* y ofrece quitarla **automáticamente al pulsar Iniciar** (evita el fallo críptico)
+y desde *Herramientas → Quitar protección de escritura…*. Usa cmdlets de Storage (`Set-Disk -IsReadOnly`),
+no diskpart.
+- Dónde: `DiskService.IsDiskReadOnlyAsync`/`ClearReadOnlyAsync` + flujo en `MainWindow`.
 
 ### 8. Reinicializar unidad (diskpart clean)
 Para USB con particiones raras o RAW: `diskpart clean` + crear partición primaria + formatear, dejando
@@ -94,6 +94,6 @@ una **decisión de cambiar el alcance**:
 
 ## Sugerencia de priorización
 
-**#5 (S.M.A.R.T. ampliado)** ya está publicado (v1.5.0). Siguiente recomendado:
-**#7 (protección de escritura)** y **#6 (chkdsk)**, ambos de bajo-medio riesgo. Dejar
-**#8 (reinicializar unidad)** para cuando se quiera asumir su mayor riesgo, con guardas reforzadas.
+**#5 (S.M.A.R.T.)** en v1.5.0; **#6 (chkdsk)** y **#7 (protección de escritura)** en v1.6.0. Quedan del Tier 2:
+**#8 (reinicializar unidad)** —el de mayor valor restante, con guardas reforzadas por su riesgo— y
+**#9 (benchmark)**. Después, abordar el Tier 3 (presets, idiomas, avisos, firma/winget/CI).

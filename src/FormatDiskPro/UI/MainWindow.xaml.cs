@@ -521,6 +521,19 @@ public sealed partial class MainWindow : Window
             }
         }
 
+        // Protección de escritura: si el disco está en solo lectura, el formateo fallaría con un error
+        // poco claro. Lo detectamos y ofrecemos quitarla antes de continuar.
+        if (await DiskService.IsDiskReadOnlyAsync(driveItem.Letter) == true)
+        {
+            if (!await ShowConfirmAsync(L.T("unlock.confirmTitle"), L.T("unlock.confirmBody", driveItem.Letter)))
+                return;
+            if (!await DiskService.ClearReadOnlyAsync(driveItem.Letter))
+            {
+                await ShowInfoAsync(L.T("unlock.confirmTitle"), L.T("unlock.failed", driveItem.Letter));
+                return;
+            }
+        }
+
         string summary =
             $"{L.T("confirm.warning")}\n\n" +
             $"  {L.T("confirm.drive")}:   {driveItem.DisplayText}\n" +
@@ -835,6 +848,110 @@ public sealed partial class MainWindow : Window
         await dlg.ShowAsync();
     }
 
+    // ── Write protection (#7) ─────────────────────────────────────
+
+    private async void MnuUnlock_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy || DrivePicker.SelectedItem is not DriveViewModel item) return;
+
+        if (item.IsProtected || IsSystemDrive(item.Letter))
+        {
+            await ShowInfoAsync(L.T("unlock.confirmTitle"), L.T("unlock.blockedSystem"));
+            return;
+        }
+
+        if (await DiskService.IsDiskReadOnlyAsync(item.Letter) != true)
+        {
+            await ShowInfoAsync(L.T("unlock.confirmTitle"), L.T("unlock.notProtected", item.Letter));
+            return;
+        }
+
+        if (!await ShowConfirmAsync(L.T("unlock.confirmTitle"), L.T("unlock.confirmBody", item.Letter)))
+            return;
+
+        if (await DiskService.ClearReadOnlyAsync(item.Letter))
+        {
+            StatusText.ClearValue(TextBlock.ForegroundProperty);
+            StatusText.Text = L.T("unlock.cleared", item.Letter);
+            History.Log($"UNLOCK {item.Letter}:");
+            LoadDrives();
+        }
+        else
+        {
+            await ShowInfoAsync(L.T("unlock.confirmTitle"), L.T("unlock.failed", item.Letter));
+        }
+    }
+
+    // ── chkdsk (#6) ───────────────────────────────────────────────
+
+    private async void MnuCheck_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy || DrivePicker.SelectedItem is not DriveViewModel item) return;
+
+        bool protectedDrive = item.IsProtected || IsSystemDrive(item.Letter);
+
+        // Modo: Solo comprobar (read-only, por defecto) / Comprobar y reparar / Cancelar.
+        // La reparación (/f) no se ofrece en el disco de sistema (programaría un reinicio).
+        var modeDlg = new ContentDialog
+        {
+            Title             = L.T("check.modeTitle"),
+            Content           = L.T("check.modeBody", item.Letter),
+            PrimaryButtonText = L.T("check.scanOnly"),
+            CloseButtonText   = L.T("btn.cancel"),
+            DefaultButton     = ContentDialogButton.Primary,
+            XamlRoot          = Content.XamlRoot,
+            RequestedTheme    = CurrentTheme,
+        };
+        if (!protectedDrive) modeDlg.SecondaryButtonText = L.T("check.repair");
+
+        var choice = await modeDlg.ShowAsync();
+        if (choice == ContentDialogResult.None) return;
+        bool repair = choice == ContentDialogResult.Secondary;
+
+        BeginOperation();
+        FormatProgress.IsIndeterminate = false;
+        FormatProgress.Value = 0;
+        StatusText.ClearValue(TextBlock.ForegroundProperty);
+        StatusText.Text = repair ? L.T("check.repairing", item.Letter) : L.T("check.scanning", item.Letter);
+
+        var progress = new Progress<int>(p => FormatProgress.Value = Math.Clamp(p, 0, 100));
+
+        try
+        {
+            var (code, _) = await CheckDisk.RunAsync(item.Letter, repair, progress, _cts!.Token);
+
+            if (_cancelRequested)
+            {
+                FormatProgress.Value = 0;
+                StatusText.Text = L.T("status.cancelled");
+                return;
+            }
+
+            FormatProgress.Value = 100;
+            CheckResult res = CheckDisk.Interpret(code, repair);
+            History.Log($"CHKDSK {item.Letter}: repair={repair} code={code} result={res}");
+
+            string msg = res switch
+            {
+                CheckResult.Clean    => L.T("check.resultClean", item.Letter),
+                CheckResult.Repaired => L.T("check.resultRepaired", item.Letter),
+                CheckResult.Errors   => L.T("check.resultErrors", item.Letter),
+                _                    => L.T("check.resultFailed", item.Letter),
+            };
+            StatusText.Text = msg;
+            await ShowInfoAsync(L.T("check.modeTitle"), msg);
+        }
+        catch (OperationCanceledException)
+        {
+            FormatProgress.Value = 0;
+            StatusText.Text = L.T("status.cancelled");
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new HistoryDialog(_darkMode) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
@@ -993,6 +1110,8 @@ public sealed partial class MainWindow : Window
         MnuTools.Title   = L.T("menu.tools");
         MnuVerify.Text   = L.T("menu.verify");
         MnuHealth.Text   = L.T("menu.health");
+        MnuCheck.Text    = L.T("menu.check");
+        MnuUnlock.Text   = L.T("menu.unlock");
         MnuEject.Text    = L.T("menu.eject");
         MnuHistory.Text  = L.T("menu.history");
         MnuConfig.Title  = L.T("menu.config");
