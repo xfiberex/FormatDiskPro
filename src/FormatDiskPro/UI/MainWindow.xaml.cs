@@ -819,6 +819,22 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private async void MnuHealth_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+        if (DrivePicker.SelectedItem is not DriveViewModel item)
+        {
+            await ShowInfoAsync(L.T("msg.warning"), L.T("msg.selectDrive"));
+            return;
+        }
+        var dlg = new HealthDialog(_darkMode, item.Letter, item.DisplayText)
+        {
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        await dlg.ShowAsync();
+    }
+
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new HistoryDialog(_darkMode) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
@@ -976,6 +992,7 @@ public sealed partial class MainWindow : Window
     {
         MnuTools.Title   = L.T("menu.tools");
         MnuVerify.Text   = L.T("menu.verify");
+        MnuHealth.Text   = L.T("menu.health");
         MnuEject.Text    = L.T("menu.eject");
         MnuHistory.Text  = L.T("menu.history");
         MnuConfig.Title  = L.T("menu.config");

@@ -27,6 +27,7 @@
         <MenuBar Grid.Row="1">
             <MenuBarItem x:Name="MnuTools" Title="Herramientas">
                 <MenuFlyoutItem x:Name="MnuVerify" Text="Verificar capacidad real…" Click="MnuVerify_Click" />
+                <MenuFlyoutItem x:Name="MnuHealth" Text="Salud del disco (S.M.A.R.T.)…" Click="MnuHealth_Click" />
                 <MenuFlyoutItem x:Name="MnuEject"  Text="Expulsar unidad"           Click="MnuEject_Click" />
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="MnuHistory" Text="Ver historial"            Click="MnuHistory_Click" />

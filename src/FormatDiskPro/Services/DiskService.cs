@@ -33,6 +33,25 @@ public static class DiskService
             parts.Length > 2 ? parts[2].Trim() : "?");
     }
 
+    /// <summary>
+    /// Obtiene el detalle S.M.A.R.T. extendido del disco físico de la unidad (salud, bus, medio,
+    /// RPM, temperatura, horas de encendido, desgaste de SSD y errores de lectura/escritura).
+    /// Los contadores de fiabilidad pueden no estar disponibles (p. ej. USB) → quedan nulos.
+    /// </summary>
+    public static async Task<SmartInfo?> GetSmartAsync(char letter)
+    {
+        if (!char.IsLetter(letter)) return null;
+
+        string script =
+            "$ErrorActionPreference='Stop';" +
+            $"$d = (Get-Partition -DriveLetter {letter} | Get-Disk | Get-PhysicalDisk | Select-Object -First 1);" +
+            "$r = $d | Get-StorageReliabilityCounter -ErrorAction SilentlyContinue;" +
+            "\"$($d.HealthStatus)|$($d.BusType)|$($d.MediaType)|$($d.SpindleSpeed)|$($r.Temperature)|$($r.PowerOnHours)|$($r.Wear)|$($r.ReadErrorsTotal)|$($r.WriteErrorsTotal)\"";
+
+        string output = await RunCapturedAsync(script);
+        return SmartInfo.Parse(output);
+    }
+
     /// <summary>Expulsa una unidad removible usando el shell de Windows.</summary>
     public static async Task<bool> EjectAsync(char letter)
     {

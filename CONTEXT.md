@@ -7,11 +7,11 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-21
-- **Versión actual:** **1.4.0** (publicada — **Tier 1** de mejoras: persistencia de configuración,
-  ETA/velocidad en operaciones largas, borrado seguro con progreso real y visor de historial integrado).
-  La 1.3.0 trajo el rediseño UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa
-  aplica **desde la 1.2.2 en adelante** (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()`
-  por `_isBusy`). La 1.2.0 sigue obsoleta/rota (no abre → descarga manual).
+- **Versión actual:** **1.5.0** (publicada — **Tier 2 #5: S.M.A.R.T. ampliado** — diálogo de salud del disco con
+  temperatura, horas de encendido, desgaste SSD, RPM y errores). La 1.4.0 trajo el **Tier 1** (persistencia,
+  ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño UI/UX inspirado en
+  Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante** (1.2.2 corrigió
+  el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota (descarga manual).
 - **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2/3 pendientes y lo deliberadamente fuera de alcance).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
@@ -58,8 +58,12 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **94/94** (`dotnet test`) — 59 previas + 35 del Tier 1 (AppSettings, Throughput, SecureWipe, HistoryEntry).
-- ✅ Release **v1.4.0** publicado en GitHub con `FormatDiskPro-1.4.0-setup.exe` adjunto (probado por el usuario, OK).
+- ✅ Pruebas: **102/102** (`dotnet test`) — 94 + 8 de `SmartInfo` (S.M.A.R.T. ampliado, Tier 2 #5).
+- ✅ **Tier 2 #5 — S.M.A.R.T. ampliado (publicado en 1.5.0, probado por el usuario en claro/oscuro):**
+  `Core/SmartInfo.cs` (modelo+parser), `DiskService.GetSmartAsync`, `UI/HealthDialog.xaml` abierto desde
+  *Herramientas → Salud del disco (S.M.A.R.T.)…*: temperatura, horas de encendido, desgaste SSD, RPM y errores;
+  consulta bajo demanda; "No disponible" para unidades sin contadores (USB).
+- ✅ Release **v1.5.0** publicado en GitHub con `FormatDiskPro-1.5.0-setup.exe` adjunto (probado por el usuario, OK).
 - ✅ **Tier 1 (publicado en 1.4.0):** persistencia de preferencias (`Services/AppSettings.cs` →
   `%AppData%\FormatDiskPro\settings.json`: idioma/tema/última unidad); **ETA + velocidad** en operaciones con
   bytes (`Core/Throughput.cs`, ventana deslizante en el timer); **borrado seguro con progreso real**
@@ -147,6 +151,25 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-21 — release: v1.5.0 — feat: Tier 2 #5 — S.M.A.R.T. ampliado (diálogo de salud del disco)
+
+Detalle de diagnóstico del disco físico más allá de Salud/Bus/Media, **sin tocar la lógica de formateo**.
+Decisión del usuario: **diálogo dedicado** (no recargar el panel de info compacto). Build **0/0**, **102/102 tests**.
+**Publicado como v1.5.0** (probado por el usuario en claro/oscuro, funcionando).
+
+- **`Core/SmartInfo.cs`** (modelo + `Parse` puro, testeable): salud, bus, medio, RPM, temperatura, horas de
+  encendido, desgaste SSD y errores de lectura/escritura; campos numéricos anulables (`null` si la unidad no
+  los expone). Tests: `SmartInfoTests` (línea completa, USB sin contadores, no numéricos, líneas inválidas).
+- **`DiskService.GetSmartAsync`**: consulta extendida (`Get-StorageReliabilityCounter` con `-ErrorAction
+  SilentlyContinue`) vía el patrón seguro `-EncodedCommand` existente. `GetHealthAsync`/`HealthInfo` intactos
+  (panel inline rápido, sin riesgo).
+- **`UI/HealthDialog.xaml(.cs)`**: diálogo con carga **bajo demanda** (en `Opened`: "Consultando…" → rellena),
+  filas etiqueta/valor con fallback **"No disponible"**, estado de salud coloreado según el tema, botón con
+  esquinas redondeadas. Abierto desde el nuevo ítem **Herramientas → Salud del disco (S.M.A.R.T.)…** (`MnuHealth`).
+- **Localización:** `menu.health` + bloque `health.*` (ES/EN). 
+
+**Verificación:** probada por el usuario (disco SATA SSD: salud, temperatura, horas, desgaste; en claro y oscuro) — OK.
 
 ### 2026-06-21 — release: v1.4.0 — feat: Tier 1 de mejoras de UX/diagnóstico
 

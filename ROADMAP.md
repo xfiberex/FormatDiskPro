@@ -22,11 +22,12 @@
 
 Refuerzan el corazón "diagnóstico/gestión" del proyecto.
 
-### 5. S.M.A.R.T. ampliado
-Mostrar más detalle del disco físico además de Salud/Bus/Media: **temperatura, horas de encendido,
-sectores reasignados y % de desgaste en SSD** (`Get-StorageReliabilityCounter` / `Get-PhysicalDisk`).
-- Dónde: ampliar `Services/DiskService.cs` (consulta) + filas en el panel de info / un diálogo de detalle.
-- Esfuerzo: medio.
+### 5. S.M.A.R.T. ampliado — ✅ implementado (publicado en v1.5.0)
+Detalle del disco físico además de Salud/Bus/Media: **temperatura, horas de encendido, desgaste de SSD,
+RPM y errores de lectura/escritura** (`Get-StorageReliabilityCounter`), en un **diálogo dedicado**
+abierto desde *Herramientas → Salud del disco (S.M.A.R.T.)…*.
+- Dónde: `Core/SmartInfo.cs` (modelo + parser testeable), `DiskService.GetSmartAsync`, `UI/HealthDialog.xaml`.
+- Consulta bajo demanda (no recarga el panel inline). Fallback "No disponible" para unidades sin contadores (USB).
 
 ### 6. Verificar / reparar sistema de archivos (chkdsk)
 Herramienta "Comprobar errores": `chkdsk /scan` (solo lectura) y opción `/f` (reparar), con parseo de
@@ -93,6 +94,6 @@ una **decisión de cambiar el alcance**:
 
 ## Sugerencia de priorización
 
-Empezar el **Tier 2** por **#5 (S.M.A.R.T. ampliado)** — el mayor salto de valor de diagnóstico y de bajo
-riesgo —, seguido de **#7 (protección de escritura)** y **#6 (chkdsk)**. Dejar **#8 (reinicializar unidad)**
-para cuando se quiera asumir su mayor riesgo, con guardas reforzadas.
+**#5 (S.M.A.R.T. ampliado)** ya está publicado (v1.5.0). Siguiente recomendado:
+**#7 (protección de escritura)** y **#6 (chkdsk)**, ambos de bajo-medio riesgo. Dejar
+**#8 (reinicializar unidad)** para cuando se quiera asumir su mayor riesgo, con guardas reforzadas.
