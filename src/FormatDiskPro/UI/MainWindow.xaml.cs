@@ -84,7 +84,7 @@ public sealed partial class MainWindow : Window
             presenter.IsResizable   = false;
             presenter.IsMaximizable = false;
         }
-        AppWindow.Resize(new SizeInt32(500, 840));
+        AppWindow.Resize(new SizeInt32(500, 900));
         CenterWindow();
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -102,7 +102,7 @@ public sealed partial class MainWindow : Window
         DrivePicker.ItemsSource = _driveItems;
 
         ((FrameworkElement)Content).RequestedTheme = ElementTheme.Default;
-        _uiSettings.ColorValuesChanged += OnSystemThemeChanged;
+        ((FrameworkElement)Content).ActualThemeChanged += OnActualThemeChanged;
 
         BuildPresetsMenu();
         ApplyTheme(IsSystemDark());
@@ -117,7 +117,7 @@ public sealed partial class MainWindow : Window
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
         AppWindow.Move(new PointInt32(
             (area.Width  - 500) / 2,
-            (area.Height - 840) / 2));
+            (area.Height - 900) / 2));
     }
 
     /// <summary>Aplica Mica si el sistema lo soporta; si no, degrada a Acrylic de escritorio.</summary>
@@ -932,7 +932,8 @@ public sealed partial class MainWindow : Window
         MnuUpdates.Text  = L.T("menu.updates");
         MnuAbout.Text    = L.T("menu.about");
 
-        DrivePicker.Header      = L.T("drive.label");
+        UnitGroupLbl.Text       = L.T("section.drive");
+        FormatGroupLbl.Text     = L.T("section.format");
         FileSystemPicker.Header = L.T("fs.label");
         AllocUnitPicker.Header  = L.T("alloc.label");
         VolumeLabelBox.Header   = L.T("label.label");
@@ -973,21 +974,55 @@ public sealed partial class MainWindow : Window
         return bg.R < 128;
     }
 
-    private void OnSystemThemeChanged(UISettings sender, object args)
-    {
-        if (_autoTheme)
-            Content.DispatcherQueue.TryEnqueue(() => ApplyTheme(IsSystemDark()));
-    }
+    // Se dispara en el hilo de UI cuando cambia el tema EFECTIVO del contenido —incluye los
+    // cambios del tema de Windows cuando RequestedTheme = Default (modo Automático)—. Sustituye a
+    // UISettings.ColorValuesChanged, que se disparaba en un hilo en segundo plano y provocaba
+    // cierres inesperados de la app al cambiar el tema del sistema. En modo forzado (Claro/Oscuro)
+    // el tema efectivo no cambia con el del sistema, así que este handler no se dispara (correcto).
+    private void OnActualThemeChanged(FrameworkElement sender, object args)
+        => ApplyTheme(sender.ActualTheme == ElementTheme.Dark);
 
     private void ApplyTheme(bool dark)
     {
         _darkMode = dark;
+        UpdateCaptionButtonColors(dark);
 
         foreach (var vm in _driveItems)
             vm.ForegroundBrush = DriveBrush(vm.IsProtected);
 
         if (_isDriveProtected)
             StatusText.Foreground = new SolidColorBrush(ProtectedColor());
+    }
+
+    // Tematiza los botones de caption (minimizar/maximizar/cerrar) según el tema EFECTIVO.
+    // Con ExtendsContentIntoTitleBar a nivel de Window, WinUI NO refresca de forma fiable estos
+    // botones en un cambio de tema en caliente, y sus colores POR DEFECTO siguen el tema del
+    // SISTEMA (no el RequestedTheme forzado de la app); al forzar Claro con Windows en Oscuro (o
+    // viceversa) el fondo hover/pressed quedaba con el tema contrario. Por eso fijamos TODOS los
+    // colores —incluidos los fondos hover/pressed— derivándolos del tema efectivo (no de UISettings,
+    // que reflejaba el modo de app del sistema y causaba el contraste incorrecto).
+    // Compromiso: al fijar el fondo hover, el botón Cerrar deja de ponerse rojo (la API es global
+    // para todos los botones de caption); se prioriza la consistencia con el tema forzado.
+    private void UpdateCaptionButtonColors(bool dark)
+    {
+        var titleBar = AppWindow.TitleBar;
+
+        Color fg          = dark ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(255, 0x19, 0x19, 0x19);
+        Color inactiveFg  = dark ? Color.FromArgb(255, 0x9B, 0x9B, 0x9B) : Color.FromArgb(255, 0x86, 0x86, 0x86);
+        Color transparent = Color.FromArgb(0, 0, 0, 0);
+        // Overlays sutiles acordes al tema efectivo: blanco sobre oscuro, negro sobre claro.
+        Color hover       = dark ? Color.FromArgb(0x17, 255, 255, 255) : Color.FromArgb(0x17, 0, 0, 0);
+        Color pressed     = dark ? Color.FromArgb(0x0F, 255, 255, 255) : Color.FromArgb(0x0F, 0, 0, 0);
+
+        titleBar.ButtonForegroundColor         = fg;
+        titleBar.ButtonHoverForegroundColor    = fg;
+        titleBar.ButtonPressedForegroundColor  = fg;
+        titleBar.ButtonInactiveForegroundColor = inactiveFg;
+
+        titleBar.ButtonBackgroundColor         = transparent;
+        titleBar.ButtonInactiveBackgroundColor = transparent;
+        titleBar.ButtonHoverBackgroundColor    = hover;
+        titleBar.ButtonPressedBackgroundColor  = pressed;
     }
 
     // ── Operation lifecycle ───────────────────────────────────────

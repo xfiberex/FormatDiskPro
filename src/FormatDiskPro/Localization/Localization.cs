@@ -32,6 +32,8 @@ public static class L
     {
         ["app.subtitle"]     = ("Seleccione una unidad para formatear", "Select a drive to format"),
         ["drive.label"]      = ("Unidad:", "Drive:"),
+        ["section.drive"]    = ("Unidad", "Drive"),
+        ["section.format"]   = ("Configuración de formato", "Format settings"),
         ["fs.label"]         = ("Sistema de archivos", "File system"),
         ["alloc.label"]      = ("Tamaño de unidad de asignación", "Allocation unit size"),
         ["label.label"]      = ("Etiqueta del volumen:", "Volume label:"),

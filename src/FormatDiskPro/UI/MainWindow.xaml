@@ -11,8 +11,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Row 0: Custom title bar drag area (caption buttons themed automatically by WinUI) -->
@@ -52,67 +50,83 @@
             </MenuBarItem>
         </MenuBar>
 
-        <!-- Row 2: Scrollable content -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel Padding="16,12,16,0" Spacing="6">
+        <!-- Row 2: Scrollable content — cards inspired by Win11Debloat sections -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0">
+            <StackPanel Padding="16,14,16,16" Spacing="12">
 
-                <!-- Drive selection -->
-                <Grid ColumnDefinitions="*,Auto">
-                    <ComboBox x:Name="DrivePicker" HorizontalAlignment="Stretch" Header="Unidad:"
-                              SelectionChanged="DrivePicker_SelectionChanged">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="ui:DriveViewModel">
-                                <TextBlock Text="{x:Bind DisplayText}"
-                                           Foreground="{x:Bind ForegroundBrush, Mode=OneWay}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <Button x:Name="RefreshButton" Grid.Column="1" VerticalAlignment="Bottom"
-                            Margin="6,0,0,0" Padding="10,7" Click="RefreshButton_Click">
-                        <FontIcon Glyph="&#xE72C;" FontSize="16" />
-                        <ToolTipService.ToolTip>
-                            <ToolTip x:Name="RefreshTooltip" Content="Actualizar lista" />
-                        </ToolTipService.ToolTip>
-                    </Button>
-                </Grid>
+                <!-- ── Card: Unidad (selección + información) ── -->
+                <Border Style="{StaticResource AppCardStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xEDA2;" Style="{StaticResource SectionIconStyle}" />
+                            <TextBlock x:Name="UnitGroupLbl" Text="Unidad" Style="{StaticResource SectionTitleStyle}" />
+                        </StackPanel>
 
-                <!-- Drive info panel -->
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        CornerRadius="8" Padding="12,10" Margin="0,4,0,0">
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
-                        <TextBlock x:Name="InfoTotalText"  Grid.Row="0" Grid.Column="0" FontSize="13" Text="Total: –" />
-                        <TextBlock x:Name="InfoFsText"     Grid.Row="0" Grid.Column="1" FontSize="13" Text="Sistema actual: –" />
-                        <TextBlock x:Name="InfoFreeText"   Grid.Row="1" Grid.Column="0" FontSize="13" Text="Libre: –"    Margin="0,4,0,0" />
-                        <TextBlock x:Name="InfoTypeText"   Grid.Row="1" Grid.Column="1" FontSize="13" Text="Tipo: –"     Margin="0,4,0,0" />
-                        <TextBlock x:Name="InfoHealthText" Grid.Row="2" Grid.Column="0" FontSize="13" Text="Salud: –"   Margin="0,4,0,0" />
-                        <TextBlock x:Name="InfoBusText"    Grid.Row="2" Grid.Column="1" FontSize="13" Text="Conexión: –" Margin="0,4,0,0" />
-                    </Grid>
+                        <Grid ColumnSpacing="8" ColumnDefinitions="*,Auto">
+                            <ComboBox x:Name="DrivePicker" HorizontalAlignment="Stretch"
+                                      SelectionChanged="DrivePicker_SelectionChanged">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="ui:DriveViewModel">
+                                        <TextBlock Text="{x:Bind DisplayText}"
+                                                   Foreground="{x:Bind ForegroundBrush, Mode=OneWay}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Button x:Name="RefreshButton" Grid.Column="1" VerticalAlignment="Stretch"
+                                    Width="40" Padding="0" Click="RefreshButton_Click">
+                                <FontIcon Glyph="&#xE72C;" FontSize="16" />
+                                <ToolTipService.ToolTip>
+                                    <ToolTip x:Name="RefreshTooltip" Content="Actualizar lista" />
+                                </ToolTipService.ToolTip>
+                            </Button>
+                        </Grid>
+
+                        <Border Style="{StaticResource CardDividerStyle}" />
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
+                              ColumnSpacing="12" RowSpacing="6">
+                            <TextBlock x:Name="InfoTotalText"  Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoTextStyle}" Text="Total: –" />
+                            <TextBlock x:Name="InfoFsText"     Grid.Row="0" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Sistema actual: –" />
+                            <TextBlock x:Name="InfoFreeText"   Grid.Row="1" Grid.Column="0" Style="{StaticResource InfoTextStyle}" Text="Libre: –" />
+                            <TextBlock x:Name="InfoTypeText"   Grid.Row="1" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Tipo: –" />
+                            <TextBlock x:Name="InfoHealthText" Grid.Row="2" Grid.Column="0" Style="{StaticResource InfoTextStyle}" Text="Salud: –" />
+                            <TextBlock x:Name="InfoBusText"    Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Conexión: –" />
+                        </Grid>
+                    </StackPanel>
                 </Border>
 
-                <!-- File system -->
-                <ComboBox x:Name="FileSystemPicker" HorizontalAlignment="Stretch"
-                          Header="Sistema de archivos" Margin="0,8,0,0"
-                          SelectionChanged="FileSystemPicker_SelectionChanged" />
-                <TextBlock x:Name="FsDescText" FontSize="12" FontStyle="Italic"
-                           Opacity="0.6" TextWrapping="Wrap" Margin="2,0,0,2" />
+                <!-- ── Card: Configuración de formato ── -->
+                <Border Style="{StaticResource AppCardStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE713;" Style="{StaticResource SectionIconStyle}" />
+                            <TextBlock x:Name="FormatGroupLbl" Text="Configuración de formato" Style="{StaticResource SectionTitleStyle}" />
+                        </StackPanel>
 
-                <!-- Allocation unit -->
-                <ComboBox x:Name="AllocUnitPicker" HorizontalAlignment="Stretch"
-                          Header="Tamaño de unidad de asignación" Margin="0,4,0,0" />
-                <Button x:Name="RestoreButton" Content="Restaurar valores predeterminados"
-                        HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                        Click="RestoreButton_Click" />
+                        <ComboBox x:Name="FileSystemPicker" HorizontalAlignment="Stretch"
+                                  Header="Sistema de archivos"
+                                  SelectionChanged="FileSystemPicker_SelectionChanged" />
+                        <TextBlock x:Name="FsDescText" Style="{StaticResource HintTextStyle}" Margin="2,0,0,0" />
 
-                <!-- Volume label -->
-                <TextBox x:Name="VolumeLabelBox" MaxLength="32" HorizontalAlignment="Stretch"
-                         Header="Etiqueta del volumen:" Margin="0,8,0,0" />
+                        <ComboBox x:Name="AllocUnitPicker" HorizontalAlignment="Stretch"
+                                  Header="Tamaño de unidad de asignación" Margin="0,2,0,0" />
 
-                <!-- Format options -->
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        CornerRadius="8" Padding="12,10" Margin="0,8,0,12">
-                    <StackPanel Spacing="6">
-                        <TextBlock x:Name="OptionsGroupLbl" Text="Opciones de formato"
-                                   FontWeight="SemiBold" Margin="0,0,0,2" />
+                        <TextBox x:Name="VolumeLabelBox" MaxLength="32" HorizontalAlignment="Stretch"
+                                 Header="Etiqueta del volumen:" Margin="0,2,0,0" />
+
+                        <Button x:Name="RestoreButton" Content="Restaurar valores predeterminados"
+                                HorizontalAlignment="Stretch" Margin="0,2,0,0"
+                                Click="RestoreButton_Click" />
+                    </StackPanel>
+                </Border>
+
+                <!-- ── Card: Opciones de formato ── -->
+                <Border Style="{StaticResource AppCardStyle}">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE74E;" Style="{StaticResource SectionIconStyle}" />
+                            <TextBlock x:Name="OptionsGroupLbl" Text="Opciones de formato" Style="{StaticResource SectionTitleStyle}" />
+                        </StackPanel>
                         <CheckBox x:Name="QuickFormatCheck" Content="Formato rápido"                        IsChecked="True" />
                         <CheckBox x:Name="CompressCheck"    Content="Habilitar compresión (sólo NTFS)"      IsEnabled="False" />
                         <CheckBox x:Name="SecureWipeCheck"  Content="Borrado seguro (sobrescribir espacio libre)" />
@@ -122,25 +136,26 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Row 3: Progress bar -->
-        <ProgressBar x:Name="FormatProgress" Grid.Row="3" Margin="16,6,16,2" />
+        <!-- Row 3: Footer action bar (progress + status + actions), Win11Debloat-style -->
+        <Border Grid.Row="3" Style="{StaticResource FooterBarStyle}">
+            <StackPanel Spacing="8">
+                <ProgressBar x:Name="FormatProgress" />
 
-        <!-- Row 4: Status + elapsed -->
-        <Grid Grid.Row="4" Margin="16,0,16,6">
-            <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextWrapping="NoWrap" FontSize="12.5" />
-            <TextBlock x:Name="ElapsedText" HorizontalAlignment="Right"
-                       VerticalAlignment="Center" Opacity="0.55" FontSize="12" />
-        </Grid>
+                <Grid>
+                    <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextWrapping="NoWrap" FontSize="12.5" />
+                    <TextBlock x:Name="ElapsedText" HorizontalAlignment="Right"
+                               VerticalAlignment="Center" Opacity="0.55" FontSize="12" />
+                </Grid>
 
-        <!-- Row 5: Action buttons -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center"
-                    Spacing="10" Margin="16,0,16,14">
-            <Button x:Name="StartButton" Content="Iniciar" Width="110"
-                    Style="{StaticResource AccentButtonStyle}"
-                    Click="StartButton_Click" />
-            <Button x:Name="CloseButton" Content="Cerrar" Width="110"
-                    Click="CloseButton_Click" />
-        </StackPanel>
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2,0,0">
+                    <Button x:Name="CloseButton" Content="Cerrar" MinWidth="110"
+                            Click="CloseButton_Click" />
+                    <Button x:Name="StartButton" Grid.Column="2" Content="Iniciar" MinWidth="130"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="StartButton_Click" />
+                </Grid>
+            </StackPanel>
+        </Border>
 
     </Grid>
 </Window>

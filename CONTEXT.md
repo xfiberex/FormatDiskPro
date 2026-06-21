@@ -6,7 +6,7 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-20
+- **Última actualización de este documento:** 2026-06-21
 - **Versión actual:** 1.2.2 (publicada — corrige el bug de cierre que bloqueaba la auto-actualización:
   `AppWindow_Closing` cancelaba `Application.Current.Exit()` por `_isBusy` y mostraba "Operación en
   progreso", impidiendo soltar el `AppMutex`/los archivos). La 1.2.1 (y anteriores) arrastran ese bug,
@@ -61,6 +61,12 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 - ✅ Release **v1.2.1** publicado en GitHub con `FormatDiskPro-1.2.1-setup.exe` adjunto (corrige el crash de la 1.2.0).
 - ✅ Barra de título: **`Window.ExtendsContentIntoTitleBar = true`** (a nivel de Window) + `PreferredHeightOption = Tall` (48 px) + icono 16 px + `CaptionTextBlockStyle`. WinUI tematiza solo los botones caption (min/max/cerrar) según el tema **efectivo** del contenido.
 - ✅ Tema: sigue el tema del sistema automáticamente (`UISettings.ColorValuesChanged`); opción manual Automático/Claro/Oscuro en menú. Colores derivados de recursos/valores Fluent (`SystemFillColorCritical`, `TextFillColorPrimary`).
+- ✅ **Sistema de diseño (UI/UX) inspirado en Win11Debloat (2026-06-21):** contenido organizado en **tarjetas de
+  sección** (`Border` con borde de 1px + esquinas 8px) y **encabezados con icono + título de acento**. El acento usa
+  el **color de Windows del usuario** vía recursos Fluent (`AccentTextFillColorPrimaryBrush`), adaptándose a claro/oscuro
+  sin colores hardcodeados. Tokens centralizados en `UI/Theme/AppTheme.xaml` (estilos `AppCardStyle`, `SectionIconStyle`,
+  `SectionTitleStyle`, `InfoTextStyle`, `HintTextStyle`, `CardDividerStyle`, `FooterBarStyle`). **Barra de acción inferior**
+  (footer) separada por una línea: `Cerrar` a la izquierda, `Iniciar` (acento) a la derecha. Ventana **500×900** (antes 840).
 - ✅ Ventana fija no redimensionable (`OverlappedPresenter.IsResizable/IsMaximizable = false`); Mica con degradación a Acrylic si el sistema no la soporta.
 - ⚠️ **Instalador/empaquetado:** corregido el bug que hacía crashear la 1.2.0 al iniciar (`dotnet publish`
   no incluía `FormatDiskPro.pri`; ahora un target MSBuild lo copia). Instalador limpia la instalación
@@ -132,6 +138,71 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-21 — fix/ui: crash al cambiar el tema del sistema + botones de caption sin re-tematizar
+
+Dos bugs reportados tras el rediseño (ambos preexistentes en la lógica de tema):
+
+**1) Cierre inesperado al cambiar el tema de Windows en modo Automático** (`UI/MainWindow.xaml.cs`)
+- Causa: la suscripción a **`UISettings.ColorValuesChanged`** se dispara en un **hilo en segundo
+  plano**; en WinUI 3 *desktop* esto provoca cierres intermitentes al cambiar el tema del sistema
+  (carrera con el re-tematizado interno de WinUI), pese a marshalizar con `DispatcherQueue`.
+- Corrección: se sustituye por **`FrameworkElement.ActualThemeChanged`** (se dispara en el hilo de
+  UI cuando cambia el tema **efectivo** del contenido, incluido el cambio del tema de Windows con
+  `RequestedTheme = Default`). En modo forzado Claro/Oscuro no se dispara con el sistema (correcto).
+  Se elimina `OnSystemThemeChanged`; `IsSystemDark()`/`_uiSettings` se conservan para la semilla
+  inicial y el menú **Tema → Automático**.
+
+**2) Los botones de caption (min/max/cerrar) no cambiaban de color al alternar el tema en caliente**
+- Causa: con `Window.ExtendsContentIntoTitleBar = true` se confiaba en el auto-tematizado de WinUI,
+  que **no refresca** los botones de caption en un cambio de tema en vivo (se quedaban con los
+  colores del tema anterior: glifos con bajo contraste / fondo oscuro en claro).
+- Corrección: nuevo `UpdateCaptionButtonColors(bool dark)` (llamado desde `ApplyTheme`) que fija
+  explícitamente **todos** los colores de los botones (foreground normal/hover/pressed/inactive +
+  fondos background/hover/pressed) según el tema **efectivo**, con `ButtonBackgroundColor` transparente
+  (Mica). **Segundo problema reportado (tema forzado):** dejar los fondos hover/pressed en `null` no
+  bastaba —su valor por defecto sigue el tema del **sistema**, no el `RequestedTheme` forzado—, así que
+  al forzar Claro con Windows en Oscuro (o viceversa) el hover del botón quedaba con el tema contrario
+  (recuadro oscuro sobre la app clara). Ahora los fondos hover/pressed se derivan del tema efectivo
+  (overlays sutiles: blanco sobre oscuro / negro sobre claro). **Compromiso:** al fijar el fondo hover,
+  el botón Cerrar deja de ponerse rojo (la API `AppWindowTitleBar` es global para todos los botones);
+  se prioriza la consistencia con el tema forzado.
+
+Build **0/0**, **59/59 tests** ✅. **Verificación visual pendiente** (la app requiere admin).
+
+### 2026-06-21 — feat/ui: sistema de diseño inspirado en Win11Debloat (tarjetas + acento del sistema)
+
+Rediseño del lenguaje visual de la UI tomando como referencia el aspecto de **Win11Debloat**
+(la imagen aportada por el usuario; el repo oficial `raphire/win11debloat` es en realidad un
+script de PowerShell **sin GUI**, así que la imagen es la fuente de verdad del diseño). Se
+adapta el *lenguaje visual* (no el layout literal de 3 columnas) a la ventana fija de la utilidad.
+
+**Decisiones acordadas con el usuario**
+- **Tema:** se mantiene claro/oscuro/automático (no se fija oscuro); se re-estiliza para ambos.
+- **Acento:** se usa el **color de acento que el usuario tiene seleccionado en Windows 11**
+  (no un teal fijo), vía recursos Fluent que ya lo siguen y se adaptan a claro/oscuro.
+- **Alcance:** rediseño visual completo con tokens centralizados.
+
+**Cambios (capa `UI/`)**
+- Nuevo `UI/Theme/AppTheme.xaml` (ResourceDictionary) con tokens centralizados, fusionado en
+  `App.xaml`: `AppCardStyle` (tarjeta: borde 1px + esquinas 8px), `SectionIconStyle` /
+  `SectionTitleStyle` (encabezado con icono + título en `AccentTextFillColorPrimaryBrush`),
+  `InfoTextStyle`, `HintTextStyle`, `CardDividerStyle`, `FooterBarStyle`.
+- `MainWindow.xaml` reorganizado en **3 tarjetas de sección** con encabezado (icono Segoe Fluent +
+  título de acento): **Unidad** (selector + botón refrescar + panel de info con separador),
+  **Configuración de formato** (FS + descripción + unidad de asignación + etiqueta + restaurar) y
+  **Opciones de formato** (checkboxes). El footer (`Border` con línea superior) agrupa barra de
+  progreso, estado/tiempo y los botones: **Cerrar** (izquierda) e **Iniciar** (acento, derecha),
+  al estilo Win11Debloat (Back/Next). Filas del Grid: 48 / Auto(menú) / *(scroll) / Auto(footer).
+- `MainWindow.xaml.cs`: `ApplyLanguage` localiza los nuevos títulos de sección (`UnitGroupLbl`,
+  `FormatGroupLbl`) y se elimina el `Header` redundante del `DrivePicker` (lo cubre el título de
+  la tarjeta). Ventana **500×900** (antes 500×840) para que las tarjetas respiren sin scroll.
+- `Localization.cs`: nuevas claves `section.drive` ("Unidad"/"Drive") y `section.format`
+  ("Configuración de formato"/"Format settings").
+
+**Sin cambios:** `Core/`, `Services/`, lógica de negocio, `installer/`, `release.ps1`.
+Build **0/0**, **59/59 tests** ✅. **Verificación visual pendiente** (la app requiere admin; no se
+pudo lanzar desde la sesión no elevada del agente — la realiza el usuario).
 
 ### 2026-06-20 — release: v1.2.2 — fix(auto-update): el cierre intencional para actualizar quedaba bloqueado
 
