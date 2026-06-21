@@ -48,6 +48,9 @@ public sealed partial class MainWindow : Window
     // ── State ─────────────────────────────────────────────────────
 
     private bool _isBusy, _cancelRequested, _isDriveProtected, _darkMode, _autoTheme = true;
+    // Cierre intencional para auto-actualizarse: la app debe cerrarse (aunque _isBusy siga
+    // activo por la descarga) para soltar el AppMutex y los archivos y que el instalador la reemplace.
+    private bool _closingForUpdate;
     private readonly UISettings _uiSettings = new();
     private Process? _activeProcess;
     private CancellationTokenSource? _cts;
@@ -174,6 +177,8 @@ public sealed partial class MainWindow : Window
 
     private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
+        // Auto-actualización en curso: dejamos cerrar para que el instalador pueda reemplazar la app.
+        if (_closingForUpdate) return;
         if (!_isBusy) return;
         args.Cancel = true;
         await ShowInfoAsync(L.T("closing.title"), L.T("closing.body"));
@@ -848,6 +853,9 @@ public sealed partial class MainWindow : Window
             History.Log($"UPDATE DOWNLOADED {rel.Version}: {path}");
             StatusText.Text = L.T("update.launching");
             // Instalación silenciosa: el instalador cierra esta app, actualiza y la relanza.
+            // Marcamos el cierre como intencional ANTES de salir para que AppWindow_Closing no lo
+            // cancele por _isBusy; así la app suelta el AppMutex/los archivos y el instalador procede.
+            _closingForUpdate = true;
             UpdateService.LaunchInstaller(path, silent: true);
             Application.Current.Exit();
         }
@@ -1005,6 +1013,8 @@ public sealed partial class MainWindow : Window
         _activeProcess = null;
         _cts?.Dispose();
         _cts = null;
+        // Si nos estamos cerrando para actualizar, la ventana ya se va: no tocar la UI.
+        if (_closingForUpdate) return;
         SetFormEnabled(true);
         CloseButton.Content = L.T("btn.close");
     }

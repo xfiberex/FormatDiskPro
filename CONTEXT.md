@@ -6,10 +6,12 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-19
-- **Versión actual:** 1.2.1 (publicada — corrige el crash de arranque de la 1.2.0, que se generó sin
-  `FormatDiskPro.pri`). La 1.2.0 queda obsoleta/rota; los usuarios atrapados en ella deben descargar
-  la 1.2.1 manualmente (su app no abre, así que el auto-updater no corre).
+- **Última actualización de este documento:** 2026-06-20
+- **Versión actual:** 1.2.2 (publicada — corrige el bug de cierre que bloqueaba la auto-actualización:
+  `AppWindow_Closing` cancelaba `Application.Current.Exit()` por `_isBusy` y mostraba "Operación en
+  progreso", impidiendo soltar el `AppMutex`/los archivos). La 1.2.1 (y anteriores) arrastran ese bug,
+  así que el salto a la 1.2.2 puede ser tosco; **desde la 1.2.2 en adelante** la auto-actualización es
+  silenciosa y limpia. La 1.2.0 sigue obsoleta/rota (no abre → descarga manual).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -65,6 +67,14 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
   previa (`[InstallDelete]`), cierra la app vía `AppMutex`, hace **auto-actualización silenciosa con
   relanzado**, y soporta **firma Authenticode** opcional (`build-installer.ps1`/`release.ps1`). **1.2.1
   publicada** sin firmar (un cert OV/EV es lo único que quitaría SmartScreen).
+- ✅ **Auto-update — bug del cierre corregido (1.2.2):** `AppWindow_Closing` cancelaba
+  `Application.Current.Exit()` durante la auto-actualización (porque `_isBusy` seguía activo por la descarga)
+  y mostraba "Operación en progreso", dejando la app vieja abierta y reteniendo el `AppMutex`/los archivos →
+  el instalador no podía reemplazarla. Añadido flag `_closingForUpdate` que permite el cierre intencional.
+  Este bug venía idéntico desde la 1.1.0 (WinForms) y la 1.2.1. **Nota:** la prueba 1.1.0→1.2.1 muestra el
+  instalador **interactivo** (diálogo de idioma + asistente) porque la 1.1.0 publicada lanza el instalador
+  **sin** `/VERYSILENT` (código congelado); el flujo silencioso solo aplica desde la versión con este fix
+  (1.2.2) en adelante.
 - ✅ Verificación funcional pendiente: formato real en USB, verificación de capacidad, historial, actualizaciones.
 
 ## 4. Decisiones y convenciones clave
@@ -122,6 +132,32 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-20 — release: v1.2.2 — fix(auto-update): el cierre intencional para actualizar quedaba bloqueado
+
+**Causa raíz**
+- En el flujo de auto-actualización (`DownloadAndRunUpdateAsync`), tras descargar se llama a
+  `LaunchInstaller(silent)` y `Application.Current.Exit()`. Pero `Exit()` dispara `AppWindow_Closing`,
+  que veía `_isBusy == true` (la operación de descarga aún no había terminado en el `finally`), ponía
+  `args.Cancel = true` y mostraba el diálogo **"Operación en progreso"**. Resultado: la app **no se cerraba**,
+  seguía reteniendo el `AppMutex` y los archivos de `{app}`, y el instalador no podía reemplazarla.
+- Bug heredado **idéntico** de la 1.1.0 (WinForms, `OnFormClosing` con la misma guarda `_isBusy`).
+
+**Corrección** (`UI/MainWindow.xaml.cs`)
+- Nuevo flag `_closingForUpdate`. Se pone en `true` **antes** de `LaunchInstaller` + `Exit()`.
+- `AppWindow_Closing`: si `_closingForUpdate`, deja cerrar (no cancela ni muestra el diálogo).
+- `EndOperation`: si `_closingForUpdate`, no restaura la UI (evita tocar controles durante el teardown).
+- Build 0/0, 59/59 tests ✅.
+
+**Sobre la prueba 1.1.0 → 1.2.1 del usuario (capturas)**
+- El **instalador interactivo** (diálogo "Seleccione el Idioma" + asistente) es **esperado** en ese salto:
+  la 1.1.0 publicada lanza el instalador **sin** `/VERYSILENT` (`LaunchInstaller(path)` sin flags — código
+  congelado en `v1.1.0`). No se puede cambiar retroactivamente para quien ya está en 1.1.0. La auto-actualización
+  **silenciosa** solo aplica desde la versión que incluya este fix (1.2.2) en adelante.
+
+**Publicado:** **v1.2.2** vía `release.ps1 -Version 1.2.2` (commit `release: v1.2.2` en `master`, tag
+`v1.2.2`, GitHub Release con `FormatDiskPro-1.2.2-setup.exe` adjunto, sin firmar). El salto silencioso
+real solo puede validarse actualizando **desde** una build con este fix (1.2.2 → 1.2.3+).
 
 ### 2026-06-19 — release: v1.2.1
 
