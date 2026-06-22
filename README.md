@@ -5,9 +5,9 @@
 ![Plataforma](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)
 ![Licencia](https://img.shields.io/github/license/xfiberex/FormatDiskPro?label=licencia&color=green)
 
-Herramienta de formateo y **gestión de unidades** para Windows con soporte para **5 sistemas de archivos**, diagnóstico S.M.A.R.T., verificación de capacidad real, actualizaciones automáticas y protección del disco de sistema.
+Herramienta de formateo y **gestión de unidades** para Windows con soporte para **5 sistemas de archivos**, diagnóstico **S.M.A.R.T. avanzado**, verificación de capacidad real, comprobación de errores (chkdsk), detección de protección de escritura, actualizaciones automáticas y protección del disco de sistema.
 
-Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada hasta convertirse en una utilidad seria de gestión de memorias USB.
+Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada hasta convertirse en una utilidad seria de gestión y diagnóstico de memorias USB y discos, con una **interfaz moderna basada en tarjetas** (WinUI 3 / Fluent Design 2).
 
 ## Características
 
@@ -17,7 +17,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Descripción contextual** de cada sistema de archivos
 - **Formato rápido o completo**, con **progreso real en %** (formato completo de NTFS/FAT/FAT32)
 - **Compresión NTFS** opcional
-- **Borrado seguro**: sobrescribe el espacio libre tras formatear (`cipher /w`)
+- **Borrado seguro con progreso real**: sobrescribe el espacio libre con un patrón (sobrescritor propio) mostrando **% real, velocidad (MB/s) y tiempo restante (ETA)**; 1 pasada por defecto
 - **Presets** de un clic (USB universal, consola/TV, datos Windows, comprimido, borrado seguro)
 
 ### Seguridad
@@ -26,20 +26,26 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Confirmación reforzada**: hay que escribir la letra de la unidad para confirmar el formateo
 - **Validación de etiqueta de volumen** antes de la operación destructiva
 - **Revalidación de disponibilidad** de la unidad al iniciar (detecta USBs extraídos)
+- **Detección de protección de escritura**: si la unidad está en *solo lectura*, lo detecta al pulsar Iniciar y ofrece quitar la protección antes de formatear (evita el fallo críptico); también disponible como herramienta manual
 
 ### Diagnóstico
 - **Panel de información**: tamaño, espacio libre, FS actual y tipo
-- **Salud S.M.A.R.T.** y tipo de conexión/medio (`Get-PhysicalDisk`: USB/SATA/NVMe · SSD/HDD)
+- **Salud S.M.A.R.T. avanzada**: estado de salud, conexión (USB/SATA/NVMe) y tipo de medio (SSD/HDD) en el panel, más un **diálogo de detalle** con temperatura, horas de encendido, desgaste de SSD, RPM y errores de lectura/escritura (`Get-StorageReliabilityCounter`)
 - **Verificación de capacidad real**: detecta memorias USB falsificadas escribiendo y releyendo un patrón
+- **Comprobación de errores (chkdsk)**: *Solo comprobar* (solo lectura, universal) o *Comprobar y reparar* (`/f`), con progreso en vivo y resultado claro
 
 ### Experiencia
+- **Interfaz moderna basada en tarjetas** (WinUI 3 / Fluent): secciones con encabezado e icono, barra de acción inferior y un **color de acento que sigue el de Windows** (sistema de diseño inspirado en Win11Debloat), adaptándose a tema claro u oscuro
 - **Interfaz bilingüe** Español / Inglés (conmutable en caliente)
 - **Tema automático / claro / oscuro**: sigue el tema del sistema Windows en tiempo real; opción de forzar claro u oscuro desde el menú
+- **Recuerda tus preferencias** (idioma, tema y última unidad) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)
 - **Expulsión segura** de unidades removibles
-- **Historial de operaciones** auditado en `%AppData%\FormatDiskPro\history.log`
-- **Timer de tiempo transcurrido** y **cancelación segura** de cualquier operación
+- **Visor de historial integrado** dentro de la app, además del registro de auditoría en `%AppData%\FormatDiskPro\history.log`
+- **Tiempo transcurrido, velocidad y ETA** en operaciones largas, con **cancelación segura** de cualquier operación
 - **Actualizaciones integradas**: comprueba GitHub Releases al inicio y bajo demanda; descarga e instala la nueva versión
 - **Icono propio** de aplicación
+
+> 📋 Consulta la **[hoja de ruta](ROADMAP.md)** para ver las características implementadas y las próximas (organizadas por *tiers*).
 
 ## Requisitos
 
@@ -55,7 +61,7 @@ Descarga el instalador más reciente desde la página de **[Releases](https://gi
 
 ### Actualizaciones
 
-La aplicación comprueba si hay una versión más reciente en GitHub Releases al iniciarse y mediante **Ayuda → Buscar actualizaciones…**. Si hay una nueva versión, ofrece descargar e instalar el nuevo instalador automáticamente.
+La aplicación comprueba si hay una versión más reciente en GitHub Releases al iniciarse y mediante **Ayuda → Buscar actualizaciones…**. Si hay una nueva versión, ofrece descargar e instalar el nuevo instalador automáticamente (actualización silenciosa con relanzado desde la 1.2.2 en adelante).
 
 ## Construcción
 
@@ -100,9 +106,9 @@ src\FormatDiskPro\installer\new-selfsigned-cert.ps1 -Trust   # (como admin) adem
 El script `release.ps1` (raíz del repo) corta una versión completa en un paso: valida, ejecuta las pruebas, actualiza `<Version>`, compila el instalador, hace commit + tag, lo sube y crea el **GitHub Release** con el instalador adjunto.
 
 ```powershell
-.\release.ps1 -Version 1.2.1           # release completo
-.\release.ps1 -Version 1.2.1 -DryRun   # muestra el plan sin modificar nada
-.\release.ps1 -Version 1.2.1 -CertThumbprint A1B2C3...   # firmando el instalador
+.\release.ps1 -Version 1.6.0           # release completo
+.\release.ps1 -Version 1.6.0 -DryRun   # muestra el plan sin modificar nada
+.\release.ps1 -Version 1.6.0 -CertThumbprint A1B2C3...   # firmando el instalador
 ```
 
 Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los de firma (`-CertThumbprint` / `-CertFile` / `-CertPassword` / `-TimestampUrl`, reenviados a `build-installer.ps1`). Los usuarios con una versión anterior recibirán el aviso de actualización automáticamente.
@@ -113,7 +119,7 @@ Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los 
 dotnet test
 ```
 
-Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets y comparación de versiones de actualización.
+Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón del borrado seguro, parseo del historial y del detalle S.M.A.R.T., e interpretación del código de salida de chkdsk.
 
 ## Uso
 
@@ -128,7 +134,7 @@ Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core`: construc
 
 | Menú | Opciones |
 |------|----------|
-| **Herramientas** | Verificar capacidad real · Expulsar unidad · Ver historial |
+| **Herramientas** | Verificar capacidad real · Salud del disco (S.M.A.R.T.) · Comprobar errores (chkdsk) · Quitar protección de escritura · Expulsar unidad · Ver historial |
 | **Configuración** | Idioma (ES/EN) · Tema (Automático/Claro/Oscuro) · Presets |
 | **Ayuda** | Buscar actualizaciones · Acerca de |
 
@@ -150,31 +156,41 @@ Separación por capas (lógica pura aislada de los efectos colaterales y de la U
 src/FormatDiskPro/
 ├─ Core/            Lógica pura y testeable
 │  ├─ FormatLogic.cs        Construcción de comandos, parseo de progreso, formato de bytes
+│  ├─ Throughput.cs         Velocidad y tiempo restante (ETA) de operaciones largas
+│  ├─ SmartInfo.cs          Modelo + parseo del detalle S.M.A.R.T.
+│  ├─ HistoryEntry.cs       Parseo del historial de operaciones
 │  ├─ UpdateChecker.cs      Comparación de versiones para actualizaciones
 │  ├─ AppInfo.cs            Versión en ejecución y coordenadas del repositorio
 │  └─ Presets.cs            Configuraciones predefinidas
 ├─ Services/        Efectos colaterales (procesos / disco / red)
-│  ├─ DiskService.cs        S.M.A.R.T., expulsión y borrado seguro (PowerShell)
+│  ├─ DiskService.cs        S.M.A.R.T., protección de escritura y expulsión (PowerShell)
+│  ├─ SecureWipe.cs         Borrado seguro del espacio libre (sobrescritor propio, con progreso)
+│  ├─ CheckDisk.cs          Comprobación / reparación del sistema de archivos (chkdsk)
 │  ├─ CapacityVerifier.cs   Verificación de capacidad real
+│  ├─ AppSettings.cs        Preferencias persistentes (settings.json)
 │  ├─ UpdateService.cs      GitHub Releases: consulta, descarga e instalación
 │  └─ History.cs            Registro de auditoría
 ├─ UI/              WinUI 3 (Windows App SDK)
-│  ├─ MainWindow.xaml / MainWindow.xaml.cs   Ventana principal y orquestación
-│  ├─ ConfirmDialog.xaml / .xaml.cs          ContentDialog — confirmación reforzada
-│  └─ DriveViewModel.cs                      Modelo de binding para el ComboBox de unidades
+│  ├─ MainWindow.xaml / .cs        Ventana principal y orquestación
+│  ├─ ConfirmDialog.xaml / .cs     ContentDialog — confirmación reforzada
+│  ├─ HealthDialog.xaml / .cs      Diálogo de detalle S.M.A.R.T.
+│  ├─ HistoryDialog.xaml / .cs     Visor de historial integrado
+│  ├─ Theme/AppTheme.xaml          Tokens de diseño (tarjetas, encabezados, footer)
+│  └─ DriveViewModel.cs            Modelo de binding para el ComboBox de unidades
 ├─ Localization/    Cadenas ES/EN centralizadas
 ├─ installer/       Inno Setup (installer.iss + build-installer.ps1 → Output/)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core
+tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core y los helpers de Services
+ROADMAP.md                   Hoja de ruta de características (tiers)
 release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
 ```
 
 ## Stack
 
 - C# 13 / .NET 10
-- **WinUI 3** (Windows App SDK 1.8, unpackaged) — Mica, Fluent Design 2, `ExtendsContentIntoTitleBar`
-- `Format-Volume` / `format.com` (formateo) · `cipher` (borrado) · `Get-PhysicalDisk` (S.M.A.R.T.)
+- **WinUI 3** (Windows App SDK 1.8, unpackaged) — Mica, Fluent Design 2, `ExtendsContentIntoTitleBar`, sistema de tarjetas inspirado en Win11Debloat
+- `Format-Volume` / `format.com` (formateo) · sobrescritor propio (borrado seguro) · `chkdsk` (comprobación/reparación) · `Get-PhysicalDisk` / `Get-StorageReliabilityCounter` (S.M.A.R.T.) · `Set-Disk` (protección de escritura)
 - Comandos PowerShell vía `-EncodedCommand` (Base64 UTF-16LE) para evitar inyección
 - UAC: `requireAdministrator` en `app.manifest`
 
