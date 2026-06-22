@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace FormatDiskPro;
 
@@ -28,6 +29,15 @@ public sealed class AppSettings
     /// </summary>
     public string? LastVersionSeen { get; set; }
 
+    /// <summary>
+    /// Indica si la configuración se cargó desde un archivo existente (la app ya se había usado),
+    /// en contraste con los valores por defecto de una instalación nueva. No se serializa; permite
+    /// distinguir una <b>actualización</b> (mostrar novedades) de una <b>instalación nueva</b> aun
+    /// cuando la versión previa no guardaba <see cref="LastVersionSeen"/>.
+    /// </summary>
+    [JsonIgnore]
+    public bool LoadedFromFile { get; private set; }
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     /// <summary>Ruta por defecto del archivo de configuración (mismo directorio que el historial).</summary>
@@ -54,7 +64,10 @@ public sealed class AppSettings
             path ??= DefaultPath;
             if (!File.Exists(path)) return new AppSettings();
             string json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            var loaded = JsonSerializer.Deserialize<AppSettings>(json);
+            if (loaded is null) return new AppSettings();
+            loaded.LoadedFromFile = true;
+            return loaded;
         }
         catch
         {

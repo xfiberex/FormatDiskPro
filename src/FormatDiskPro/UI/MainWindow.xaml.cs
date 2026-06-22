@@ -1129,22 +1129,24 @@ public sealed partial class MainWindow : Window
         await ShowWhatsNewAsync();
 
     /// <summary>
-    /// Muestra las novedades una sola vez tras una actualización: si la versión actual difiere de la
-    /// última registrada (y no es el primer registro), abre el diálogo de novedades. Persiste siempre
-    /// la versión actual como "vista".
+    /// Muestra las novedades una sola vez tras una actualización y persiste la versión actual como
+    /// "vista". Se considera actualización si la versión cambió respecto a la última registrada, o si
+    /// no había versión registrada pero la app ya se había usado (actualización desde una versión sin
+    /// el campo, p. ej. 1.6.0 → 1.7.0). En una instalación nueva no se muestra.
     /// </summary>
     private async Task MaybeShowWhatsNewAsync()
     {
         string current = AppInfo.VersionString;
         string? seen = _settings.LastVersionSeen;
 
+        bool updated = string.IsNullOrEmpty(seen)
+            ? _settings.LoadedFromFile   // sin versión previa: solo si ya existía configuración (uso previo)
+            : seen != current;           // con versión previa: mostrar si cambió
+
         _settings.LastVersionSeen = current;
         _settings.Save();
 
-        // Primer registro (instalación inicial o versión previa sin el campo): no mostrar.
-        if (string.IsNullOrEmpty(seen) || seen == current) return;
-
-        await ShowWhatsNewAsync();
+        if (updated) await ShowWhatsNewAsync();
     }
 
     /// <summary>

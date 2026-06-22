@@ -60,4 +60,26 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal("es", s.Language);
         Assert.Equal("auto", s.Theme);
     }
+
+    [Fact]
+    public void LoadedFromFile_FalseForDefaultsAndNewInstance()
+    {
+        Assert.False(new AppSettings().LoadedFromFile);
+        Assert.False(AppSettings.Load(_path).LoadedFromFile);   // archivo ausente → instalación nueva
+    }
+
+    [Fact]
+    public void LoadedFromFile_TrueWhenLoadedFromExistingFile()
+    {
+        new AppSettings { Language = "en" }.Save(_path);
+        Assert.True(AppSettings.Load(_path).LoadedFromFile);    // existía configuración → uso previo
+    }
+
+    [Fact]
+    public void LoadedFromFile_IsNotPersisted()
+    {
+        // No debe serializarse a JSON (es estado en tiempo de ejecución, no una preferencia).
+        new AppSettings().Save(_path);
+        Assert.DoesNotContain("LoadedFromFile", File.ReadAllText(_path));
+    }
 }

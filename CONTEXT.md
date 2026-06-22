@@ -7,7 +7,9 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-22
-- **Versión actual:** **1.7.0** (publicada — **Tier 2 #8 (reinicializar unidad) + #9 (benchmark)** → **Tier 2 completado**).
+- **Versión actual:** **1.7.1** (publicada — **fix:** el diálogo de novedades ahora aparece al actualizar desde una
+  versión que no guardaba `LastVersionSeen`, p. ej. 1.6.0 → 1.7.x). La **1.7.0** trajo **Tier 2 #8 (reinicializar unidad) +
+  #9 (benchmark)** → **Tier 2 completado**, y el diálogo de novedades.
   La 1.6.0 trajo **#6 (chkdsk) + #7 (protección de escritura)**; la 1.5.0 el **#5 S.M.A.R.T. ampliado**; la 1.4.0 el
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
@@ -56,7 +58,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (138 tests)
+tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (141 tests)
 release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
 FormatDiskPro.slnx           Solución (app + tests)
 ```
@@ -67,11 +69,14 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **138/138** (`dotnet test`) — 110 + 14 de `ReinitPlan` (#8) + 6 de `Benchmark` (#9) + 8 de `ReleaseNotes`.
-- ✅ **Diálogo de novedades (incluido en 1.7.0):** tras una actualización, al primer arranque de la nueva versión se
-  muestran las **novedades** de la versión instalada (cuerpo del release de GitHub vía `UpdateService.GetReleaseByTagAsync`,
-  convertido a texto con `Core/ReleaseNotes.ToPlainText`), una sola vez (`AppSettings.LastVersionSeen`). También bajo
-  demanda en *Ayuda → Novedades…* (`UI/WhatsNewDialog`), con botón "Ver en GitHub".
+- ✅ Pruebas: **141/141** (`dotnet test`) — 110 + 14 de `ReinitPlan` (#8) + 6 de `Benchmark` (#9) + 8 de `ReleaseNotes`
+  + 3 de `AppSettings.LoadedFromFile`.
+- ✅ **Diálogo de novedades (1.7.0, corregido en 1.7.1):** tras una actualización, al primer arranque de la nueva versión
+  se muestran las **novedades** de la versión instalada (cuerpo del release de GitHub vía `UpdateService.GetReleaseByTagAsync`,
+  convertido a texto con `Core/ReleaseNotes.ToPlainText`), una sola vez. También bajo demanda en *Ayuda → Novedades…*
+  (`UI/WhatsNewDialog`), con botón "Ver en GitHub". La detección de "actualización" usa `AppSettings.LastVersionSeen` y,
+  cuando la versión previa no guardaba ese campo, el flag `AppSettings.LoadedFromFile` (existía `settings.json` = uso previo)
+  para distinguir actualización de instalación nueva (fix 1.7.1).
 - ✅ **Tier 2 #8 (reinicializar unidad) + #9 (benchmark) — publicado en 1.7.0 → Tier 2 completado:**
   **Reinicializar** (`Core/ReinitPlan.cs` puro + `Services/ReinitDrive.cs` con streaming de etapas +
   `DiskService.GetDiskNumberAsync`): *Herramientas → Reinicializar unidad…* limpia el disco extraíble y recrea
@@ -175,6 +180,22 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-22 — release: v1.7.1 — fix: el diálogo de novedades no aparecía al actualizar desde 1.6.0
+
+El diálogo de novedades (1.7.0) no se mostraba al actualizar **desde una versión que no guardaba
+`LastVersionSeen`** (p. ej. 1.6.0 → 1.7.0): al venir el campo en `null`, la lógica lo trataba como
+instalación nueva y, por seguridad, no mostraba nada. Build **0/0**, **141/141 tests** (138 + 3 nuevos).
+
+- `AppSettings.LoadedFromFile` (nuevo, `[JsonIgnore]`, no persistido): marca si la configuración se cargó
+  de un `settings.json` **existente** (uso previo de la app), capturado en `Load` antes de cualquier guardado.
+- `MaybeShowWhatsNewAsync`: si no hay versión registrada, ahora muestra las novedades **solo si** ya existía
+  configuración (`LoadedFromFile`) → distingue *actualización desde una versión sin el campo* de *instalación
+  nueva*. Con versión registrada, se mantiene la comparación por igualdad.
+- Pruebas: `AppSettingsTests` cubre `LoadedFromFile` (defaults/instancia nueva = false, carga de archivo = true,
+  no se serializa).
+
+**Sin cambios:** features de Tier 2, lógica de formateo, servicios de red/instalador, `release.ps1`.
 
 ### 2026-06-22 — release: v1.7.0 — feat: Tier 2 #8 (reinicializar unidad) + #9 (benchmark) → Tier 2 completado
 
