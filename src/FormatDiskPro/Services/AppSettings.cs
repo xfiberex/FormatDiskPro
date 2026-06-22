@@ -22,6 +22,12 @@ public sealed class AppSettings
     /// <summary>Letra de la última unidad seleccionada (como cadena), o <c>null</c> si ninguna.</summary>
     public string? LastDriveLetter { get; set; }
 
+    /// <summary>
+    /// Última versión de la app con la que se arrancó. Permite mostrar las novedades una sola vez
+    /// tras una actualización. <c>null</c> hasta que se registra por primera vez.
+    /// </summary>
+    public string? LastVersionSeen { get; set; }
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     /// <summary>Ruta por defecto del archivo de configuración (mismo directorio que el historial).</summary>

@@ -38,15 +38,31 @@ public static class UpdateService
     }
 
     /// <summary>Obtiene la última versión publicada, o null si no se pudo determinar.</summary>
-    public static async Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default)
+    public static Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default)
+        => GetFromUrlAsync(AppInfo.LatestReleaseApiUrl, ct);
+
+    /// <summary>
+    /// Obtiene la versión publicada con el tag indicado (p. ej. <c>v1.7.0</c>), o null si no existe.
+    /// Se usa para mostrar las novedades de la versión instalada tras una actualización.
+    /// </summary>
+    public static Task<ReleaseInfo?> GetReleaseByTagAsync(string tag, CancellationToken ct = default)
+        => string.IsNullOrWhiteSpace(tag)
+            ? Task.FromResult<ReleaseInfo?>(null)
+            : GetFromUrlAsync(AppInfo.ReleaseByTagApiUrl(tag), ct);
+
+    private static async Task<ReleaseInfo?> GetFromUrlAsync(string url, CancellationToken ct)
     {
-        using var resp = await Http.GetAsync(AppInfo.LatestReleaseApiUrl, ct);
+        using var resp = await Http.GetAsync(url, ct);
         if (!resp.IsSuccessStatusCode) return null;
 
         await using var stream = await resp.Content.ReadAsStreamAsync(ct);
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-        var root = doc.RootElement;
+        return ParseRelease(doc.RootElement);
+    }
 
+    /// <summary>Convierte el JSON de un release de GitHub en un <see cref="ReleaseInfo"/>.</summary>
+    private static ReleaseInfo ParseRelease(JsonElement root)
+    {
         string tag   = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
         string notes = root.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
         string html  = root.TryGetProperty("html_url", out var h) ? h.GetString() ?? AppInfo.ReleasesPageUrl : AppInfo.ReleasesPageUrl;

@@ -6,13 +6,13 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-21
-- **Versión actual:** **1.6.0** (publicada — **Tier 2 #6 (chkdsk) + #7 (protección de escritura)**). La 1.5.0 trajo
-  el **#5 S.M.A.R.T. ampliado**; la 1.4.0 el **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real,
-  visor de historial); la 1.3.0 el rediseño UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización
-  silenciosa aplica **desde la 1.2.2 en adelante** (1.2.2 corrigió el bug de cierre que cancelaba
-  `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota (descarga manual).
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2/3 pendientes y lo deliberadamente fuera de alcance).
+- **Última actualización de este documento:** 2026-06-22
+- **Versión actual:** **1.7.0** (publicada — **Tier 2 #8 (reinicializar unidad) + #9 (benchmark)** → **Tier 2 completado**).
+  La 1.6.0 trajo **#6 (chkdsk) + #7 (protección de escritura)**; la 1.5.0 el **#5 S.M.A.R.T. ampliado**; la 1.4.0 el
+  **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
+  UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
+  (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 completado; Tier 3 pendiente y lo deliberadamente fuera de alcance).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -33,10 +33,19 @@ src/FormatDiskPro/
 │  ├─ FormatLogic.cs     Construcción de comandos de formato, parseo de %, formato de bytes, MaxLabelLength
 │  ├─ UpdateChecker.cs   Comparación de versiones (parseo de tags, IsNewer)
 │  ├─ AppInfo.cs         Versión en ejecución + coordenadas del repo GitHub
-│  └─ Presets.cs         Configuraciones de formato predefinidas
+│  ├─ Presets.cs         Configuraciones de formato predefinidas
+│  ├─ Throughput.cs      ETA + formato de velocidad (operaciones largas)
+│  ├─ ReinitPlan.cs      Estilo MBR/GPT por tamaño + parseo de la nueva letra (#8)
+│  ├─ Benchmark.cs       Tamaño de prueba + cálculo de velocidad (#9)
+│  └─ ReleaseNotes.cs    Markdown de las notas de versión → texto plano (diálogo de novedades)
 ├─ Services/        Efectos colaterales (procesos / disco / red)
-│  ├─ DiskService.cs       S.M.A.R.T., expulsión, borrado seguro (PowerShell -EncodedCommand)
+│  ├─ DiskService.cs       S.M.A.R.T., nº de disco, protección, expulsión (PowerShell -EncodedCommand)
 │  ├─ CapacityVerifier.cs  Verificación de capacidad real (patrón anti-aliasing por bloque)
+│  ├─ SecureWipe.cs        Borrado seguro con progreso real (sobrescritor por bloques)
+│  ├─ CheckDisk.cs         chkdsk (comprobar/reparar) con streaming de progreso (#6)
+│  ├─ ReinitDrive.cs       Reinicializar disco extraíble: clean + partición + formato (#8)
+│  ├─ BenchmarkRunner.cs   Benchmark de lectura/escritura, no destructivo (#9)
+│  ├─ AppSettings.cs       Persistencia de preferencias (settings.json)
 │  ├─ UpdateService.cs     GitHub Releases API: consulta, descarga con progreso, lanza instalador
 │  └─ History.cs           Auditoría en %AppData%\FormatDiskPro\history.log
 ├─ UI/              WinUI 3 (Windows App SDK)
@@ -47,7 +56,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (59 tests)
+tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (138 tests)
 release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
 FormatDiskPro.slnx           Solución (app + tests)
 ```
@@ -58,7 +67,18 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **110/110** (`dotnet test`) — 102 + 8 de `CheckDisk.Interpret` (chkdsk, Tier 2 #6).
+- ✅ Pruebas: **138/138** (`dotnet test`) — 110 + 14 de `ReinitPlan` (#8) + 6 de `Benchmark` (#9) + 8 de `ReleaseNotes`.
+- ✅ **Diálogo de novedades (incluido en 1.7.0):** tras una actualización, al primer arranque de la nueva versión se
+  muestran las **novedades** de la versión instalada (cuerpo del release de GitHub vía `UpdateService.GetReleaseByTagAsync`,
+  convertido a texto con `Core/ReleaseNotes.ToPlainText`), una sola vez (`AppSettings.LastVersionSeen`). También bajo
+  demanda en *Ayuda → Novedades…* (`UI/WhatsNewDialog`), con botón "Ver en GitHub".
+- ✅ **Tier 2 #8 (reinicializar unidad) + #9 (benchmark) — publicado en 1.7.0 → Tier 2 completado:**
+  **Reinicializar** (`Core/ReinitPlan.cs` puro + `Services/ReinitDrive.cs` con streaming de etapas +
+  `DiskService.GetDiskNumberAsync`): *Herramientas → Reinicializar unidad…* limpia el disco extraíble y recrea
+  una única partición formateada (cmdlets de Storage, no diskpart). **Solo extraíbles** + guardas reforzadas
+  (bloqueo de sistema/protegido, disco físico ≠ Windows, confirmación escribiendo la letra). **Benchmark**
+  (`Core/Benchmark.cs` puro + `Services/BenchmarkRunner.cs`): *Herramientas → Benchmark rápido…* mide MB/s de
+  lectura/escritura con un archivo temporal de ~256 MB (no destructivo), permitido en cualquier unidad lista.
 - ✅ **Tier 2 #6 (chkdsk) + #7 (protección de escritura) — publicado en 1.6.0, probado por el usuario:**
   `Services/CheckDisk.cs` + ítem *Herramientas → Comprobar errores (chkdsk)…* (modo solo-comprobar/reparar,
   progreso parseado, reparación bloqueada en disco de sistema); `DiskService.IsDiskReadOnlyAsync`/`ClearReadOnlyAsync`
@@ -155,6 +175,45 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-22 — release: v1.7.0 — feat: Tier 2 #8 (reinicializar unidad) + #9 (benchmark) → Tier 2 completado
+
+Las dos últimas herramientas de "diagnóstico/gestión" + el **diálogo de novedades**, **sin tocar la lógica de
+formateo**. Build **0/0**, **138/138 tests** (110 + 14 `ReinitPlan` + 6 `Benchmark` + 8 `ReleaseNotes`).
+
+**#8 — Reinicializar unidad** (decisiones del usuario: backend cmdlets de Storage; alcance solo extraíbles)
+- `Core/ReinitPlan.cs` (puro, testeable): `StyleFor` (GPT si > 2 TB, si no MBR), `ParseNewLetter`
+  (marcador `LETTER:X`), `ToPowerShell`, `record ReinitResult`.
+- `Services/ReinitDrive.cs`: un script `-EncodedCommand` que limpia + inicializa + crea partición + formatea
+  (`Clear-Disk`/`Initialize-Disk`/`New-Partition`/`Format-Volume`), emitiendo marcadores `STAGE:*` por stdout
+  que se transmiten en streaming a la UI (espejo de `CheckDisk`); cancelación con `Kill(entireProcessTree)`.
+- `DiskService.GetDiskNumberAsync` (`(Get-Disk).Number`) para la **guarda crítica** disco objetivo ≠ disco de Windows.
+- UI: *Herramientas → Reinicializar unidad…* (`MnuReinit`), **solo `DriveType.Removable`**, bloqueo de
+  sistema/protegido, comparación de nº de disco físico, y **confirmación reforzada** reutilizando `ConfirmDialog`
+  (escribir la letra) con resumen que advierte que se borra **todo el disco físico**. Tras éxito, `LoadDrives()`
+  selecciona la nueva letra.
+
+**#9 — Benchmark rápido** (decisión del usuario: permitido en cualquier unidad lista)
+- `Core/Benchmark.cs` (puro, testeable): `PlanTestBytes` (256 MB acotado por libre − margen 64 MB),
+  `BytesPerSec`, `record BenchmarkResult`.
+- `Services/BenchmarkRunner.cs`: escribe un archivo temporal por bloques de 8 MB con `WriteThrough` y lo relee
+  con `SequentialScan`, cronometrando con `Stopwatch`; **no destructivo** (borra el temporal en `finally`).
+  Reutiliza la mecánica de E/S de `SecureWipe`/`CapacityVerifier`.
+- UI: *Herramientas → Benchmark rápido…* (`MnuBenchmark`), progreso por fase (escritura/lectura) en el footer y
+  diálogo de resultado con MB/s + nota de caché. `Throughput.FormatSpeed` para el formato.
+
+**Diálogo de novedades** (petición del usuario: mostrar tras actualizar las mismas notas que se publican en GitHub)
+- `Core/ReleaseNotes.ToPlainText` (puro, testeable): Markdown → texto plano (encabezados, viñetas, negritas, código,
+  enlaces, líneas en blanco). `AppInfo.ReleaseByTagApiUrl` + `UpdateService.GetReleaseByTagAsync` (refactor que extrae
+  `ParseRelease`/`GetFromUrlAsync` compartidos con `GetLatestAsync`).
+- `AppSettings.LastVersionSeen` persiste la versión vista; `MaybeShowWhatsNewAsync` (en `OnFirstActivated`) muestra las
+  novedades **una sola vez** cuando la versión cambia (no en la instalación inicial). `UI/WhatsNewDialog` (notas en
+  scroll + "Ver en GitHub"); ítem manual *Ayuda → Novedades…* (`MnuWhatsNew`).
+
+**Localización:** claves `menu.reinit`/`menu.benchmark`/`menu.whatsnew`, bloques `reinit.*` (guardas, etapas, resumen,
+resultado), `bench.*` (confirmación, fases, resultado, nota) y `whatsnew.*` (título, versión, GitHub, vacío) en ES/EN.
+
+**Sin cambios:** `Core/FormatLogic`, lógica de formateo, `installer/`, `release.ps1`.
 
 ### 2026-06-21 — release: v1.6.0 — feat: Tier 2 #6 (chkdsk) + #7 (protección de escritura)
 

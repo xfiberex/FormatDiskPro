@@ -144,6 +144,7 @@ public sealed partial class MainWindow : Window
         if (!_firstActivated) return;
         _firstActivated = false;
         Activated -= OnFirstActivated;
+        await MaybeShowWhatsNewAsync();
         await CheckForUpdatesAsync(manual: false);
     }
 
@@ -952,6 +953,164 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    // ── Reinicializar unidad (#8) ─────────────────────────────────
+
+    private async void MnuReinit_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy || DrivePicker.SelectedItem is not DriveViewModel item) return;
+
+        // Solo unidades extraíbles (USB): es el caso de uso y minimiza el riesgo.
+        DriveType type;
+        try { type = item.Info.DriveType; } catch { type = DriveType.Unknown; }
+        if (type != DriveType.Removable)
+        {
+            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.onlyRemovable"));
+            return;
+        }
+
+        // Nunca el disco del sistema ni una unidad protegida.
+        if (item.IsProtected || IsSystemDrive(item.Letter))
+        {
+            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.blockedSystem"));
+            return;
+        }
+
+        // Guarda crítica: el disco físico objetivo no puede ser el mismo que el de Windows
+        // (Clear-Disk borra TODO el disco, no solo la partición seleccionada).
+        char sysLetter  = Path.GetPathRoot(Environment.SystemDirectory)![0];
+        int? targetDisk = await DiskService.GetDiskNumberAsync(item.Letter);
+        int? sysDisk    = await DiskService.GetDiskNumberAsync(sysLetter);
+        if (targetDisk is null || (sysDisk is not null && targetDisk == sysDisk))
+        {
+            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.sameDisk"));
+            return;
+        }
+
+        // Configuración de formato tomada del formulario.
+        string fs    = FileSystemPicker.SelectedItem?.ToString() ?? "NTFS";
+        string label = VolumeLabelBox.Text.Trim();
+        char[] invalidChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
+        if (label.Any(c => invalidChars.Contains(c)))
+        {
+            await ShowInfoAsync(L.T("msg.invalidTitle"), L.T("msg.invalidLabel"));
+            return;
+        }
+
+        DiskPartitionStyle style;
+        try { style = ReinitPlan.StyleFor(item.Info.TotalSize); } catch { style = DiskPartitionStyle.Mbr; }
+
+        // Confirmación reforzada: escribir la letra de la unidad (reutiliza ConfirmDialog).
+        string summary = L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
+        var confirm = new ConfirmDialog(item.Letter, summary) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+
+        BeginOperation();
+        FormatProgress.IsIndeterminate = true;
+        StatusText.ClearValue(TextBlock.ForegroundProperty);
+        StatusText.Text = L.T("reinit.stage.clean", item.Letter);
+
+        var stage = new Progress<string>(s => StatusText.Text = L.T($"reinit.stage.{s}", item.Letter));
+
+        try
+        {
+            var r = await ReinitDrive.RunAsync(item.Letter, style, fs, label, stage, _cts!.Token);
+            FormatProgress.IsIndeterminate = false;
+
+            if (_cancelRequested || r.Detail == "cancelled")
+            {
+                FormatProgress.Value = 0;
+                StatusText.Text = L.T("status.cancelled");
+                return;
+            }
+
+            if (r.Ok && r.NewLetter is char newLetter)
+            {
+                FormatProgress.Value = 100;
+                History.Log($"REINIT {item.Letter}: -> {newLetter}: fs={fs} style={style.ToPowerShell()}");
+                _pendingInitialLetter = newLetter;
+                DrivePicker.SelectedIndex = -1;   // fuerza que LoadDrives use la nueva letra
+                LoadDrives();
+                await ShowInfoAsync(L.T("reinit.doneTitle"), L.T("reinit.doneBody", newLetter));
+            }
+            else
+            {
+                FormatProgress.Value = 0;
+                History.Log($"REINIT FAIL {item.Letter}: {r.Detail}");
+                StatusText.Foreground = new SolidColorBrush(ProtectedColor());
+                StatusText.Text = L.T("reinit.failed");
+                await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.failed"));
+            }
+        }
+        finally
+        {
+            FormatProgress.IsIndeterminate = false;
+            EndOperation();
+        }
+    }
+
+    // ── Benchmark rápido (#9) ──────────────────────────────────────
+
+    private async void MnuBenchmark_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy || DrivePicker.SelectedItem is not DriveViewModel item) return;
+
+        if (!await ShowConfirmAsync(L.T("bench.confirmTitle"), L.T("bench.confirmBody", item.Letter)))
+            return;
+
+        BeginOperation();
+        FormatProgress.IsIndeterminate = false;
+        FormatProgress.Value = 0;
+        StatusText.ClearValue(TextBlock.ForegroundProperty);
+        StatusText.Text = L.T("bench.writing", item.Letter);
+
+        var progress = new Progress<(BenchPhase phase, int percent)>(p =>
+        {
+            FormatProgress.Value = Math.Clamp(p.percent, 0, 100);
+            StatusText.Text = p.phase == BenchPhase.Writing
+                ? L.T("bench.writing", item.Letter)
+                : L.T("bench.reading", item.Letter);
+        });
+
+        try
+        {
+            var res = await BenchmarkRunner.RunAsync(item.Letter, progress, _cts!.Token);
+
+            if (_cancelRequested)
+            {
+                FormatProgress.Value = 0;
+                StatusText.Text = L.T("status.cancelled");
+                return;
+            }
+
+            if (res is null)
+            {
+                FormatProgress.Value = 0;
+                StatusText.Text = L.T("bench.failed", item.Letter);
+                await ShowInfoAsync(L.T("bench.resultTitle"), L.T("bench.noSpace", item.Letter));
+                return;
+            }
+
+            FormatProgress.Value = 100;
+            string write = Throughput.FormatSpeed(res.WriteBytesPerSec);
+            string read  = Throughput.FormatSpeed(res.ReadBytesPerSec);
+            History.Log($"BENCH {item.Letter}: write={write} read={read} bytes={res.TestBytes}");
+            StatusText.Text = L.T("bench.resultTitle");
+            await ShowDialogAsync(
+                L.T("bench.resultTitle"),
+                L.T("bench.resultBody", item.Letter, write, read) + "\n\n" + L.T("bench.note"),
+                null, null, L.T("btn.close"));
+        }
+        catch (OperationCanceledException)
+        {
+            FormatProgress.Value = 0;
+            StatusText.Text = L.T("status.cancelled");
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new HistoryDialog(_darkMode) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
@@ -965,6 +1124,49 @@ public sealed partial class MainWindow : Window
 
     private async void MnuUpdates_Click(object sender, RoutedEventArgs e) =>
         await CheckForUpdatesAsync(manual: true);
+
+    private async void MnuWhatsNew_Click(object sender, RoutedEventArgs e) =>
+        await ShowWhatsNewAsync();
+
+    /// <summary>
+    /// Muestra las novedades una sola vez tras una actualización: si la versión actual difiere de la
+    /// última registrada (y no es el primer registro), abre el diálogo de novedades. Persiste siempre
+    /// la versión actual como "vista".
+    /// </summary>
+    private async Task MaybeShowWhatsNewAsync()
+    {
+        string current = AppInfo.VersionString;
+        string? seen = _settings.LastVersionSeen;
+
+        _settings.LastVersionSeen = current;
+        _settings.Save();
+
+        // Primer registro (instalación inicial o versión previa sin el campo): no mostrar.
+        if (string.IsNullOrEmpty(seen) || seen == current) return;
+
+        await ShowWhatsNewAsync();
+    }
+
+    /// <summary>
+    /// Carga las notas de la versión instalada desde GitHub (por tag; si no, la última publicada) y
+    /// las muestra en el diálogo de novedades. Si no hay red, el diálogo cae a un mensaje informativo.
+    /// </summary>
+    private async Task ShowWhatsNewAsync()
+    {
+        ReleaseInfo? rel = null;
+        try { rel = await UpdateService.GetReleaseByTagAsync("v" + AppInfo.VersionString) ?? await UpdateService.GetLatestAsync(); }
+        catch (Exception ex) { History.Log($"WHATSNEW ERROR: {ex.Message}"); }
+
+        var dlg = new WhatsNewDialog(
+            rel?.Version ?? AppInfo.VersionString,
+            rel?.Notes ?? "",
+            string.IsNullOrEmpty(rel?.HtmlUrl) ? AppInfo.ReleasesPageUrl : rel!.HtmlUrl)
+        {
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        await dlg.ShowAsync();
+    }
 
     private async Task CheckForUpdatesAsync(bool manual)
     {
@@ -1111,7 +1313,9 @@ public sealed partial class MainWindow : Window
         MnuVerify.Text   = L.T("menu.verify");
         MnuHealth.Text   = L.T("menu.health");
         MnuCheck.Text    = L.T("menu.check");
+        MnuBenchmark.Text = L.T("menu.benchmark");
         MnuUnlock.Text   = L.T("menu.unlock");
+        MnuReinit.Text   = L.T("menu.reinit");
         MnuEject.Text    = L.T("menu.eject");
         MnuHistory.Text  = L.T("menu.history");
         MnuConfig.Title  = L.T("menu.config");
@@ -1125,6 +1329,7 @@ public sealed partial class MainWindow : Window
         MnuPresets.Text  = L.T("menu.presets");
         MnuHelp.Title    = L.T("menu.help");
         MnuUpdates.Text  = L.T("menu.updates");
+        MnuWhatsNew.Text = L.T("menu.whatsnew");
         MnuAbout.Text    = L.T("menu.about");
 
         UnitGroupLbl.Text       = L.T("section.drive");

@@ -18,7 +18,7 @@
 
 ---
 
-## ⏳ Tier 2 — Diagnóstico y gestión (pendiente)
+## ✅ Tier 2 — Diagnóstico y gestión (completado)
 
 Refuerzan el corazón "diagnóstico/gestión" del proyecto.
 
@@ -41,18 +41,22 @@ y desde *Herramientas → Quitar protección de escritura…*. Usa cmdlets de St
 no diskpart.
 - Dónde: `DiskService.IsDiskReadOnlyAsync`/`ClearReadOnlyAsync` + flujo en `MainWindow`.
 
-### 8. Reinicializar unidad (diskpart clean)
-Para USB con particiones raras o RAW: `diskpart clean` + crear partición primaria + formatear, dejando
-la unidad como una sola partición usable.
-- Dónde: nuevo `Services/ReinitDrive.cs` + flujo en `MainWindow`.
-- Esfuerzo: medio-alto. **Riesgo alto** → exige las mismas guardas que ya existen
-  (`IsSystemDrive`, confirmación reforzada escribiendo la letra).
+### 8. Reinicializar unidad — ✅ implementado (publicado en v1.7.0)
+Para USB con particiones raras o RAW: limpia el disco y recrea una **única partición primaria**
+formateada, dejando la unidad usable. Usa cmdlets de Storage (`Clear-Disk`/`Initialize-Disk`/
+`New-Partition`/`Format-Volume`), no diskpart, coherente con el resto de `DiskService`.
+- Dónde: `Core/ReinitPlan.cs` (estilo MBR/GPT + parseo, puro testeable), `Services/ReinitDrive.cs`
+  (streaming de etapas), `DiskService.GetDiskNumberAsync` + `MnuReinit` en `MainWindow`.
+- **Solo unidades extraíbles** + guardas reforzadas: bloqueo del disco de sistema/protegido,
+  comparación de **número de disco físico** objetivo ≠ Windows, y confirmación escribiendo la letra
+  (`ConfirmDialog`) advirtiendo que se borra **todo el disco físico**.
 
-### 9. Benchmark rápido de lectura/escritura
-Test secuencial corto (MB/s de lectura y escritura), reutilizando la mecánica de E/S por bloques de
-`CapacityVerifier`/`SecureWipe`.
-- Dónde: nuevo `Services/Benchmark.cs` + diálogo de resultados.
-- Esfuerzo: medio.
+### 9. Benchmark rápido de lectura/escritura — ✅ implementado (publicado en v1.7.0)
+Test secuencial corto (MB/s de lectura y escritura), **no destructivo** (escribe/relee un archivo
+temporal de ~256 MB), reutilizando la mecánica de E/S por bloques de `CapacityVerifier`/`SecureWipe`.
+- Dónde: `Core/Benchmark.cs` (tamaño de prueba + velocidad, puro testeable),
+  `Services/BenchmarkRunner.cs` + `MnuBenchmark` en `MainWindow`.
+- Permitido en **cualquier unidad lista** (incluido el disco interno); valida espacio libre.
 
 ---
 
@@ -94,6 +98,6 @@ una **decisión de cambiar el alcance**:
 
 ## Sugerencia de priorización
 
-**#5 (S.M.A.R.T.)** en v1.5.0; **#6 (chkdsk)** y **#7 (protección de escritura)** en v1.6.0. Quedan del Tier 2:
-**#8 (reinicializar unidad)** —el de mayor valor restante, con guardas reforzadas por su riesgo— y
-**#9 (benchmark)**. Después, abordar el Tier 3 (presets, idiomas, avisos, firma/winget/CI).
+**#5 (S.M.A.R.T.)** en v1.5.0; **#6 (chkdsk)** y **#7 (protección de escritura)** en v1.6.0;
+**#8 (reinicializar unidad)** y **#9 (benchmark)** en v1.7.0 → **Tier 2 completado**.
+Siguiente: el **Tier 3** (presets personalizados, más idiomas, aviso al terminar, firma/winget/CI).

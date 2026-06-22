@@ -70,6 +70,22 @@ public static class DiskService
         return null;
     }
 
+    /// <summary>
+    /// Obtiene el número de disco físico al que pertenece la unidad. Devuelve <c>null</c> si no se
+    /// puede determinar. Se usa como guarda crítica para no reinicializar el disco del sistema.
+    /// </summary>
+    public static async Task<int?> GetDiskNumberAsync(char letter)
+    {
+        if (!char.IsLetter(letter)) return null;
+
+        string script =
+            "$ErrorActionPreference='Stop';" +
+            $"(Get-Partition -DriveLetter {letter} | Get-Disk).Number";
+
+        string output = (await RunCapturedAsync(script)).Trim();
+        return int.TryParse(output, out int number) ? number : null;
+    }
+
     /// <summary>Quita la protección de escritura del disco físico de la unidad. <c>true</c> si lo logra.</summary>
     public static async Task<bool> ClearReadOnlyAsync(char letter)
     {

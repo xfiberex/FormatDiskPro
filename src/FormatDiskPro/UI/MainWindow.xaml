@@ -29,8 +29,10 @@
                 <MenuFlyoutItem x:Name="MnuVerify" Text="Verificar capacidad real…" Click="MnuVerify_Click" />
                 <MenuFlyoutItem x:Name="MnuHealth" Text="Salud del disco (S.M.A.R.T.)…" Click="MnuHealth_Click" />
                 <MenuFlyoutItem x:Name="MnuCheck"  Text="Comprobar errores (chkdsk)…" Click="MnuCheck_Click" />
+                <MenuFlyoutItem x:Name="MnuBenchmark" Text="Benchmark rápido (lectura/escritura)…" Click="MnuBenchmark_Click" />
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="MnuUnlock" Text="Quitar protección de escritura…" Click="MnuUnlock_Click" />
+                <MenuFlyoutItem x:Name="MnuReinit" Text="Reinicializar unidad…"     Click="MnuReinit_Click" />
                 <MenuFlyoutItem x:Name="MnuEject"  Text="Expulsar unidad"           Click="MnuEject_Click" />
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="MnuHistory" Text="Ver historial"            Click="MnuHistory_Click" />
@@ -49,6 +51,7 @@
             </MenuBarItem>
             <MenuBarItem x:Name="MnuHelp" Title="Ayuda">
                 <MenuFlyoutItem x:Name="MnuUpdates" Text="Buscar actualizaciones…" Click="MnuUpdates_Click" />
+                <MenuFlyoutItem x:Name="MnuWhatsNew" Text="Novedades…" Click="MnuWhatsNew_Click" />
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="MnuAbout" Text="Acerca de…" Click="MnuAbout_Click" />
             </MenuBarItem>
