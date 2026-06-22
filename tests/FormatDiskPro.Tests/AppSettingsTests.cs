@@ -82,4 +82,28 @@ public sealed class AppSettingsTests : IDisposable
         new AppSettings().Save(_path);
         Assert.DoesNotContain("LoadedFromFile", File.ReadAllText(_path));
     }
+
+    [Fact]
+    public void UserPresets_RoundTrip()
+    {
+        var settings = new AppSettings();
+        settings.UserPresets.Add(new FormatPreset("Mi NTFS", "NTFS", 4096, true, false, false));
+        settings.UserPresets.Add(new FormatPreset("USB", "exFAT", 131072, true, false, true));
+        settings.Save(_path);
+
+        var loaded = AppSettings.Load(_path);
+        Assert.Equal(2, loaded.UserPresets.Count);
+        Assert.Equal("Mi NTFS", loaded.UserPresets[0].Name);
+        Assert.Equal("exFAT", loaded.UserPresets[1].FileSystem);
+        Assert.True(loaded.UserPresets[1].SecureWipe);
+    }
+
+    [Fact]
+    public void NotifyOnFinish_DefaultsTrue_AndRoundTrips()
+    {
+        Assert.True(new AppSettings().NotifyOnFinish);
+
+        new AppSettings { NotifyOnFinish = false }.Save(_path);
+        Assert.False(AppSettings.Load(_path).NotifyOnFinish);
+    }
 }

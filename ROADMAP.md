@@ -60,21 +60,26 @@ temporal de ~256 MB), reutilizando la mecánica de E/S por bloques de `CapacityV
 
 ---
 
-## ⏳ Tier 3 — Pulido / distribución (pendiente)
+## ⏳ Tier 3 — Pulido / distribución
 
-### 10. Presets personalizados del usuario
-Crear/guardar/eliminar presets propios, persistidos junto a `settings.json`. Hoy `Core/Presets` es fijo.
-- Dónde: extender `Core/Presets` + `Services/AppSettings.cs` + pequeña UI.
-- Esfuerzo: pequeño-medio.
+### 10. Presets personalizados del usuario — ✅ implementado (v1.8.0)
+Guardar la configuración de formato actual como preset propio y eliminarlos, persistidos en
+`settings.json`. Aparecen en *Configuración → Presets* junto a los integrados; se gestionan desde
+*Presets → Gestionar presets…*.
+- Dónde: `Core/Presets` (`NormalizeName`/`IsNameAvailable`, puros), `AppSettings.UserPresets`,
+  `UI/PresetsDialog.xaml` + reconstrucción de `BuildPresetsMenu`.
 
-### 11. Más idiomas
-`Localization.cs` ya está preparado (diccionario ES/EN). Añadir p. ej. PT/FR/IT es casi mecánico.
-- Esfuerzo: pequeño (por idioma).
+### 11. Más idiomas — ✅ implementado (v1.8.0)
+`Localization.cs` refactorizado de tupla `(Es, En)` a arreglo por idioma; añadidos **Portugués, Francés
+e Italiano** (ES/EN/PT/FR/IT). Selección en *Configuración → Idioma*, persistida.
+- Dónde: `Localization.cs` (`AppLang` ampliado, `FromCode`/`ToCode`, ~250 claves × 5 idiomas) + menú.
+- Prueba de completitud: cada clave tiene 5 traducciones no vacías.
 
-### 12. Aviso al terminar
-Beep + parpadeo de la barra de tareas al completar operaciones largas, para poder alejarse del PC.
-- Dónde: `MainWindow` (al final de las operaciones largas).
-- Esfuerzo: pequeño-medio.
+### 12. Aviso al terminar — ✅ implementado (v1.8.0)
+Sonido + parpadeo de la barra de tareas al completar operaciones largas (≥ 10 s), solo si la ventana no
+está en primer plano. Interruptor *Configuración → Avisar al terminar* (por defecto activado).
+- Dónde: `Services/Notifier.cs` (`ShouldNotify` puro + Win32 `FlashWindowEx`/`MessageBeep`),
+  `AppSettings.NotifyOnFinish`, llamada en `EndOperation`.
 
 ### 13. Confianza y distribución
 No son features de código, pero de alto valor:
@@ -99,5 +104,6 @@ una **decisión de cambiar el alcance**:
 ## Sugerencia de priorización
 
 **#5 (S.M.A.R.T.)** en v1.5.0; **#6 (chkdsk)** y **#7 (protección de escritura)** en v1.6.0;
-**#8 (reinicializar unidad)** y **#9 (benchmark)** en v1.7.0 → **Tier 2 completado**.
-Siguiente: el **Tier 3** (presets personalizados, más idiomas, aviso al terminar, firma/winget/CI).
+**#8 (reinicializar unidad)** y **#9 (benchmark)** en v1.7.0 → **Tier 2 completado**;
+**#10 (presets personalizados)**, **#11 (más idiomas: PT/FR/IT)** y **#12 (aviso al terminar)** en v1.8.0.
+Queda del Tier 3 el **#13 (confianza y distribución: firma Authenticode, winget, GitHub Actions)**.

@@ -7,9 +7,10 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-22
-- **Versión actual:** **1.7.1** (publicada — **fix:** el diálogo de novedades ahora aparece al actualizar desde una
-  versión que no guardaba `LastVersionSeen`, p. ej. 1.6.0 → 1.7.x). La **1.7.0** trajo **Tier 2 #8 (reinicializar unidad) +
-  #9 (benchmark)** → **Tier 2 completado**, y el diálogo de novedades.
+- **Versión actual:** **1.8.0** (implementada, **pendiente de publicar** — **Tier 3 #10 (presets personalizados) +
+  #11 (más idiomas: PT/FR/IT) + #12 (aviso al terminar)**). La **1.7.1** corrigió el disparo del diálogo de novedades al
+  actualizar desde una versión sin `LastVersionSeen`. La **1.7.0** trajo **Tier 2 #8 (reinicializar) + #9 (benchmark)**
+  → **Tier 2 completado**, y el diálogo de novedades.
   La 1.6.0 trajo **#6 (chkdsk) + #7 (protección de escritura)**; la 1.5.0 el **#5 S.M.A.R.T. ampliado**; la 1.4.0 el
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
@@ -47,7 +48,8 @@ src/FormatDiskPro/
 │  ├─ CheckDisk.cs         chkdsk (comprobar/reparar) con streaming de progreso (#6)
 │  ├─ ReinitDrive.cs       Reinicializar disco extraíble: clean + partición + formato (#8)
 │  ├─ BenchmarkRunner.cs   Benchmark de lectura/escritura, no destructivo (#9)
-│  ├─ AppSettings.cs       Persistencia de preferencias (settings.json)
+│  ├─ AppSettings.cs       Persistencia de preferencias (settings.json: idioma/tema/unidad/presets/aviso)
+│  ├─ Notifier.cs          Aviso al terminar: sonido + parpadeo de barra de tareas (Win32)
 │  ├─ UpdateService.cs     GitHub Releases API: consulta, descarga con progreso, lanza instalador
 │  └─ History.cs           Auditoría en %AppData%\FormatDiskPro\history.log
 ├─ UI/              WinUI 3 (Windows App SDK)
@@ -58,7 +60,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (141 tests)
+tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (165 tests)
 release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
 FormatDiskPro.slnx           Solución (app + tests)
 ```
@@ -69,8 +71,15 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **141/141** (`dotnet test`) — 110 + 14 de `ReinitPlan` (#8) + 6 de `Benchmark` (#9) + 8 de `ReleaseNotes`
-  + 3 de `AppSettings.LoadedFromFile`.
+- ✅ Pruebas: **165/165** (`dotnet test`) — 141 previos + 24 del Tier 3 (presets, round-trips de `AppSettings`,
+  completitud/idiomas de `Localization`, `Notifier.ShouldNotify`).
+- ✅ **Tier 3 #10 + #11 + #12 (implementado en 1.8.0, pendiente de publicar):**
+  **Presets personalizados** (`Core/Presets.NormalizeName`/`IsNameAvailable` puros, `AppSettings.UserPresets`,
+  `UI/PresetsDialog`): guardar la config actual con nombre y eliminarlos; aparecen en *Presets* y se gestionan desde
+  *Presets → Gestionar presets…*. **Más idiomas** (`Localization` refactorizado a arreglo por idioma; añadidos
+  **PT/FR/IT**; `L.FromCode`/`ToCode`): selección en *Configuración → Idioma*, persistida. **Aviso al terminar**
+  (`Services/Notifier`): sonido + parpadeo de la barra de tareas al acabar operaciones ≥ 10 s, solo si la ventana no
+  está en primer plano; interruptor *Configuración → Avisar al terminar* (`AppSettings.NotifyOnFinish`, por defecto on).
 - ✅ **Diálogo de novedades (1.7.0, corregido en 1.7.1):** tras una actualización, al primer arranque de la nueva versión
   se muestran las **novedades** de la versión instalada (cuerpo del release de GitHub vía `UpdateService.GetReleaseByTagAsync`,
   convertido a texto con `Core/ReleaseNotes.ToPlainText`), una sola vez. También bajo demanda en *Ayuda → Novedades…*
@@ -180,6 +189,34 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-22 — feat: Tier 3 #10 (presets personalizados) + #11 (más idiomas) + #12 (aviso al terminar) — v1.8.0 (pendiente)
+
+Tres mejoras de pulido, **sin tocar la lógica de formateo**. Build **0/0**, **165/165 tests** (141 + 24).
+
+**#10 — Presets personalizados**
+- `Core/Presets`: `NormalizeName` (recorta/colapsa espacios) e `IsNameAvailable` (no vacío, ≤ 40, único
+  case-insensitive), puros y testeables; `Presets.All` (integrados) intacto.
+- `AppSettings.UserPresets` (`List<FormatPreset>`, persistido en `settings.json`; round-trip testeado).
+- `UI/PresetsDialog`: guardar la config actual con nombre (valida) y eliminar presets propios. `BuildPresetsMenu`
+  reescrito: integrados → propios → *Gestionar presets…* (`MnuManagePresets`). Se reconstruye en `ApplyLanguage`.
+
+**#11 — Más idiomas (ES/EN/PT/FR/IT)**
+- `Localization.cs`: el `Map` pasa de tupla `(Es, En)` a **`string[]`** indexado por `AppLang` (orden Es, En, Pt, Fr, It);
+  `T` indexa por idioma con fallback. ~250 claves traducidas a PT/FR/IT. `AppLang` ampliado; `L.FromCode`/`ToCode`
+  para persistir el código. Menú *Idioma* con 5 opciones; restauración con `L.FromCode(_settings.Language)`.
+- Prueba de **completitud**: cada entrada tiene exactamente 5 traducciones no vacías (vía `InternalsVisibleTo`).
+
+**#12 — Aviso al terminar**
+- `Services/Notifier`: `ShouldNotify(elapsed, enabled, cancelled, threshold)` puro + `OperationFinished(hwnd)` (Win32
+  `MessageBeep` + `FlashWindowEx` con `FLASHW_TRAY|FLASHW_TIMERNOFG`), solo si la ventana no está en primer plano.
+- `AppSettings.NotifyOnFinish` (por defecto `true`); llamada en `EndOperation` con umbral de **10 s** y la ventana vía
+  `WindowNative.GetWindowHandle`. Interruptor *Configuración → Avisar al terminar* (`MnuNotify`).
+
+**Localización (nuevas claves):** `menu.lang.pt/fr/it`, `menu.notify`, `menu.managePresets`, bloque `preset.*` ampliado.
+**Build:** `<InternalsVisibleTo>FormatDiskPro.Tests</InternalsVisibleTo>` en el `.csproj` (para probar `L.Map`).
+
+**Sin cambios:** `Core/FormatLogic`, lógica de formateo, servicios de red/instalador, `release.ps1`.
 
 ### 2026-06-22 — release: v1.7.1 — fix: el diálogo de novedades no aparecía al actualizar desde 1.6.0
 

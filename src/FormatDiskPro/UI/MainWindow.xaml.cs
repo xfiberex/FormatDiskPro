@@ -57,6 +57,8 @@ public sealed partial class MainWindow : Window
     private Process? _activeProcess;
     private CancellationTokenSource? _cts;
     private DateTime _opStart;
+    // Umbral mínimo de duración para avisar al terminar (operaciones cortas no avisan).
+    private static readonly TimeSpan OperationNotifyThreshold = TimeSpan.FromSeconds(10);
     // Seguimiento de rendimiento para operaciones con bytes (velocidad/ETA, ventana deslizante de 1 s).
     private long _opBytesDone, _opTotalBytes, _speedLastBytes;
     private DateTime _speedLastTime;
@@ -110,12 +112,12 @@ public sealed partial class MainWindow : Window
 
         ((FrameworkElement)Content).ActualThemeChanged += OnActualThemeChanged;
 
-        BuildPresetsMenu();
-
         // Restaurar preferencias persistidas: idioma, tema y última unidad seleccionada.
-        L.Set(_settings.Language == "en" ? AppLang.En : AppLang.Es);
+        // (ApplyLanguage construye el menú de presets.)
+        L.Set(L.FromCode(_settings.Language));
         _pendingInitialLetter = ParseDriveLetter(_settings.LastDriveLetter);
         ApplyThemeMode(_settings.Theme, save: false);
+        MnuNotify.IsChecked = _settings.NotifyOnFinish;
         ApplyLanguage();
         LoadDrives();
 
@@ -430,12 +432,49 @@ public sealed partial class MainWindow : Window
 
     private void BuildPresetsMenu()
     {
+        MnuPresets.Items.Clear();
+
         foreach (var preset in Presets.All)
+            MnuPresets.Items.Add(MakePresetItem(preset));
+
+        if (_settings.UserPresets.Count > 0)
         {
-            var item = new MenuFlyoutItem { Text = preset.Name, Tag = preset };
-            item.Click += MnuPreset_Click;
-            MnuPresets.Items.Add(item);
+            MnuPresets.Items.Add(new MenuFlyoutSeparator());
+            foreach (var preset in _settings.UserPresets)
+                MnuPresets.Items.Add(MakePresetItem(preset));
         }
+
+        MnuPresets.Items.Add(new MenuFlyoutSeparator());
+        var manage = new MenuFlyoutItem { Text = L.T("menu.managePresets") };
+        manage.Click += MnuManagePresets_Click;
+        MnuPresets.Items.Add(manage);
+    }
+
+    private MenuFlyoutItem MakePresetItem(FormatPreset preset)
+    {
+        var item = new MenuFlyoutItem { Text = preset.Name, Tag = preset };
+        item.Click += MnuPreset_Click;
+        return item;
+    }
+
+    private async void MnuManagePresets_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        string fs       = FileSystemPicker.SelectedItem?.ToString() ?? "NTFS";
+        long allocBytes = GetSelectedAllocBytes();
+        bool quick      = QuickFormatCheck.IsChecked == true;
+        bool compress   = CompressCheck.IsChecked    == true;
+        bool secure     = SecureWipeCheck.IsChecked  == true;
+        var current     = new FormatPreset("", fs, allocBytes, quick, compress, secure);
+
+        string mode = quick ? L.T("fmt.quick") : L.T("fmt.full");
+        if (secure) mode += " + " + L.T("confirm.secure");
+        string summary = $"{fs} · {AllocUnitPicker.SelectedItem} · {mode}";
+
+        var dlg = new PresetsDialog(current, summary, _settings) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        await dlg.ShowAsync();
+        BuildPresetsMenu();
     }
 
     private async void MnuPreset_Click(object sender, RoutedEventArgs e)
@@ -1262,8 +1301,25 @@ public sealed partial class MainWindow : Window
 
     // ── Language / theme ──────────────────────────────────────────
 
-    private void MnuLangEs_Click(object sender, RoutedEventArgs e) { L.Set(AppLang.Es); ApplyLanguage(); _settings.Language = "es"; _settings.Save(); }
-    private void MnuLangEn_Click(object sender, RoutedEventArgs e) { L.Set(AppLang.En); ApplyLanguage(); _settings.Language = "en"; _settings.Save(); }
+    private void MnuLangEs_Click(object sender, RoutedEventArgs e) => SetLanguage(AppLang.Es);
+    private void MnuLangEn_Click(object sender, RoutedEventArgs e) => SetLanguage(AppLang.En);
+    private void MnuLangPt_Click(object sender, RoutedEventArgs e) => SetLanguage(AppLang.Pt);
+    private void MnuLangFr_Click(object sender, RoutedEventArgs e) => SetLanguage(AppLang.Fr);
+    private void MnuLangIt_Click(object sender, RoutedEventArgs e) => SetLanguage(AppLang.It);
+
+    private void SetLanguage(AppLang lang)
+    {
+        L.Set(lang);
+        ApplyLanguage();
+        _settings.Language = L.ToCode(lang);
+        _settings.Save();
+    }
+
+    private void MnuNotify_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.NotifyOnFinish = MnuNotify.IsChecked;
+        _settings.Save();
+    }
 
     private void MnuThemeAuto_Click(object sender, RoutedEventArgs e)  => ApplyThemeMode("auto",  save: true);
     private void MnuThemeLight_Click(object sender, RoutedEventArgs e) => ApplyThemeMode("light", save: true);
@@ -1324,11 +1380,15 @@ public sealed partial class MainWindow : Window
         MnuLang.Text     = L.T("menu.lang");
         MnuLangEs.Text   = L.T("menu.lang.es");
         MnuLangEn.Text   = L.T("menu.lang.en");
+        MnuLangPt.Text   = L.T("menu.lang.pt");
+        MnuLangFr.Text   = L.T("menu.lang.fr");
+        MnuLangIt.Text   = L.T("menu.lang.it");
         MnuTheme.Text       = L.T("menu.theme");
         MnuThemeAuto.Text   = L.T("menu.theme.auto");
         MnuThemeLight.Text  = L.T("menu.theme.light");
         MnuThemeDark.Text   = L.T("menu.theme.dark");
         MnuPresets.Text  = L.T("menu.presets");
+        MnuNotify.Text   = L.T("menu.notify");
         MnuHelp.Title    = L.T("menu.help");
         MnuUpdates.Text  = L.T("menu.updates");
         MnuWhatsNew.Text = L.T("menu.whatsnew");
@@ -1351,6 +1411,12 @@ public sealed partial class MainWindow : Window
 
         MnuLangEs.IsChecked = L.Current == AppLang.Es;
         MnuLangEn.IsChecked = L.Current == AppLang.En;
+        MnuLangPt.IsChecked = L.Current == AppLang.Pt;
+        MnuLangFr.IsChecked = L.Current == AppLang.Fr;
+        MnuLangIt.IsChecked = L.Current == AppLang.It;
+
+        // Reconstruir el menú de presets para refrescar la etiqueta «Gestionar presets…».
+        BuildPresetsMenu();
 
         if (DrivePicker.SelectedItem is DriveViewModel item)
         {
@@ -1456,6 +1522,11 @@ public sealed partial class MainWindow : Window
         if (_closingForUpdate) return;
         SetFormEnabled(true);
         CloseButton.Content = L.T("btn.close");
+
+        // Aviso al terminar operaciones largas: sonido + parpadeo de la barra (solo si el usuario
+        // no está mirando la ventana). No aplica a operaciones cortas ni canceladas.
+        if (Notifier.ShouldNotify(DateTime.Now - _opStart, _settings.NotifyOnFinish, _cancelRequested, OperationNotifyThreshold))
+            Notifier.OperationFinished(WinRT.Interop.WindowNative.GetWindowHandle(this));
     }
 
     private async void CloseButton_Click(object sender, RoutedEventArgs e)

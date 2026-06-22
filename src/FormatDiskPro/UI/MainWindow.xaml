@@ -41,6 +41,9 @@
                 <MenuFlyoutSubItem x:Name="MnuLang" Text="Idioma">
                     <ToggleMenuFlyoutItem x:Name="MnuLangEs" Text="Español"  IsChecked="True" Click="MnuLangEs_Click" />
                     <ToggleMenuFlyoutItem x:Name="MnuLangEn" Text="English"               Click="MnuLangEn_Click" />
+                    <ToggleMenuFlyoutItem x:Name="MnuLangPt" Text="Português"             Click="MnuLangPt_Click" />
+                    <ToggleMenuFlyoutItem x:Name="MnuLangFr" Text="Français"              Click="MnuLangFr_Click" />
+                    <ToggleMenuFlyoutItem x:Name="MnuLangIt" Text="Italiano"              Click="MnuLangIt_Click" />
                 </MenuFlyoutSubItem>
                 <MenuFlyoutSubItem x:Name="MnuTheme" Text="Tema">
                     <ToggleMenuFlyoutItem x:Name="MnuThemeAuto"  Text="Automático" IsChecked="True" Click="MnuThemeAuto_Click" />
@@ -48,6 +51,8 @@
                     <ToggleMenuFlyoutItem x:Name="MnuThemeDark"  Text="Oscuro"                      Click="MnuThemeDark_Click" />
                 </MenuFlyoutSubItem>
                 <MenuFlyoutSubItem x:Name="MnuPresets" Text="Presets" />
+                <MenuFlyoutSeparator />
+                <ToggleMenuFlyoutItem x:Name="MnuNotify" Text="Avisar al terminar" Click="MnuNotify_Click" />
             </MenuBarItem>
             <MenuBarItem x:Name="MnuHelp" Title="Ayuda">
                 <MenuFlyoutItem x:Name="MnuUpdates" Text="Buscar actualizaciones…" Click="MnuUpdates_Click" />

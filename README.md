@@ -18,7 +18,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Formato rápido o completo**, con **progreso real en %** (formato completo de NTFS/FAT/FAT32)
 - **Compresión NTFS** opcional
 - **Borrado seguro con progreso real**: sobrescribe el espacio libre con un patrón (sobrescritor propio) mostrando **% real, velocidad (MB/s) y tiempo restante (ETA)**; 1 pasada por defecto
-- **Presets** de un clic (USB universal, consola/TV, datos Windows, comprimido, borrado seguro)
+- **Presets** de un clic (USB universal, consola/TV, datos Windows, comprimido, borrado seguro), más **presets personalizados**: guarda tu configuración actual con un nombre y elimínalos desde *Presets → Gestionar presets…*
 
 ### Seguridad
 - **Protección del disco de sistema**: la unidad de Windows se marca como `[Protegido]` con todos los controles de formato deshabilitados
@@ -38,12 +38,13 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 
 ### Experiencia
 - **Interfaz moderna basada en tarjetas** (WinUI 3 / Fluent): secciones con encabezado e icono, barra de acción inferior y un **color de acento que sigue el de Windows** (sistema de diseño inspirado en Win11Debloat), adaptándose a tema claro u oscuro
-- **Interfaz bilingüe** Español / Inglés (conmutable en caliente)
+- **Interfaz multilingüe** Español · Inglés · Português · Français · Italiano (conmutable en caliente)
 - **Tema automático / claro / oscuro**: sigue el tema del sistema Windows en tiempo real; opción de forzar claro u oscuro desde el menú
-- **Recuerda tus preferencias** (idioma, tema y última unidad) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)
+- **Recuerda tus preferencias** (idioma, tema, última unidad, presets y aviso) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)
 - **Expulsión segura** de unidades removibles
 - **Visor de historial integrado** dentro de la app, además del registro de auditoría en `%AppData%\FormatDiskPro\history.log`
 - **Tiempo transcurrido, velocidad y ETA** en operaciones largas, con **cancelación segura** de cualquier operación
+- **Aviso al terminar**: sonido + parpadeo de la barra de tareas al completar operaciones largas (solo si la ventana no está en primer plano), para poder alejarte del PC; se activa/desactiva en *Configuración → Avisar al terminar*
 - **Actualizaciones integradas**: comprueba GitHub Releases al inicio y bajo demanda; descarga e instala la nueva versión
 - **Diálogo de novedades**: tras actualizar, muestra automáticamente (una sola vez) las novedades de la nueva versión —las mismas notas publicadas en GitHub Releases—; también disponible en cualquier momento desde *Ayuda → Novedades…*
 - **Icono propio** de aplicación
@@ -122,7 +123,7 @@ Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los 
 dotnet test
 ```
 
-Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón del borrado seguro, parseo del historial y del detalle S.M.A.R.T., interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad del benchmark, y conversión de las notas de versión (Markdown → texto plano).
+Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón del borrado seguro, parseo del historial y del detalle S.M.A.R.T., interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad del benchmark, conversión de las notas de versión (Markdown → texto plano), validación de nombres de presets personalizados, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma, y la decisión de aviso al terminar.
 
 ## Uso
 
@@ -138,7 +139,7 @@ Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los hel
 | Menú | Opciones |
 |------|----------|
 | **Herramientas** | Verificar capacidad real · Salud del disco (S.M.A.R.T.) · Comprobar errores (chkdsk) · Benchmark rápido · Quitar protección de escritura · Reinicializar unidad · Expulsar unidad · Ver historial |
-| **Configuración** | Idioma (ES/EN) · Tema (Automático/Claro/Oscuro) · Presets |
+| **Configuración** | Idioma (ES/EN/PT/FR/IT) · Tema (Automático/Claro/Oscuro) · Presets (con Gestionar presets…) · Avisar al terminar |
 | **Ayuda** | Buscar actualizaciones · Novedades · Acerca de |
 
 ## Sistemas de archivos disponibles
@@ -175,7 +176,8 @@ src/FormatDiskPro/
 │  ├─ ReinitDrive.cs        Reinicializar disco extraíble (clean + partición + formato)
 │  ├─ BenchmarkRunner.cs    Benchmark de lectura/escritura (no destructivo)
 │  ├─ CapacityVerifier.cs   Verificación de capacidad real
-│  ├─ AppSettings.cs        Preferencias persistentes (settings.json)
+│  ├─ AppSettings.cs        Preferencias persistentes (settings.json: idioma/tema/unidad/presets/aviso)
+│  ├─ Notifier.cs           Aviso al terminar (sonido + parpadeo de barra de tareas, Win32)
 │  ├─ UpdateService.cs      GitHub Releases: consulta, descarga e instalación
 │  └─ History.cs            Registro de auditoría
 ├─ UI/              WinUI 3 (Windows App SDK)
@@ -184,9 +186,10 @@ src/FormatDiskPro/
 │  ├─ HealthDialog.xaml / .cs      Diálogo de detalle S.M.A.R.T.
 │  ├─ HistoryDialog.xaml / .cs     Visor de historial integrado
 │  ├─ WhatsNewDialog.xaml / .cs    Novedades de la versión (tras actualizar / manual)
+│  ├─ PresetsDialog.xaml / .cs     Gestionar presets propios (guardar / eliminar)
 │  ├─ Theme/AppTheme.xaml          Tokens de diseño (tarjetas, encabezados, footer)
 │  └─ DriveViewModel.cs            Modelo de binding para el ComboBox de unidades
-├─ Localization/    Cadenas ES/EN centralizadas
+├─ Localization/    Cadenas ES/EN/PT/FR/IT centralizadas (arreglo por idioma)
 ├─ installer/       Inno Setup (installer.iss + build-installer.ps1 → Output/)
 └─ Program.cs       Punto de entrada
 

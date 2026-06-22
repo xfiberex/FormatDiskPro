@@ -34,4 +34,30 @@ public sealed class PresetsTests
     [Fact]
     public void All_HaveNonEmptyName()
         => Assert.All(Presets.All, p => Assert.False(string.IsNullOrWhiteSpace(p.Name)));
+
+    [Theory]
+    [InlineData("  Mi  preset ", "Mi preset")]   // recorta y colapsa espacios
+    [InlineData("Normal", "Normal")]
+    [InlineData("   ", "")]
+    [InlineData(null, "")]
+    public void NormalizeName_TrimsAndCollapses(string? input, string expected)
+        => Assert.Equal(expected, Presets.NormalizeName(input));
+
+    [Fact]
+    public void IsNameAvailable_RejectsEmptyOrTooLong()
+    {
+        Assert.False(Presets.IsNameAvailable("", []));
+        Assert.False(Presets.IsNameAvailable("   ", []));
+        Assert.False(Presets.IsNameAvailable(new string('x', Presets.MaxNameLength + 1), []));
+        Assert.True(Presets.IsNameAvailable(new string('x', Presets.MaxNameLength), []));
+    }
+
+    [Fact]
+    public void IsNameAvailable_RejectsDuplicates_CaseInsensitiveAndNormalized()
+    {
+        string[] existing = ["Disco de datos Windows", "Mi preset"];
+        Assert.False(Presets.IsNameAvailable("mi preset", existing));      // distinta caja
+        Assert.False(Presets.IsNameAvailable("  Mi   preset ", existing)); // distinta separación
+        Assert.True(Presets.IsNameAvailable("Otro", existing));
+    }
 }

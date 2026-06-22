@@ -29,6 +29,12 @@ public sealed class AppSettings
     /// </summary>
     public string? LastVersionSeen { get; set; }
 
+    /// <summary>Presets de formato creados por el usuario (se aplican igual que los integrados).</summary>
+    public List<FormatPreset> UserPresets { get; set; } = [];
+
+    /// <summary>Avisar (sonido + parpadeo de la barra de tareas) al terminar operaciones largas.</summary>
+    public bool NotifyOnFinish { get; set; } = true;
+
     /// <summary>
     /// Indica si la configuración se cargó desde un archivo existente (la app ya se había usado),
     /// en contraste con los valores por defecto de una instalación nueva. No se serializa; permite
