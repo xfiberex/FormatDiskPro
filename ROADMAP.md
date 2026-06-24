@@ -51,12 +51,17 @@ formateada, dejando la unidad usable. Usa cmdlets de Storage (`Clear-Disk`/`Init
   comparación de **número de disco físico** objetivo ≠ Windows, y confirmación escribiendo la letra
   (`ConfirmDialog`) advirtiendo que se borra **todo el disco físico**.
 
-### 9. Benchmark rápido de lectura/escritura — ✅ implementado (publicado en v1.7.0)
-Test secuencial corto (MB/s de lectura y escritura), **no destructivo** (escribe/relee un archivo
-temporal de ~256 MB), reutilizando la mecánica de E/S por bloques de `CapacityVerifier`/`SecureWipe`.
-- Dónde: `Core/Benchmark.cs` (tamaño de prueba + velocidad, puro testeable),
-  `Services/BenchmarkRunner.cs` + `MnuBenchmark` en `MainWindow`.
-- Permitido en **cualquier unidad lista** (incluido el disco interno); valida espacio libre.
+### 9. Benchmark rápido de lectura/escritura — ✅ implementado (v1.7.0; refinado tras v1.8.0)
+Perfil estilo CrystalDiskMark, **no destructivo** (archivo temporal de ~512 MB), que mide cuatro cifras:
+**secuencial** (bloque 1 MiB, cola **Q8**) y **4 KiB aleatorio** (Q1), lectura y escritura. Toda la E/S es
+**sin caché del sistema** (`FILE_FLAG_NO_BUFFERING` vía `RandomAccess` + buffer alineado al sector); la fase
+secuencial mantiene varias operaciones en vuelo (overlapped I/O con `Task.WhenAll`) para no infravalorar
+NVMe/SSD. Cada fase se mide por **ventanas de tiempo** (se adapta a unidades rápidas y lentas) y se toma la
+**mediana** de 3 pasadas (descarta el arranque en frío y los picos).
+- Dónde: `Core/Benchmark.cs` (tamaño alineado a bloque, velocidad, mediana y desplazamiento aleatorio,
+  puro testeable; `BenchmarkResult` con `Sequential`/`Random4K`), `Services/BenchmarkRunner.cs` (motor de
+  E/S sin caché con cola profunda) + `MnuBenchmark` en `MainWindow`.
+- Permitido en **cualquier unidad lista** (incluido el disco interno); valida espacio libre (~576 MB).
 
 ---
 
@@ -83,10 +88,7 @@ está en primer plano. Interruptor *Configuración → Avisar al terminar* (por 
 
 ### 13. Confianza y distribución
 No son features de código, pero de alto valor:
-- **Firma Authenticode** con certificado OV/EV (quita SmartScreen — el build ya lo soporta vía
-  `build-installer.ps1`/`release.ps1`).
 - Paquete **winget** para instalación/actualización sencilla.
-- **GitHub Actions** que ejecute `release.ps1` (CI/CD).
 
 ---
 
@@ -106,4 +108,4 @@ una **decisión de cambiar el alcance**:
 **#5 (S.M.A.R.T.)** en v1.5.0; **#6 (chkdsk)** y **#7 (protección de escritura)** en v1.6.0;
 **#8 (reinicializar unidad)** y **#9 (benchmark)** en v1.7.0 → **Tier 2 completado**;
 **#10 (presets personalizados)**, **#11 (más idiomas: PT/FR/IT)** y **#12 (aviso al terminar)** en v1.8.0.
-Queda del Tier 3 el **#13 (confianza y distribución: firma Authenticode, winget, GitHub Actions)**.
+Queda del Tier 3 el **#13 (distribución: paquete winget)**.

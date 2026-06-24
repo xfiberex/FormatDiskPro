@@ -6,7 +6,7 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-22
+- **Última actualización de este documento:** 2026-06-23
 - **Versión actual:** **1.8.0** (implementada, **pendiente de publicar** — **Tier 3 #10 (presets personalizados) +
   #11 (más idiomas: PT/FR/IT) + #12 (aviso al terminar)**). La **1.7.1** corrigió el disparo del diálogo de novedades al
   actualizar desde una versión sin `LastVersionSeen`. La **1.7.0** trajo **Tier 2 #8 (reinicializar) + #9 (benchmark)**
@@ -71,9 +71,10 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **165/165** (`dotnet test`) — 141 previos + 24 del Tier 3 (presets, round-trips de `AppSettings`,
-  completitud/idiomas de `Localization`, `Notifier.ShouldNotify`).
-- ✅ **Tier 3 #10 + #11 + #12 (implementado en 1.8.0, pendiente de publicar):**
+- ✅ Pruebas: **172/172** (`dotnet test`) — 141 previos + 24 del Tier 3 (presets, round-trips de `AppSettings`,
+  completitud/idiomas de `Localization`, `Notifier.ShouldNotify`) + 7 del benchmark (`PlanTestBytes` alineado,
+  `Median`, `RandomAlignedOffset`).
+- ✅ **Tier 3 #10 + #11 + #12 (publicado en 1.8.0):**
   **Presets personalizados** (`Core/Presets.NormalizeName`/`IsNameAvailable` puros, `AppSettings.UserPresets`,
   `UI/PresetsDialog`): guardar la config actual con nombre y eliminarlos; aparecen en *Presets* y se gestionan desde
   *Presets → Gestionar presets…*. **Más idiomas** (`Localization` refactorizado a arreglo por idioma; añadidos
@@ -91,8 +92,13 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
   `DiskService.GetDiskNumberAsync`): *Herramientas → Reinicializar unidad…* limpia el disco extraíble y recrea
   una única partición formateada (cmdlets de Storage, no diskpart). **Solo extraíbles** + guardas reforzadas
   (bloqueo de sistema/protegido, disco físico ≠ Windows, confirmación escribiendo la letra). **Benchmark**
-  (`Core/Benchmark.cs` puro + `Services/BenchmarkRunner.cs`): *Herramientas → Benchmark rápido…* mide MB/s de
-  lectura/escritura con un archivo temporal de ~256 MB (no destructivo), permitido en cualquier unidad lista.
+  (`Core/Benchmark.cs` puro + `Services/BenchmarkRunner.cs`): *Herramientas → Benchmark rápido…* mide
+  la velocidad con un archivo temporal de ~512 MB (no destructivo), permitido en cualquier unidad lista.
+  **Rediseñado (2026-06-23), perfil estilo CrystalDiskMark:** cuatro cifras — **secuencial** (1 MiB, cola **Q8**
+  con overlapped I/O vía `Task.WhenAll`) y **4 KiB aleatorio** (Q1), lectura y escritura. E/S **sin caché**
+  (`FILE_FLAG_NO_BUFFERING` vía `RandomAccess` + buffer alineado con `GCHandle`), medición por **ventanas de
+  tiempo** (adapta unidades rápidas/lentas) y **mediana** de 3 pasadas. `BenchmarkResult` = `Sequential`/`Random4K`
+  (cada uno con lectura/escritura); el diálogo de resultado muestra las cuatro.
 - ✅ **Tier 2 #6 (chkdsk) + #7 (protección de escritura) — publicado en 1.6.0, probado por el usuario:**
   `Services/CheckDisk.cs` + ítem *Herramientas → Comprobar errores (chkdsk)…* (modo solo-comprobar/reparar,
   progreso parseado, reparación bloqueada en disco de sistema); `DiskService.IsDiskReadOnlyAsync`/`ClearReadOnlyAsync`
@@ -190,7 +196,35 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 
 ## Registro de cambios
 
-### 2026-06-22 — feat: Tier 3 #10 (presets personalizados) + #11 (más idiomas) + #12 (aviso al terminar) — v1.8.0 (pendiente)
+### 2026-06-23 — refine: Tier 2 #9 (benchmark) — perfil estilo CrystalDiskMark (SEQ Q8 + RND4K, sin caché, mediana) — v1.9.0
+
+Rediseño del benchmark para medir la **velocidad real** del medio en la mayoría de unidades. Evolución en el
+día: primero E/S sin caché + promedio de pasadas (256 → 512 MB); luego perfil completo estilo CrystalDiskMark.
+Build **0/0**, **172/172 tests** (165 + 7 del benchmark). La firma de `BenchmarkResult` cambia (la UI se adaptó).
+
+- **Métricas (4):** **secuencial** (bloque 1 MiB, cola **Q8**) y **4 KiB aleatorio** (Q1), lectura y escritura.
+- `Core/Benchmark.cs`: `record BenchmarkScore(Read, Write)` + `BenchmarkResult(Sequential, Random4K, TestBytes)`;
+  `TargetTestBytes` 512 MiB; `PlanTestBytes(free, blockSize)` **trunca a múltiplo de bloque** (la E/S sin caché
+  exige alineación) y exige ≥ 1 bloque; **`Median(ReadOnlySpan<double>)`** (robusto al arranque frío/picos, sustituye
+  a la media) y **`RandomAlignedOffset(length, block, rng)`** (offset alineado al azar). Todo puro y testeable.
+- `Services/BenchmarkRunner.cs`: motor de E/S **sin caché** (`FILE_FLAG_NO_BUFFERING` = `(FileOptions)0x20000000`
+  vía **`RandomAccess`** sobre `File.OpenHandle`, handle `Asynchronous`). Fase secuencial con **cola Q8** (varias
+  E/S en vuelo con `Task.WhenAll`) para no infravalorar NVMe/SSD; RND4K a Q1. Buffers **alineados a 4096 B** (sobre-
+  asignados y fijados con `GCHandle`, sin `unsafe`). Medición por **ventanas de tiempo** (1,5 s; se adapta a
+  unidades rápidas/lentas) y **mediana** de `Passes`=3 ventanas. El archivo se rellena una vez (fase *Preparing*)
+  para que las lecturas sean válidas; las ventanas lo recorren en bucle. `BenchPhase` ampliado a 5 fases.
+- `UI/MainWindow`: el handler mapea las 5 fases a estado y el diálogo de resultado muestra las **cuatro** cifras.
+  Pulido del cierre: `EndOperation()` corre **antes** del diálogo de resultado (el pie deja de estar "ocupado":
+  cronómetro parado, botón "Cerrar") y un flag `benchRunning` descarta callbacks de progreso tardíos que pisaban
+  el estado final; la cancelación se rastrea con un flag local y los desenlaces (cancelado/sin espacio/resultado)
+  se muestran tras el `finally`.
+- Localización (5 idiomas): `bench.confirmBody` (descripción nueva), 5 claves de fase (`bench.preparing`/`seqWrite`/
+  `seqRead`/`rndWrite`/`rndRead`), `bench.resultBody` (4 métricas) y `bench.note` ("sin caché; SEQ Q8 + RND4K Q1,
+  mediana de 3 pasadas"). Sin referencia a CrystalDiskMark en el mensaje de UI (preferencia del usuario).
+- Pruebas: `PlanTestBytes` (bloque 1 MiB), `Median` (par/impar/no muta) y `RandomAlignedOffset` (rango/alineación).
+- Docs: `ROADMAP.md` #9, `README.md` y `CONTEXT.md` sincronizados.
+
+### 2026-06-22 — feat: Tier 3 #10 (presets personalizados) + #11 (más idiomas) + #12 (aviso al terminar) — v1.8.0
 
 Tres mejoras de pulido, **sin tocar la lógica de formateo**. Build **0/0**, **165/165 tests** (141 + 24).
 

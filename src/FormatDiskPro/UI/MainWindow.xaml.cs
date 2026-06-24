@@ -1100,54 +1100,68 @@ public sealed partial class MainWindow : Window
         FormatProgress.IsIndeterminate = false;
         FormatProgress.Value = 0;
         StatusText.ClearValue(TextBlock.ForegroundProperty);
-        StatusText.Text = L.T("bench.writing", item.Letter);
+        StatusText.Text = L.T("bench.preparing", item.Letter);
 
+        // Tras terminar, ignora cualquier callback de progreso aún en cola (no debe pisar el estado final).
+        bool benchRunning = true;
         var progress = new Progress<(BenchPhase phase, int percent)>(p =>
         {
+            if (!benchRunning) return;
             FormatProgress.Value = Math.Clamp(p.percent, 0, 100);
-            StatusText.Text = p.phase == BenchPhase.Writing
-                ? L.T("bench.writing", item.Letter)
-                : L.T("bench.reading", item.Letter);
+            StatusText.Text = L.T(p.phase switch
+            {
+                BenchPhase.SeqWrite => "bench.seqWrite",
+                BenchPhase.SeqRead  => "bench.seqRead",
+                BenchPhase.RndWrite => "bench.rndWrite",
+                BenchPhase.RndRead  => "bench.rndRead",
+                _                   => "bench.preparing",
+            }, item.Letter);
         });
 
+        BenchmarkResult? res = null;
+        bool cancelled = false;
         try
         {
-            var res = await BenchmarkRunner.RunAsync(item.Letter, progress, _cts!.Token);
-
-            if (_cancelRequested)
-            {
-                FormatProgress.Value = 0;
-                StatusText.Text = L.T("status.cancelled");
-                return;
-            }
-
-            if (res is null)
-            {
-                FormatProgress.Value = 0;
-                StatusText.Text = L.T("bench.failed", item.Letter);
-                await ShowInfoAsync(L.T("bench.resultTitle"), L.T("bench.noSpace", item.Letter));
-                return;
-            }
-
-            FormatProgress.Value = 100;
-            string write = Throughput.FormatSpeed(res.WriteBytesPerSec);
-            string read  = Throughput.FormatSpeed(res.ReadBytesPerSec);
-            History.Log($"BENCH {item.Letter}: write={write} read={read} bytes={res.TestBytes}");
-            StatusText.Text = L.T("bench.resultTitle");
-            await ShowDialogAsync(
-                L.T("bench.resultTitle"),
-                L.T("bench.resultBody", item.Letter, write, read) + "\n\n" + L.T("bench.note"),
-                null, null, L.T("btn.close"));
+            res = await BenchmarkRunner.RunAsync(item.Letter, progress, _cts!.Token);
         }
         catch (OperationCanceledException)
         {
-            FormatProgress.Value = 0;
-            StatusText.Text = L.T("status.cancelled");
+            cancelled = true;   // se trata abajo como cancelación
         }
         finally
         {
+            // Cierra la operación (para el cronómetro, repone los botones, avisa si procede) ANTES de mostrar
+            // ningún diálogo modal, para que el pie de página no quede en estado "ocupado" tras el resultado.
+            benchRunning = false;
             EndOperation();
         }
+
+        if (cancelled || _cancelRequested)
+        {
+            FormatProgress.Value = 0;
+            StatusText.Text = L.T("status.cancelled");
+            return;
+        }
+
+        if (res is null)
+        {
+            FormatProgress.Value = 0;
+            StatusText.Text = L.T("bench.failed", item.Letter);
+            await ShowInfoAsync(L.T("bench.resultTitle"), L.T("bench.noSpace", item.Letter));
+            return;
+        }
+
+        FormatProgress.Value = 100;
+        string seqW = Throughput.FormatSpeed(res.Sequential.WriteBytesPerSec);
+        string seqR = Throughput.FormatSpeed(res.Sequential.ReadBytesPerSec);
+        string rndW = Throughput.FormatSpeed(res.Random4K.WriteBytesPerSec);
+        string rndR = Throughput.FormatSpeed(res.Random4K.ReadBytesPerSec);
+        History.Log($"BENCH {item.Letter}: seq w={seqW} r={seqR} · rnd4k w={rndW} r={rndR} bytes={res.TestBytes}");
+        StatusText.Text = L.T("bench.resultTitle");
+        await ShowDialogAsync(
+            L.T("bench.resultTitle"),
+            L.T("bench.resultBody", item.Letter, seqW, seqR, rndW, rndR) + "\n\n" + L.T("bench.note"),
+            null, null, L.T("btn.close"));
     }
 
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
