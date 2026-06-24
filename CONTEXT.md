@@ -6,16 +6,17 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-23
-- **Versión actual:** **1.8.0** (implementada, **pendiente de publicar** — **Tier 3 #10 (presets personalizados) +
-  #11 (más idiomas: PT/FR/IT) + #12 (aviso al terminar)**). La **1.7.1** corrigió el disparo del diálogo de novedades al
+- **Última actualización de este documento:** 2026-06-24
+- **Versión actual:** **1.9.0** (publicada — refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
+  SEQ Q8 + RND4K, E/S sin caché, mediana de pasadas). La **1.8.0** trajo **Tier 3 #10 (presets personalizados) +
+  #11 (más idiomas: PT/FR/IT) + #12 (aviso al terminar)**. La **1.7.1** corrigió el disparo del diálogo de novedades al
   actualizar desde una versión sin `LastVersionSeen`. La **1.7.0** trajo **Tier 2 #8 (reinicializar) + #9 (benchmark)**
   → **Tier 2 completado**, y el diálogo de novedades.
   La 1.6.0 trajo **#6 (chkdsk) + #7 (protección de escritura)**; la 1.5.0 el **#5 S.M.A.R.T. ampliado**; la 1.4.0 el
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 completado; Tier 3 pendiente y lo deliberadamente fuera de alcance).
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**; solo resta lo deliberadamente fuera de alcance).
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -177,9 +178,9 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 
 ## 6. Pendientes / ideas
 
-- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — Tier 2 (diagnóstico/gestión: S.M.A.R.T.
-  ampliado, chkdsk, protección de escritura, reinicializar unidad, benchmark) y Tier 3 (presets, idiomas,
-  avisos, firma/winget/CI), además de lo deliberadamente fuera de alcance.
+- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — **Tier 2 y Tier 3 completados**
+  (Tier 3: presets, idiomas, avisos; **#13 winget/firma descartado el 2026-06-24**). Solo queda lo
+  deliberadamente fuera de alcance.
 - Probar el instalador end-to-end (instalación + actualización in-place).
 - (Opcional) Workflow de GitHub Actions que ejecute `release.ps1` o equivalente.
 - (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
@@ -195,6 +196,15 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-24 — decisión: descartado el Tier 3 #13 (winget + firma) → Tier 3 cerrado
+
+Decisión del usuario: **no** se publicará paquete **winget** ni se **firmará el instalador**. La
+distribución por **GitHub Releases** con auto-actualización integrada se considera suficiente y fiable
+para el público objetivo ("quien descarga de GitHub ya asume su fiabilidad"). El soporte de firma sigue
+disponible de forma **opcional** en `build-installer.ps1`/`release.ps1`, pero deja de ser un objetivo del
+proyecto. Con #10/#11/#12 ya publicados (v1.8.0) y #13 descartado, el **Tier 3 queda cerrado**. Sin
+cambios de código; solo `ROADMAP.md` y `CONTEXT.md` sincronizados.
 
 ### 2026-06-23 — refine: Tier 2 #9 (benchmark) — perfil estilo CrystalDiskMark (SEQ Q8 + RND4K, sin caché, mediana) — v1.9.0
 

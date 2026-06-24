@@ -65,7 +65,7 @@ NVMe/SSD. Cada fase se mide por **ventanas de tiempo** (se adapta a unidades rá
 
 ---
 
-## ⏳ Tier 3 — Pulido / distribución
+## ✅ Tier 3 — Pulido / distribución (completado; #13 descartado)
 
 ### 10. Presets personalizados del usuario — ✅ implementado (v1.8.0)
 Guardar la configuración de formato actual como preset propio y eliminarlos, persistidos en
@@ -86,9 +86,13 @@ está en primer plano. Interruptor *Configuración → Avisar al terminar* (por 
 - Dónde: `Services/Notifier.cs` (`ShouldNotify` puro + Win32 `FlashWindowEx`/`MessageBeep`),
   `AppSettings.NotifyOnFinish`, llamada en `EndOperation`.
 
-### 13. Confianza y distribución
-No son features de código, pero de alto valor:
-- Paquete **winget** para instalación/actualización sencilla.
+### 13. Confianza y distribución — ❌ descartado (2026-06-24)
+Se evaluó publicar un **paquete winget** (con la **firma del instalador** como prerequisito práctico para
+pasar limpia la validación) para instalar/actualizar vía `winget`. **Descartado por decisión del usuario:**
+la distribución por **GitHub Releases** con **auto-actualización integrada** se considera suficiente y fiable
+para el público objetivo, y **no se firmará el instalador**. El soporte de firma sigue disponible de forma
+**opcional** en `build-installer.ps1`/`release.ps1` para quien lo necesite, pero deja de ser un objetivo del
+proyecto. → **Tier 3 cerrado.**
 
 ---
 
@@ -108,4 +112,5 @@ una **decisión de cambiar el alcance**:
 **#5 (S.M.A.R.T.)** en v1.5.0; **#6 (chkdsk)** y **#7 (protección de escritura)** en v1.6.0;
 **#8 (reinicializar unidad)** y **#9 (benchmark)** en v1.7.0 → **Tier 2 completado**;
 **#10 (presets personalizados)**, **#11 (más idiomas: PT/FR/IT)** y **#12 (aviso al terminar)** en v1.8.0.
-Queda del Tier 3 el **#13 (distribución: paquete winget)**.
+El **#13 (winget + firma)** queda **descartado** (2026-06-24): GitHub Releases + auto-actualización se
+considera distribución suficiente. → **Tier 3 cerrado** (solo resta lo deliberadamente fuera de alcance).
