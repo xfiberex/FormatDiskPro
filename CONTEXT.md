@@ -19,7 +19,7 @@
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**; solo resta lo deliberadamente fuera de alcance).
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado de características existentes (#14–#22), propuesto** como backlog activo.
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -182,8 +182,11 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 6. Pendientes / ideas
 
 - **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — **Tier 2 y Tier 3 completados**
-  (Tier 3: presets, idiomas, avisos; **#13 winget/firma descartado el 2026-06-24**). Solo queda lo
-  deliberadamente fuera de alcance.
+  (Tier 3: presets, idiomas, avisos; **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado
+  de características existentes (#14–#22), propuesto:** pasadas de wipe configurables, IOPS en benchmark,
+  umbrales S.M.A.R.T., refresco automático de unidades, idioma automático, filtro/CSV en historial,
+  editar/reordenar presets, changelog en el aviso de actualización y pulido de accesibilidad. Es el backlog
+  activo (no compromete versión/fecha). Aparte, solo queda lo deliberadamente fuera de alcance.
 - Probar el instalador end-to-end (instalación + actualización in-place).
 - (Opcional) Workflow de GitHub Actions que ejecute `release.ps1` o equivalente.
 - (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
@@ -199,6 +202,25 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-25 — docs: abierto el Tier 4 — Refinado de características existentes (propuesto, #14–#22)
+
+Tras cerrar Tiers 1–3 y descartar el #13, se abre en [`ROADMAP.md`](ROADMAP.md) un **Tier 4** de
+**refinamiento** (no añade features nuevas: pule las existentes; numeración global continúa en #14). Es un
+backlog **propuesto** acordado con el usuario, sin comprometer versión ni fecha. Solo documentación
+(`ROADMAP.md` + `CONTEXT.md`), sin cambios de código.
+
+- **#14** Pasadas de borrado seguro configurables (1/3/7) — refina #3; `Core/SecureWipe` ya soporta N pasadas.
+- **#15** IOPS junto a MB/s en el benchmark — refina #9; cálculo puro en `Core/Benchmark`.
+- **#16** S.M.A.R.T. con umbrales de color + texto de estado + botón Actualizar — refina #5.
+- **#17** Refresco automático de unidades (`WM_DEVICECHANGE`) — refina la gestión base.
+- **#18** Idioma automático en el primer arranque (`CultureInfo`) — refina #11.
+- **#19** Búsqueda/filtro + exportación CSV en el historial — refina #4.
+- **#20** Editar y reordenar presets — refina #10.
+- **#21** Changelog en el aviso «Actualización disponible» — refina updates (reusa `ReleaseNotes`).
+- **#22** Pulido de accesibilidad (nombre del botón borrar preset, aceleradores, tab order) — capa UI.
+
+Prioridad sugerida: quick wins (#15, #21, #14, #18) → trabajo medio (#16, #22, #19, #20) → integración (#17).
 
 ### 2026-06-25 — fix: correcciones de una revisión de código (UI/calidad/docs), sin tocar la lógica de formateo
 

@@ -96,6 +96,61 @@ proyecto. → **Tier 3 cerrado.**
 
 ---
 
+## 🔮 Tier 4 — Refinado de características existentes (propuesto)
+
+> A diferencia de los tiers anteriores (features **nuevas**), el Tier 4 **no añade capacidades nuevas**:
+> **pule y profundiza las que ya existen**, sin salir del propósito del proyecto. Es un backlog
+> **propuesto** (no compromete versión ni fecha); cada item refina una feature ya publicada e indica
+> dónde viviría en la arquitectura por capas. La numeración continúa la global (#14…).
+
+### 14. Pasadas de borrado seguro configurables — 📋 propuesto · refina #3
+Exponer en la UI el número de pasadas (**1 / 3 / 7**) del borrado seguro, hoy fijo a 1 (`SecureWipePasses`).
+La lógica pura ya soporta N pasadas (alterna `0x00`/`0xFF` + última aleatoria); solo falta UI + persistencia.
+- Dónde: `Core/SecureWipe` (ya listo: `PassPattern`/`PlannedBytes`), selector en `UI/MainWindow` + `AppSettings`.
+- Nota NIST 800-88: 1 pasada basta en discos modernos; el resto es para políticas específicas.
+
+### 15. IOPS en el benchmark — 📋 propuesto · refina #9
+Mostrar **IOPS** junto a MB/s en el resultado de 4 KiB aleatorio (como CrystalDiskMark). Cálculo puro
+(bytes/s ÷ 4096) y presentación en el diálogo de resultado.
+- Dónde: `Core/Benchmark` (helper puro testeable) + `UI/MainWindow` (diálogo) + clave `bench.resultBody`.
+
+### 16. S.M.A.R.T. con umbrales de color y refresco — 📋 propuesto · refina #5
+Colorear temperatura / desgaste / errores según rangos (verde / ámbar / rojo) acompañados de **texto de
+estado** (no solo color, por accesibilidad) y añadir un botón **Actualizar** al diálogo.
+- Dónde: `Core/SmartInfo` (umbrales puros testeables) + `UI/HealthDialog`.
+
+### 17. Refresco automático de unidades — 📋 propuesto · refina la gestión base
+Actualizar la lista al **insertar/extraer** una unidad (escucha de `WM_DEVICECHANGE`), en vez de depender
+solo del botón Refrescar.
+- Dónde: `Services` (hook Win32 del mensaje) + `LoadDrives` en `UI/MainWindow`, con _debounce_ para no recargar en ráfaga.
+
+### 18. Idioma automático en el primer arranque — 📋 propuesto · refina #11
+Detectar el idioma del sistema (`CultureInfo`) la **primera** vez y mapearlo a ES/EN/PT/FR/IT con fallback a
+ES (hoy siempre arranca en ES). A partir de ahí, la elección manual del usuario manda y se persiste.
+- Dónde: `Localization` (`FromCulture` puro testeable) + semilla en `AppSettings`/`MainWindow`.
+
+### 19. Búsqueda / filtro y exportación del historial — 📋 propuesto · refina #4
+Caja de búsqueda + filtro por **categoría/resultado** en `HistoryDialog`, y **exportar a CSV**.
+- Dónde: `Core/HistoryEntry` (ya parsea categoría/resultado) + `UI/HistoryDialog` (filtro) + `Services/History` (export).
+
+### 20. Editar y reordenar presets — 📋 propuesto · refina #10
+Hoy solo se pueden **añadir/eliminar**; permitir **editar** (renombrar / actualizar la config asociada) y
+**reordenar**. Opcional: importar/exportar presets a archivo.
+- Dónde: `Core/Presets` (validación ya lista) + `UI/PresetsDialog` + `AppSettings.UserPresets`.
+
+### 21. Notas de versión en el aviso de actualización — 📋 propuesto · refina updates
+Mostrar el **changelog** (cuerpo del release) dentro del diálogo *"Actualización disponible"* antes de
+descargar — la información ya se obtiene (`GetReleaseByTagAsync` + `ReleaseNotes.ToPlainText`).
+- Dónde: `UI/MainWindow` (`CheckForUpdatesAsync`) reutilizando `Core/ReleaseNotes` y `UI/WhatsNewDialog`.
+
+### 22. Pulido de accesibilidad transversal — 📋 propuesto · refina la capa UI
+`AutomationProperties.Name` en el botón de borrar preset (reintroducir `preset.deleteTip`), **aceleradores de
+teclado** en el menú, revisión del **orden de tabulación** y del contraste. (El `MaxLength` dinámico de la
+etiqueta por FS ya se hizo en 1.9.1.)
+- Dónde: `UI/*` + claves en `Localization`.
+
+---
+
 ## 🚫 Deliberadamente fuera de alcance
 
 Se excluyen a propósito para no desviar el producto de su propósito. Adoptar cualquiera de ellos sería
@@ -113,4 +168,14 @@ una **decisión de cambiar el alcance**:
 **#8 (reinicializar unidad)** y **#9 (benchmark)** en v1.7.0 → **Tier 2 completado**;
 **#10 (presets personalizados)**, **#11 (más idiomas: PT/FR/IT)** y **#12 (aviso al terminar)** en v1.8.0.
 El **#13 (winget + firma)** queda **descartado** (2026-06-24): GitHub Releases + auto-actualización se
-considera distribución suficiente. → **Tier 3 cerrado** (solo resta lo deliberadamente fuera de alcance).
+considera distribución suficiente. → **Tier 3 cerrado.**
+
+**Tier 4 (refinado, propuesto)** es ahora el backlog activo. Sugerencia de orden por relación esfuerzo/valor:
+1. **Quick wins** (reutilizan lógica ya existente): **#15 IOPS**, **#21 changelog en el aviso**, **#14 pasadas
+   configurables**, **#18 idioma automático**.
+2. **Trabajo medio** (UI + algo de Core/Services): **#16 umbrales S.M.A.R.T.**, **#22 accesibilidad**,
+   **#19 historial (filtro/CSV)**, **#20 editar/reordenar presets**.
+3. **Más integración con el sistema**: **#17 refresco automático de unidades** (`WM_DEVICECHANGE`).
+
+Todos respetan la regla de oro (lógica pura testeable en `Core`) y el propósito del proyecto; ninguno entra en
+el territorio "fuera de alcance".
