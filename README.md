@@ -67,6 +67,8 @@ Descarga el instalador más reciente desde la página de **[Releases](https://gi
 
 La aplicación comprueba si hay una versión más reciente en GitHub Releases al iniciarse y mediante **Ayuda → Buscar actualizaciones…**. Si hay una nueva versión, ofrece descargar e instalar el nuevo instalador automáticamente (actualización silenciosa con relanzado desde la 1.2.2 en adelante).
 
+> **Modelo de confianza:** la descarga se realiza por **HTTPS** desde GitHub Releases (lo que protege frente a manipulación en tránsito), pero el instalador **no se verifica con firma ni hash** antes de ejecutarse con elevación. En la práctica esto implica confiar en la integridad de la cuenta y los releases del proyecto en GitHub. La firma Authenticode (que también eliminaría los avisos de SmartScreen) está disponible de forma **opcional** en el flujo de publicación —ver [Construcción](#construcción)—, pero no se aplica a los binarios publicados por decisión del proyecto.
+
 ## Construcción
 
 ```bash

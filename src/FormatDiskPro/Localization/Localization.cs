@@ -10,14 +10,10 @@ public static class L
 {
     public static AppLang Current { get; private set; } = AppLang.Es;
 
-    /// <summary>Se dispara cuando cambia el idioma para que la UI se refresque.</summary>
-    public static event Action? Changed;
-
     public static void Set(AppLang lang)
     {
         if (Current == lang) return;
         Current = lang;
-        Changed?.Invoke();
     }
 
     /// <summary>Convierte un código ISO (<c>"es"/"en"/"pt"/"fr"/"it"</c>) al idioma; desconocido → Es.</summary>
@@ -54,10 +50,7 @@ public static class L
 
     /// <summary>Diccionario de traducciones. Orden de cada arreglo: <c>[Es, En, Pt, Fr, It]</c>.</summary>
     internal static readonly Dictionary<string, string[]> Map = new()
-    {
-        ["app.subtitle"]     = ["Seleccione una unidad para formatear", "Select a drive to format", "Selecione uma unidade para formatar", "Sélectionnez un lecteur à formater", "Seleziona un'unità da formattare"],
-        ["drive.label"]      = ["Unidad:", "Drive:", "Unidade:", "Lecteur :", "Unità:"],
-        ["section.drive"]    = ["Unidad", "Drive", "Unidade", "Lecteur", "Unità"],
+    {        ["section.drive"]    = ["Unidad", "Drive", "Unidade", "Lecteur", "Unità"],
         ["section.format"]   = ["Configuración de formato", "Format settings", "Configurações de formatação", "Paramètres de formatage", "Impostazioni di formattazione"],
         ["fs.label"]         = ["Sistema de archivos", "File system", "Sistema de arquivos", "Système de fichiers", "File system"],
         ["alloc.label"]      = ["Tamaño de unidad de asignación", "Allocation unit size", "Tamanho da unidade de alocação", "Taille d'unité d'allocation", "Dimensione unità di allocazione"],
@@ -128,8 +121,7 @@ public static class L
         ["status.unexpected"]= ["Error inesperado.", "Unexpected error.", "Erro inesperado.", "Erreur inattendue.", "Errore imprevisto."],
         ["status.wiping"]    = ["Borrado seguro (sobrescribiendo espacio libre)...", "Secure erase (overwriting free space)...", "Apagamento seguro (sobrescrevendo espaço livre)...", "Effacement sécurisé (écrasement de l'espace libre)...", "Cancellazione sicura (sovrascrittura spazio libero)..."],
         ["status.wiping.progress"] = ["Borrado seguro: {0}", "Secure erase: {0}", "Apagamento seguro: {0}", "Effacement sécurisé : {0}", "Cancellazione sicura: {0}"],
-        ["status.verifying"] = ["Verificando capacidad...", "Verifying capacity...", "Verificando capacidade...", "Vérification de la capacité...", "Verifica capacità..."],
-        ["status.ejected"]   = ["Unidad expulsada.", "Drive ejected.", "Unidade ejetada.", "Lecteur éjecté.", "Unità espulsa."],
+        ["status.ejected"]   =["Unidad expulsada.", "Drive ejected.", "Unidade ejetada.", "Lecteur éjecté.", "Unità espulsa."],
 
         ["history.title"]        = ["Historial de operaciones", "Operation history", "Histórico de operações", "Historique des opérations", "Cronologia operazioni"],
         ["history.empty"]        = ["Sin operaciones registradas.", "No operations recorded.", "Nenhuma operação registrada.", "Aucune opération enregistrée.", "Nessuna operazione registrata."],
@@ -213,8 +205,7 @@ public static class L
 
         ["msg.warning"]      = ["Advertencia", "Warning", "Aviso", "Avertissement", "Avviso"],
         ["msg.error"]        = ["Error", "Error", "Erro", "Erreur", "Errore"],
-        ["msg.info"]         = ["Información", "Information", "Informação", "Information", "Informazione"],
-        ["msg.selectDrive"]  = ["Seleccione una unidad.", "Select a drive.", "Selecione uma unidade.", "Sélectionnez un lecteur.", "Seleziona un'unità."],
+        ["msg.selectDrive"]  =["Seleccione una unidad.", "Select a drive.", "Selecione uma unidade.", "Sélectionnez un lecteur.", "Seleziona un'unità."],
         ["msg.selectFsAlloc"]= ["Seleccione el sistema de archivos y el tamaño de unidad.", "Select the file system and allocation unit size.", "Selecione o sistema de arquivos e o tamanho da unidade de alocação.", "Sélectionnez le système de fichiers et la taille d'unité d'allocation.", "Seleziona il file system e la dimensione dell'unità di allocazione."],
         ["msg.systemTitle"]  = ["Operación no permitida", "Operation not allowed", "Operação não permitida", "Opération non autorisée", "Operazione non consentita"],
         ["msg.systemBody"]   = ["No se puede formatear la unidad que contiene Windows.", "Cannot format the drive that contains Windows.", "Não é possível formatar a unidade que contém o Windows.", "Impossible de formater le lecteur qui contient Windows.", "Impossibile formattare l'unità che contiene Windows."],
@@ -263,8 +254,6 @@ public static class L
 
         ["about.title"]      = ["Acerca de FormatDiskPro", "About FormatDiskPro", "Sobre o FormatDiskPro", "À propos de FormatDiskPro", "Informazioni su FormatDiskPro"],
         ["about.body"]       = ["FormatDiskPro v{0}\n\nHerramienta de formateo y gestión de unidades para Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · WinUI 3", "FormatDiskPro v{0}\n\nDisk format and management tool for Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · WinUI 3", "FormatDiskPro v{0}\n\nFerramenta de formatação e gerenciamento de unidades para Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · WinUI 3", "FormatDiskPro v{0}\n\nOutil de formatage et de gestion de lecteurs pour Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · WinUI 3", "FormatDiskPro v{0}\n\nStrumento di formattazione e gestione unità per Windows.\nNTFS · exFAT · ReFS · FAT32 · FAT\n\n.NET 10 · WinUI 3"],
-
-        ["preset.title"]     = ["Preset aplicado", "Preset applied", "Predefinição aplicada", "Préréglage appliqué", "Preset applicato"],
         ["preset.body"]      = ["Configuración «{0}» aplicada.", "Preset \"{0}\" applied.", "Predefinição «{0}» aplicada.", "Préréglage « {0} » appliqué.", "Preset «{0}» applicato."],
         ["preset.na"]        = ["El preset «{0}» no es compatible con esta unidad.", "Preset \"{0}\" is not compatible with this drive.", "A predefinição «{0}» não é compatível com esta unidade.", "Le préréglage « {0} » n'est pas compatible avec ce lecteur.", "Il preset «{0}» non è compatibile con questa unità."],
         ["preset.manage"]    = ["Gestionar presets", "Manage presets", "Gerenciar predefinições", "Gérer les préréglages", "Gestisci preset"],
@@ -275,8 +264,7 @@ public static class L
         ["preset.saveBtn"]   = ["Guardar", "Save", "Salvar", "Enregistrer", "Salva"],
         ["preset.yourPresets"]= ["Tus presets", "Your presets", "Suas predefinições", "Vos préréglages", "I tuoi preset"],
         ["preset.empty"]     = ["Aún no has guardado presets.", "You haven't saved any presets yet.", "Você ainda não salvou predefinições.", "Vous n'avez pas encore enregistré de préréglages.", "Non hai ancora salvato preset."],
-        ["preset.deleteTip"] = ["Eliminar", "Delete", "Excluir", "Supprimer", "Elimina"],
-        ["preset.dupName"]   = ["Ya existe un preset con ese nombre.", "A preset with that name already exists.", "Já existe uma predefinição com esse nome.", "Un préréglage portant ce nom existe déjà.", "Esiste già un preset con quel nome."],
+        ["preset.dupName"]   =["Ya existe un preset con ese nombre.", "A preset with that name already exists.", "Já existe uma predefinição com esse nome.", "Un préréglage portant ce nom existe déjà.", "Esiste già un preset con quel nome."],
 
         ["update.checking"]  = ["Buscando actualizaciones…", "Checking for updates…", "Procurando atualizações…", "Recherche de mises à jour…", "Ricerca aggiornamenti…"],
         ["update.uptodate"]  = ["Ya tienes la última versión ({0}).", "You already have the latest version ({0}).", "Você já tem a versão mais recente ({0}).", "Vous avez déjà la dernière version ({0}).", "Hai già l'ultima versione ({0})."],

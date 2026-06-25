@@ -23,7 +23,8 @@ public sealed class DriveViewModel : INotifyPropertyChanged
     public DriveViewModel(char letter, string label, DriveInfo info, bool isProtected, SolidColorBrush brush)
     {
         Letter = letter;
-        DisplayText = isProtected ? $"[{L.T("protected.tag")}]{label}" : label;
+        // protected.tag ya incluye corchetes y espacio (p. ej. "[Protegido] "): no envolver de nuevo.
+        DisplayText = isProtected ? $"{L.T("protected.tag")}{label}" : label;
         Info = info;
         IsProtected = isProtected;
         _foregroundBrush = brush;

@@ -14,7 +14,7 @@ namespace FormatDiskPro;
 /// </remarks>
 public sealed class AppSettings
 {
-    /// <summary>Idioma de la interfaz: <c>"es"</c> o <c>"en"</c>.</summary>
+    /// <summary>Idioma de la interfaz: <c>"es"</c>, <c>"en"</c>, <c>"pt"</c>, <c>"fr"</c> o <c>"it"</c>.</summary>
     public string Language { get; set; } = "es";
 
     /// <summary>Modo de tema: <c>"auto"</c>, <c>"light"</c> u <c>"dark"</c>.</summary>

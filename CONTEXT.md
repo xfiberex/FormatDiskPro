@@ -6,7 +6,7 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-24
+- **Última actualización de este documento:** 2026-06-25
 - **Versión actual:** **1.9.0** (publicada — refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
   SEQ Q8 + RND4K, E/S sin caché, mediana de pasadas). La **1.8.0** trajo **Tier 3 #10 (presets personalizados) +
   #11 (más idiomas: PT/FR/IT) + #12 (aviso al terminar)**. La **1.7.1** corrigió el disparo del diálogo de novedades al
@@ -196,6 +196,44 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-25 — fix: correcciones de una revisión de código (UI/calidad/docs), sin tocar la lógica de formateo
+
+Revisión completa del proyecto (código, seguridad, rendimiento, UI/UX, accesibilidad, arquitectura, pruebas).
+Resultado: arquitectura y blindaje sólidos; se aplicaron 7 correcciones menores. Build **0/0**, **172/172 tests**.
+
+- **UI — doble corchete en la unidad protegida** (`UI/DriveViewModel.cs`): `protected.tag` ya incluye
+  corchetes y espacio (`"[Protegido] "`), pero `DisplayText` los envolvía otra vez → `[[Protegido] ]C:\…`.
+  Corregido a `$"{tag}{label}"` → `[Protegido] C:\…`.
+- **Etiqueta — `MaxLength` dinámico por FS** (`UI/MainWindow.xaml.cs`, `UpdateLabelMaxLength`): el `TextBox`
+  tenía `MaxLength="32"` fijo aunque FAT/FAT32/exFAT permiten 11; ahora se ajusta en
+  `FileSystemPicker_SelectionChanged` para dar feedback inmediato.
+- **Validación de etiqueta compartida** (`UI/MainWindow.xaml.cs`, `ValidateLabelAsync`): se extrajo la
+  validación (caracteres inválidos + longitud por FS) a un helper único usado por *Iniciar* y por
+  *Reinicializar unidad…* — antes Reinit solo validaba caracteres, no la longitud.
+- **Localización — evento muerto** (`Localization/Localization.cs`): se elimina `L.Changed` (declarado e
+  invocado pero sin suscriptores; el refresco se hace llamando a `ApplyLanguage()`).
+- **Docs — `.csproj`**: el comentario del target `CopyAppPriToPublish` estaba corrupto (mojibake por
+  recodificación); reescrito limpio (ASCII), sin cambios funcionales.
+- **Docs — `AppSettings.Language`**: el XML-doc decía `"es"/"en"`; ahora refleja los 5 idiomas (`es/en/pt/fr/it`).
+- **Docs — `README.md`**: añadida nota del *modelo de confianza* de la auto-actualización (HTTPS sí; sin
+  verificación de firma/hash antes de ejecutar elevado → se confía en la cuenta/releases de GitHub; firma
+  Authenticode opcional). Refleja la decisión ya tomada de no firmar (Tier 3 #13 descartado).
+
+**Limpieza (mismo día):**
+- **Borrado `UI/MainForm.resx`**: plantilla vacía de WinForms (solo el esquema, sin datos) que quedó tras la
+  migración a WinUI 3; no la referenciaba ninguna clase (`MainForm` ya no existe). Sin impacto en el build.
+- **6 claves de localización sin usar eliminadas** de `Localization.cs` (216 → 210): `app.subtitle`,
+  `drive.label` (restos del subtítulo/Header retirados en el rediseño), `status.verifying` (se usa
+  `verify.writing`/`verify.reading`), `msg.info` (se usan `msg.warning`/`msg.error`), `preset.title`
+  (solo se usa `preset.body`) y `preset.deleteTip` (tooltip nunca cableado en `PresetsDialog`). Verificado
+  con diff de conjuntos contra HEAD: exactamente esas 6, ninguna en uso (incluidas las dinámicas
+  `reinit.stage.{clean,init,partition,format}`, que se conservan).
+- **Se conserva** `FormatLogic.DecodeArguments` (solo lo usan los tests, pero respalda el test de round-trip
+  que prueba que `EncodeArguments` es reversible). Las skills de frameworks de test no usados
+  (`csharp-mstest/nunit/tunit`) se mantienen por decisión documentada en `.claude/CLAUDE.md`.
+
+**Sin cambios:** `Core/FormatLogic` (lógica), lógica de formateo, servicios de red/instalador, `release.ps1`.
 
 ### 2026-06-24 — decisión: descartado el Tier 3 #13 (winget + firma) → Tier 3 cerrado
 

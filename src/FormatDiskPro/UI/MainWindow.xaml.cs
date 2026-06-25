@@ -379,6 +379,15 @@ public sealed partial class MainWindow : Window
         UpdateAllocationUnits();
         UpdateFsDescription();
         UpdateCompressionOption();
+        UpdateLabelMaxLength();
+    }
+
+    // Ajusta el máximo de caracteres de la etiqueta al límite del FS seleccionado (FAT/FAT32/exFAT: 11;
+    // NTFS/ReFS: 32), para dar feedback inmediato en vez de fallar solo al pulsar Iniciar.
+    private void UpdateLabelMaxLength()
+    {
+        string? fs = FileSystemPicker.SelectedItem?.ToString();
+        VolumeLabelBox.MaxLength = fs is not null ? FormatLogic.MaxLabelLength(fs) : 32;
     }
 
     private void UpdateAllocationUnits()
@@ -542,24 +551,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (!string.IsNullOrEmpty(label))
-        {
-            char[] invalidChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
-            if (label.Any(c => invalidChars.Contains(c)))
-            {
-                await ShowInfoAsync(L.T("msg.invalidTitle"), L.T("msg.invalidLabel"));
-                VolumeLabelBox.Focus(FocusState.Programmatic);
-                return;
-            }
-
-            int maxLabel = FormatLogic.MaxLabelLength(fs);
-            if (label.Length > maxLabel)
-            {
-                await ShowInfoAsync(L.T("msg.labelLongTitle"), L.T("msg.labelLong", maxLabel, fs));
-                VolumeLabelBox.Focus(FocusState.Programmatic);
-                return;
-            }
-        }
+        if (!await ValidateLabelAsync(label, fs, focusOnError: true))
+            return;
 
         // Protección de escritura: si el disco está en solo lectura, el formateo fallaría con un error
         // poco claro. Lo detectamos y ofrecemos quitarla antes de continuar.
@@ -587,6 +580,33 @@ public sealed partial class MainWindow : Window
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
 
         await RunFormatAsync(driveItem.Letter, fs, allocBytes, label, quick, compress, secure);
+    }
+
+    /// <summary>
+    /// Valida la etiqueta de volumen para el sistema de archivos dado: caracteres permitidos y longitud
+    /// máxima por FS. Muestra el diálogo correspondiente y devuelve <c>false</c> si no es válida; una
+    /// etiqueta vacía siempre es válida. Compartido por formatear (Iniciar) y reinicializar.
+    /// </summary>
+    private async Task<bool> ValidateLabelAsync(string label, string fs, bool focusOnError)
+    {
+        if (string.IsNullOrEmpty(label)) return true;
+
+        char[] invalidChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
+        if (label.Any(c => invalidChars.Contains(c)))
+        {
+            await ShowInfoAsync(L.T("msg.invalidTitle"), L.T("msg.invalidLabel"));
+            if (focusOnError) VolumeLabelBox.Focus(FocusState.Programmatic);
+            return false;
+        }
+
+        int maxLabel = FormatLogic.MaxLabelLength(fs);
+        if (label.Length > maxLabel)
+        {
+            await ShowInfoAsync(L.T("msg.labelLongTitle"), L.T("msg.labelLong", maxLabel, fs));
+            if (focusOnError) VolumeLabelBox.Focus(FocusState.Programmatic);
+            return false;
+        }
+        return true;
     }
 
     private async Task RunFormatAsync(
@@ -1028,12 +1048,8 @@ public sealed partial class MainWindow : Window
         // Configuración de formato tomada del formulario.
         string fs    = FileSystemPicker.SelectedItem?.ToString() ?? "NTFS";
         string label = VolumeLabelBox.Text.Trim();
-        char[] invalidChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
-        if (label.Any(c => invalidChars.Contains(c)))
-        {
-            await ShowInfoAsync(L.T("msg.invalidTitle"), L.T("msg.invalidLabel"));
+        if (!await ValidateLabelAsync(label, fs, focusOnError: false))
             return;
-        }
 
         DiskPartitionStyle style;
         try { style = ReinitPlan.StyleFor(item.Info.TotalSize); } catch { style = DiskPartitionStyle.Mbr; }
