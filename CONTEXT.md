@@ -7,8 +7,11 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-25
-- **Versión actual:** **1.9.0** (publicada — refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
-  SEQ Q8 + RND4K, E/S sin caché, mediana de pasadas). La **1.8.0** trajo **Tier 3 #10 (presets personalizados) +
+- **Versión actual:** **1.9.1** (publicada — mantenimiento: correcciones de una revisión de código + limpieza,
+  sin tocar la lógica de formateo: fix del doble corchete en la unidad protegida, `MaxLength` de etiqueta dinámico
+  por FS, validación de etiqueta compartida formato/reinit, borrado de `MainForm.resx` y de 6 claves de
+  localización sin uso). La **1.9.0** refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
+  SEQ Q8 + RND4K, E/S sin caché, mediana de pasadas. La **1.8.0** trajo **Tier 3 #10 (presets personalizados) +
   #11 (más idiomas: PT/FR/IT) + #12 (aviso al terminar)**. La **1.7.1** corrigió el disparo del diálogo de novedades al
   actualizar desde una versión sin `LastVersionSeen`. La **1.7.0** trajo **Tier 2 #8 (reinicializar) + #9 (benchmark)**
   → **Tier 2 completado**, y el diálogo de novedades.
