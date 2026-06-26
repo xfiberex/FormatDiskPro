@@ -16,6 +16,21 @@ public static class L
         Current = lang;
     }
 
+    /// <summary>
+    /// Idioma a partir del nombre de una cultura .NET (p. ej. <c>"es-ES"</c>, <c>"pt-BR"</c>, <c>"fr"</c>):
+    /// toma la parte de idioma de dos letras (antes de <c>-</c>/<c>_</c>) y la mapea con <see cref="FromCode"/>.
+    /// Desconocido o vacío → Es. Lógica pura; se usa para sembrar el idioma en el primer arranque.
+    /// </summary>
+    /// <param name="cultureName">Nombre de la cultura, p. ej. <see cref="System.Globalization.CultureInfo.Name"/>.</param>
+    public static AppLang FromCulture(string? cultureName)
+    {
+        if (string.IsNullOrWhiteSpace(cultureName)) return AppLang.Es;
+        string lang = cultureName.Trim();
+        int sep = lang.IndexOfAny(['-', '_']);
+        if (sep > 0) lang = lang[..sep];
+        return FromCode(lang);
+    }
+
     /// <summary>Convierte un código ISO (<c>"es"/"en"/"pt"/"fr"/"it"</c>) al idioma; desconocido → Es.</summary>
     public static AppLang FromCode(string? code) => code?.Trim().ToLowerInvariant() switch
     {
@@ -59,6 +74,7 @@ public static class L
         ["opt.quick"]        = ["Formato rápido", "Quick format", "Formatação rápida", "Formatage rapide", "Formattazione rapida"],
         ["opt.compress"]     = ["Habilitar compresión (sólo NTFS)", "Enable compression (NTFS only)", "Ativar compactação (apenas NTFS)", "Activer la compression (NTFS uniquement)", "Abilita compressione (solo NTFS)"],
         ["opt.secure"]       = ["Borrado seguro (sobrescribir espacio libre)", "Secure erase (overwrite free space)", "Apagamento seguro (sobrescrever espaço livre)", "Effacement sécurisé (écraser l'espace libre)", "Cancellazione sicura (sovrascrivi spazio libero)"],
+        ["opt.passes"]       = ["Pasadas:", "Passes:", "Passagens:", "Passes :", "Passaggi:"],
         ["btn.restore"]      = ["Restaurar valores predeterminados", "Restore defaults", "Restaurar padrões", "Restaurer les valeurs par défaut", "Ripristina predefiniti"],
         ["btn.start"]        = ["Iniciar", "Start", "Iniciar", "Démarrer", "Avvia"],
         ["btn.close"]        = ["Cerrar", "Close", "Fechar", "Fermer", "Chiudi"],
@@ -198,7 +214,7 @@ public static class L
         ["bench.rndWrite"]       = ["Benchmark de {0}: — 4K aleatorio (escritura)…", "Benchmark of {0}: — random 4K (write)…", "Benchmark de {0}: — 4K aleatório (escrita)…", "Benchmark de {0}: — 4K aléatoire (écriture)…", "Benchmark di {0}: — 4K casuale (scrittura)…"],
         ["bench.rndRead"]        = ["Benchmark de {0}: — 4K aleatorio (lectura)…", "Benchmark of {0}: — random 4K (read)…", "Benchmark de {0}: — 4K aleatório (leitura)…", "Benchmark de {0}: — 4K aléatoire (lecture)…", "Benchmark di {0}: — 4K casuale (lettura)…"],
         ["bench.resultTitle"]    = ["Resultado del benchmark", "Benchmark result", "Resultado do benchmark", "Résultat du benchmark", "Risultato del benchmark"],
-        ["bench.resultBody"]     = ["Unidad {0}:\n\n  Secuencial (Q8, 1 MiB)\n    Escritura:  {1}\n    Lectura:    {2}\n\n  4K aleatorio (Q1)\n    Escritura:  {3}\n    Lectura:    {4}", "Drive {0}:\n\n  Sequential (Q8, 1 MiB)\n    Write:  {1}\n    Read:   {2}\n\n  Random 4K (Q1)\n    Write:  {3}\n    Read:   {4}", "Unidade {0}:\n\n  Sequencial (Q8, 1 MiB)\n    Escrita:  {1}\n    Leitura:  {2}\n\n  4K aleatório (Q1)\n    Escrita:  {3}\n    Leitura:  {4}", "Lecteur {0}:\n\n  Séquentiel (Q8, 1 Mio)\n    Écriture :  {1}\n    Lecture :   {2}\n\n  4 Kio aléatoire (Q1)\n    Écriture :  {3}\n    Lecture :   {4}", "Unità {0}:\n\n  Sequenziale (Q8, 1 MiB)\n    Scrittura:  {1}\n    Lettura:    {2}\n\n  4K casuale (Q1)\n    Scrittura:  {3}\n    Lettura:    {4}"],
+        ["bench.resultBody"]     = ["Unidad {0}:\n\n  Secuencial (Q8, 1 MiB)\n    Escritura:  {1}\n    Lectura:    {2}\n\n  4K aleatorio (Q1)\n    Escritura:  {3}  ({5})\n    Lectura:    {4}  ({6})", "Drive {0}:\n\n  Sequential (Q8, 1 MiB)\n    Write:  {1}\n    Read:   {2}\n\n  Random 4K (Q1)\n    Write:  {3}  ({5})\n    Read:   {4}  ({6})", "Unidade {0}:\n\n  Sequencial (Q8, 1 MiB)\n    Escrita:  {1}\n    Leitura:  {2}\n\n  4K aleatório (Q1)\n    Escrita:  {3}  ({5})\n    Leitura:  {4}  ({6})", "Lecteur {0}:\n\n  Séquentiel (Q8, 1 Mio)\n    Écriture :  {1}\n    Lecture :   {2}\n\n  4 Kio aléatoire (Q1)\n    Écriture :  {3}  ({5})\n    Lecture :   {4}  ({6})", "Unità {0}:\n\n  Sequenziale (Q8, 1 MiB)\n    Scrittura:  {1}\n    Lettura:    {2}\n\n  4K casuale (Q1)\n    Scrittura:  {3}  ({5})\n    Lettura:    {4}  ({6})"],
         ["bench.noSpace"]        = ["No hay espacio libre suficiente en {0}: para el benchmark (se necesitan ~576 MB).", "Not enough free space on {0}: for the benchmark (~576 MB needed).", "Não há espaço livre suficiente em {0}: para o benchmark (são necessários ~576 MB).", "Espace libre insuffisant sur {0}: pour le benchmark (~576 Mo nécessaires).", "Spazio libero insufficiente su {0}: per il benchmark (servono ~576 MB)."],
         ["bench.note"]           = ["Sin caché del sistema; secuencial con cola Q8 y 4K aleatorio Q1, mediana de 3 pasadas.", "System cache bypassed; sequential at queue depth Q8 and random 4K at Q1, median of 3 passes.", "Sem cache do sistema; sequencial com fila Q8 e 4K aleatório Q1, mediana de 3 passagens.", "Sans cache système ; séquentiel en file Q8 et 4K aléatoire Q1, médiane de 3 passes.", "Senza cache di sistema; sequenziale a coda Q8 e 4K casuale Q1, mediana di 3 passaggi."],
         ["bench.failed"]         = ["No se pudo completar el benchmark de {0}:.", "Could not complete the benchmark of {0}:.", "Não foi possível concluir o benchmark de {0}:.", "Impossible de terminer le benchmark de {0}:.", "Impossibile completare il benchmark di {0}:."],
@@ -269,7 +285,10 @@ public static class L
         ["update.checking"]  = ["Buscando actualizaciones…", "Checking for updates…", "Procurando atualizações…", "Recherche de mises à jour…", "Ricerca aggiornamenti…"],
         ["update.uptodate"]  = ["Ya tienes la última versión ({0}).", "You already have the latest version ({0}).", "Você já tem a versão mais recente ({0}).", "Vous avez déjà la dernière version ({0}).", "Hai già l'ultima versione ({0})."],
         ["update.availTitle"]= ["Actualización disponible", "Update available", "Atualização disponível", "Mise à jour disponible", "Aggiornamento disponibile"],
-        ["update.available"] = ["Hay una nueva versión disponible: {0}\n(versión actual: {1})\n\n¿Descargar e instalar ahora?", "A new version is available: {0}\n(current version: {1})\n\nDownload and install now?", "Há uma nova versão disponível: {0}\n(versão atual: {1})\n\nBaixar e instalar agora?", "Une nouvelle version est disponible : {0}\n(version actuelle : {1})\n\nTélécharger et installer maintenant ?", "È disponibile una nuova versione: {0}\n(versione attuale: {1})\n\nScaricare e installare ora?"],
+        ["update.availBody"] = ["Nueva versión disponible: {0}\nVersión actual: {1}", "New version available: {0}\nCurrent version: {1}", "Nova versão disponível: {0}\nVersão atual: {1}", "Nouvelle version disponible : {0}\nVersion actuelle : {1}", "Nuova versione disponibile: {0}\nVersione attuale: {1}"],
+        ["update.changelog"] = ["Novedades:", "What's new:", "Novidades:", "Nouveautés :", "Novità:"],
+        ["update.download"]  = ["Descargar e instalar", "Download and install", "Baixar e instalar", "Télécharger et installer", "Scarica e installa"],
+        ["update.later"]     = ["Más tarde", "Later", "Mais tarde", "Plus tard", "Più tardi"],
         ["update.downloading"]=["Descargando actualización… {0}%", "Downloading update… {0}%", "Baixando atualização… {0}%", "Téléchargement de la mise à jour… {0}%", "Download aggiornamento… {0}%"],
         ["update.launching"] = ["Iniciando el instalador…", "Launching installer…", "Iniciando o instalador…", "Lancement de l'installateur…", "Avvio del programma di installazione…"],
         ["update.noasset"]   = ["La versión {0} no incluye un instalador descargable. Se abrirá la página de la versión.", "Release {0} has no downloadable installer. Opening the release page.", "A versão {0} não inclui um instalador para download. A página da versão será aberta.", "La version {0} ne comprend pas d'installateur téléchargeable. La page de la version va s'ouvrir.", "La versione {0} non include un programma di installazione scaricabile. Verrà aperta la pagina della versione."],

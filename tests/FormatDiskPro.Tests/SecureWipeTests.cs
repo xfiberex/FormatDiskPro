@@ -41,4 +41,23 @@ public sealed class SecureWipeTests
     [Fact]
     public void PassPattern_LastPassAlwaysRandom()
         => Assert.True(SecureWipe.PassPattern(1, 2).Random);
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(3, 3)]
+    [InlineData(7, 7)]
+    public void NormalizePasses_AllowedValuesUnchanged(int passes, int expected)
+        => Assert.Equal(expected, SecureWipe.NormalizePasses(passes));
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    [InlineData(-5)]
+    [InlineData(100)]
+    public void NormalizePasses_InvalidValuesFallBackToOne(int passes)
+        => Assert.Equal(1, SecureWipe.NormalizePasses(passes));
+
+    [Fact]
+    public void AllowedPasses_AreExactlyOneThreeSeven()
+        => Assert.Equal(new[] { 1, 3, 7 }, SecureWipe.AllowedPasses);
 }

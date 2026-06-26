@@ -47,6 +47,19 @@ public sealed class LocalizationTests
     public void ToCode_RoundTripsWithFromCode()
         => Assert.All(Enum.GetValues<AppLang>(), lang => Assert.Equal(lang, L.FromCode(L.ToCode(lang))));
 
+    [Theory]
+    [InlineData("es-ES", AppLang.Es)]
+    [InlineData("en-US", AppLang.En)]
+    [InlineData("pt-BR", AppLang.Pt)]
+    [InlineData("fr-FR", AppLang.Fr)]
+    [InlineData("it-IT", AppLang.It)]
+    [InlineData("fr", AppLang.Fr)]        // solo idioma, sin región
+    [InlineData("DE-de", AppLang.Es)]     // idioma no soportado → Es
+    [InlineData("", AppLang.Es)]
+    [InlineData(null, AppLang.Es)]
+    public void FromCulture_MapsLanguagePart(string? culture, AppLang expected)
+        => Assert.Equal(expected, L.FromCulture(culture));
+
     [Fact]
     public void T_ReturnsActiveLanguageString()
     {

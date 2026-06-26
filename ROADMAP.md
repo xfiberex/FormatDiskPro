@@ -96,23 +96,25 @@ proyecto. → **Tier 3 cerrado.**
 
 ---
 
-## 🔮 Tier 4 — Refinado de características existentes (propuesto)
+## 🔧 Tier 4 — Refinado de características existentes (en curso)
 
 > A diferencia de los tiers anteriores (features **nuevas**), el Tier 4 **no añade capacidades nuevas**:
-> **pule y profundiza las que ya existen**, sin salir del propósito del proyecto. Es un backlog
-> **propuesto** (no compromete versión ni fecha); cada item refina una feature ya publicada e indica
-> dónde viviría en la arquitectura por capas. La numeración continúa la global (#14…).
+> **pule y profundiza las que ya existen**, sin salir del propósito del proyecto. Cada item refina una
+> feature ya publicada e indica dónde viviría en la arquitectura por capas. La numeración continúa la
+> global (#14…). Los **quick wins #14/#15/#18/#21** se publicaron en **v1.10.0**.
 
-### 14. Pasadas de borrado seguro configurables — 📋 propuesto · refina #3
-Exponer en la UI el número de pasadas (**1 / 3 / 7**) del borrado seguro, hoy fijo a 1 (`SecureWipePasses`).
-La lógica pura ya soporta N pasadas (alterna `0x00`/`0xFF` + última aleatoria); solo falta UI + persistencia.
-- Dónde: `Core/SecureWipe` (ya listo: `PassPattern`/`PlannedBytes`), selector en `UI/MainWindow` + `AppSettings`.
+### 14. Pasadas de borrado seguro configurables — ✅ implementado (v1.10.0) · refina #3
+Selector **1 / 3 / 7** del borrado seguro en *Opciones de formato* (antes fijo a 1), activo solo cuando se
+marca *Borrado seguro*; la elección se persiste y se muestra en la confirmación (`×N` si > 1). La lógica pura
+ya soportaba N pasadas (alterna `0x00`/`0xFF` + última aleatoria).
+- Dónde: `Core/SecureWipe` (`AllowedPasses`/`NormalizePasses` puros, además de `PassPattern`/`PlannedBytes`),
+  selector en `UI/MainWindow` (`WipePassesPicker`) + `AppSettings.SecureWipePasses`.
 - Nota NIST 800-88: 1 pasada basta en discos modernos; el resto es para políticas específicas.
 
-### 15. IOPS en el benchmark — 📋 propuesto · refina #9
-Mostrar **IOPS** junto a MB/s en el resultado de 4 KiB aleatorio (como CrystalDiskMark). Cálculo puro
-(bytes/s ÷ 4096) y presentación en el diálogo de resultado.
-- Dónde: `Core/Benchmark` (helper puro testeable) + `UI/MainWindow` (diálogo) + clave `bench.resultBody`.
+### 15. IOPS en el benchmark — ✅ implementado (v1.10.0) · refina #9
+Muestra **IOPS** junto a MB/s en las cifras de 4 KiB aleatorio del resultado (como CrystalDiskMark). Cálculo
+puro (`bytes/s ÷ 4096`) y presentación en el diálogo de resultado.
+- Dónde: `Core/Benchmark` (`Iops` + `Random4KBlockBytes`, puros testeables) + `UI/MainWindow` (diálogo) + clave `bench.resultBody`.
 
 ### 16. S.M.A.R.T. con umbrales de color y refresco — 📋 propuesto · refina #5
 Colorear temperatura / desgaste / errores según rangos (verde / ámbar / rojo) acompañados de **texto de
@@ -124,10 +126,10 @@ Actualizar la lista al **insertar/extraer** una unidad (escucha de `WM_DEVICECHA
 solo del botón Refrescar.
 - Dónde: `Services` (hook Win32 del mensaje) + `LoadDrives` en `UI/MainWindow`, con _debounce_ para no recargar en ráfaga.
 
-### 18. Idioma automático en el primer arranque — 📋 propuesto · refina #11
-Detectar el idioma del sistema (`CultureInfo`) la **primera** vez y mapearlo a ES/EN/PT/FR/IT con fallback a
-ES (hoy siempre arranca en ES). A partir de ahí, la elección manual del usuario manda y se persiste.
-- Dónde: `Localization` (`FromCulture` puro testeable) + semilla en `AppSettings`/`MainWindow`.
+### 18. Idioma automático en el primer arranque — ✅ implementado (v1.10.0) · refina #11
+Detecta el idioma del sistema (`CultureInfo.CurrentUICulture`) la **primera** vez (sin `settings.json`) y lo
+mapea a ES/EN/PT/FR/IT con fallback a ES. A partir de ahí, la elección manual del usuario manda y se persiste.
+- Dónde: `Localization` (`FromCulture` puro testeable) + semilla en `MainWindow` (gated por `AppSettings.LoadedFromFile`).
 
 ### 19. Búsqueda / filtro y exportación del historial — 📋 propuesto · refina #4
 Caja de búsqueda + filtro por **categoría/resultado** en `HistoryDialog`, y **exportar a CSV**.
@@ -138,10 +140,11 @@ Hoy solo se pueden **añadir/eliminar**; permitir **editar** (renombrar / actual
 **reordenar**. Opcional: importar/exportar presets a archivo.
 - Dónde: `Core/Presets` (validación ya lista) + `UI/PresetsDialog` + `AppSettings.UserPresets`.
 
-### 21. Notas de versión en el aviso de actualización — 📋 propuesto · refina updates
-Mostrar el **changelog** (cuerpo del release) dentro del diálogo *"Actualización disponible"* antes de
-descargar — la información ya se obtiene (`GetReleaseByTagAsync` + `ReleaseNotes.ToPlainText`).
-- Dónde: `UI/MainWindow` (`CheckForUpdatesAsync`) reutilizando `Core/ReleaseNotes` y `UI/WhatsNewDialog`.
+### 21. Notas de versión en el aviso de actualización — ✅ implementado (v1.10.0) · refina updates
+El diálogo *"Actualización disponible"* muestra el **changelog** (cuerpo del release, ya incluido en
+`ReleaseInfo.Notes` que devuelve `CheckForUpdateAsync`, convertido con `ReleaseNotes.ToPlainText`) en un panel
+con scroll, antes de descargar. Botones *Descargar e instalar* / *Más tarde*.
+- Dónde: `UI/MainWindow.ShowUpdateAvailableAsync` reutilizando `Core/ReleaseNotes`; claves `update.availBody`/`changelog`/`download`/`later`.
 
 ### 22. Pulido de accesibilidad transversal — 📋 propuesto · refina la capa UI
 `AutomationProperties.Name` en el botón de borrar preset (reintroducir `preset.deleteTip`), **aceleradores de
@@ -170,10 +173,10 @@ una **decisión de cambiar el alcance**:
 El **#13 (winget + firma)** queda **descartado** (2026-06-24): GitHub Releases + auto-actualización se
 considera distribución suficiente. → **Tier 3 cerrado.**
 
-**Tier 4 (refinado, propuesto)** es ahora el backlog activo. Sugerencia de orden por relación esfuerzo/valor:
-1. **Quick wins** (reutilizan lógica ya existente): **#15 IOPS**, **#21 changelog en el aviso**, **#14 pasadas
-   configurables**, **#18 idioma automático**.
-2. **Trabajo medio** (UI + algo de Core/Services): **#16 umbrales S.M.A.R.T.**, **#22 accesibilidad**,
+**Tier 4 (refinado)** es el backlog activo. Sugerencia de orden por relación esfuerzo/valor:
+1. **Quick wins** (reutilizan lógica ya existente) — ✅ **publicados en v1.10.0**: **#15 IOPS**, **#21 changelog
+   en el aviso**, **#14 pasadas configurables**, **#18 idioma automático**.
+2. **Trabajo medio** (UI + algo de Core/Services) — _siguiente_: **#16 umbrales S.M.A.R.T.**, **#22 accesibilidad**,
    **#19 historial (filtro/CSV)**, **#20 editar/reordenar presets**.
 3. **Más integración con el sistema**: **#17 refresco automático de unidades** (`WM_DEVICECHANGE`).
 

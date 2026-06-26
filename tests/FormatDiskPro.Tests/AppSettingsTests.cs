@@ -106,4 +106,13 @@ public sealed class AppSettingsTests : IDisposable
         new AppSettings { NotifyOnFinish = false }.Save(_path);
         Assert.False(AppSettings.Load(_path).NotifyOnFinish);
     }
+
+    [Fact]
+    public void SecureWipePasses_DefaultsToOne_AndRoundTrips()
+    {
+        Assert.Equal(1, new AppSettings().SecureWipePasses);
+
+        new AppSettings { SecureWipePasses = 7 }.Save(_path);
+        Assert.Equal(7, AppSettings.Load(_path).SecureWipePasses);
+    }
 }

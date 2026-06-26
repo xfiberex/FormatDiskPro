@@ -20,6 +20,20 @@ public static class SecureWipe
     public const long SafetyMarginBytes = 64L * 1024 * 1024;
 
     /// <summary>
+    /// Números de pasadas que se ofrecen en la interfaz. NIST 800-88: <b>1</b> pasada basta en discos
+    /// modernos; <b>3</b>/<b>7</b> existen para políticas concretas (no aportan en medios con remapeo).
+    /// </summary>
+    public static readonly int[] AllowedPasses = [1, 3, 7];
+
+    /// <summary>
+    /// Ajusta un número de pasadas a un valor admitido (<see cref="AllowedPasses"/>): lo devuelve si es
+    /// válido y <c>1</c> en cualquier otro caso (valor persistido corrupto o fuera de rango). Lógica pura.
+    /// </summary>
+    /// <param name="passes">Número de pasadas a validar.</param>
+    public static int NormalizePasses(int passes)
+        => Array.IndexOf(AllowedPasses, passes) >= 0 ? passes : 1;
+
+    /// <summary>
     /// Bytes que se sobrescribirán en total: <c>(espacio libre - margen) * pasadas</c> (nunca negativo).
     /// </summary>
     public static long PlannedBytes(long freeBytes, int passes)

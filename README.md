@@ -17,7 +17,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Descripción contextual** de cada sistema de archivos
 - **Formato rápido o completo**, con **progreso real en %** (formato completo de NTFS/FAT/FAT32)
 - **Compresión NTFS** opcional
-- **Borrado seguro con progreso real**: sobrescribe el espacio libre con un patrón (sobrescritor propio) mostrando **% real, velocidad (MB/s) y tiempo restante (ETA)**; 1 pasada por defecto
+- **Borrado seguro con progreso real**: sobrescribe el espacio libre con un patrón (sobrescritor propio) mostrando **% real, velocidad (MB/s) y tiempo restante (ETA)**; **pasadas configurables (1 / 3 / 7)**, 1 por defecto (NIST 800-88: basta en discos modernos)
 - **Presets** de un clic (USB universal, consola/TV, datos Windows, comprimido, borrado seguro), más **presets personalizados**: guarda tu configuración actual con un nombre y elimínalos desde *Presets → Gestionar presets…*
 
 ### Seguridad
@@ -34,18 +34,18 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Salud S.M.A.R.T. avanzada**: estado de salud, conexión (USB/SATA/NVMe) y tipo de medio (SSD/HDD) en el panel, más un **diálogo de detalle** con temperatura, horas de encendido, desgaste de SSD, RPM y errores de lectura/escritura (`Get-StorageReliabilityCounter`)
 - **Verificación de capacidad real**: detecta memorias USB falsificadas escribiendo y releyendo un patrón
 - **Comprobación de errores (chkdsk)**: *Solo comprobar* (solo lectura, universal) o *Comprobar y reparar* (`/f`), con progreso en vivo y resultado claro
-- **Benchmark de lectura/escritura**: mide la velocidad real (MB/s) **secuencial** (cola Q8) y **4 KiB aleatorio** con un archivo temporal de ~512 MB **sin caché del sistema**, tomando la mediana de varias pasadas; **no destructivo** y disponible en cualquier unidad
+- **Benchmark de lectura/escritura**: mide la velocidad real (MB/s) **secuencial** (cola Q8) y **4 KiB aleatorio** (con **IOPS** junto a los MB/s, estilo CrystalDiskMark) con un archivo temporal de ~512 MB **sin caché del sistema**, tomando la mediana de varias pasadas; **no destructivo** y disponible en cualquier unidad
 
 ### Experiencia
 - **Interfaz moderna basada en tarjetas** (WinUI 3 / Fluent): secciones con encabezado e icono, barra de acción inferior y un **color de acento que sigue el de Windows** (sistema de diseño inspirado en Win11Debloat), adaptándose a tema claro u oscuro
-- **Interfaz multilingüe** Español · Inglés · Português · Français · Italiano (conmutable en caliente)
+- **Interfaz multilingüe** Español · Inglés · Português · Français · Italiano (conmutable en caliente); **detecta el idioma del sistema en el primer arranque** (luego manda tu elección)
 - **Tema automático / claro / oscuro**: sigue el tema del sistema Windows en tiempo real; opción de forzar claro u oscuro desde el menú
-- **Recuerda tus preferencias** (idioma, tema, última unidad, presets y aviso) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)
+- **Recuerda tus preferencias** (idioma, tema, última unidad, presets, aviso y pasadas de borrado seguro) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)
 - **Expulsión segura** de unidades removibles
 - **Visor de historial integrado** dentro de la app, además del registro de auditoría en `%AppData%\FormatDiskPro\history.log`
 - **Tiempo transcurrido, velocidad y ETA** en operaciones largas, con **cancelación segura** de cualquier operación
 - **Aviso al terminar**: sonido + parpadeo de la barra de tareas al completar operaciones largas (solo si la ventana no está en primer plano), para poder alejarte del PC; se activa/desactiva en *Configuración → Avisar al terminar*
-- **Actualizaciones integradas**: comprueba GitHub Releases al inicio y bajo demanda; descarga e instala la nueva versión
+- **Actualizaciones integradas**: comprueba GitHub Releases al inicio y bajo demanda; el aviso *"Actualización disponible"* muestra el **changelog** de la nueva versión antes de descargar e instalar
 - **Diálogo de novedades**: tras actualizar, muestra automáticamente (una sola vez) las novedades de la nueva versión —las mismas notas publicadas en GitHub Releases—; también disponible en cualquier momento desde *Ayuda → Novedades…*
 - **Icono propio** de aplicación
 
@@ -125,7 +125,7 @@ Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los 
 dotnet test
 ```
 
-Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón del borrado seguro, parseo del historial y del detalle S.M.A.R.T., interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad del benchmark, conversión de las notas de versión (Markdown → texto plano), validación de nombres de presets personalizados, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma, y la decisión de aviso al terminar.
+Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón y número de pasadas del borrado seguro, parseo del historial y del detalle S.M.A.R.T., interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad/IOPS del benchmark, conversión de las notas de versión (Markdown → texto plano), validación de nombres de presets personalizados, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma y de cultura del sistema, y la decisión de aviso al terminar.
 
 ## Uso
 

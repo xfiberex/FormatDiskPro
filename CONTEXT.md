@@ -6,11 +6,13 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-25
-- **Versión actual:** **1.9.1** (publicada — mantenimiento: correcciones de una revisión de código + limpieza,
-  sin tocar la lógica de formateo: fix del doble corchete en la unidad protegida, `MaxLength` de etiqueta dinámico
-  por FS, validación de etiqueta compartida formato/reinit, borrado de `MainForm.resx` y de 6 claves de
-  localización sin uso). La **1.9.0** refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
+- **Última actualización de este documento:** 2026-06-26
+- **Versión actual:** **1.10.0** (publicada — **Tier 4 quick wins**: **#15 IOPS en el benchmark**, **#14 pasadas
+  de borrado seguro configurables (1/3/7)**, **#18 idioma automático en el primer arranque** y **#21 changelog en
+  el aviso de actualización**; sin tocar la lógica de formateo). La **1.9.1** fue mantenimiento: correcciones de una
+  revisión de código + limpieza, sin tocar la lógica de formateo (fix del doble corchete en la unidad protegida,
+  `MaxLength` de etiqueta dinámico por FS, validación de etiqueta compartida formato/reinit, borrado de
+  `MainForm.resx` y de 6 claves de localización sin uso). La **1.9.0** refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
   SEQ Q8 + RND4K, E/S sin caché, mediana de pasadas. La **1.8.0** trajo **Tier 3 #10 (presets personalizados) +
   #11 (más idiomas: PT/FR/IT) + #12 (aviso al terminar)**. La **1.7.1** corrigió el disparo del diálogo de novedades al
   actualizar desde una versión sin `LastVersionSeen`. La **1.7.0** trajo **Tier 2 #8 (reinicializar) + #9 (benchmark)**
@@ -19,7 +21,7 @@
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado de características existentes (#14–#22), propuesto** como backlog activo.
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado de características existentes (#14–#22), en curso:** **quick wins #14/#15/#18/#21 publicados en v1.10.0**; pendientes #16/#17/#19/#20/#22.
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -75,9 +77,17 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **172/172** (`dotnet test`) — 141 previos + 24 del Tier 3 (presets, round-trips de `AppSettings`,
-  completitud/idiomas de `Localization`, `Notifier.ShouldNotify`) + 7 del benchmark (`PlanTestBytes` alineado,
-  `Median`, `RandomAlignedOffset`).
+- ✅ Pruebas: **193/193** (`dotnet test`) — 172 previos + 21 del Tier 4 quick wins (`Benchmark.Iops`,
+  `SecureWipe.NormalizePasses`/`AllowedPasses`, `L.FromCulture`, `AppSettings.SecureWipePasses`).
+- ✅ **Tier 4 quick wins (publicado en 1.10.0):**
+  **#15 IOPS** — `Core/Benchmark.Iops` (`bytes/s ÷ 4096`) + `Random4KBlockBytes`; el diálogo de resultado del
+  benchmark muestra las IOPS entre paréntesis junto a los MB/s del 4 KiB aleatorio (estilo CrystalDiskMark).
+  **#14 Pasadas configurables** — selector **1/3/7** en *Opciones de formato* (`WipePassesPicker`, activo solo con
+  *Borrado seguro* marcado), persistido en `AppSettings.SecureWipePasses` y mostrado en la confirmación (`×N` si > 1);
+  helpers puros `SecureWipe.AllowedPasses`/`NormalizePasses`. **#18 Idioma automático** — `L.FromCulture` (puro) siembra
+  el idioma desde `CultureInfo.CurrentUICulture` solo en el primer arranque (gated por `AppSettings.LoadedFromFile`);
+  después manda la elección del usuario. **#21 Changelog en el aviso** — `MainWindow.ShowUpdateAvailableAsync` muestra
+  el cuerpo del release (ya en `ReleaseInfo.Notes`, vía `ReleaseNotes.ToPlainText`) con scroll antes de descargar.
 - ✅ **Tier 3 #10 + #11 + #12 (publicado en 1.8.0):**
   **Presets personalizados** (`Core/Presets.NormalizeName`/`IsNameAvailable` puros, `AppSettings.UserPresets`,
   `UI/PresetsDialog`): guardar la config actual con nombre y eliminarlos; aparecen en *Presets* y se gestionan desde
@@ -202,6 +212,44 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-26 — feat: Tier 4 quick wins (#15 IOPS + #14 pasadas + #18 idioma auto + #21 changelog) — v1.10.0
+
+Primer corte del **Tier 4** (refinado, no añade features nuevas), **sin tocar la lógica de formateo**.
+Build **0/0**, **193/193 tests** (172 + 21). La firma de `bench.resultBody` cambia (2 args más para las IOPS).
+
+**#15 — IOPS en el benchmark** (refina #9)
+- `Core/Benchmark`: `Iops(bytesPerSec, blockBytes)` = `bytes/s ÷ tamaño de bloque` (puro) + const `Random4KBlockBytes` (4096).
+- `UI/MainWindow`: el diálogo de resultado muestra las IOPS entre paréntesis junto a los MB/s del 4 KiB aleatorio
+  (`FormatIops` redondea y añade "IOPS"); `bench.resultBody` pasa a 7 args (`{5}`/`{6}` = IOPS escritura/lectura).
+- Pruebas: `Iops` (división, bloque no positivo → 0, velocidad 0 → 0).
+
+**#14 — Pasadas de borrado seguro configurables** (refina #3)
+- `Core/SecureWipe`: `AllowedPasses` = `[1,3,7]` + `NormalizePasses` (valor válido o 1), puros.
+- `AppSettings.SecureWipePasses` (por defecto 1, validado al usarse). Selector `WipePassesPicker` (1/3/7) en
+  *Opciones de formato*, **activo solo con *Borrado seguro* marcado** (atenuado si no); persiste al cambiar.
+  La confirmación muestra `+ Borrado seguro ×N` (si N > 1) y el log de auditoría añade `passes=N`. La constante fija
+  `SecureWipePasses = 1` desaparece; el flujo (`StartButton_Click` → `RunFormatAsync` → `SecureWipe.RunAsync`) recibe N.
+- Decisión: las pasadas son una **preferencia global**, no por preset (los presets no cambian de esquema).
+- Pruebas: `NormalizePasses` (válidos/ inválidos → 1), `AllowedPasses`, round-trip de `AppSettings.SecureWipePasses`.
+
+**#18 — Idioma automático en el primer arranque** (refina #11)
+- `Localization.FromCulture(cultureName)` (puro): toma la parte de idioma de dos letras (antes de `-`/`_`) y la
+  mapea con `FromCode`; vacío/desconocido → Es. En el constructor de `MainWindow`, si **no** existía `settings.json`
+  (`!AppSettings.LoadedFromFile`), siembra `Language` desde `CultureInfo.CurrentUICulture`; tras el primer guardado
+  manda la elección del usuario. Guard `_uiReady` para no persistir por eventos disparados durante la construcción.
+- Pruebas: `FromCulture` (es-ES/en-US/pt-BR/fr-FR/it-IT, solo idioma, no soportado → Es, vacío/null → Es).
+
+**#21 — Changelog en el aviso de actualización** (refina updates)
+- `MainWindow.ShowUpdateAvailableAsync(rel)`: el diálogo *"Actualización disponible"* muestra el cuerpo del release
+  (ya en `ReleaseInfo.Notes` que devuelve `CheckForUpdateAsync`, convertido con `ReleaseNotes.ToPlainText`) en un
+  `ScrollViewer` antes de descargar; botones *Descargar e instalar* / *Más tarde*. Sustituye al confirm de texto plano.
+
+**Localización:** `opt.passes`, `update.availBody`/`update.changelog`/`update.download`/`update.later` (5 idiomas);
+`bench.resultBody` ampliado a IOPS; **eliminada** la clave `update.available` (reemplazada).
+
+**Sin cambios:** `Core/FormatLogic`, lógica de formateo, servicios de disco/red/instalador, `release.ps1`.
+**Verificación visual pendiente** (la app requiere admin; la realiza el usuario).
 
 ### 2026-06-25 — docs: abierto el Tier 4 — Refinado de características existentes (propuesto, #14–#22)
 

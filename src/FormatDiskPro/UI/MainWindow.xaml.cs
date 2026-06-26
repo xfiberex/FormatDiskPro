@@ -10,6 +10,7 @@ using Windows.UI;
 using Windows.UI.ViewManagement;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace FormatDiskPro.UI;
@@ -62,14 +63,14 @@ public sealed partial class MainWindow : Window
     // Seguimiento de rendimiento para operaciones con bytes (velocidad/ETA, ventana deslizante de 1 s).
     private long _opBytesDone, _opTotalBytes, _speedLastBytes;
     private DateTime _speedLastTime;
-    // Pasadas del borrado seguro (NIST 800-88: 1 pasada basta en discos modernos).
-    private const int SecureWipePasses = 1;
     private char _healthLetter;
     private DiskService.HealthInfo? _lastHealth;
     private DispatcherTimer _elapsedTimer = null!;
     private readonly ObservableCollection<DriveViewModel> _driveItems = new();
     private readonly List<long> _allocBytes = new();
     private bool _firstActivated = true;
+    // Evita persistir preferencias por los eventos que disparan los controles durante la construcción.
+    private bool _uiReady;
     private ElementTheme CurrentTheme => ((FrameworkElement)Content).RequestedTheme;
 
     // ── Constructor ───────────────────────────────────────────────
@@ -114,13 +115,19 @@ public sealed partial class MainWindow : Window
 
         // Restaurar preferencias persistidas: idioma, tema y última unidad seleccionada.
         // (ApplyLanguage construye el menú de presets.)
+        // Primer arranque (sin settings.json): sembrar el idioma desde la cultura del sistema
+        // (ES/EN/PT/FR/IT, fallback ES). A partir de ahí manda la elección del usuario, ya persistida.
+        if (!_settings.LoadedFromFile)
+            _settings.Language = L.ToCode(L.FromCulture(CultureInfo.CurrentUICulture.Name));
         L.Set(L.FromCode(_settings.Language));
         _pendingInitialLetter = ParseDriveLetter(_settings.LastDriveLetter);
         ApplyThemeMode(_settings.Theme, save: false);
         MnuNotify.IsChecked = _settings.NotifyOnFinish;
+        InitWipePasses();
         ApplyLanguage();
         LoadDrives();
 
+        _uiReady = true;
         Activated += OnFirstActivated;
     }
 
@@ -309,6 +316,7 @@ public sealed partial class MainWindow : Window
             StatusText.ClearValue(TextBlock.ForegroundProperty);
             StatusText.Text = "";
         }
+        UpdateWipePassesEnabled();
     }
 
     // Fluent SystemFillColorCritical: #C42B1C (light) / #FF99A4 (dark).
@@ -567,6 +575,7 @@ public sealed partial class MainWindow : Window
             }
         }
 
+        int securePasses = SelectedWipePasses();
         string summary =
             $"{L.T("confirm.warning")}\n\n" +
             $"  {L.T("confirm.drive")}:   {driveItem.DisplayText}\n" +
@@ -574,12 +583,12 @@ public sealed partial class MainWindow : Window
             $"  {L.T("confirm.cluster")}:  {AllocUnitPicker.SelectedItem}\n" +
             $"  {L.T("confirm.label")}: {(string.IsNullOrEmpty(label) ? L.T("confirm.nolabel") : label)}\n" +
             $"  {L.T("confirm.mode")}:     {(quick ? L.T("fmt.quick") : L.T("fmt.full"))}" +
-            (secure ? $" + {L.T("confirm.secure")}" : "");
+            (secure ? $" + {L.T("confirm.secure")}" + (securePasses > 1 ? $" ×{securePasses}" : "") : "");
 
         var dlg = new ConfirmDialog(driveItem.Letter, summary) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
 
-        await RunFormatAsync(driveItem.Letter, fs, allocBytes, label, quick, compress, secure);
+        await RunFormatAsync(driveItem.Letter, fs, allocBytes, label, quick, compress, secure, securePasses);
     }
 
     /// <summary>
@@ -611,7 +620,7 @@ public sealed partial class MainWindow : Window
 
     private async Task RunFormatAsync(
         char driveLetter, string fs, long allocBytes,
-        string label, bool quickFormat, bool compress, bool secureWipe)
+        string label, bool quickFormat, bool compress, bool secureWipe, int securePasses)
     {
         BeginOperation();
         bool useFormatCom = !quickFormat && !compress && fs is "NTFS" or "FAT32" or "FAT";
@@ -664,7 +673,7 @@ public sealed partial class MainWindow : Window
 
                     try
                     {
-                        await SecureWipe.RunAsync(driveLetter, SecureWipePasses, wipeProgress, _cts!.Token);
+                        await SecureWipe.RunAsync(driveLetter, securePasses, wipeProgress, _cts!.Token);
                     }
                     catch (OperationCanceledException)
                     {
@@ -686,7 +695,7 @@ public sealed partial class MainWindow : Window
                 }
 
                 StatusText.Text = L.T("status.success");
-                History.Log($"FORMAT OK {driveLetter}: fs={fs} alloc={allocBytes} quick={quickFormat} compress={compress} wipe={secureWipe} label='{label}'");
+                History.Log($"FORMAT OK {driveLetter}: fs={fs} alloc={allocBytes} quick={quickFormat} compress={compress} wipe={secureWipe}{(secureWipe ? $" passes={securePasses}" : "")} label='{label}'");
                 await ShowInfoAsync(L.T("success.title"), L.T("success.body", driveLetter, fs));
                 LoadDrives();
             }
@@ -1172,13 +1181,20 @@ public sealed partial class MainWindow : Window
         string seqR = Throughput.FormatSpeed(res.Sequential.ReadBytesPerSec);
         string rndW = Throughput.FormatSpeed(res.Random4K.WriteBytesPerSec);
         string rndR = Throughput.FormatSpeed(res.Random4K.ReadBytesPerSec);
-        History.Log($"BENCH {item.Letter}: seq w={seqW} r={seqR} · rnd4k w={rndW} r={rndR} bytes={res.TestBytes}");
+        // IOPS junto a los MB/s del 4 KiB aleatorio (como CrystalDiskMark): bytes/s ÷ 4096, redondeado.
+        string rndWIops = FormatIops(res.Random4K.WriteBytesPerSec);
+        string rndRIops = FormatIops(res.Random4K.ReadBytesPerSec);
+        History.Log($"BENCH {item.Letter}: seq w={seqW} r={seqR} · rnd4k w={rndW} ({rndWIops}) r={rndR} ({rndRIops}) bytes={res.TestBytes}");
         StatusText.Text = L.T("bench.resultTitle");
         await ShowDialogAsync(
             L.T("bench.resultTitle"),
-            L.T("bench.resultBody", item.Letter, seqW, seqR, rndW, rndR) + "\n\n" + L.T("bench.note"),
+            L.T("bench.resultBody", item.Letter, seqW, seqR, rndW, rndR, rndWIops, rndRIops) + "\n\n" + L.T("bench.note"),
             null, null, L.T("btn.close"));
     }
+
+    /// <summary>Formatea las IOPS de una velocidad de 4 KiB aleatorio como entero con sufijo "IOPS".</summary>
+    private static string FormatIops(double bytesPerSec) =>
+        $"{Math.Round(Benchmark.Iops(bytesPerSec, Benchmark.Random4KBlockBytes)):N0} IOPS";
 
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
     {
@@ -1273,7 +1289,7 @@ public sealed partial class MainWindow : Window
 
         if (_isBusy) return;
 
-        if (!await ShowConfirmAsync(L.T("update.availTitle"), L.T("update.available", rel.Version, AppInfo.VersionString)))
+        if (!await ShowUpdateAvailableAsync(rel))
             return;
 
         if (string.IsNullOrEmpty(rel.AssetUrl))
@@ -1284,6 +1300,52 @@ public sealed partial class MainWindow : Window
         }
 
         await DownloadAndRunUpdateAsync(rel);
+    }
+
+    /// <summary>
+    /// Diálogo "Actualización disponible" que muestra el <b>changelog</b> de la nueva versión (cuerpo del
+    /// release, ya incluido en <see cref="ReleaseInfo.Notes"/>, convertido con <see cref="ReleaseNotes.ToPlainText"/>)
+    /// antes de descargar. Devuelve <c>true</c> si el usuario elige instalar.
+    /// </summary>
+    private async Task<bool> ShowUpdateAvailableAsync(ReleaseInfo rel)
+    {
+        var panel = new StackPanel { Width = 380, Spacing = 10 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = L.T("update.availBody", rel.Version, AppInfo.VersionString),
+            TextWrapping = TextWrapping.Wrap,
+        });
+
+        string notes = ReleaseNotes.ToPlainText(rel.Notes);
+        if (!string.IsNullOrWhiteSpace(notes))
+        {
+            var changelogLbl = new TextBlock
+            {
+                Text = L.T("update.changelog"),
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            };
+            if (Application.Current.Resources.TryGetValue("AccentTextFillColorPrimaryBrush", out var accent) && accent is Brush accentBrush)
+                changelogLbl.Foreground = accentBrush;
+            panel.Children.Add(changelogLbl);
+            panel.Children.Add(new ScrollViewer
+            {
+                MaxHeight = 240,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Content = new TextBlock { Text = notes, TextWrapping = TextWrapping.Wrap, FontSize = 13 },
+            });
+        }
+
+        var dlg = new ContentDialog
+        {
+            Title = L.T("update.availTitle"),
+            Content = panel,
+            PrimaryButtonText = L.T("update.download"),
+            CloseButtonText = L.T("update.later"),
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        return await dlg.ShowAsync() == ContentDialogResult.Primary;
     }
 
     private async Task DownloadAndRunUpdateAsync(ReleaseInfo rel)
@@ -1348,6 +1410,40 @@ public sealed partial class MainWindow : Window
     private void MnuNotify_Click(object sender, RoutedEventArgs e)
     {
         _settings.NotifyOnFinish = MnuNotify.IsChecked;
+        _settings.Save();
+    }
+
+    // ── Secure-wipe passes (#14) ──────────────────────────────────
+
+    /// <summary>Sincroniza el selector de pasadas con la preferencia persistida (validada a 1/3/7) y su estado.</summary>
+    private void InitWipePasses()
+    {
+        int idx = Array.IndexOf(SecureWipe.AllowedPasses, SecureWipe.NormalizePasses(_settings.SecureWipePasses));
+        WipePassesPicker.SelectedIndex = idx >= 0 ? idx : 0;
+        UpdateWipePassesEnabled();
+    }
+
+    /// <summary>Pasadas seleccionadas en la UI (1/3/7); 1 si no hay selección válida.</summary>
+    private int SelectedWipePasses()
+    {
+        int idx = WipePassesPicker.SelectedIndex;
+        return idx >= 0 && idx < SecureWipe.AllowedPasses.Length ? SecureWipe.AllowedPasses[idx] : 1;
+    }
+
+    /// <summary>El selector de pasadas solo está activo cuando el borrado seguro está habilitado y marcado.</summary>
+    private void UpdateWipePassesEnabled()
+    {
+        bool on = SecureWipeCheck.IsEnabled && SecureWipeCheck.IsChecked == true;
+        WipePassesPicker.IsEnabled = on;
+        WipePassesPanel.Opacity = on ? 1.0 : 0.5;
+    }
+
+    private void SecureWipeCheck_Toggled(object sender, RoutedEventArgs e) => UpdateWipePassesEnabled();
+
+    private void WipePassesPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_uiReady) return;   // selección programática durante la construcción
+        _settings.SecureWipePasses = SelectedWipePasses();
         _settings.Save();
     }
 
@@ -1433,6 +1529,7 @@ public sealed partial class MainWindow : Window
         QuickFormatCheck.Content = L.T("opt.quick");
         CompressCheck.Content    = L.T("opt.compress");
         SecureWipeCheck.Content  = L.T("opt.secure");
+        WipePassesLbl.Text       = L.T("opt.passes");
         RestoreButton.Content    = L.T("btn.restore");
         StartButton.Content      = L.T("btn.start");
         if (!_isBusy) CloseButton.Content = L.T("btn.close");
@@ -1626,6 +1723,7 @@ public sealed partial class MainWindow : Window
         QuickFormatCheck.IsEnabled  = canFormat;
         SecureWipeCheck.IsEnabled   = canFormat;
         CompressCheck.IsEnabled     = canFormat && FileSystemPicker.SelectedItem?.ToString() == "NTFS";
+        UpdateWipePassesEnabled();
 
         if (enabled && _isDriveProtected)
         {

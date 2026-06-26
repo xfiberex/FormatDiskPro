@@ -87,4 +87,23 @@ public sealed class BenchmarkTests
     [Fact]
     public void RandomAlignedOffset_TooSmall_IsZero()
         => Assert.Equal(0, Benchmark.RandomAlignedOffset(2048, 4096, new Random(1)));
+
+    [Fact]
+    public void Iops_DividesBytesPerSecByBlock()
+    {
+        // 40 MiB/s en bloques de 4 KiB → 10 240 IOPS.
+        Assert.Equal(10240d, Benchmark.Iops(40 * Mb, Benchmark.Random4KBlockBytes), 3);
+        Assert.Equal(1d, Benchmark.Iops(4096, 4096), 3);
+    }
+
+    [Fact]
+    public void Iops_NonPositiveBlock_IsZero()
+    {
+        Assert.Equal(0d, Benchmark.Iops(1_000_000, 0), 3);
+        Assert.Equal(0d, Benchmark.Iops(1_000_000, -4096), 3);
+    }
+
+    [Fact]
+    public void Iops_ZeroSpeed_IsZero()
+        => Assert.Equal(0d, Benchmark.Iops(0, Benchmark.Random4KBlockBytes), 3);
 }

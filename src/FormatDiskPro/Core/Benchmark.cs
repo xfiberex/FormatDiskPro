@@ -30,6 +30,9 @@ public static class Benchmark
     /// <summary>Pasadas (ventanas cronometradas) por fase; el resultado es la <b>mediana</b>, que descarta el arranque en frío y los picos transitorios.</summary>
     public const int Passes = 3;
 
+    /// <summary>Tamaño de bloque del perfil <b>4 KiB aleatorio</b> (4096 B), base del cálculo de IOPS.</summary>
+    public const int Random4KBlockBytes = 4096;
+
     /// <summary>
     /// Tamaño del archivo de prueba: el objetivo (512 MiB) acotado por el espacio libre menos el margen
     /// de seguridad y <b>truncado a un múltiplo de <paramref name="blockSize"/></b> (la E/S sin caché exige
@@ -53,6 +56,16 @@ public static class Benchmark
     /// <param name="elapsed">Tiempo empleado.</param>
     public static double BytesPerSec(long bytes, TimeSpan elapsed)
         => elapsed.TotalSeconds <= 0 ? 0 : bytes / elapsed.TotalSeconds;
+
+    /// <summary>
+    /// Operaciones de E/S por segundo (IOPS) de un flujo de bloques de <paramref name="blockBytes"/> bytes:
+    /// <c>bytes/s ÷ tamaño de bloque</c>. Equivalente a la cifra de IOPS que muestra CrystalDiskMark junto a los
+    /// MB/s del 4 KiB aleatorio. Devuelve <c>0</c> si el tamaño de bloque no es positivo. Lógica pura.
+    /// </summary>
+    /// <param name="bytesPerSec">Velocidad en bytes por segundo.</param>
+    /// <param name="blockBytes">Tamaño de cada operación en bytes (p. ej. 4096 para 4 KiB).</param>
+    public static double Iops(double bytesPerSec, int blockBytes)
+        => blockBytes <= 0 ? 0 : bytesPerSec / blockBytes;
 
     /// <summary>
     /// Mediana de un conjunto de velocidades; <c>0</c> si está vacío. Para un número par de valores

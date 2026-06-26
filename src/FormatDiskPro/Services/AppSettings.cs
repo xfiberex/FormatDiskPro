@@ -36,6 +36,12 @@ public sealed class AppSettings
     public bool NotifyOnFinish { get; set; } = true;
 
     /// <summary>
+    /// Número de pasadas del borrado seguro: <c>1</c>, <c>3</c> o <c>7</c> (ver <see cref="SecureWipe.AllowedPasses"/>).
+    /// <c>1</c> basta en discos modernos (NIST 800-88); se valida con <see cref="SecureWipe.NormalizePasses"/> al cargar.
+    /// </summary>
+    public int SecureWipePasses { get; set; } = 1;
+
+    /// <summary>
     /// Indica si la configuración se cargó desde un archivo existente (la app ya se había usado),
     /// en contraste con los valores por defecto de una instalación nueva. No se serializa; permite
     /// distinguir una <b>actualización</b> (mostrar novedades) de una <b>instalación nueva</b> aun

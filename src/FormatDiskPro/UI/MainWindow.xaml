@@ -141,7 +141,19 @@
                         </StackPanel>
                         <CheckBox x:Name="QuickFormatCheck" Content="Formato rápido"                        IsChecked="True" />
                         <CheckBox x:Name="CompressCheck"    Content="Habilitar compresión (sólo NTFS)"      IsEnabled="False" />
-                        <CheckBox x:Name="SecureWipeCheck"  Content="Borrado seguro (sobrescribir espacio libre)" />
+                        <CheckBox x:Name="SecureWipeCheck"  Content="Borrado seguro (sobrescribir espacio libre)"
+                                  Checked="SecureWipeCheck_Toggled" Unchecked="SecureWipeCheck_Toggled" />
+                        <StackPanel x:Name="WipePassesPanel" Orientation="Horizontal" Spacing="8"
+                                    Margin="30,0,0,0" VerticalAlignment="Center" Opacity="0.5">
+                            <TextBlock x:Name="WipePassesLbl" Text="Pasadas:" VerticalAlignment="Center"
+                                       Style="{StaticResource HintTextStyle}" />
+                            <ComboBox x:Name="WipePassesPicker" MinWidth="64" IsEnabled="False"
+                                      SelectionChanged="WipePassesPicker_SelectionChanged">
+                                <ComboBoxItem Content="1" />
+                                <ComboBoxItem Content="3" />
+                                <ComboBoxItem Content="7" />
+                            </ComboBox>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
