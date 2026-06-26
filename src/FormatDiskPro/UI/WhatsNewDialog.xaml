@@ -15,10 +15,11 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <StackPanel Width="380" Spacing="10">
+    <StackPanel MaxWidth="380" Spacing="10">
         <TextBlock x:Name="VersionText" FontWeight="SemiBold"
                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-        <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
             <TextBlock x:Name="NotesText" TextWrapping="Wrap" FontSize="13" />
         </ScrollViewer>
     </StackPanel>

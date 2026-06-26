@@ -11,7 +11,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <StackPanel Width="380" Spacing="12">
+    <StackPanel MaxWidth="380" Spacing="12">
 
         <!-- Guardar configuración actual -->
         <StackPanel Spacing="6">

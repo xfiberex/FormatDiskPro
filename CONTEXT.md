@@ -7,9 +7,12 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-26
-- **Versión actual:** **1.10.0** (publicada — **Tier 4 quick wins**: **#15 IOPS en el benchmark**, **#14 pasadas
-  de borrado seguro configurables (1/3/7)**, **#18 idioma automático en el primer arranque** y **#21 changelog en
-  el aviso de actualización**; sin tocar la lógica de formateo). La **1.9.1** fue mantenimiento: correcciones de una
+- **Versión actual:** **1.10.1** (publicada — **fix UI/UX de adaptación a DPI/escalado**: la ventana se dimensiona
+  según el DPI del monitor (tamaño de diseño en DIP → píxeles físicos, acotado al área de trabajo) y los diálogos usan
+  `MaxWidth` en vez de ancho fijo para que el texto se **ajuste** y no se corte en pantallas de alta densidad; verificado
+  por el usuario). La **1.10.0** trajo los **Tier 4 quick wins**: **#15 IOPS en el benchmark**, **#14 pasadas de borrado
+  seguro configurables (1/3/7)**, **#18 idioma automático en el primer arranque** y **#21 changelog en el aviso de
+  actualización**; sin tocar la lógica de formateo. La **1.9.1** fue mantenimiento: correcciones de una
   revisión de código + limpieza, sin tocar la lógica de formateo (fix del doble corchete en la unidad protegida,
   `MaxLength` de etiqueta dinámico por FS, validación de etiqueta compartida formato/reinit, borrado de
   `MainForm.resx` y de 6 claves de localización sin uso). La **1.9.0** refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
@@ -212,6 +215,25 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-26 — fix(ui): adaptación a DPI/escalado — ventana por DPI + diálogos con MaxWidth — v1.10.1
+
+En pantallas con escalado alto (p. ej. un portátil con la misma resolución en píxeles que un monitor grande pero
+menos pulgadas → Windows aplica 150 %/175 %) los diálogos salían apretados y el texto se cortaba (reportado con
+captura del diálogo de Novedades). **Causa:** el tamaño de ventana se fijaba con `AppWindow.Resize(500, 900)` en
+**píxeles físicos crudos**, así que al 150 % el contenido solo recibía ~333×600 DIP y los diálogos de ancho fijo
+(380/360 DIP) desbordaban y se recortaban. Build **0/0**, **193/193 tests** (cambios solo de UI). Verificado por el usuario.
+
+- `MainWindow`: nuevo `SizeAndCenterWindow()` — lee el DPI del monitor (`GetDpiForWindow` vía P/Invoke), convierte el
+  tamaño de diseño **500×900 DIP** a píxeles físicos (`* dpi/96`) y lo **acota al área de trabajo** (si no cabe a lo
+  alto, el contenido ya tiene scroll); centra dentro del área de trabajo con offset X/Y (correcto en multimonitor).
+  Sustituye al `Resize(500,900)` + `CenterWindow()` crudos. Constantes `DesignWidthDip`/`DesignHeightDip`.
+- Diálogos: `Width` fijo → **`MaxWidth`** en `WhatsNewDialog`, `PresetsDialog`, `HealthDialog`, `HistoryDialog`
+  (con `MinWidth=280` para el `ListView`) y en el panel del aviso de actualización (`ShowUpdateAvailableAsync`), para
+  que el texto **se ajuste** en vez de cortarse. Scroll **horizontal deshabilitado** en los visores de notas
+  (Novedades / aviso de actualización) para que `TextWrapping` siempre envuelva. `ConfirmDialog` ya era adaptable.
+
+**Sin cambios:** `Core/*`, `Services/*`, lógica de formateo, pruebas, `release.ps1`.
 
 ### 2026-06-26 — feat: Tier 4 quick wins (#15 IOPS + #14 pasadas + #18 idioma auto + #21 changelog) — v1.10.0
 

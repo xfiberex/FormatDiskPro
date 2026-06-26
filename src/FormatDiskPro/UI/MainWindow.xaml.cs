@@ -94,8 +94,7 @@ public sealed partial class MainWindow : Window
             presenter.IsResizable   = false;
             presenter.IsMaximizable = false;
         }
-        AppWindow.Resize(new SizeInt32(500, 900));
-        CenterWindow();
+        SizeAndCenterWindow();
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += TimerElapsed_Tick;
@@ -131,12 +130,35 @@ public sealed partial class MainWindow : Window
         Activated += OnFirstActivated;
     }
 
-    private void CenterWindow()
+    // Tamaño de diseño en DIP (píxeles independientes de la resolución). Se escala por el DPI del
+    // monitor para que el contenido reciba el mismo espacio efectivo en cualquier escalado de Windows.
+    private const int DesignWidthDip  = 500;
+    private const int DesignHeightDip = 900;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    /// <summary>
+    /// Redimensiona y centra la ventana según el DPI del monitor: convierte el tamaño de diseño (DIP)
+    /// a píxeles físicos y lo acota al área de trabajo (si no cabe a lo alto, el contenido tiene scroll).
+    /// Evita que en pantallas con escalado alto (p. ej. portátiles de alta densidad con la misma resolución
+    /// que un monitor grande) los diálogos y el texto queden comprimidos o cortados.
+    /// </summary>
+    private void SizeAndCenterWindow()
     {
-        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        uint dpi = GetDpiForWindow(hwnd);
+        double scale = dpi > 0 ? dpi / 96.0 : 1.0;
+
+        var work = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
+        int margin = (int)Math.Round(16 * scale);   // respiro respecto a los bordes del escritorio
+        int w = Math.Min((int)Math.Round(DesignWidthDip  * scale), work.Width  - margin);
+        int h = Math.Min((int)Math.Round(DesignHeightDip * scale), work.Height - margin);
+
+        AppWindow.Resize(new SizeInt32(w, h));
         AppWindow.Move(new PointInt32(
-            (area.Width  - 500) / 2,
-            (area.Height - 900) / 2));
+            work.X + (work.Width  - w) / 2,
+            work.Y + (work.Height - h) / 2));
     }
 
     /// <summary>Aplica Mica si el sistema lo soporta; si no, degrada a Acrylic de escritorio.</summary>
@@ -1309,7 +1331,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task<bool> ShowUpdateAvailableAsync(ReleaseInfo rel)
     {
-        var panel = new StackPanel { Width = 380, Spacing = 10 };
+        var panel = new StackPanel { MaxWidth = 380, Spacing = 10 };
         panel.Children.Add(new TextBlock
         {
             Text = L.T("update.availBody", rel.Version, AppInfo.VersionString),
@@ -1331,6 +1353,8 @@ public sealed partial class MainWindow : Window
             {
                 MaxHeight = 240,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollMode = ScrollMode.Disabled,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 Content = new TextBlock { Text = notes, TextWrapping = TextWrapping.Wrap, FontSize = 13 },
             });
         }

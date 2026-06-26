@@ -11,7 +11,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <Grid Width="380" RowDefinitions="*,Auto" RowSpacing="12">
+    <Grid MinWidth="280" MaxWidth="380" RowDefinitions="*,Auto" RowSpacing="12">
 
         <ListView x:Name="EntriesList" Grid.Row="0" MaxHeight="380" SelectionMode="None">
             <ListView.ItemTemplate>
