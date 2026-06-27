@@ -11,9 +11,19 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <Grid MinWidth="280" MaxWidth="380" RowDefinitions="*,Auto" RowSpacing="12">
+    <Grid MinWidth="300" MaxWidth="420" RowDefinitions="Auto,*,Auto" RowSpacing="12">
 
-        <ListView x:Name="EntriesList" Grid.Row="0" MaxHeight="380" SelectionMode="None">
+        <StackPanel Grid.Row="0" Spacing="8">
+            <TextBox x:Name="SearchBox" PlaceholderText="Buscar…" TextChanged="Search_Changed" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <ComboBox x:Name="CategoryFilter" Grid.Column="0" HorizontalAlignment="Stretch"
+                          SelectionChanged="Filter_Changed" />
+                <ComboBox x:Name="ResultFilter" Grid.Column="1" HorizontalAlignment="Stretch"
+                          SelectionChanged="Filter_Changed" />
+            </Grid>
+        </StackPanel>
+
+        <ListView x:Name="EntriesList" Grid.Row="1" MaxHeight="320" SelectionMode="None">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="ui:HistoryRow">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="0,4">
@@ -33,12 +43,13 @@
             </ListView.ItemTemplate>
         </ListView>
 
-        <TextBlock x:Name="EmptyText" Grid.Row="0" HorizontalAlignment="Center"
+        <TextBlock x:Name="EmptyText" Grid.Row="1" HorizontalAlignment="Center"
                    VerticalAlignment="Center" Opacity="0.6" Visibility="Collapsed"
                    Text="Sin operaciones registradas." />
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
             <Button x:Name="OpenFileButton" Content="Abrir archivo" Click="OpenFile_Click" />
+            <Button x:Name="ExportButton" Content="Exportar CSV" Click="Export_Click" />
             <Button x:Name="ClearButton" Content="Vaciar historial">
                 <Button.Flyout>
                     <Flyout x:Name="ClearFlyout">

@@ -47,4 +47,17 @@ public static class Presets
         if (n.Length == 0 || n.Length > MaxNameLength) return false;
         return !existing.Any(e => string.Equals(NormalizeName(e), n, StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>
+    /// ¿Es válido renombrar a <paramref name="newName"/>? Igual que <see cref="IsNameAvailable"/> pero
+    /// permite conservar el propio nombre actual (<paramref name="currentName"/>), que se excluye de
+    /// <paramref name="existing"/>. Así, al editar un preset, dejar el mismo nombre (o cambiar solo
+    /// mayúsculas/espacios) se considera válido. Lógica pura.
+    /// </summary>
+    public static bool IsRenameAvailable(string? newName, string currentName, IEnumerable<string> existing)
+    {
+        string cur = NormalizeName(currentName);
+        var others = existing.Where(e => !string.Equals(NormalizeName(e), cur, StringComparison.OrdinalIgnoreCase));
+        return IsNameAvailable(newName, others);
+    }
 }

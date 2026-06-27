@@ -18,7 +18,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Formato rápido o completo**, con **progreso real en %** (formato completo de NTFS/FAT/FAT32)
 - **Compresión NTFS** opcional
 - **Borrado seguro con progreso real**: sobrescribe el espacio libre con un patrón (sobrescritor propio) mostrando **% real, velocidad (MB/s) y tiempo restante (ETA)**; **pasadas configurables (1 / 3 / 7)**, 1 por defecto (NIST 800-88: basta en discos modernos)
-- **Presets** de un clic (USB universal, consola/TV, datos Windows, comprimido, borrado seguro), más **presets personalizados**: guarda tu configuración actual con un nombre y elimínalos desde *Presets → Gestionar presets…*
+- **Presets** de un clic (USB universal, consola/TV, datos Windows, comprimido, borrado seguro), más **presets personalizados**: guarda tu configuración actual con un nombre, y **edítalos** (renombrar / actualizar a la config actual), **reordénalos** o elimínalos desde *Presets → Gestionar presets…*
 
 ### Seguridad
 - **Protección del disco de sistema**: la unidad de Windows se marca como `[Protegido]` con todos los controles de formato deshabilitados
@@ -31,7 +31,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 
 ### Diagnóstico
 - **Panel de información**: tamaño, espacio libre, FS actual y tipo
-- **Salud S.M.A.R.T. avanzada**: estado de salud, conexión (USB/SATA/NVMe) y tipo de medio (SSD/HDD) en el panel, más un **diálogo de detalle** con temperatura, horas de encendido, desgaste de SSD, RPM y errores de lectura/escritura (`Get-StorageReliabilityCounter`)
+- **Salud S.M.A.R.T. avanzada**: estado de salud, conexión (USB/SATA/NVMe) y tipo de medio (SSD/HDD) en el panel, más un **diálogo de detalle** con temperatura, horas de encendido, desgaste de SSD, RPM y errores de lectura/escritura (`Get-StorageReliabilityCounter`). Temperatura, desgaste y errores se **colorean por rango** (verde/ámbar/rojo) con texto de estado (Normal/Atención/Crítico) y un botón **Actualizar**
 - **Verificación de capacidad real**: detecta memorias USB falsificadas escribiendo y releyendo un patrón
 - **Comprobación de errores (chkdsk)**: *Solo comprobar* (solo lectura, universal) o *Comprobar y reparar* (`/f`), con progreso en vivo y resultado claro
 - **Benchmark de lectura/escritura**: mide la velocidad real (MB/s) **secuencial** (cola Q8) y **4 KiB aleatorio** (con **IOPS** junto a los MB/s, estilo CrystalDiskMark) con un archivo temporal de ~512 MB **sin caché del sistema**, tomando la mediana de varias pasadas; **no destructivo** y disponible en cualquier unidad
@@ -42,7 +42,8 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Tema automático / claro / oscuro**: sigue el tema del sistema Windows en tiempo real; opción de forzar claro u oscuro desde el menú
 - **Recuerda tus preferencias** (idioma, tema, última unidad, presets, aviso y pasadas de borrado seguro) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)
 - **Expulsión segura** de unidades removibles
-- **Visor de historial integrado** dentro de la app, además del registro de auditoría en `%AppData%\FormatDiskPro\history.log`
+- **Visor de historial integrado** dentro de la app (con **búsqueda y filtros** por categoría/resultado, y **exportación a CSV**), además del registro de auditoría en `%AppData%\FormatDiskPro\history.log`
+- **Lista de unidades autorefrescada**: se actualiza sola al **conectar o desconectar** una unidad (además del botón Refrescar / F5)
 - **Tiempo transcurrido, velocidad y ETA** en operaciones largas, con **cancelación segura** de cualquier operación
 - **Aviso al terminar**: sonido + parpadeo de la barra de tareas al completar operaciones largas (solo si la ventana no está en primer plano), para poder alejarte del PC; se activa/desactiva en *Configuración → Avisar al terminar*
 - **Actualizaciones integradas**: comprueba GitHub Releases al inicio y bajo demanda; el aviso *"Actualización disponible"* muestra el **changelog** de la nueva versión antes de descargar e instalar
@@ -125,7 +126,7 @@ Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los 
 dotnet test
 ```
 
-Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón y número de pasadas del borrado seguro, parseo del historial y del detalle S.M.A.R.T., interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad/IOPS del benchmark, conversión de las notas de versión (Markdown → texto plano), validación de nombres de presets personalizados, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma y de cultura del sistema, y la decisión de aviso al terminar.
+Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón y número de pasadas del borrado seguro, parseo del historial (más filtro y exportación CSV) y del detalle S.M.A.R.T. (más umbrales de severidad), interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad/IOPS del benchmark, conversión de las notas de versión (Markdown → texto plano), validación y renombrado de nombres de presets personalizados, clasificación de eventos de cambio de dispositivo, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma y de cultura del sistema, y la decisión de aviso al terminar.
 
 ## Uso
 
@@ -163,14 +164,15 @@ src/FormatDiskPro/
 ├─ Core/            Lógica pura y testeable
 │  ├─ FormatLogic.cs        Construcción de comandos, parseo de progreso, formato de bytes
 │  ├─ Throughput.cs         Velocidad y tiempo restante (ETA) de operaciones largas
-│  ├─ SmartInfo.cs          Modelo + parseo del detalle S.M.A.R.T.
-│  ├─ HistoryEntry.cs       Parseo del historial de operaciones
+│  ├─ SmartInfo.cs          Modelo + parseo del detalle S.M.A.R.T. + umbrales de severidad
+│  ├─ HistoryEntry.cs       Parseo del historial + filtro y exportación a CSV
 │  ├─ ReinitPlan.cs         Estilo MBR/GPT por tamaño + parseo de la nueva letra
-│  ├─ Benchmark.cs          Tamaño de prueba y cálculo de velocidad
+│  ├─ Benchmark.cs          Tamaño de prueba, velocidad e IOPS
 │  ├─ ReleaseNotes.cs       Notas de versión (Markdown) → texto plano
+│  ├─ DeviceChange.cs       Interpretación de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ UpdateChecker.cs      Comparación de versiones para actualizaciones
 │  ├─ AppInfo.cs            Versión en ejecución y coordenadas del repositorio
-│  └─ Presets.cs            Configuraciones predefinidas
+│  └─ Presets.cs            Configuraciones predefinidas + validación/renombrado
 ├─ Services/        Efectos colaterales (procesos / disco / red)
 │  ├─ DiskService.cs        S.M.A.R.T., nº de disco, protección de escritura y expulsión (PowerShell)
 │  ├─ SecureWipe.cs         Borrado seguro del espacio libre (sobrescritor propio, con progreso)

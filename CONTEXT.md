@@ -6,13 +6,14 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-26
-- **Versión actual:** **1.10.1** (publicada — **fix UI/UX de adaptación a DPI/escalado**: la ventana se dimensiona
-  según el DPI del monitor (tamaño de diseño en DIP → píxeles físicos, acotado al área de trabajo) y los diálogos usan
-  `MaxWidth` en vez de ancho fijo para que el texto se **ajuste** y no se corte en pantallas de alta densidad; verificado
-  por el usuario). La **1.10.0** trajo los **Tier 4 quick wins**: **#15 IOPS en el benchmark**, **#14 pasadas de borrado
-  seguro configurables (1/3/7)**, **#18 idioma automático en el primer arranque** y **#21 changelog en el aviso de
-  actualización**; sin tocar la lógica de formateo. La **1.9.1** fue mantenimiento: correcciones de una
+- **Última actualización de este documento:** 2026-06-27
+- **Versión actual:** **1.11.0** (publicada — **Tier 4 completado**: **#16 umbrales de color + estado + botón Actualizar
+  en S.M.A.R.T.**, **#19 filtro + exportación CSV del historial**, **#20 editar/reordenar presets**, **#22 accesibilidad
+  (nombres accesibles, aceleradores de menú, F5)** y **#17 refresco automático de unidades (`WM_DEVICECHANGE`)**; sin tocar
+  la lógica de formateo). La **1.10.1** fue un **fix UI/UX de adaptación a DPI/escalado** (ventana dimensionada por DPI +
+  diálogos con `MaxWidth` para que el texto se ajuste y no se corte en pantallas de alta densidad). La **1.10.0** trajo los
+  **Tier 4 quick wins**: **#15 IOPS en el benchmark**, **#14 pasadas de borrado seguro configurables (1/3/7)**, **#18 idioma
+  automático en el primer arranque** y **#21 changelog en el aviso de actualización**. La **1.9.1** fue mantenimiento: correcciones de una
   revisión de código + limpieza, sin tocar la lógica de formateo (fix del doble corchete en la unidad protegida,
   `MaxLength` de etiqueta dinámico por FS, validación de etiqueta compartida formato/reinit, borrado de
   `MainForm.resx` y de 6 claves de localización sin uso). La **1.9.0** refinó el **benchmark (#9)** al perfil estilo CrystalDiskMark:
@@ -24,7 +25,7 @@
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado de características existentes (#14–#22), en curso:** **quick wins #14/#15/#18/#21 publicados en v1.10.0**; pendientes #16/#17/#19/#20/#22.
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado de características existentes (#14–#22) COMPLETADO:** quick wins #14/#15/#18/#21 en v1.10.0; #16/#17/#19/#20/#22 en v1.11.0. Solo queda lo deliberadamente fuera de alcance.
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -80,8 +81,18 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **193/193** (`dotnet test`) — 172 previos + 21 del Tier 4 quick wins (`Benchmark.Iops`,
-  `SecureWipe.NormalizePasses`/`AllowedPasses`, `L.FromCulture`, `AppSettings.SecureWipePasses`).
+- ✅ Pruebas: **224/224** (`dotnet test`) — 193 previos + 31 del resto del Tier 4 (`SmartInfo.TemperatureLevel`/
+  `WearLevel`/`ErrorLevel`, `HistoryEntry.Matches`/`ToCsv`, `Presets.IsRenameAvailable`, `DeviceChange.IsArrivalOrRemoval`).
+- ✅ **Tier 4 COMPLETADO (resto publicado en 1.11.0):**
+  **#16 S.M.A.R.T. con umbrales** — `Core/SmartInfo` (`SmartLevel` + `TemperatureLevel`/`WearLevel`/`ErrorLevel` puros);
+  el `HealthDialog` colorea temperatura/desgaste/errores por rango con **texto de estado** (Normal/Atención/Crítico) y
+  un botón **Actualizar** que reconsulta sin cerrar. **#19 Historial filtro/CSV** — `HistoryEntry.Matches` (búsqueda +
+  categoría/resultado) y `HistoryEntry.ToCsv` (RFC 4180), puros; el visor añade búsqueda, dos filtros y **Exportar CSV**
+  (lo filtrado, vía `FileSavePicker`). **#20 Editar/reordenar presets** — `Presets.IsRenameAvailable` (puro); el diálogo
+  permite renombrar, actualizar la config a la actual y subir/bajar, persistiendo el orden. **#22 Accesibilidad** —
+  `AutomationProperties.Name`+tooltip en botones de icono, **aceleradores** de menú (Alt+inicial localizada) y **F5**
+  para refrescar. **#17 Refresco automático** — `Core/DeviceChange` (puro) + subclassing de la ventana para escuchar
+  `WM_DEVICECHANGE` (llegada/retirada de dispositivo) y recargar unidades con **debounce** de 600 ms.
 - ✅ **Tier 4 quick wins (publicado en 1.10.0):**
   **#15 IOPS** — `Core/Benchmark.Iops` (`bytes/s ÷ 4096`) + `Random4KBlockBytes`; el diálogo de resultado del
   benchmark muestra las IOPS entre paréntesis junto a los MB/s del 4 KiB aleatorio (estilo CrystalDiskMark).
@@ -215,6 +226,50 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-27 — feat: Tier 4 completado (#16 S.M.A.R.T. + #19 historial + #20 presets + #22 a11y + #17 autorefresco) — v1.11.0
+
+Cierre del **Tier 4** con los cinco items restantes, **sin tocar la lógica de formateo**. Build **0/0**,
+**224/224 tests** (193 + 31). Cada feature mantiene su lógica pura testeable en `Core`.
+
+**#16 — S.M.A.R.T. con umbrales de color + estado + Actualizar** (refina #5)
+- `Core/SmartInfo`: `enum SmartLevel { Unknown, Ok, Warning, Critical }` + `TemperatureLevel` (≤50/≤60/>60),
+  `WearLevel` (<70/<90/≥90), `ErrorLevel` (0/<100/≥100), puros y testeables.
+- `UI/HealthDialog`: temperatura, desgaste y errores se colorean por nivel con **texto de estado anexo**
+  (Normal/Atención/Crítico — accesibilidad, no solo color); botón **Actualizar** (`SecondaryButton`) reconsulta
+  sin cerrar (deferral + `args.Cancel`). Claves `health.refresh`/`health.level.{ok,warning,critical}`.
+
+**#19 — Historial: filtro + exportación CSV** (refina #4)
+- `Core/HistoryEntry`: `Matches(search, category, result)` (búsqueda sin distinción de mayúsculas + filtros) y
+  `ToCsv(entries)` (cabecera + filas, escape RFC 4180), puros.
+- `UI/HistoryDialog`: caja de búsqueda + dos `ComboBox` (categoría/resultado) + botón **Exportar CSV** (exporta lo
+  filtrado vía `FileSavePicker`; el hwnd se pasa desde `MainWindow`). Guard `_ready` para no filtrar en la
+  construcción. Claves `history.search`/`noMatch`/`filter.allCat`/`filter.allRes`/`export`.
+
+**#20 — Editar y reordenar presets** (refina #10)
+- `Core/Presets.IsRenameAvailable(newName, currentName, existing)` (puro): como `IsNameAvailable` pero excluye el
+  propio nombre actual.
+- `UI/PresetsDialog`: botones por fila **subir/bajar/editar/eliminar**; "editar" entra en modo edición (renombra y,
+  con casilla, actualiza la config a la actual) reutilizando el área superior; el orden se persiste reconstruyendo
+  `AppSettings.UserPresets` desde la lista mostrada. Claves `preset.editHeader`/`updateBtn`/`cancelEdit`/
+  `updateConfig`/`moveUp`/`moveDown`/`edit`/`delete`.
+
+**#22 — Accesibilidad transversal** (refina la capa UI)
+- `AutomationProperties.Name` + tooltip en los botones de icono (acciones de preset vía `IconBtn_Loaded`; selector
+  de pasadas). **Aceleradores** de menú: `MenuBarItem.AccessKey` = primera letra del título localizado (Alt+letra,
+  correcto en cada idioma). **F5** (`KeyboardAccelerator`) sobre el botón de refrescar.
+
+**#17 — Refresco automático de unidades** (refina la gestión base)
+- `Core/DeviceChange` (puro): constantes `WmDeviceChange`/`DbtDeviceArrival`/`DbtDeviceRemoveComplete` +
+  `IsArrivalOrRemoval(wParam)`.
+- `UI/MainWindow`: subclassing de la ventana (`SetWindowSubclass`/`DefSubclassProc`/`RemoveWindowSubclass` de
+  comctl32) para escuchar `WM_DEVICECHANGE`; al llegar/retirarse un dispositivo se recarga `LoadDrives()` con
+  **debounce** de 600 ms (`DispatcherTimer`), ignorando si `_isBusy`. La referencia al delegado se mantiene viva;
+  el hook se retira en `AppWindow_Closing`.
+
+**Localización:** ~20 claves nuevas en 5 idiomas; la prueba de completitud sigue verde.
+**Sin cambios:** lógica de formateo, servicios de disco/red/instalador, `release.ps1`.
+**Verificación visual pendiente** (la app requiere admin; la realiza el usuario).
 
 ### 2026-06-26 — fix(ui): adaptación a DPI/escalado — ventana por DPI + diálogos con MaxWidth — v1.10.1
 

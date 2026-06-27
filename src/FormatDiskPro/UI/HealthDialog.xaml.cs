@@ -24,18 +24,38 @@ public sealed partial class HealthDialog : ContentDialog
         _letter = letter;
         _driveLabel = driveLabel;
 
-        Title           = L.T("health.title");
-        CloseButtonText = L.T("btn.close");
-        StatusText.Text = L.T("health.querying");
-        NoteText.Text   = L.T("health.note");
+        Title               = L.T("health.title");
+        SecondaryButtonText = L.T("health.refresh");
+        CloseButtonText     = L.T("btn.close");
+        StatusText.Text     = L.T("health.querying");
+        NoteText.Text       = L.T("health.note");
         NoteText.Visibility = Visibility.Collapsed;
 
         Opened += OnOpened;
+        SecondaryButtonClick += OnRefresh;
     }
 
     private async void OnOpened(ContentDialog sender, ContentDialogOpenedEventArgs args)
     {
         Opened -= OnOpened;
+        await QueryAndPopulateAsync();
+    }
+
+    /// <summary>Re-consulta los contadores S.M.A.R.T. sin cerrar el diálogo (botón Actualizar).</summary>
+    private async void OnRefresh(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+    {
+        var deferral = args.GetDeferral();
+        args.Cancel = true;   // mantener el diálogo abierto
+        try { await QueryAndPopulateAsync(); }
+        finally { deferral.Complete(); }
+    }
+
+    private async Task QueryAndPopulateAsync()
+    {
+        StatusText.Visibility = Visibility.Visible;
+        StatusText.Text = L.T("health.querying");
+        RowsPanel.Children.Clear();
+        NoteText.Visibility = Visibility.Collapsed;
         var info = await DiskService.GetSmartAsync(_letter);
         Populate(info);
     }
@@ -58,13 +78,53 @@ public sealed partial class HealthDialog : ContentDialog
         AddRow(L.T("health.bus"),     Show(info.Bus));
         AddRow(L.T("health.media"),   Show(info.Media));
         AddRow(L.T("health.spindle"), SpindleText(info));
-        AddRow(L.T("health.temp"),    info.TemperatureC is int t ? L.T("health.unit.temp", t)    : L.T("health.na"));
-        AddRow(L.T("health.hours"),   info.PowerOnHours is long h ? L.T("health.unit.hours", h)   : L.T("health.na"));
-        AddRow(L.T("health.wear"),    info.WearPercent is int w  ? L.T("health.unit.percent", w)  : L.T("health.na"));
-        AddRow(L.T("health.readErr"),  info.ReadErrors?.ToString()  ?? L.T("health.na"));
-        AddRow(L.T("health.writeErr"), info.WriteErrors?.ToString() ?? L.T("health.na"));
+        AddMetricRow(L.T("health.temp"),
+            info.TemperatureC is int t ? L.T("health.unit.temp", t) : L.T("health.na"),
+            SmartInfo.TemperatureLevel(info.TemperatureC));
+        AddRow(L.T("health.hours"),   info.PowerOnHours is long h ? L.T("health.unit.hours", h) : L.T("health.na"));
+        AddMetricRow(L.T("health.wear"),
+            info.WearPercent is int w ? L.T("health.unit.percent", w) : L.T("health.na"),
+            SmartInfo.WearLevel(info.WearPercent));
+        AddMetricRow(L.T("health.readErr"),
+            info.ReadErrors?.ToString() ?? L.T("health.na"), SmartInfo.ErrorLevel(info.ReadErrors));
+        AddMetricRow(L.T("health.writeErr"),
+            info.WriteErrors?.ToString() ?? L.T("health.na"), SmartInfo.ErrorLevel(info.WriteErrors));
 
         NoteText.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Fila de una métrica con umbral: añade un texto de estado (no solo color, por accesibilidad)
+    /// y colorea el valor según el nivel. Para <see cref="SmartLevel.Unknown"/> no añade ni color ni texto.
+    /// </summary>
+    private void AddMetricRow(string label, string baseValue, SmartLevel level)
+    {
+        if (level == SmartLevel.Unknown)
+        {
+            AddRow(label, baseValue);
+            return;
+        }
+        AddRow(label, $"{baseValue} — {LevelLabel(level)}", LevelBrush(level));
+    }
+
+    private static string LevelLabel(SmartLevel level) => level switch
+    {
+        SmartLevel.Ok       => L.T("health.level.ok"),
+        SmartLevel.Warning  => L.T("health.level.warning"),
+        SmartLevel.Critical => L.T("health.level.critical"),
+        _                   => "",
+    };
+
+    private Brush LevelBrush(SmartLevel level)
+    {
+        Color c = level switch
+        {
+            SmartLevel.Ok       => _dark ? Color.FromArgb(255, 0x6C, 0xCB, 0x5F) : Color.FromArgb(255, 0x0F, 0x7B, 0x0F),
+            SmartLevel.Warning  => _dark ? Color.FromArgb(255, 0xFC, 0xC8, 0x4A) : Color.FromArgb(255, 0x9D, 0x5D, 0x00),
+            SmartLevel.Critical => _dark ? Color.FromArgb(255, 0xFF, 0x99, 0xA4) : Color.FromArgb(255, 0xC4, 0x2B, 0x1C),
+            _                   => _dark ? Color.FromArgb(255, 0xFF, 0xFF, 0xFF) : Color.FromArgb(255, 0x00, 0x00, 0x00),
+        };
+        return new SolidColorBrush(c);
     }
 
     private string SpindleText(SmartInfo info)

@@ -2,6 +2,9 @@ using System.Globalization;
 
 namespace FormatDiskPro;
 
+/// <summary>Nivel de severidad de una métrica S.M.A.R.T., para colorearla y describir su estado (accesibilidad).</summary>
+public enum SmartLevel { Unknown, Ok, Warning, Critical }
+
 /// <summary>
 /// Detalle S.M.A.R.T. de un disco físico. Los campos numéricos son anulables: muchas unidades
 /// (típicamente USB) no exponen contadores de fiabilidad y se devuelven como <c>null</c>.
@@ -42,6 +45,36 @@ public sealed record SmartInfo(
             ReadErrors:      LongOrNull(F(7)),
             WriteErrors:     LongOrNull(F(8)));
     }
+
+    /// <summary>
+    /// Clasifica una temperatura (°C) en niveles: ≤ 50 normal, 51–60 atención, &gt; 60 crítico.
+    /// <c>null</c> → <see cref="SmartLevel.Unknown"/>. Lógica pura.
+    /// </summary>
+    public static SmartLevel TemperatureLevel(int? celsius) =>
+        celsius is not int c ? SmartLevel.Unknown
+        : c <= 50 ? SmartLevel.Ok
+        : c <= 60 ? SmartLevel.Warning
+        : SmartLevel.Critical;
+
+    /// <summary>
+    /// Clasifica el desgaste de SSD (% consumido, mayor = peor): &lt; 70 normal, 70–89 atención,
+    /// ≥ 90 crítico. <c>null</c> → <see cref="SmartLevel.Unknown"/>. Lógica pura.
+    /// </summary>
+    public static SmartLevel WearLevel(int? wearPercent) =>
+        wearPercent is not int w ? SmartLevel.Unknown
+        : w < 70 ? SmartLevel.Ok
+        : w < 90 ? SmartLevel.Warning
+        : SmartLevel.Critical;
+
+    /// <summary>
+    /// Clasifica un contador de errores de lectura/escritura: 0 normal, 1–99 atención, ≥ 100 crítico.
+    /// <c>null</c> → <see cref="SmartLevel.Unknown"/>. Lógica pura.
+    /// </summary>
+    public static SmartLevel ErrorLevel(long? errors) =>
+        errors is not long e ? SmartLevel.Unknown
+        : e == 0 ? SmartLevel.Ok
+        : e < 100 ? SmartLevel.Warning
+        : SmartLevel.Critical;
 
     private static string Text(string v) => v.Length == 0 ? "?" : v;
 

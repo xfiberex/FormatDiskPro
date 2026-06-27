@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace FormatDiskPro;
 
@@ -50,6 +51,44 @@ public sealed record HistoryEntry(
             if (Parse(line) is HistoryEntry e) list.Add(e);
         return list;
     }
+
+    /// <summary>
+    /// ¿La entrada cumple el filtro? <paramref name="category"/>/<paramref name="result"/> en <c>null</c>
+    /// significan "cualquiera"; la <paramref name="search"/> (sin distinción de mayúsculas, recortada) se
+    /// compara contra el detalle. Cadena de búsqueda vacía no filtra. Lógica pura.
+    /// </summary>
+    public bool Matches(string? search, HistoryCategory? category, HistoryResult? result)
+    {
+        if (category is HistoryCategory c && Category != c) return false;
+        if (result   is HistoryResult   r && Result   != r) return false;
+        string s = (search ?? "").Trim();
+        return s.Length == 0 || Detail.Contains(s, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Serializa entradas a CSV (estilo RFC 4180): cabecera + una fila por entrada con columnas
+    /// <c>Time,Category,Result,Detail</c>. Los campos con coma, comillas o saltos de línea se
+    /// entrecomillan y las comillas internas se duplican. Salto de línea CRLF. Lógica pura.
+    /// </summary>
+    public static string ToCsv(IEnumerable<HistoryEntry> entries)
+    {
+        var sb = new StringBuilder();
+        sb.Append("Time,Category,Result,Detail\r\n");
+        foreach (var e in entries)
+        {
+            string time = e.Time == DateTime.MinValue
+                ? ""
+                : e.Time.ToString(TimeFormat, CultureInfo.InvariantCulture);
+            sb.Append(CsvField(time)).Append(',')
+              .Append(CsvField(e.Category.ToString())).Append(',')
+              .Append(CsvField(e.Result.ToString())).Append(',')
+              .Append(CsvField(e.Detail)).Append("\r\n");
+        }
+        return sb.ToString();
+    }
+
+    private static string CsvField(string v) =>
+        v.IndexOfAny(['"', ',', '\n', '\r']) < 0 ? v : "\"" + v.Replace("\"", "\"\"") + "\"";
 
     private static HistoryCategory ParseCategory(string message) => message switch
     {

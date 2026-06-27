@@ -11,6 +11,7 @@ using Windows.UI.ViewManagement;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace FormatDiskPro.UI;
@@ -125,6 +126,7 @@ public sealed partial class MainWindow : Window
         InitWipePasses();
         ApplyLanguage();
         LoadDrives();
+        HookDeviceNotifications();
 
         _uiReady = true;
         Activated += OnFirstActivated;
@@ -159,6 +161,63 @@ public sealed partial class MainWindow : Window
         AppWindow.Move(new PointInt32(
             work.X + (work.Width  - w) / 2,
             work.Y + (work.Height - h) / 2));
+    }
+
+    // ── Refresco automático de unidades (#17, WM_DEVICECHANGE) ────────
+    private delegate nint SubclassProc(IntPtr hWnd, uint uMsg, nuint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData);
+
+    [DllImport("comctl32.dll", SetLastError = true)]
+    private static extern bool SetWindowSubclass(IntPtr hWnd, SubclassProc pfnSubclass, nuint uIdSubclass, nuint dwRefData);
+    [DllImport("comctl32.dll")]
+    private static extern nint DefSubclassProc(IntPtr hWnd, uint uMsg, nuint wParam, nint lParam);
+    [DllImport("comctl32.dll")]
+    private static extern bool RemoveWindowSubclass(IntPtr hWnd, SubclassProc pfnSubclass, nuint uIdSubclass);
+
+    private SubclassProc? _subclassProc;     // mantener viva la referencia (evita que la recoja el GC)
+    private IntPtr _subclassHwnd;
+    private DispatcherTimer? _deviceDebounce;
+
+    /// <summary>
+    /// Engancha <c>WM_DEVICECHANGE</c> (subclassing de la ventana) para recargar la lista de unidades
+    /// al conectar/desconectar dispositivos, con <i>debounce</i> para no recargar en ráfaga.
+    /// </summary>
+    private void HookDeviceNotifications()
+    {
+        _deviceDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+        _deviceDebounce.Tick += (_, _) =>
+        {
+            _deviceDebounce!.Stop();
+            if (!_isBusy) LoadDrives();   // no recargar en mitad de una operación
+        };
+
+        _subclassHwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        _subclassProc = WindowSubclassProc;
+        SetWindowSubclass(_subclassHwnd, _subclassProc, 1, 0);
+    }
+
+    private nint WindowSubclassProc(IntPtr hWnd, uint uMsg, nuint wParam, nint lParam, nuint uIdSubclass, nuint dwRefData)
+    {
+        if (uMsg == DeviceChange.WmDeviceChange && DeviceChange.IsArrivalOrRemoval(wParam))
+        {
+            // Reinicia el debounce: recarga cuando cesa la ráfaga de notificaciones (montaje de volumen, etc.).
+            _deviceDebounce?.Stop();
+            _deviceDebounce?.Start();
+        }
+        return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    private void RemoveDeviceHook()
+    {
+        try
+        {
+            _deviceDebounce?.Stop();
+            if (_subclassProc is not null && _subclassHwnd != IntPtr.Zero)
+            {
+                RemoveWindowSubclass(_subclassHwnd, _subclassProc, 1);
+                _subclassProc = null;
+            }
+        }
+        catch { /* teardown: nunca debe lanzar */ }
     }
 
     /// <summary>Aplica Mica si el sistema lo soporta; si no, degrada a Acrylic de escritorio.</summary>
@@ -220,8 +279,8 @@ public sealed partial class MainWindow : Window
     private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         // Auto-actualización en curso: dejamos cerrar para que el instalador pueda reemplazar la app.
-        if (_closingForUpdate) return;
-        if (!_isBusy) return;
+        if (_closingForUpdate) { RemoveDeviceHook(); return; }
+        if (!_isBusy) { RemoveDeviceHook(); return; }
         args.Cancel = true;
         await ShowInfoAsync(L.T("closing.title"), L.T("closing.body"));
     }
@@ -1220,7 +1279,11 @@ public sealed partial class MainWindow : Window
 
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new HistoryDialog(_darkMode) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        var dlg = new HistoryDialog(_darkMode, WinRT.Interop.WindowNative.GetWindowHandle(this))
+        {
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
         await dlg.ShowAsync();
     }
 
@@ -1431,6 +1494,10 @@ public sealed partial class MainWindow : Window
         _settings.Save();
     }
 
+    /// <summary>Primera letra (mayúscula) de un texto, para el acelerador Alt del menú; "" si vacío.</summary>
+    private static string FirstLetter(string s) =>
+        string.IsNullOrEmpty(s) ? "" : s.Substring(0, 1).ToUpperInvariant();
+
     private void MnuNotify_Click(object sender, RoutedEventArgs e)
     {
         _settings.NotifyOnFinish = MnuNotify.IsChecked;
@@ -1518,6 +1585,10 @@ public sealed partial class MainWindow : Window
     private void ApplyLanguage()
     {
         MnuTools.Title   = L.T("menu.tools");
+        // Aceleradores de teclado del menú (Alt + primera letra del título localizado).
+        MnuTools.AccessKey  = FirstLetter(L.T("menu.tools"));
+        MnuConfig.AccessKey = FirstLetter(L.T("menu.config"));
+        MnuHelp.AccessKey   = FirstLetter(L.T("menu.help"));
         MnuVerify.Text   = L.T("menu.verify");
         MnuHealth.Text   = L.T("menu.health");
         MnuCheck.Text    = L.T("menu.check");
@@ -1559,6 +1630,7 @@ public sealed partial class MainWindow : Window
         if (!_isBusy) CloseButton.Content = L.T("btn.close");
         RefreshTooltip.Content   = L.T("tip.refresh");
         AutomationProperties.SetName(RefreshButton, L.T("tip.refresh"));
+        AutomationProperties.SetName(WipePassesPicker, L.T("opt.passes"));
 
         MnuLangEs.IsChecked = L.Current == AppLang.Es;
         MnuLangEn.IsChecked = L.Current == AppLang.En;

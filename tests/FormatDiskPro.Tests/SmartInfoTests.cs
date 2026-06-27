@@ -74,4 +74,34 @@ public sealed class SmartInfoTests
         Assert.NotNull(s);
         Assert.Equal("?", s!.Health);
     }
+
+    [Theory]
+    [InlineData(null, SmartLevel.Unknown)]
+    [InlineData(30, SmartLevel.Ok)]
+    [InlineData(50, SmartLevel.Ok)]
+    [InlineData(55, SmartLevel.Warning)]
+    [InlineData(60, SmartLevel.Warning)]
+    [InlineData(75, SmartLevel.Critical)]
+    public void TemperatureLevel_ClassifiesByRange(int? c, SmartLevel expected)
+        => Assert.Equal(expected, SmartInfo.TemperatureLevel(c));
+
+    [Theory]
+    [InlineData(null, SmartLevel.Unknown)]
+    [InlineData(0, SmartLevel.Ok)]
+    [InlineData(69, SmartLevel.Ok)]
+    [InlineData(70, SmartLevel.Warning)]
+    [InlineData(89, SmartLevel.Warning)]
+    [InlineData(90, SmartLevel.Critical)]
+    [InlineData(100, SmartLevel.Critical)]
+    public void WearLevel_ClassifiesByRange(int? w, SmartLevel expected)
+        => Assert.Equal(expected, SmartInfo.WearLevel(w));
+
+    [Theory]
+    [InlineData(null, SmartLevel.Unknown)]
+    [InlineData(0L, SmartLevel.Ok)]
+    [InlineData(1L, SmartLevel.Warning)]
+    [InlineData(99L, SmartLevel.Warning)]
+    [InlineData(100L, SmartLevel.Critical)]
+    public void ErrorLevel_ClassifiesByRange(long? e, SmartLevel expected)
+        => Assert.Equal(expected, SmartInfo.ErrorLevel(e));
 }

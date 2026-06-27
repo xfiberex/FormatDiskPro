@@ -96,12 +96,13 @@ proyecto. → **Tier 3 cerrado.**
 
 ---
 
-## 🔧 Tier 4 — Refinado de características existentes (en curso)
+## ✅ Tier 4 — Refinado de características existentes (completado)
 
 > A diferencia de los tiers anteriores (features **nuevas**), el Tier 4 **no añade capacidades nuevas**:
 > **pule y profundiza las que ya existen**, sin salir del propósito del proyecto. Cada item refina una
-> feature ya publicada e indica dónde viviría en la arquitectura por capas. La numeración continúa la
-> global (#14…). Los **quick wins #14/#15/#18/#21** se publicaron en **v1.10.0**.
+> feature ya publicada e indica dónde vive en la arquitectura por capas. La numeración continúa la global
+> (#14…). Los **quick wins #14/#15/#18/#21** se publicaron en **v1.10.0**; **#16/#17/#19/#20/#22** en **v1.11.0**
+> → **Tier 4 completado.**
 
 ### 14. Pasadas de borrado seguro configurables — ✅ implementado (v1.10.0) · refina #3
 Selector **1 / 3 / 7** del borrado seguro en *Opciones de formato* (antes fijo a 1), activo solo cuando se
@@ -116,29 +117,30 @@ Muestra **IOPS** junto a MB/s en las cifras de 4 KiB aleatorio del resultado (co
 puro (`bytes/s ÷ 4096`) y presentación en el diálogo de resultado.
 - Dónde: `Core/Benchmark` (`Iops` + `Random4KBlockBytes`, puros testeables) + `UI/MainWindow` (diálogo) + clave `bench.resultBody`.
 
-### 16. S.M.A.R.T. con umbrales de color y refresco — 📋 propuesto · refina #5
-Colorear temperatura / desgaste / errores según rangos (verde / ámbar / rojo) acompañados de **texto de
-estado** (no solo color, por accesibilidad) y añadir un botón **Actualizar** al diálogo.
-- Dónde: `Core/SmartInfo` (umbrales puros testeables) + `UI/HealthDialog`.
+### 16. S.M.A.R.T. con umbrales de color y refresco — ✅ implementado (v1.11.0) · refina #5
+Colorea temperatura / desgaste / errores según rangos (verde / ámbar / rojo) con **texto de estado** anexo
+(no solo color, por accesibilidad) y añade un botón **Actualizar** al diálogo (re-consulta sin cerrar).
+- Dónde: `Core/SmartInfo` (`SmartLevel` + `TemperatureLevel`/`WearLevel`/`ErrorLevel`, puros testeables) + `UI/HealthDialog`.
 
-### 17. Refresco automático de unidades — 📋 propuesto · refina la gestión base
-Actualizar la lista al **insertar/extraer** una unidad (escucha de `WM_DEVICECHANGE`), en vez de depender
-solo del botón Refrescar.
-- Dónde: `Services` (hook Win32 del mensaje) + `LoadDrives` en `UI/MainWindow`, con _debounce_ para no recargar en ráfaga.
+### 17. Refresco automático de unidades — ✅ implementado (v1.11.0) · refina la gestión base
+Actualiza la lista al **insertar/extraer** una unidad (escucha de `WM_DEVICECHANGE` por subclassing de la
+ventana), en vez de depender solo del botón Refrescar, con _debounce_ para no recargar en ráfaga.
+- Dónde: `Core/DeviceChange` (constantes + `IsArrivalOrRemoval`, puro) + subclass Win32 + `LoadDrives` en `UI/MainWindow`.
 
 ### 18. Idioma automático en el primer arranque — ✅ implementado (v1.10.0) · refina #11
 Detecta el idioma del sistema (`CultureInfo.CurrentUICulture`) la **primera** vez (sin `settings.json`) y lo
 mapea a ES/EN/PT/FR/IT con fallback a ES. A partir de ahí, la elección manual del usuario manda y se persiste.
 - Dónde: `Localization` (`FromCulture` puro testeable) + semilla en `MainWindow` (gated por `AppSettings.LoadedFromFile`).
 
-### 19. Búsqueda / filtro y exportación del historial — 📋 propuesto · refina #4
-Caja de búsqueda + filtro por **categoría/resultado** en `HistoryDialog`, y **exportar a CSV**.
-- Dónde: `Core/HistoryEntry` (ya parsea categoría/resultado) + `UI/HistoryDialog` (filtro) + `Services/History` (export).
+### 19. Búsqueda / filtro y exportación del historial — ✅ implementado (v1.11.0) · refina #4
+Caja de búsqueda + filtros por **categoría** y **resultado** en `HistoryDialog`, y **exportar a CSV** (lo
+filtrado) con selector de archivo.
+- Dónde: `Core/HistoryEntry` (`Matches` + `ToCsv`, puros testeables) + `UI/HistoryDialog` (filtros + `FileSavePicker`).
 
-### 20. Editar y reordenar presets — 📋 propuesto · refina #10
-Hoy solo se pueden **añadir/eliminar**; permitir **editar** (renombrar / actualizar la config asociada) y
-**reordenar**. Opcional: importar/exportar presets a archivo.
-- Dónde: `Core/Presets` (validación ya lista) + `UI/PresetsDialog` + `AppSettings.UserPresets`.
+### 20. Editar y reordenar presets — ✅ implementado (v1.11.0) · refina #10
+Además de añadir/eliminar, permite **editar** (renombrar y, opcionalmente, actualizar la config asociada a la
+actual) y **reordenar** (subir/bajar). La persistencia refleja el orden mostrado.
+- Dónde: `Core/Presets` (`IsRenameAvailable` puro) + `UI/PresetsDialog` + `AppSettings.UserPresets`.
 
 ### 21. Notas de versión en el aviso de actualización — ✅ implementado (v1.10.0) · refina updates
 El diálogo *"Actualización disponible"* muestra el **changelog** (cuerpo del release, ya incluido en
@@ -146,11 +148,11 @@ El diálogo *"Actualización disponible"* muestra el **changelog** (cuerpo del r
 con scroll, antes de descargar. Botones *Descargar e instalar* / *Más tarde*.
 - Dónde: `UI/MainWindow.ShowUpdateAvailableAsync` reutilizando `Core/ReleaseNotes`; claves `update.availBody`/`changelog`/`download`/`later`.
 
-### 22. Pulido de accesibilidad transversal — 📋 propuesto · refina la capa UI
-`AutomationProperties.Name` en el botón de borrar preset (reintroducir `preset.deleteTip`), **aceleradores de
-teclado** en el menú, revisión del **orden de tabulación** y del contraste. (El `MaxLength` dinámico de la
-etiqueta por FS ya se hizo en 1.9.1.)
-- Dónde: `UI/*` + claves en `Localization`.
+### 22. Pulido de accesibilidad transversal — ✅ implementado (v1.11.0) · refina la capa UI
+`AutomationProperties.Name` + tooltip en los botones de icono (acciones de preset y selector de pasadas),
+**aceleradores de teclado** en el menú (Alt + primera letra del título localizado) y **F5** para refrescar
+unidades. (El `MaxLength` dinámico de la etiqueta por FS ya se hizo en 1.9.1.)
+- Dónde: `UI/*` (`AutomationProperties`, `KeyboardAccelerator`, `AccessKey`) + claves en `Localization`.
 
 ---
 
@@ -173,12 +175,12 @@ una **decisión de cambiar el alcance**:
 El **#13 (winget + firma)** queda **descartado** (2026-06-24): GitHub Releases + auto-actualización se
 considera distribución suficiente. → **Tier 3 cerrado.**
 
-**Tier 4 (refinado)** es el backlog activo. Sugerencia de orden por relación esfuerzo/valor:
-1. **Quick wins** (reutilizan lógica ya existente) — ✅ **publicados en v1.10.0**: **#15 IOPS**, **#21 changelog
-   en el aviso**, **#14 pasadas configurables**, **#18 idioma automático**.
-2. **Trabajo medio** (UI + algo de Core/Services) — _siguiente_: **#16 umbrales S.M.A.R.T.**, **#22 accesibilidad**,
-   **#19 historial (filtro/CSV)**, **#20 editar/reordenar presets**.
-3. **Más integración con el sistema**: **#17 refresco automático de unidades** (`WM_DEVICECHANGE`).
+**Tier 4 (refinado) — completado:**
+1. **Quick wins** — ✅ **v1.10.0**: **#15 IOPS**, **#21 changelog en el aviso**, **#14 pasadas configurables**, **#18 idioma automático**.
+2. **Trabajo medio** — ✅ **v1.11.0**: **#16 umbrales S.M.A.R.T.**, **#22 accesibilidad**, **#19 historial (filtro/CSV)**, **#20 editar/reordenar presets**.
+3. **Integración con el sistema** — ✅ **v1.11.0**: **#17 refresco automático de unidades** (`WM_DEVICECHANGE`).
+
+→ **Tier 4 cerrado.** Solo queda lo deliberadamente fuera de alcance.
 
 Todos respetan la regla de oro (lógica pura testeable en `Core`) y el propósito del proyecto; ninguno entra en
 el territorio "fuera de alcance".

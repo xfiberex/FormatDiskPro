@@ -60,4 +60,19 @@ public sealed class PresetsTests
         Assert.False(Presets.IsNameAvailable("  Mi   preset ", existing)); // distinta separación
         Assert.True(Presets.IsNameAvailable("Otro", existing));
     }
+
+    [Fact]
+    public void IsRenameAvailable_AllowsKeepingOwnName()
+    {
+        string[] existing = ["Mi preset", "Otro preset"];
+        // Renombrar "Mi preset" a sí mismo (o solo cambiando caja/espacios) es válido.
+        Assert.True(Presets.IsRenameAvailable("Mi preset", "Mi preset", existing));
+        Assert.True(Presets.IsRenameAvailable("  mi   preset ", "Mi preset", existing));
+        // Pero no chocar con OTRO preset existente.
+        Assert.False(Presets.IsRenameAvailable("Otro preset", "Mi preset", existing));
+        // Renombrar a un nombre libre es válido.
+        Assert.True(Presets.IsRenameAvailable("Nuevo nombre", "Mi preset", existing));
+        // Vacío sigue siendo inválido.
+        Assert.False(Presets.IsRenameAvailable("", "Mi preset", existing));
+    }
 }

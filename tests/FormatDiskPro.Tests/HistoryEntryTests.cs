@@ -61,4 +61,48 @@ public sealed class HistoryEntryTests
         Assert.Equal(HistoryCategory.Format, entries[0].Category);
         Assert.Equal(HistoryCategory.Eject,  entries[1].Category);
     }
+
+    private static HistoryEntry Entry(string message) => HistoryEntry.Parse($"{Ts}\t{message}")!;
+
+    [Fact]
+    public void Matches_NullFilters_AlwaysMatch()
+        => Assert.True(Entry("FORMAT OK G: fs=NTFS").Matches(null, null, null));
+
+    [Fact]
+    public void Matches_CategoryAndResult_Filter()
+    {
+        var e = Entry("FORMAT OK G: fs=NTFS");
+        Assert.True(e.Matches(null, HistoryCategory.Format, HistoryResult.Ok));
+        Assert.False(e.Matches(null, HistoryCategory.Eject, null));
+        Assert.False(e.Matches(null, null, HistoryResult.Fail));
+    }
+
+    [Theory]
+    [InlineData("ntfs", true)]    // sin distinción de mayúsculas
+    [InlineData("EXFAT", false)]
+    [InlineData("  g: ", true)]   // se recorta
+    [InlineData("", true)]        // vacío no filtra
+    public void Matches_SearchIsCaseInsensitiveAndTrimmed(string search, bool expected)
+        => Assert.Equal(expected, Entry("FORMAT OK G: fs=NTFS").Matches(search, null, null));
+
+    [Fact]
+    public void ToCsv_HasHeaderAndRowPerEntry()
+    {
+        var entries = HistoryEntry.ParseAll([$"{Ts}\tFORMAT OK G: fs=NTFS", $"{Ts}\tEJECT H:"]);
+        string csv = HistoryEntry.ToCsv(entries);
+        var lines = csv.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
+        Assert.Equal("Time,Category,Result,Detail", lines[0]);
+        Assert.Equal(3, lines.Length);   // cabecera + 2 filas
+        Assert.Contains("Format", lines[1]);
+        Assert.Contains("Ok", lines[1]);
+    }
+
+    [Fact]
+    public void ToCsv_EscapesCommasAndQuotes()
+    {
+        var e = HistoryEntry.Parse($"{Ts}\tFORMAT OK G: label=\"a,b\"");
+        string csv = HistoryEntry.ToCsv([e!]);
+        // El detalle contiene coma y comillas → debe ir entrecomillado con comillas duplicadas.
+        Assert.Contains("\"FORMAT OK G: label=\"\"a,b\"\"\"", csv);
+    }
 }
