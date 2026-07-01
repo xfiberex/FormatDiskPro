@@ -1287,8 +1287,31 @@ public sealed partial class MainWindow : Window
         await dlg.ShowAsync();
     }
 
-    private async void MnuAbout_Click(object sender, RoutedEventArgs e) =>
-        await ShowInfoAsync(L.T("about.title"), L.T("about.body", AppInfo.VersionString));
+    private async void MnuAbout_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new AboutDialog { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        await dlg.ShowAsync();
+    }
+
+    private async void MnuLicense_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new LegalTextDialog(L.T("menu.license"), LegalText.License())
+        {
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        await dlg.ShowAsync();
+    }
+
+    private async void MnuThirdParty_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new LegalTextDialog(L.T("menu.thirdParty"), LegalText.ThirdParty())
+        {
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        await dlg.ShowAsync();
+    }
 
     // ── Updates ───────────────────────────────────────────────────
 
@@ -1613,6 +1636,8 @@ public sealed partial class MainWindow : Window
         MnuHelp.Title    = L.T("menu.help");
         MnuUpdates.Text  = L.T("menu.updates");
         MnuWhatsNew.Text = L.T("menu.whatsnew");
+        MnuLicense.Text  = L.T("menu.license");
+        MnuThirdParty.Text = L.T("menu.thirdParty");
         MnuAbout.Text    = L.T("menu.about");
 
         UnitGroupLbl.Text       = L.T("section.drive");

@@ -7,10 +7,13 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-06-27
-- **Versión actual:** **1.11.0** (publicada — **Tier 4 completado**: **#16 umbrales de color + estado + botón Actualizar
+- **Versión actual:** **1.12.0** (en preparación — **Tier 5: confianza, legal y sostenibilidad**: relicenciado a
+  **GNU GPL v3.0** (antes MIT) con licencia visible in-app, **disclaimer** de uso destructivo/sin garantía, **avisos de
+  terceros**, **aviso de privacidad** y **donaciones opcionales (PayPal)** — pendiente la **URL de PayPal** del usuario
+  antes de publicar). La **1.11.0** completó el **Tier 4**: **#16 umbrales de color + estado + botón Actualizar
   en S.M.A.R.T.**, **#19 filtro + exportación CSV del historial**, **#20 editar/reordenar presets**, **#22 accesibilidad
-  (nombres accesibles, aceleradores de menú, F5)** y **#17 refresco automático de unidades (`WM_DEVICECHANGE`)**; sin tocar
-  la lógica de formateo). La **1.10.1** fue un **fix UI/UX de adaptación a DPI/escalado** (ventana dimensionada por DPI +
+  (nombres accesibles, aceleradores de menú, F5)** y **#17 refresco automático de unidades (`WM_DEVICECHANGE`)**. La **1.10.1**
+  fue un **fix UI/UX de adaptación a DPI/escalado** (ventana dimensionada por DPI +
   diálogos con `MaxWidth` para que el texto se ajuste y no se corte en pantallas de alta densidad). La **1.10.0** trajo los
   **Tier 4 quick wins**: **#15 IOPS en el benchmark**, **#14 pasadas de borrado seguro configurables (1/3/7)**, **#18 idioma
   automático en el primer arranque** y **#21 changelog en el aviso de actualización**. La **1.9.1** fue mantenimiento: correcciones de una
@@ -25,7 +28,7 @@
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado de características existentes (#14–#22) COMPLETADO:** quick wins #14/#15/#18/#21 en v1.10.0; #16/#17/#19/#20/#22 en v1.11.0. Solo queda lo deliberadamente fuera de alcance.
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado**). **Tier 4 COMPLETADO** (#14–#22; v1.10.0 + v1.11.0). **Tier 5 — Confianza, legal y sostenibilidad (#23–#27) en v1.12.0:** relicenciado a GPLv3 + apartados legales in-app + donaciones PayPal. Tras Tier 5, solo queda lo deliberadamente fuera de alcance.
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -81,8 +84,15 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **224/224** (`dotnet test`) — 193 previos + 31 del resto del Tier 4 (`SmartInfo.TemperatureLevel`/
-  `WearLevel`/`ErrorLevel`, `HistoryEntry.Matches`/`ToCsv`, `Presets.IsRenameAvailable`, `DeviceChange.IsArrivalOrRemoval`).
+- ✅ Pruebas: **226/226** (`dotnet test`) — 224 previas + 2 del Tier 5 (`LegalText.License`/`ThirdParty`).
+- ✅ **Tier 5 — confianza/legal/sostenibilidad (v1.12.0, pendiente de publicar):**
+  Relicenciado **MIT → GNU GPL v3.0**: `LICENSE` con el texto oficial (descargado de gnu.org), embebido vía `.csproj`
+  como recurso (`FormatDiskPro.LICENSE.txt`) + `THIRD-PARTY-NOTICES.txt`. `Core/LegalText` lee ambos recursos.
+  `UI/AboutDialog` (Acerca de ampliado: descripción, versión, copyright/licencia, **disclaimer** de uso destructivo/sin
+  garantía, **privacidad**, botones *GitHub* y *Apoyar el proyecto*); `UI/LegalTextDialog` (visor con scroll para
+  *Ayuda → Licencia* y *Ayuda → Avisos de terceros*). `AppInfo.DonateUrl` (PayPal) + `RepoUrl`; donación **opcional**,
+  sin bloquear nada. **Pendiente:** sustituir `AppInfo.DonateUrl` por la URL real de PayPal del usuario y añadir
+  `.github/FUNDING.yml` antes de publicar v1.12.0.
 - ✅ **Tier 4 COMPLETADO (resto publicado en 1.11.0):**
   **#16 S.M.A.R.T. con umbrales** — `Core/SmartInfo` (`SmartLevel` + `TemperatureLevel`/`WearLevel`/`ErrorLevel` puros);
   el `HealthDialog` colorea temperatura/desgaste/errores por rango con **texto de estado** (Normal/Atención/Crítico) y
@@ -226,6 +236,30 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-06-27 — feat: Tier 5 — relicencia GPLv3 + apartados legales in-app + donaciones (#23–#27) — v1.12.0 (en preparación)
+
+Capa de **confianza/legal/sostenibilidad**, decidida con el usuario: licencia **GPLv3** (en vez de MIT), apartados
+legales dentro de la app y **donación voluntaria** por PayPal (no obligatoria, no bloquea nada). **Sin tocar la
+lógica de formateo.** Build **0/0**, **226/226 tests** (224 + 2). **No publicado aún:** falta la URL de PayPal.
+
+- **#23 Relicencia a GPLv3 + licencia in-app:** `LICENSE` reemplazado por el texto oficial GNU GPL v3.0 (descargado
+  de gnu.org). Se **embebe** en el ejecutable (`.csproj` `<EmbeddedResource ... LogicalName="FormatDiskPro.LICENSE.txt">`)
+  y se lee con `Core/LegalText.License()`. Visible en *Ayuda → Licencia* (`UI/LegalTextDialog`, scroll + selección).
+  `.csproj`: `<Authors>`/`<Copyright>` (Ricky Angel Jiménez Bueno).
+- **#24 Disclaimer:** aviso de formateo/borrado **irreversible** y **sin garantía** en *Ayuda → Acerca de*
+  (`UI/AboutDialog`, claves `about.disclaimer*`).
+- **#25 Avisos de terceros:** `THIRD-PARTY-NOTICES.txt` (.NET, WinUI/WAS, Segoe Fluent Icons, Inno Setup) embebido;
+  `Core/LegalText.ThirdParty()`; *Ayuda → Avisos de terceros* (`UI/LegalTextDialog`).
+- **#26 Privacidad:** declaración (sin telemetría; solo GitHub Releases por HTTPS) en *Acerca de*.
+- **#27 Donaciones:** botón *Apoyar el proyecto* (PayPal) en *Acerca de* (`AppInfo.DonateUrl`), opcional. Pendiente
+  poner la URL real + `.github/FUNDING.yml`.
+- **Menú Ayuda:** nuevos ítems *Licencia…* y *Avisos de terceros…*; *Acerca de…* ahora abre `AboutDialog` (antes era
+  un `ShowInfoAsync`). Localización (`about.*`, `menu.license`, `menu.thirdParty`, `legal.unavailable`) en 5 idiomas.
+- Pruebas: `LegalTextTests` (la licencia embebida es GPLv3; los avisos listan componentes y licencias).
+
+**Sin cambios:** lógica de formateo, servicios de disco/red/instalador, `release.ps1`.
+**Verificación visual pendiente** (la app requiere admin; la realiza el usuario).
 
 ### 2026-06-27 — feat: Tier 4 completado (#16 S.M.A.R.T. + #19 historial + #20 presets + #22 a11y + #17 autorefresco) — v1.11.0
 

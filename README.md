@@ -143,7 +143,7 @@ Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los hel
 |------|----------|
 | **Herramientas** | Verificar capacidad real · Salud del disco (S.M.A.R.T.) · Comprobar errores (chkdsk) · Benchmark rápido · Quitar protección de escritura · Reinicializar unidad · Expulsar unidad · Ver historial |
 | **Configuración** | Idioma (ES/EN/PT/FR/IT) · Tema (Automático/Claro/Oscuro) · Presets (con Gestionar presets…) · Avisar al terminar |
-| **Ayuda** | Buscar actualizaciones · Novedades · Acerca de |
+| **Ayuda** | Buscar actualizaciones · Novedades · Licencia · Avisos de terceros · Acerca de (con disclaimer, privacidad y *Apoyar el proyecto*) |
 
 ## Sistemas de archivos disponibles
 
@@ -170,8 +170,9 @@ src/FormatDiskPro/
 │  ├─ Benchmark.cs          Tamaño de prueba, velocidad e IOPS
 │  ├─ ReleaseNotes.cs       Notas de versión (Markdown) → texto plano
 │  ├─ DeviceChange.cs       Interpretación de WM_DEVICECHANGE (autorefresco de unidades)
+│  ├─ LegalText.cs          Lectura de la licencia GPLv3 y avisos de terceros embebidos
 │  ├─ UpdateChecker.cs      Comparación de versiones para actualizaciones
-│  ├─ AppInfo.cs            Versión en ejecución y coordenadas del repositorio
+│  ├─ AppInfo.cs            Versión, coordenadas del repositorio y enlace de donación
 │  └─ Presets.cs            Configuraciones predefinidas + validación/renombrado
 ├─ Services/        Efectos colaterales (procesos / disco / red)
 │  ├─ DiskService.cs        S.M.A.R.T., nº de disco, protección de escritura y expulsión (PowerShell)
@@ -190,7 +191,9 @@ src/FormatDiskPro/
 │  ├─ HealthDialog.xaml / .cs      Diálogo de detalle S.M.A.R.T.
 │  ├─ HistoryDialog.xaml / .cs     Visor de historial integrado
 │  ├─ WhatsNewDialog.xaml / .cs    Novedades de la versión (tras actualizar / manual)
-│  ├─ PresetsDialog.xaml / .cs     Gestionar presets propios (guardar / eliminar)
+│  ├─ PresetsDialog.xaml / .cs     Gestionar presets propios (guardar / editar / reordenar / eliminar)
+│  ├─ AboutDialog.xaml / .cs       Acerca de: descripción, disclaimer, privacidad, donación
+│  ├─ LegalTextDialog.xaml / .cs   Visor de licencia GPLv3 / avisos de terceros
 │  ├─ Theme/AppTheme.xaml          Tokens de diseño (tarjetas, encabezados, footer)
 │  └─ DriveViewModel.cs            Modelo de binding para el ComboBox de unidades
 ├─ Localization/    Cadenas ES/EN/PT/FR/IT centralizadas (arreglo por idioma)
@@ -212,4 +215,22 @@ release.ps1                  Corte de versión en un paso (build + tag + GitHub 
 
 ## Licencia
 
-Distribuido bajo licencia **MIT**. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+Software libre distribuido bajo la **[GNU General Public License v3.0](LICENSE)** (GPLv3): puedes usarlo,
+estudiarlo, modificarlo y redistribuirlo, **siempre que los derivados conserven la misma licencia y su código
+fuente abierto**. Se ofrece **SIN NINGUNA GARANTÍA** (ver el aviso del programa). Las atribuciones de
+componentes de terceros están en [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). La licencia y los avisos
+también se pueden consultar dentro de la app en *Ayuda → Licencia* y *Ayuda → Avisos de terceros*.
+
+> ⚠️ **Aviso de uso:** FormatDiskPro formatea y borra unidades de forma **irreversible**. Comprueba siempre la
+> unidad seleccionada antes de iniciar; el autor no se hace responsable de pérdidas de datos.
+
+## Apoyar el proyecto
+
+FormatDiskPro es gratuito y de código abierto. Si te resulta útil, puedes **apoyar su desarrollo con una
+donación voluntaria** (PayPal) desde *Ayuda → Apoyar el proyecto* dentro de la app. Las donaciones son
+totalmente opcionales: **ninguna función está limitada ni de pago**.
+
+## Privacidad
+
+La aplicación **no recopila datos personales ni telemetría**. La única conexión a Internet es para comprobar y
+descargar actualizaciones desde GitHub Releases (HTTPS).

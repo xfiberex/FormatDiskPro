@@ -23,6 +23,16 @@ public static class AppInfo
     public static string ReleasesPageUrl =>
         $"https://github.com/{GitHubOwner}/{GitHubRepo}/releases";
 
+    /// <summary>Página principal del repositorio.</summary>
+    public static string RepoUrl =>
+        $"https://github.com/{GitHubOwner}/{GitHubRepo}";
+
+    /// <summary>
+    /// Enlace de donación (PayPal). Si está vacío, el botón "Apoyar el proyecto" no se muestra.
+    /// Las donaciones son <b>opcionales</b>: nunca se bloquea ninguna función.
+    /// </summary>
+    public const string DonateUrl = "https://www.paypal.me/RJimenez1820";
+
     /// <summary>Versión del ensamblado en ejecución.</summary>
     public static Version Version =>
         Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0);

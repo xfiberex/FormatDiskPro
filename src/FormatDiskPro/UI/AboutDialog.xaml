@@ -1,0 +1,42 @@
+<ContentDialog
+    x:Class="FormatDiskPro.UI.AboutDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    CornerRadius="8">
+
+    <ContentDialog.PrimaryButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </ContentDialog.PrimaryButtonStyle>
+    <ContentDialog.SecondaryButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </ContentDialog.SecondaryButtonStyle>
+    <ContentDialog.CloseButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </ContentDialog.CloseButtonStyle>
+
+    <ScrollViewer MaxHeight="460" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="400" Spacing="8">
+            <TextBlock Text="FormatDiskPro" FontWeight="SemiBold" FontSize="18"
+                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+            <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="12" />
+            <TextBlock x:Name="DescText" TextWrapping="Wrap" FontSize="13" />
+            <TextBlock x:Name="CopyrightText" TextWrapping="Wrap" FontSize="12" Opacity="0.85" />
+
+            <Border Height="1" Margin="0,4"
+                    Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+            <TextBlock x:Name="DisclaimerHeader" FontWeight="SemiBold" FontSize="13" />
+            <TextBlock x:Name="DisclaimerText" TextWrapping="Wrap" FontSize="12" Opacity="0.9" />
+
+            <TextBlock x:Name="PrivacyHeader" FontWeight="SemiBold" FontSize="13" Margin="0,4,0,0" />
+            <TextBlock x:Name="PrivacyText" TextWrapping="Wrap" FontSize="12" Opacity="0.9" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

@@ -58,6 +58,9 @@
                 <MenuFlyoutItem x:Name="MnuUpdates" Text="Buscar actualizaciones…" Click="MnuUpdates_Click" />
                 <MenuFlyoutItem x:Name="MnuWhatsNew" Text="Novedades…" Click="MnuWhatsNew_Click" />
                 <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="MnuLicense" Text="Licencia…" Click="MnuLicense_Click" />
+                <MenuFlyoutItem x:Name="MnuThirdParty" Text="Avisos de terceros…" Click="MnuThirdParty_Click" />
+                <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="MnuAbout" Text="Acerca de…" Click="MnuAbout_Click" />
             </MenuBarItem>
         </MenuBar>

@@ -13,8 +13,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>FormatDiskPro.ico</ApplicationIcon>
-    <Version>1.11.0</Version>
+    <Version>1.12.0</Version>
+    <Authors>Ricky Angel JimÃ©nez Bueno</Authors>
+    <Copyright>Copyright (C) 2026 Ricky Angel JimÃ©nez Bueno</Copyright>
   </PropertyGroup>
+
+  <!-- Textos legales mostrados dentro de la app (Ayuda â†’ InformaciÃ³n legal). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="FormatDiskPro.LICENSE.txt" />
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.txt" LogicalName="FormatDiskPro.THIRD-PARTY-NOTICES.txt" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.*" />

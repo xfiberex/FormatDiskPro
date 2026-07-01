@@ -156,6 +156,37 @@ unidades. (El `MaxLength` dinámico de la etiqueta por FS ya se hizo en 1.9.1.)
 
 ---
 
+## ✅ Tier 5 — Confianza, transparencia legal y sostenibilidad (v1.12.0)
+
+> Capa de **distribución/confianza** (no añade funciones de disco): licencia adecuada visible, avisos legales
+> y soporte por **donación voluntaria** (nunca obligatoria, no bloquea ninguna función). Numeración global (#23…).
+
+### 23. Relicenciar a GPLv3 + licencia visible in-app — ✅ implementado (v1.12.0)
+El proyecto pasa de **MIT** a **GNU GPL v3.0** (software libre con copyleft: los derivados siguen abiertos). El
+texto oficial vive en `LICENSE` (embebido en el ejecutable) y se consulta desde *Ayuda → Licencia*.
+- Dónde: `LICENSE` (texto GPLv3) embebido vía `.csproj`; `Core/LegalText.License()` + `UI/LegalTextDialog`.
+
+### 24. Disclaimer de uso destructivo / sin garantía — ✅ implementado (v1.12.0)
+Aviso claro en *Ayuda → Acerca de*: el formateo/borrado es **irreversible** y el software se ofrece **SIN
+GARANTÍA**; comprobar siempre la unidad antes de iniciar.
+- Dónde: `UI/AboutDialog` + claves `about.disclaimer*`.
+
+### 25. Avisos de terceros (atribuciones) — ✅ implementado (v1.12.0)
+Lista de componentes de terceros y sus licencias (.NET, Windows App SDK/WinUI 3, Segoe Fluent Icons, Inno Setup)
+en *Ayuda → Avisos de terceros*.
+- Dónde: `THIRD-PARTY-NOTICES.txt` embebido; `Core/LegalText.ThirdParty()` + `UI/LegalTextDialog`.
+
+### 26. Aviso de privacidad — ✅ implementado (v1.12.0)
+Declaración en *Acerca de*: sin telemetría ni recopilación de datos; única conexión = GitHub Releases (HTTPS).
+- Dónde: `UI/AboutDialog` + clave `about.privacy`.
+
+### 27. Donaciones (opcional, no intrusivo) — ✅ implementado (v1.12.0)
+Botón **Apoyar el proyecto** (PayPal) en *Acerca de* y `.github/FUNDING.yml` para el botón «Sponsor» del repo.
+Voluntario; **ninguna función se bloquea ni es de pago**.
+- Dónde: `AppInfo.DonateUrl` + `UI/AboutDialog`; `.github/FUNDING.yml`.
+
+---
+
 ## 🚫 Deliberadamente fuera de alcance
 
 Se excluyen a propósito para no desviar el producto de su propósito. Adoptar cualquiera de ellos sería
