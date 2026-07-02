@@ -16,6 +16,29 @@ public static class ReinitPlan
     /// <summary>Límite de direccionamiento de MBR: 2 TB. Por encima se requiere GPT.</summary>
     public const long MbrLimitBytes = 2L * 1024 * 1024 * 1024 * 1024;
 
+    /// <summary>Tamaños permitidos (en GB) para la partición FAT32 pequeña al reinicializar, hasta el
+    /// límite real de Windows (<see cref="FormatLogic.Fat32MaxBytes"/> = 32 GB).</summary>
+    public static readonly int[] AllowedSmallFat32SizesGb = [1, 2, 4, 8, 16, 32];
+
+    /// <summary>Ajusta un tamaño en GB al conjunto permitido (<see cref="AllowedSmallFat32SizesGb"/>): lo
+    /// devuelve si es válido, o cae al máximo (32 GB, el comportamiento de antes de que fuera seleccionable).</summary>
+    public static int NormalizeSmallFat32SizeGb(int gb)
+        => Array.IndexOf(AllowedSmallFat32SizesGb, gb) >= 0 ? gb : 32;
+
+    /// <summary>
+    /// Tamaño real solicitado a <c>New-Partition -Size</c> para "FAT32 pequeña", a partir del tamaño
+    /// elegido en GB. En el tramo máximo (32 GB, el límite real de Windows) se resta un margen de 4 MiB
+    /// frente a <see cref="FormatLogic.Fat32MaxBytes"/>, para que el redondeo/alineación de la partición no
+    /// lo iguale o supere (lo que haría fallar el formato ya con el disco borrado); en tramos menores se usa
+    /// el valor exacto, sin margen, porque no hay riesgo de alcanzar el límite real de FAT32.
+    /// </summary>
+    /// <param name="sizeGb">Tamaño elegido en GB (normalizado con <see cref="NormalizeSmallFat32SizeGb"/> si procede).</param>
+    public static long SmallFat32PartitionBytes(int sizeGb)
+    {
+        long bytes = (long)sizeGb * 1024 * 1024 * 1024;
+        return bytes >= FormatLogic.Fat32MaxBytes ? FormatLogic.Fat32MaxBytes - 4L * 1024 * 1024 : bytes;
+    }
+
     /// <summary>
     /// Elige el estilo de partición según el tamaño del disco: <see cref="DiskPartitionStyle.Gpt"/>
     /// si supera el límite de MBR (2 TB); si no, <see cref="DiskPartitionStyle.Mbr"/> (máxima

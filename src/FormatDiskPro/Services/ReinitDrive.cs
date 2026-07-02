@@ -25,11 +25,14 @@ public static class ReinitDrive
     /// <param name="style">Estilo de partición (MBR o GPT).</param>
     /// <param name="fileSystem">Sistema de archivos destino (NTFS, exFAT, FAT32, FAT, ReFS).</param>
     /// <param name="label">Etiqueta de volumen (puede ser vacía).</param>
+    /// <param name="partitionSizeBytes">Tamaño exacto de la partición a crear (<c>New-Partition -Size</c>);
+    /// <c>null</c> usa todo el disco (<c>-UseMaximumSize</c>, comportamiento por defecto). Un valor deja el
+    /// resto del disco sin asignar (p. ej. "FAT32 pequeña" en discos grandes).</param>
     /// <param name="stage">Etapa en curso, como token sin traducir.</param>
     /// <param name="ct">Token de cancelación (mata el proceso al cancelar).</param>
     /// <returns>Resultado con éxito, nueva letra y detalle de error si lo hubo.</returns>
     public static async Task<ReinitResult> RunAsync(
-        char letter, DiskPartitionStyle style, string fileSystem, string label,
+        char letter, DiskPartitionStyle style, string fileSystem, string label, long? partitionSizeBytes,
         IProgress<string> stage, CancellationToken ct)
     {
         if (!char.IsLetter(letter)) return new ReinitResult(false, null, "invalid-letter");
@@ -38,18 +41,29 @@ public static class ReinitDrive
         if (string.IsNullOrEmpty(fileSystem) || !fileSystem.All(char.IsLetterOrDigit))
             return new ReinitResult(false, null, "invalid-fs");
 
+        if (partitionSizeBytes is long sz0 && sz0 <= 0) return new ReinitResult(false, null, "invalid-size");
+
         string safeLabel = label.Replace("'", "''");   // literal de PowerShell con comillas simples
         string styleName = style.ToPowerShell();
+
+        string partitionCmd = partitionSizeBytes is long sizeBytes
+            ? $"$p = New-Partition -DiskNumber $d.Number -Size {sizeBytes} -AssignDriveLetter;"
+            : "$p = New-Partition -DiskNumber $d.Number -UseMaximumSize -AssignDriveLetter;";
 
         string script =
             "$ErrorActionPreference='Stop';" +
             $"$d = (Get-Partition -DriveLetter {letter} | Get-Disk);" +
             "'STAGE:clean';" +
-            "Clear-Disk -Number $d.Number -RemoveData -RemoveOEM -Confirm:$false;" +
+            "$d = Clear-Disk -Number $d.Number -RemoveData -RemoveOEM -Confirm:$false -PassThru;" +
             "'STAGE:init';" +
-            $"Initialize-Disk -Number $d.Number -PartitionStyle {styleName};" +
+            // Clear-Disk no siempre deja el disco en RAW (comprobado con hardware real: en algunos
+            // USB/controladoras sigue reportándose "inicializado" con su estilo previo tras limpiarlo).
+            // Initialize-Disk falla entonces con "The disk has already been initialized" aunque el disco
+            // ya esté vacío y listo para particionar; se tolera ese error concreto y se continúa con el
+            // estilo que el disco ya tenga (cualquier otro error sí se propaga).
+            $"try {{ $d = Initialize-Disk -Number $d.Number -PartitionStyle {styleName} -PassThru -ErrorAction Stop }} catch {{ if ($_.Exception.Message -notmatch 'already been initialized') {{ throw }} }};" +
             "'STAGE:partition';" +
-            "$p = New-Partition -DiskNumber $d.Number -UseMaximumSize -AssignDriveLetter;" +
+            partitionCmd +
             "'STAGE:format';" +
             $"Format-Volume -Partition $p -FileSystem {fileSystem} -NewFileSystemLabel '{safeLabel}' -Confirm:$false | Out-Null;" +
             // Re-consultamos la letra asignada (el objeto recién creado puede no reflejarla aún).

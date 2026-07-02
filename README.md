@@ -27,7 +27,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Validación de etiqueta de volumen** antes de la operación destructiva
 - **Revalidación de disponibilidad** de la unidad al iniciar (detecta USBs extraídos)
 - **Detección de protección de escritura**: si la unidad está en *solo lectura*, lo detecta al pulsar Iniciar y ofrece quitar la protección antes de formatear (evita el fallo críptico); también disponible como herramienta manual
-- **Reinicializar unidad**: para USB con particiones raras o RAW, limpia el disco y recrea una única partición primaria formateada y usable. **Solo unidades extraíbles**, con guardas reforzadas (bloqueo del disco de sistema, verificación de que el disco físico no es el de Windows y confirmación escribiendo la letra)
+- **Reinicializar unidad**: para USB con particiones raras o RAW, limpia el disco y recrea una única partición primaria formateada y usable. **Solo unidades extraíbles**, con guardas reforzadas (bloqueo del disco de sistema, verificación de que el disco físico no es el de Windows y confirmación escribiendo la letra); en discos extraíbles ≥ 32 GB permite opcionalmente crear solo una pequeña partición FAT32 (tamaño elegible: 1/2/4/8/16/32 GB) y dejar el resto sin asignar (por ejemplo, para actualizar el BIOS/UEFI de una placa base desde un USB grande, ya que Windows nunca permite un volumen FAT32 mayor de 32 GB)
 
 ### Diagnóstico
 - **Panel de información**: tamaño, espacio libre, FS actual y tipo
@@ -154,6 +154,9 @@ Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los hel
 | ReFS | Almacenamiento crítico | Sin límite práctico |
 | FAT32 | USB ≤ 32 GB, consolas | 4 GB |
 | FAT | Unidades < 2 GB | 2 GB |
+
+> En discos extraíbles ≥ 32 GB, *Reinicializar unidad* permite crear solo una pequeña partición FAT32
+> (1/2/4/8/16/32 GB, elegible) dejando el resto sin asignar — ver arriba.
 
 ## Arquitectura
 

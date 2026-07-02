@@ -36,9 +36,10 @@ public sealed class ThroughputTests : IDisposable
         => Assert.Equal("", Throughput.FormatSpeed(0));
 
     [Theory]
-    [InlineData(1048576d, "1.0 MB/s")]
-    [InlineData(1073741824d, "1.0 GB/s")]
-    [InlineData(1024d, "1.0 KB/s")]
+    [InlineData(1048576d, "1 MB/s")]
+    [InlineData(1073741824d, "1 GB/s")]
+    [InlineData(1024d, "1 KB/s")]
+    [InlineData(1572864d, "1.5 MB/s")]
     public void FormatSpeed_FormatsAcrossUnits(double bytesPerSec, string expected)
         => Assert.Equal(expected, Throughput.FormatSpeed(bytesPerSec));
 

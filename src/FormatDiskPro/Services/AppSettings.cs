@@ -42,6 +42,13 @@ public sealed class AppSettings
     public int SecureWipePasses { get; set; } = 1;
 
     /// <summary>
+    /// Tamaño en GB de la partición FAT32 pequeña al reinicializar en discos grandes (ver
+    /// <see cref="ReinitPlan.AllowedSmallFat32SizesGb"/>). <c>32</c> (el máximo) por defecto; se valida
+    /// con <see cref="ReinitPlan.NormalizeSmallFat32SizeGb"/> al cargar.
+    /// </summary>
+    public int SmallFat32SizeGb { get; set; } = 32;
+
+    /// <summary>
     /// Indica si la configuración se cargó desde un archivo existente (la app ya se había usado),
     /// en contraste con los valores por defecto de una instalación nueva. No se serializa; permite
     /// distinguir una <b>actualización</b> (mostrar novedades) de una <b>instalación nueva</b> aun

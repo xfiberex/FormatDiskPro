@@ -7,11 +7,15 @@
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
 - **Última actualización de este documento:** 2026-07-02
-- **Versión actual:** **1.13.0** (en preparación — **Tier 6: pulido UX/UI**: InfoBar de unidad protegida,
+- **Versión actual:** **1.14.0** (**Tier 7 — #37: partición FAT32 pequeña al reinicializar en discos
+  grandes**, con tamaño seleccionable 1/2/4/8/16/32 GB, verificado con hardware real; incluye el **fix de
+  `Initialize-Disk`** que hacía fallar todo Reinicializar unidad en algunos USB, y el pulido UX posterior:
+  enlace directo, aviso en Iniciar, estados vacíos de Salud/Conexión y `FormatBytes` sin «.0»). La
+  **1.13.0** trajo el **Tier 6: pulido UX/UI**: InfoBar de unidad protegida,
   `ConfirmDialog` con foco+Enter, barra de capacidad, iconos por tipo de unidad, estado vacío del selector,
   salud coloreada, validación inline de etiqueta, progreso en la barra de tareas y estado de error en la
   barra de progreso; incluye también el **fix de ancho** de `LegalTextDialog`/`ConfirmDialog`, que desbordaban
-  la ventana). La **1.12.0** trajo el **Tier 5**: relicenciado a **GNU GPL v3.0** (antes MIT) con licencia
+  la ventana. La **1.12.0** trajo el **Tier 5**: relicenciado a **GNU GPL v3.0** (antes MIT) con licencia
   visible in-app, **disclaimer** de uso destructivo/sin garantía, **avisos de terceros**, **aviso de
   privacidad** y **donaciones opcionales (PayPal)**. La **1.11.0** completó el **Tier 4**: **#16 umbrales de color + estado + botón Actualizar
   en S.M.A.R.T.**, **#19 filtro + exportación CSV del historial**, **#20 editar/reordenar presets**, **#22 accesibilidad
@@ -31,7 +35,7 @@
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado**). **Tier 4 COMPLETADO** (#14–#22; v1.10.0 + v1.11.0). **Tier 5 COMPLETADO** (#23–#27; v1.12.0): relicenciado a GPLv3 + apartados legales in-app + donaciones PayPal. **Tier 6 COMPLETADO** (#28–#36; v1.13.0): pulido UX/UI.
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado**). **Tier 4 COMPLETADO** (#14–#22; v1.10.0 + v1.11.0). **Tier 5 COMPLETADO** (#23–#27; v1.12.0): relicenciado a GPLv3 + apartados legales in-app + donaciones PayPal. **Tier 6 COMPLETADO** (#28–#36; v1.13.0): pulido UX/UI. **Tier 7 COMPLETADO** (#37; pendiente de publicar): partición FAT32 pequeña al reinicializar en discos grandes.
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -88,7 +92,36 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **249/249** (`dotnet test`) — 226 previas + 23 del Tier 6 (8 `SmartInfo.HealthLevel` + 15 `FormatLogic.ValidateLabel`).
+- ✅ Pruebas: **269/269** (`dotnet test`) — 226 previas + 23 del Tier 6 (8 `SmartInfo.HealthLevel` + 15
+  `FormatLogic.ValidateLabel`) + 17 del Tier 7 (`ReinitPlan.AllowedSmallFat32SizesGb`/`NormalizeSmallFat32SizeGb`/
+  `SmallFat32PartitionBytes`) + 3 del pulido UX posterior (`FormatBytes` sin ".0" en enteros).
+- ✅ **Tier 7 — Partición FAT32 pequeña al reinicializar (#37), COMPLETADO Y VERIFICADO con hardware real
+  (2026-07-02, publicado en v1.14.0):**
+  Windows nunca permite crear un volumen FAT32 mayor de 32 GB (ni `Format-Volume` ni `format.com`; confirmado por
+  investigación web: Microsoft solo lo levanta para `format.com` en builds **Insider** de 2026, no en Windows
+  estable), así que el selector de sistema de archivos ya ocultaba FAT32 en discos ≥ 32 GB sin dar alternativa.
+  Caso de uso real: flashear el BIOS/UEFI de una placa base desde un USB grande cuya utilidad de firmware solo
+  lee FAT32. Nueva casilla `SmallFat32Check` en *Opciones de formato* (visible solo en unidades extraíbles ≥ 32 GB),
+  que fuerza FAT32 y crea, **solo vía Herramientas → Reinicializar unidad…** (el flujo normal *Iniciar* no cambia:
+  sigue ocultando FAT32 ahí porque de verdad no se puede formatear en el sitio un volumen tan grande), una
+  partición con `New-Partition -Size <bytes>` (antes solo existía `-UseMaximumSize`), dejando el resto del disco
+  físico sin asignar. **Tamaño seleccionable** (1/2/4/8/16/32 GB) vía `ComboBox` junto a la casilla, persistido.
+  - Dónde: `Core/FormatLogic.Fat32MaxBytes` (constante compartida, dedup del literal ya duplicado en el selector),
+    `Core/ReinitPlan.AllowedSmallFat32SizesGb`/`NormalizeSmallFat32SizeGb`/`SmallFat32PartitionBytes(int sizeGb)`
+    (puros testeables; en el tramo máximo restan 4 MiB frente al límite exacto, margen ante redondeo/alineación
+    de partición; mismo esquema que `SecureWipe.AllowedPasses`/`NormalizePasses`), `Services/ReinitDrive.RunAsync`
+    (nuevo parámetro opcional `long? partitionSizeBytes`; `null` conserva el script de hoy byte a byte),
+    `UI/MainWindow` (`SmallFat32Check` + `SmallFat32SizePicker` + hint explicativo localizado),
+    `AppSettings.SmallFat32SizeGb` (persistencia, por defecto 32).
+  - `MnuReinit_Click` resuelve `smallFat32`/el FS forzado **antes** de validar la etiqueta (FAT32 limita a 11
+    caracteres, no los 32 de NTFS/ReFS que pudiera tener el selector) — evita validar contra el límite equivocado.
+  - 5 claves de localización nuevas (`opt.smallFat32`, `opt.smallFat32Size`, `opt.smallFat32Hint`,
+    `reinit.summaryFat32Small`, `reinit.doneBodyFat32Small`), 5 idiomas cada una.
+  - **Fix de plataforma hallado en la primera prueba real** (ver registro de cambios): `Clear-Disk` no dejaba el
+    disco en RAW en el hardware de prueba; `Initialize-Disk` se envuelve en `try/catch` tolerando específicamente
+    "already been initialized". Afecta a *toda* Reinicializar unidad (#8), no solo a esta opción.
+  - **Verificado por el usuario** con un USB de 64 GB real: Reinicializar normal y con FAT32 pequeña, ambos OK
+    tras el fix de `Initialize-Disk`.
 - ✅ **Tier 6 — Pulido UX/UI (#28–#36), COMPLETADO (2026-07-02, publicado en v1.13.0):**
   **#28** aviso de unidad protegida como `InfoBar` Fluent sobre las tarjetas (antes texto rojo en el
   `StatusText` del footer, que competía con el estado de operaciones); **#29** `ConfirmDialog` con foco
@@ -236,12 +269,11 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 
 ## 6. Pendientes / ideas
 
-- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — **Tier 2 y Tier 3 completados**
-  (Tier 3: presets, idiomas, avisos; **#13 winget/firma descartado el 2026-06-24**). **Tier 4 — Refinado
-  de características existentes (#14–#22), propuesto:** pasadas de wipe configurables, IOPS en benchmark,
-  umbrales S.M.A.R.T., refresco automático de unidades, idioma automático, filtro/CSV en historial,
-  editar/reordenar presets, changelog en el aviso de actualización y pulido de accesibilidad. Es el backlog
-  activo (no compromete versión/fecha). Aparte, solo queda lo deliberadamente fuera de alcance.
+- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — **Tiers 2 a 7 completados** (Tier 3:
+  presets, idiomas, avisos, **#13 winget/firma descartado el 2026-06-24**; Tier 4: refinado #14–#22; Tier 5:
+  GPLv3 + legal + donaciones; Tier 6: pulido UX/UI; **Tier 7 — #37 partición FAT32 pequeña al reinicializar en
+  discos grandes, con tamaño seleccionable: publicado en v1.14.0 (2026-07-02)**). Solo queda lo
+  deliberadamente fuera de alcance.
 - Probar el instalador end-to-end (instalación + actualización in-place).
 - (Opcional) Workflow de GitHub Actions que ejecute `release.ps1` o equivalente.
 - (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
@@ -257,6 +289,116 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-07-02 — fix+ux: hint de FAT32 pequeña corregido + 4 mejoras UX (enlace directo, aviso en Iniciar, estados vacíos, FormatBytes)
+
+Revisión UX/UI sobre capturas reales del usuario tras cerrar el selector de tamaño. Build **0/0**,
+**269/269 tests** (266 + 3).
+
+- **Fix (bug introducido con el selector de tamaño):** el hint decía «Windows no permite crear volúmenes
+  FAT32 de más de **2.0 GB**» al elegir 2 GB — al hacer el tamaño dinámico, el placeholder que mostraba el
+  límite real de Windows pasó a recibir el tamaño elegido. `opt.smallFat32Hint` ahora usa dos placeholders
+  (`{0}` = límite fijo de 32 GB, `{1}` = tamaño elegido) y aclara además que el sistema de archivos del
+  selector se ignora.
+- **UX 1 — hint accionable:** `HyperlinkButton` «Reinicializar unidad ahora…» (`SmallFat32GoButton`) bajo el
+  hint, que invoca directamente `MnuReinit_Click` (mismas guardas); elimina el salto "marca aquí → ve al
+  menú Herramientas". Visible/activo junto con el hint (deshabilitado durante operaciones vía la cadena
+  `SetFormEnabled` → `UpdateSmallFat32SizeEnabled`). Clave `opt.smallFat32Go` (5 idiomas).
+- **UX 2 — aviso en Iniciar:** si la casilla de FAT32 pequeña está marcada y se pulsa *Iniciar*, el resumen
+  de confirmación añade una nota de que esa opción NO aplica al formateo normal (se formatea toda la unidad)
+  y que se usa desde Reinicializar unidad. Clave `confirm.smallFat32Ignored` (5 idiomas).
+- **UX 3 — estados vacíos en la tarjeta Unidad (preexistente):** con USB que no reportan salud/bus/medio,
+  «Salud:» quedaba vacío y «Conexión:» mostraba un «·» huérfano (el separador se concatenaba sin datos).
+  `RenderHealth` ahora usa el guion de `info.dash` cuando falta el dato y solo pone el «·» si hay ambos.
+- **UX 4 — `FormatBytes` sin «.0»:** formato `F1` → `0.#` («2 GB» en vez de «2.0 GB»; «57.8 GB» conserva su
+  decimal). Afecta a toda la UI que formatea bytes (tarjeta Unidad, confirmaciones, velocidad vía
+  `Throughput.FormatSpeed`). Tests de `FormatBytes`/`FormatSpeed` actualizados (+3 casos).
+
+### 2026-07-02 — feat: Tier 7 (#37) — tamaño de partición FAT32 pequeña seleccionable + verificado con hardware real
+
+Tras la primera prueba real (ver entrada anterior) el usuario pidió poder elegir el tamaño de la partición
+FAT32 pequeña en vez de un fijo de 32 GB — una FAT32 más chica deja más espacio sin asignar, reutilizable
+después desde Administración de discos. Build **0/0**, **266/266 tests** (249 + 17 nuevos).
+
+- **`Core/ReinitPlan`**: la antigua constante `SmallFat32PartitionBytes` (fija, 32 GB − 4 MiB) se sustituye
+  por `AllowedSmallFat32SizesGb` (`[1, 2, 4, 8, 16, 32]`), `NormalizeSmallFat32SizeGb(int)` y
+  `SmallFat32PartitionBytes(int sizeGb)` — mismo esquema puro y testeable que `SecureWipe.AllowedPasses`/
+  `NormalizePasses` (#14). Solo el tramo máximo (32 GB) resta el margen de 4 MiB frente al límite real de
+  Windows; en tramos menores no hace falta (no hay riesgo de alcanzar el límite). +17 tests.
+- **`UI/MainWindow`**: nuevo `ComboBox` `SmallFat32SizePicker` (1/2/4/8/16/32 GB) junto a `SmallFat32Check`,
+  activo solo cuando la casilla está marcada — mismo patrón visual y de habilitación que `WipePassesPicker`
+  (opacidad 0.5 cuando está deshabilitado, indentado bajo la casilla). `InitSmallFat32Size`/
+  `SelectedSmallFat32SizeGb`/`UpdateSmallFat32SizeEnabled`/`SmallFat32SizePicker_SelectionChanged` replican
+  uno a uno `InitWipePasses`/`SelectedWipePasses`/`UpdateWipePassesEnabled`/`WipePassesPicker_SelectionChanged`.
+  El texto de la casilla ya no lleva el tamaño incrustado (antes "…pequeña (32.0 GB)…"); el tamaño vive solo
+  en el selector, y el hint/resumen de confirmación/mensaje final lo toman de la selección real.
+- **`AppSettings.SmallFat32SizeGb`** (nuevo, por defecto `32`): persiste la elección, igual que
+  `SecureWipePasses`. Se valida con `NormalizeSmallFat32SizeGb` al leer.
+- Localización: `opt.smallFat32` pierde su placeholder `{0}`; nueva clave `opt.smallFat32Size` ("Tamaño:"),
+  5 idiomas.
+- **Verificado por el usuario** con el mismo USB de 64 GB: Reinicializar unidad normal y con FAT32 pequeña
+  funcionan correctamente tras el fix de `Initialize-Disk` de la entrada anterior.
+
+### 2026-07-02 — feat: Tier 7 — #37 partición FAT32 pequeña al reinicializar en discos grandes (implementado, pendiente de publicar)
+
+Motivado por un caso de uso real planteado por el usuario: flashear el BIOS/UEFI de una placa base desde un
+USB de 64 GB cuya utilidad de firmware solo lee FAT32. Investigación web confirmó que Windows nunca permite
+crear un volumen FAT32 mayor de 32 GB —ni `Format-Volume` ni `format.com`— y que Microsoft solo está
+retirando esa restricción para `format.com` en builds **Insider** de 2026 (no en Windows estable, no para
+`Format-Volume`), así que el límite sigue aplicando en la práctica para el público objetivo del proyecto. Se
+descartó "solo desocultar FAT32" (fallaría igual contra la API de Windows) a favor de una alternativa segura
+acordada con el usuario: crear **una única partición FAT32 pequeña (32 GB) dejando el resto del disco sin
+asignar**. Build **0/0**, **249/249 tests** (sin pruebas nuevas: las dos constantes añadidas no tienen
+comportamiento que probar, igual que `ReinitPlan.MbrLimitBytes` tampoco se prueba directamente).
+
+- **`Core/FormatLogic.Fat32MaxBytes`** (nuevo, 32 GiB): dedup del literal `32L * 1024 * 1024 * 1024` que ya
+  estaba duplicado en `MainWindow.UpdateFileSystemOptions`/`SuggestFileSystem` (ocultan FAT32 en discos
+  grandes desde antes de este cambio); ahora también umbral de la nueva opción.
+- **`Core/ReinitPlan.SmallFat32PartitionBytes`** (nuevo, `Fat32MaxBytes − 4 MiB`): tamaño real pedido a
+  `New-Partition -Size`, con margen de seguridad para que el redondeo/alineación de la partición no iguale o
+  supere el límite real de FAT32 (fallaría ya con el disco borrado). La UI sigue mostrando "32.0 GB" en todo
+  texto visible (usa `Fat32MaxBytes`, no esta constante).
+- **`Services/ReinitDrive.RunAsync`**: nuevo parámetro `long? partitionSizeBytes` (insertado tras `label`).
+  `null` reproduce el script de hoy byte a byte (`-UseMaximumSize`, sin cambio de comportamiento); un valor
+  usa `New-Partition -Size <bytes>` en su lugar, dejando el resto del disco físico sin asignar. Es la primera
+  vez que el proyecto usa `-Size` en `New-Partition` (antes solo existía `-UseMaximumSize`).
+- **`UI/MainWindow`**: nueva casilla `SmallFat32Check` en *Opciones de formato*, visible solo cuando la unidad
+  seleccionada es **extraíble** y su tamaño ≥ `Fat32MaxBytes` (exactamente donde el selector ya oculta FAT32).
+  Al marcarla se muestra un hint explicativo (`SmallFat32HintText`) que aclara el límite real de Windows, que
+  la opción **solo surte efecto vía Herramientas → Reinicializar unidad…, no con el botón Iniciar** (evita
+  confusión: el flujo de formateo normal no puede encoger una partición, solo Reinicializar recrea el disco
+  desde cero), y recuerda el límite de 4 GB por archivo de FAT32. `MnuReinit_Click` resuelve `smallFat32` y
+  fuerza `fs = "FAT32"` **antes** de validar la etiqueta (evita validar contra el máximo de 32 caracteres del
+  FS que estuviera elegido en el selector, en vez del máximo de 11 de FAT32). Cableado también en
+  `DrivePicker_SelectionChanged` (oculta/desmarca si no hay unidad o se retira), `RestoreButton_Click`
+  (resetea junto a las demás casillas), `SetFormEnabled` (se deshabilita durante operaciones) y
+  `ApplyLanguage`. No se toca `ApplyProtection`: una unidad protegida nunca es extraíble (regla de oro del
+  proyecto), así que nunca coincide con la visibilidad de esta casilla.
+- **Localización**: 4 claves nuevas (`opt.smallFat32`, `opt.smallFat32Hint`, `reinit.summaryFat32Small`,
+  `reinit.doneBodyFat32Small`), 5 idiomas cada una.
+
+**Sin cambios:** el flujo de formateo normal (*Iniciar*) sigue ocultando FAT32 en discos ≥ 32 GB —sigue
+siendo correcto, porque de verdad no se puede formatear en el sitio un volumen tan grande como FAT32—, y el
+resto de `Services/DiskService|SecureWipe|CheckDisk|BenchmarkRunner|UpdateService`.
+**Pendiente:** publicar en una versión (bump + `release.ps1`) y verificación visual con un USB ≥ 32 GB real
+y permisos de administrador (la realiza el usuario).
+
+**Fix (mismo día, hallado y confirmado con dos pruebas reales en un USB de 64 GB):** `Services/ReinitDrive.RunAsync`
+fallaba en **todo** uso de Reinicializar unidad (no solo en la opción nueva — reproducido también con NTFS +
+`-UseMaximumSize`, la ruta que llevaba publicada desde v1.7.0) con
+`Initialize-Disk : The disk has already been initialized`, justo después de `Clear-Disk` — el disco quedaba
+sin ninguna partición. Primer intento de fix (reencadenar `-PassThru` para refrescar `$d` tras `Clear-Disk`,
+por si el objeto capturado al principio quedaba con metadatos obsoletos) **no lo resolvió**: la segunda
+prueba real reprodujo el mismo error incluso con `$d` ya refrescado, descartando la teoría de caché/objeto
+obsoleto. Causa real: `Clear-Disk -RemoveData -RemoveOEM` no deja el disco en estado RAW en este hardware —
+sigue reportándose "inicializado" (con el estilo de partición que ya tenía) aunque esté vacío, así que
+`Initialize-Disk` es redundante y falla siempre. Fix definitivo: envolver `Initialize-Disk` en
+`try { ... } catch { if ($_.Exception.Message -notmatch 'already been initialized') { throw } }` — se tolera
+ese error concreto (el disco ya está listo para particionar tal cual) y se propaga cualquier otro. Bug
+**preexistente** de #8 (Reinicializar unidad), nunca observado antes por falta de verificación con hardware
+real; no relacionado con la lógica nueva de partición FAT32 pequeña, pero vive en el mismo script y se
+corrigió aquí. Build **0/0**, **249/249 tests**. **Pendiente reverificar** con el mismo USB (ambos casos:
+Reinicializar normal y con la opción de FAT32 pequeña).
 
 ### 2026-07-02 — feat(ui): Tier 6 cerrado — #34 validación inline + #35 progreso en taskbar + #36 error en la barra
 

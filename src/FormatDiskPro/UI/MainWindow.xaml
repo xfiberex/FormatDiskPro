@@ -175,6 +175,27 @@
                                 <ComboBoxItem Content="7" />
                             </ComboBox>
                         </StackPanel>
+                        <CheckBox x:Name="SmallFat32Check"
+                                  Visibility="Collapsed"
+                                  Checked="SmallFat32Check_Toggled" Unchecked="SmallFat32Check_Toggled" />
+                        <StackPanel x:Name="SmallFat32SizePanel" Orientation="Horizontal" Spacing="8"
+                                    Margin="30,0,0,0" VerticalAlignment="Center" Opacity="0.5" Visibility="Collapsed">
+                            <TextBlock x:Name="SmallFat32SizeLbl" Text="Tamaño:" VerticalAlignment="Center"
+                                       Style="{StaticResource HintTextStyle}" />
+                            <ComboBox x:Name="SmallFat32SizePicker" MinWidth="80" IsEnabled="False"
+                                      SelectionChanged="SmallFat32SizePicker_SelectionChanged">
+                                <ComboBoxItem Content="1 GB" />
+                                <ComboBoxItem Content="2 GB" />
+                                <ComboBoxItem Content="4 GB" />
+                                <ComboBoxItem Content="8 GB" />
+                                <ComboBoxItem Content="16 GB" />
+                                <ComboBoxItem Content="32 GB" />
+                            </ComboBox>
+                        </StackPanel>
+                        <TextBlock x:Name="SmallFat32HintText" Style="{StaticResource HintTextStyle}" TextWrapping="Wrap"
+                                   Margin="30,-2,0,0" Visibility="Collapsed" />
+                        <HyperlinkButton x:Name="SmallFat32GoButton" Padding="0" Margin="30,-4,0,0"
+                                         Visibility="Collapsed" Click="MnuReinit_Click" />
                     </StackPanel>
                 </Border>
 

@@ -205,13 +205,19 @@ public sealed class FormatLogicTests : IDisposable
     // ── FormatBytes ──────────────────────────────────────────────
 
     [Theory]
-    [InlineData(0L, "0.0 B")]
-    [InlineData(512L, "512.0 B")]
-    [InlineData(1024L, "1.0 KB")]
+    [InlineData(0L, "0 B")]
+    [InlineData(512L, "512 B")]
+    [InlineData(1024L, "1 KB")]
     [InlineData(1536L, "1.5 KB")]
-    [InlineData(1048576L, "1.0 MB")]
-    [InlineData(1073741824L, "1.0 GB")]
-    [InlineData(1099511627776L, "1.0 TB")]
+    [InlineData(1048576L, "1 MB")]
+    [InlineData(1073741824L, "1 GB")]
+    [InlineData(1099511627776L, "1 TB")]
     public void FormatBytes_FormatsAcrossUnits(long bytes, string expected)
+        => Assert.Equal(expected, FormatLogic.FormatBytes(bytes));
+
+    [Theory]
+    [InlineData(2L * 1024 * 1024 * 1024, "2 GB")]              // entero: sin ".0"
+    [InlineData(62060003328L, "57.8 GB")]                       // no entero: un decimal
+    public void FormatBytes_OmitsTrailingZeroDecimal(long bytes, string expected)
         => Assert.Equal(expected, FormatLogic.FormatBytes(bytes));
 }

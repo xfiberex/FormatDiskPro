@@ -10,6 +10,11 @@ namespace FormatDiskPro;
 /// </summary>
 public static partial class FormatLogic
 {
+    /// <summary>Límite real de Windows para crear un volumen FAT32 (32 GiB): ni <c>Format-Volume</c> ni
+    /// <c>format.com</c> permiten uno mayor. Usado para ocultar FAT32 del selector en discos grandes y
+    /// como umbral de la opción de partición FAT32 pequeña en Reinicializar unidad.</summary>
+    public const long Fat32MaxBytes = 32L * 1024 * 1024 * 1024;
+
     /// <summary>
     /// Construye el script PowerShell <c>Format-Volume</c> (sin codificar).
     /// La etiqueta se escapa para una cadena entre comillas simples de PowerShell.
@@ -93,13 +98,14 @@ public static partial class FormatLogic
         return int.TryParse(matches[^1].Groups[1].Value, out int v) ? v : -1;
     }
 
-    /// <summary>Formatea una cantidad de bytes en una cadena legible (B, KB, MB, GB, TB).</summary>
+    /// <summary>Formatea una cantidad de bytes en una cadena legible (B, KB, MB, GB, TB), con un decimal
+    /// como máximo y sin el ".0" en valores enteros ("2 GB", "1.5 KB").</summary>
     public static string FormatBytes(long bytes)
     {
         string[] u = ["B", "KB", "MB", "GB", "TB"];
         double v = bytes; int i = 0;
         while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
-        return $"{v:F1} {u[i]}";
+        return $"{v:0.#} {u[i]}";
     }
 
     [GeneratedRegex(@"(\d{1,3})\s*(?:%|percent|por\s*ciento)", RegexOptions.IgnoreCase)]

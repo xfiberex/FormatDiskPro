@@ -127,6 +127,7 @@ public sealed partial class MainWindow : Window
         ApplyThemeMode(_settings.Theme, save: false);
         MnuNotify.IsChecked = _settings.NotifyOnFinish;
         InitWipePasses();
+        InitSmallFat32Size();
         ApplyLanguage();
         LoadDrives();
         HookDeviceNotifications();
@@ -327,6 +328,10 @@ public sealed partial class MainWindow : Window
             _isDriveProtected = false;
             _lastHealth = null;
             ClearInfo();
+            SmallFat32Check.Visibility     = Visibility.Collapsed;
+            SmallFat32Check.IsChecked      = false;
+            SmallFat32SizePanel.Visibility = Visibility.Collapsed;
+            UpdateSmallFat32Hint();
             return;
         }
 
@@ -369,8 +374,13 @@ public sealed partial class MainWindow : Window
             InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
             return;
         }
-        InfoHealthText.Text = L.T("info.health", h.Health);
-        InfoBusText.Text    = L.T("info.bus", $"{h.Bus} · {h.Media}");
+        // Un USB puede no reportar salud/bus/medio: mostrar el guion en vez de dejar el valor vacío
+        // (línea "Salud:" sin nada) o un separador "·" huérfano en "Conexión:".
+        string dash = L.T("info.dash");
+        bool hasBus = !string.IsNullOrWhiteSpace(h.Bus), hasMedia = !string.IsNullOrWhiteSpace(h.Media);
+        string conn = hasBus && hasMedia ? $"{h.Bus} · {h.Media}" : hasBus ? h.Bus : hasMedia ? h.Media : dash;
+        InfoHealthText.Text = L.T("info.health", string.IsNullOrWhiteSpace(h.Health) ? dash : h.Health);
+        InfoBusText.Text    = L.T("info.bus", conn);
 
         // Umbrales de #16: colorear el estado reportado (el texto ya transmite el estado; el color refuerza).
         var level = SmartInfo.HealthLevel(h.Health);
@@ -463,18 +473,20 @@ public sealed partial class MainWindow : Window
         FileSystemPicker.Items.Add("NTFS");
         FileSystemPicker.Items.Add("exFAT");
         FileSystemPicker.Items.Add("ReFS");
-        if (bytes == 0 || bytes < 32L * 1024 * 1024 * 1024) FileSystemPicker.Items.Add("FAT32");
+        if (bytes == 0 || bytes < FormatLogic.Fat32MaxBytes) FileSystemPicker.Items.Add("FAT32");
         if (bytes == 0 || bytes < 2L * 1024 * 1024 * 1024)  FileSystemPicker.Items.Add("FAT");
 
         int idx = previous is not null ? FileSystemPicker.Items.IndexOf(previous) : -1;
         if (idx >= 0) FileSystemPicker.SelectedIndex = idx;
         else          SuggestFileSystem(drive, bytes);
+
+        UpdateSmallFat32Option(drive, bytes);
     }
 
     private void SuggestFileSystem(DriveInfo drive, long totalBytes)
     {
         string suggested = drive.DriveType == DriveType.Removable
-            ? (totalBytes > 32L * 1024 * 1024 * 1024 ? "exFAT" : "FAT32")
+            ? (totalBytes > FormatLogic.Fat32MaxBytes ? "exFAT" : "FAT32")
             : "NTFS";
         int idx = FileSystemPicker.Items.IndexOf(suggested);
         FileSystemPicker.SelectedIndex = idx >= 0 ? idx : 0;
@@ -532,6 +544,77 @@ public sealed partial class MainWindow : Window
         if (!isNtfs) CompressCheck.IsChecked = false;
     }
 
+    // ── Reinicializar: partición FAT32 pequeña en discos grandes (#37) ──
+
+    // Visible solo en unidades extraíbles ≥ Fat32MaxBytes: exactamente donde FAT32 se oculta del picker.
+    // Solo surte efecto vía "Reinicializar unidad…"; el flujo normal de Iniciar la ignora.
+    private void UpdateSmallFat32Option(DriveInfo drive, long bytes)
+    {
+        DriveType type = DriveType.Unknown;
+        try { type = drive.DriveType; } catch { }
+
+        bool qualifies = type == DriveType.Removable && bytes >= FormatLogic.Fat32MaxBytes;
+        SmallFat32Check.Visibility     = qualifies ? Visibility.Visible : Visibility.Collapsed;
+        SmallFat32SizePanel.Visibility = qualifies ? Visibility.Visible : Visibility.Collapsed;
+        if (!qualifies) SmallFat32Check.IsChecked = false;
+        UpdateSmallFat32SizeEnabled();
+        UpdateSmallFat32Hint();
+    }
+
+    private void SmallFat32Check_Toggled(object sender, RoutedEventArgs e)
+    {
+        UpdateSmallFat32SizeEnabled();
+        UpdateSmallFat32Hint();
+    }
+
+    /// <summary>Sincroniza el selector de tamaño con la preferencia persistida (validada al conjunto
+    /// permitido) y su estado. Mismo patrón que <see cref="InitWipePasses"/>.</summary>
+    private void InitSmallFat32Size()
+    {
+        int idx = Array.IndexOf(ReinitPlan.AllowedSmallFat32SizesGb, ReinitPlan.NormalizeSmallFat32SizeGb(_settings.SmallFat32SizeGb));
+        SmallFat32SizePicker.SelectedIndex = idx >= 0 ? idx : ReinitPlan.AllowedSmallFat32SizesGb.Length - 1;
+        UpdateSmallFat32SizeEnabled();
+    }
+
+    /// <summary>Tamaño en GB elegido en la UI; 32 (el máximo) si no hay selección válida.</summary>
+    private int SelectedSmallFat32SizeGb()
+    {
+        int idx = SmallFat32SizePicker.SelectedIndex;
+        return idx >= 0 && idx < ReinitPlan.AllowedSmallFat32SizesGb.Length ? ReinitPlan.AllowedSmallFat32SizesGb[idx] : 32;
+    }
+
+    /// <summary>El selector de tamaño y el enlace de reinicializar solo están activos cuando la casilla
+    /// de FAT32 pequeña está visible, habilitada y marcada.</summary>
+    private void UpdateSmallFat32SizeEnabled()
+    {
+        bool on = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsEnabled && SmallFat32Check.IsChecked == true;
+        SmallFat32SizePicker.IsEnabled = on;
+        SmallFat32SizePanel.Opacity    = on ? 1.0 : 0.5;
+        SmallFat32GoButton.IsEnabled   = on;
+    }
+
+    private void SmallFat32SizePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_uiReady) return;   // selección programática durante la construcción
+        _settings.SmallFat32SizeGb = SelectedSmallFat32SizeGb();
+        _settings.Save();
+        UpdateSmallFat32Hint();
+    }
+
+    private void UpdateSmallFat32Hint()
+    {
+        bool show = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsChecked == true;
+        SmallFat32HintText.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        SmallFat32GoButton.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        if (show)
+        {
+            // {0} = límite real de Windows (fijo, 32 GB); {1} = tamaño elegido en el selector.
+            long bytes = ReinitPlan.SmallFat32PartitionBytes(SelectedSmallFat32SizeGb());
+            SmallFat32HintText.Text = L.T("opt.smallFat32Hint",
+                FormatLogic.FormatBytes(FormatLogic.Fat32MaxBytes), FormatLogic.FormatBytes(bytes));
+        }
+    }
+
     private void RestoreButton_Click(object sender, RoutedEventArgs e)
     {
         if (DrivePicker.SelectedItem is DriveViewModel item)
@@ -543,6 +626,8 @@ public sealed partial class MainWindow : Window
         QuickFormatCheck.IsChecked = true;
         CompressCheck.IsChecked    = false;
         SecureWipeCheck.IsChecked  = false;
+        SmallFat32Check.IsChecked  = false;
+        UpdateSmallFat32Hint();
     }
 
     // ── Presets ───────────────────────────────────────────────────
@@ -676,6 +761,9 @@ public sealed partial class MainWindow : Window
         }
 
         int securePasses = SelectedWipePasses();
+        // La opción de FAT32 pequeña solo aplica a Reinicializar unidad: si está marcada, avisar aquí
+        // para que nadie formatee creyendo que obtendrá la partición pequeña.
+        bool smallFat32Ignored = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsChecked == true;
         string summary =
             $"{L.T("confirm.warning")}\n\n" +
             $"  {L.T("confirm.drive")}:   {driveItem.DisplayText}\n" +
@@ -683,7 +771,8 @@ public sealed partial class MainWindow : Window
             $"  {L.T("confirm.cluster")}:  {AllocUnitPicker.SelectedItem}\n" +
             $"  {L.T("confirm.label")}: {(string.IsNullOrEmpty(label) ? L.T("confirm.nolabel") : label)}\n" +
             $"  {L.T("confirm.mode")}:     {(quick ? L.T("fmt.quick") : L.T("fmt.full"))}" +
-            (secure ? $" + {L.T("confirm.secure")}" + (securePasses > 1 ? $" ×{securePasses}" : "") : "");
+            (secure ? $" + {L.T("confirm.secure")}" + (securePasses > 1 ? $" ×{securePasses}" : "") : "") +
+            (smallFat32Ignored ? $"\n\n{L.T("confirm.smallFat32Ignored")}" : "");
 
         var dlg = new ConfirmDialog(driveItem.Letter, summary) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
@@ -1169,8 +1258,12 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        // Configuración de formato tomada del formulario.
-        string fs    = FileSystemPicker.SelectedItem?.ToString() ?? "NTFS";
+        // Configuración de formato tomada del formulario. La opción de FAT32 pequeña fuerza el FS y el
+        // tamaño de partición, ignorando el selector — debe resolverse ANTES de validar la etiqueta (FAT32
+        // limita a 11 caracteres, no los 32 del FS que estuviera elegido en el picker).
+        bool smallFat32 = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsChecked == true;
+        string fs = smallFat32 ? "FAT32" : (FileSystemPicker.SelectedItem?.ToString() ?? "NTFS");
+        long? partitionSizeBytes = smallFat32 ? ReinitPlan.SmallFat32PartitionBytes(SelectedSmallFat32SizeGb()) : null;
         string label = VolumeLabelBox.Text.Trim();
         if (!await ValidateLabelAsync(label, fs, focusOnError: false))
             return;
@@ -1179,7 +1272,9 @@ public sealed partial class MainWindow : Window
         try { style = ReinitPlan.StyleFor(item.Info.TotalSize); } catch { style = DiskPartitionStyle.Mbr; }
 
         // Confirmación reforzada: escribir la letra de la unidad (reutiliza ConfirmDialog).
-        string summary = L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
+        string summary = smallFat32
+            ? L.T("reinit.summaryFat32Small", item.Letter, FormatLogic.FormatBytes(partitionSizeBytes!.Value))
+            : L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
         var confirm = new ConfirmDialog(item.Letter, summary) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
 
@@ -1192,7 +1287,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            var r = await ReinitDrive.RunAsync(item.Letter, style, fs, label, stage, _cts!.Token);
+            var r = await ReinitDrive.RunAsync(item.Letter, style, fs, label, partitionSizeBytes, stage, _cts!.Token);
             FormatProgress.IsIndeterminate = false;
 
             if (_cancelRequested || r.Detail == "cancelled")
@@ -1205,11 +1300,14 @@ public sealed partial class MainWindow : Window
             if (r.Ok && r.NewLetter is char newLetter)
             {
                 FormatProgress.Value = 100;
-                History.Log($"REINIT {item.Letter}: -> {newLetter}: fs={fs} style={style.ToPowerShell()}");
+                History.Log($"REINIT {item.Letter}: -> {newLetter}: fs={fs} style={style.ToPowerShell()}{(smallFat32 ? $" small-fat32={partitionSizeBytes}" : "")}");
                 _pendingInitialLetter = newLetter;
                 DrivePicker.SelectedIndex = -1;   // fuerza que LoadDrives use la nueva letra
                 LoadDrives();
-                await ShowInfoAsync(L.T("reinit.doneTitle"), L.T("reinit.doneBody", newLetter));
+                string doneBody = smallFat32
+                    ? L.T("reinit.doneBodyFat32Small", newLetter, FormatLogic.FormatBytes(partitionSizeBytes!.Value))
+                    : L.T("reinit.doneBody", newLetter);
+                await ShowInfoAsync(L.T("reinit.doneTitle"), doneBody);
             }
             else
             {
@@ -1689,6 +1787,10 @@ public sealed partial class MainWindow : Window
         CompressCheck.Content    = L.T("opt.compress");
         SecureWipeCheck.Content  = L.T("opt.secure");
         WipePassesLbl.Text       = L.T("opt.passes");
+        SmallFat32Check.Content     = L.T("opt.smallFat32");
+        SmallFat32SizeLbl.Text      = L.T("opt.smallFat32Size");
+        SmallFat32GoButton.Content  = L.T("opt.smallFat32Go");
+        UpdateSmallFat32Hint();
         RestoreButton.Content    = L.T("btn.restore");
         StartButton.Content      = L.T("btn.start");
         if (!_isBusy) CloseButton.Content = L.T("btn.close");
@@ -1697,6 +1799,7 @@ public sealed partial class MainWindow : Window
         DrivePicker.PlaceholderText = L.T("drive.none");
         AutomationProperties.SetName(RefreshButton, L.T("tip.refresh"));
         AutomationProperties.SetName(WipePassesPicker, L.T("opt.passes"));
+        AutomationProperties.SetName(SmallFat32SizePicker, L.T("opt.smallFat32Size"));
         AutomationProperties.SetName(CapacityBar, L.T("info.used"));
         ToolTipService.SetToolTip(CapacityBar, L.T("info.used"));
         UpdateLabelHint();   // refresca el hint visible (si lo hay) al cambiar de idioma
@@ -1896,7 +1999,9 @@ public sealed partial class MainWindow : Window
         QuickFormatCheck.IsEnabled  = canFormat;
         SecureWipeCheck.IsEnabled   = canFormat;
         CompressCheck.IsEnabled     = canFormat && FileSystemPicker.SelectedItem?.ToString() == "NTFS";
+        SmallFat32Check.IsEnabled   = canFormat;
         UpdateWipePassesEnabled();
+        UpdateSmallFat32SizeEnabled();
     }
 
     private long GetSelectedAllocBytes() =>

@@ -252,6 +252,45 @@ antes la barra simplemente se vaciaba y el único feedback era el diálogo modal
 
 ---
 
+## ✅ Tier 7 — Reinicializar unidad: partición FAT32 pequeña en discos grandes (v1.14.0)
+
+> Extiende (no sustituye) el flujo de **Reinicializar unidad** (#8): Windows nunca permite crear un
+> volumen FAT32 mayor de 32 GB, ni con `Format-Volume` ni con `format.com` (restricción de la plataforma,
+> no de FormatDiskPro). El selector de sistema de archivos ya oculta FAT32 en discos ≥ 32 GB por esa razón,
+> pero eso deja sin alternativa a quien necesita un USB grande con **una** partición FAT32 pequeña visible
+> (p. ej. para actualizar el BIOS/UEFI de una placa base, que solo lee FAT32). Numeración global (#37).
+> **No es un gestor de particiones** (sigue fuera de alcance, ver más abajo): una única partición FAT32 de
+> tamaño fijo (32 GB), el resto del disco queda sin asignar.
+
+### 37. Partición FAT32 pequeña al reinicializar (discos grandes) — ✅ implementado (v1.14.0) · refina #8
+Nueva opción **"Crear solo una partición FAT32 pequeña (32 GB) y dejar el resto sin asignar"** en
+*Opciones de formato*, visible solo cuando la unidad seleccionada es **extraíble** y su tamaño total es
+**≥ 32 GB** (exactamente los discos donde el selector de sistema de archivos ya oculta FAT32). Al marcarla,
+*Reinicializar unidad…* fuerza FAT32 y crea la partición con `New-Partition -Size <bytes> -AssignDriveLetter`
+en vez de `-UseMaximumSize` (la única otra rama del único `New-Partition` del proyecto), dejando el resto del
+disco físico sin asignar. Pensado para el caso de uso real: flashear el firmware de una placa base desde un
+USB de 64 GB (o mayor) cuya utilidad de BIOS/UEFI solo lee FAT32.
+- Dónde: `Core/FormatLogic.Fat32MaxBytes` (constante compartida, dedup del literal ya duplicado en el
+  selector de sistema de archivos), `Core/ReinitPlan.SmallFat32PartitionBytes(int sizeGb)` (tamaño real
+  solicitado a `New-Partition`; en el tramo máximo resta un margen de 4 MiB bajo el límite exacto de 32 GB
+  para evitar que el redondeo de alineación de partición lo iguale o supere), `Services/ReinitDrive.RunAsync`
+  (nuevo parámetro opcional `long? partitionSizeBytes`; `null` conserva el comportamiento actual byte a byte),
+  `UI/MainWindow` (`SmallFat32Check` + selector de tamaño `SmallFat32SizePicker` + hint explicativo,
+  condicionado a unidad extraíble + tamaño).
+- **Tamaño seleccionable** (1/2/4/8/16/32 GB, tope real de Windows): `ComboBox` junto a la casilla, activo
+  solo cuando está marcada (mismo patrón que el selector de pasadas del borrado seguro), persistido en
+  `AppSettings.SmallFat32SizeGb`. `Core/ReinitPlan.AllowedSmallFat32SizesGb` + `NormalizeSmallFat32SizeGb`
+  (puros, mismo esquema que `SecureWipe.AllowedPasses`/`NormalizePasses`).
+- El flujo de formateo normal (*Iniciar*) **no cambia**: sigue ocultando FAT32 en discos ≥ 32 GB porque
+  Windows realmente no puede formatear en una única partición (todo el disco) un volumen FAT32 tan grande.
+  La opción solo surte efecto vía *Herramientas → Reinicializar unidad…*, no con el botón *Iniciar*.
+- **Fix de plataforma (hallado con hardware real):** `Clear-Disk` no siempre deja el disco en RAW; el
+  `Initialize-Disk` posterior se tolera cuando falla específicamente con "already been initialized" (el
+  disco ya está listo para particionar), y se sigue propagando cualquier otro error. Afecta a *toda*
+  Reinicializar unidad, no solo a esta opción.
+
+---
+
 ## 🚫 Deliberadamente fuera de alcance
 
 Se excluyen a propósito para no desviar el producto de su propósito. Adoptar cualquiera de ellos sería
@@ -286,7 +325,13 @@ considera distribución suficiente. → **Tier 3 cerrado.**
 
 Todo publicado en **v1.13.0**.
 
-→ **Tier 6 cerrado.** Solo queda lo deliberadamente fuera de alcance.
+→ **Tier 6 cerrado.**
+
+**Tier 7 (extiende #8):**
+**#37** partición FAT32 pequeña en discos grandes al reinicializar (para casos como flashear el BIOS/UEFI
+de una placa base desde un USB grande que solo lee FAT32), con tamaño seleccionable (1–32 GB).
+
+→ **Tier 7 completado y publicado en v1.14.0.** Solo queda lo deliberadamente fuera de alcance.
 
 Todos respetan la regla de oro (lógica pura testeable en `Core`) y el propósito del proyecto; ninguno entra en
 el territorio "fuera de alcance".
