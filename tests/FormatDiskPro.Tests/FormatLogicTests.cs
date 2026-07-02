@@ -144,6 +144,45 @@ public sealed class FormatLogicTests : IDisposable
     public void MaxLabelLength_MatchesFileSystemLimits(string fs, int expected)
         => Assert.Equal(expected, FormatLogic.MaxLabelLength(fs));
 
+    // ── ValidateLabel ────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void ValidateLabel_EmptyOrNull_IsOk(string? label)
+        => Assert.Equal(FormatLogic.LabelValidation.Ok, FormatLogic.ValidateLabel(label!, "NTFS"));
+
+    [Fact]
+    public void ValidateLabel_ValidLabel_IsOk()
+        => Assert.Equal(FormatLogic.LabelValidation.Ok, FormatLogic.ValidateLabel("My Drive", "NTFS"));
+
+    [Theory]
+    [InlineData("a\\b")]
+    [InlineData("a/b")]
+    [InlineData("a:b")]
+    [InlineData("a*b")]
+    [InlineData("a?b")]
+    [InlineData("a\"b")]
+    [InlineData("a<b")]
+    [InlineData("a>b")]
+    [InlineData("a|b")]
+    public void ValidateLabel_InvalidChar_ReturnsInvalidChars(string label)
+        => Assert.Equal(FormatLogic.LabelValidation.InvalidChars, FormatLogic.ValidateLabel(label, "NTFS"));
+
+    [Fact]
+    public void ValidateLabel_ExceedsMaxLength_ReturnsTooLong()
+        // 12 caracteres > límite de 11 para FAT32.
+        => Assert.Equal(FormatLogic.LabelValidation.TooLong, FormatLogic.ValidateLabel("123456789012", "FAT32"));
+
+    [Fact]
+    public void ValidateLabel_AtMaxLength_IsOk()
+        => Assert.Equal(FormatLogic.LabelValidation.Ok, FormatLogic.ValidateLabel("12345678901", "FAT32"));
+
+    [Fact]
+    public void ValidateLabel_InvalidCharsTakesPriorityOverTooLong()
+        // Excede el límite de FAT32 (11) Y tiene un carácter inválido: se reporta el carácter, más accionable.
+        => Assert.Equal(FormatLogic.LabelValidation.InvalidChars, FormatLogic.ValidateLabel("123456789012:", "FAT32"));
+
     // ── ExtractPercent ───────────────────────────────────────────
 
     [Theory]

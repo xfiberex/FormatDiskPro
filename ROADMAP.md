@@ -187,6 +187,71 @@ Voluntario; **ninguna función se bloquea ni es de pago**.
 
 ---
 
+## ✅ Tier 6 — Pulido UX/UI (completado)
+
+> Como el Tier 4, **no añade capacidades nuevas**: refina la **presentación y el feedback** de la UI
+> existente con patrones Fluent/WinUI estándar, sin tocar la lógica de formateo ni los servicios.
+> Numeración global (#28…). Orden sugerido: quick wins (#28–#32) → trabajo medio (#33–#36).
+
+### 28. Aviso de unidad protegida como InfoBar — ✅ implementado (v1.13.0) · refina la capa UI
+El aviso «Disco fijo protegido…» pasa del `StatusText` del footer (texto rojo que compite con el estado
+transitorio de las operaciones) a un **`InfoBar` Fluent** (`Severity=Warning`) sobre las tarjetas: icono,
+color y semántica de accesibilidad de serie; el footer queda solo para el estado de operaciones.
+- Dónde: `UI/MainWindow` (`ProtectedBar` en `ApplyProtection`/`ApplyLanguage`); clave `protected.status`
+  sin el prefijo «⚠» (el icono lo aporta el `InfoBar`).
+
+### 29. Confirmación reforzada: foco inicial + Enter para confirmar — ✅ implementado (v1.13.0) · refina el flujo de confirmación (#formato/#8)
+Al abrir `ConfirmDialog` el foco va directo a la caja de la letra; cuando la letra escrita coincide,
+**Enter** equivale a *Iniciar* (`DefaultButton` pasa a `Primary` dinámicamente). Mantiene la fricción
+deliberada (hay que escribir la letra) pero sin obligar a soltar el teclado para pulsar el botón.
+- Dónde: `UI/ConfirmDialog`.
+
+### 30. Barra de capacidad en la tarjeta Unidad — ✅ implementado (v1.13.0) · refina la gestión base
+**Barra fina usado/libre** bajo los datos de la unidad (elemento estándar de las herramientas de discos):
+el porcentaje ocupado se percibe de un vistazo sin leer las cifras de Total/Libre.
+- Dónde: `UI/MainWindow` (`CapacityBar` en `UpdateInfo`/`ClearInfo`); clave `info.used` (nombre accesible + tooltip).
+
+### 31. Iconos por tipo de unidad en el selector — ✅ implementado (v1.13.0)
+`FontIcon` por `DriveType` (USB / disco fijo / RAM) en el `DataTemplate` del `ComboBox` de unidades:
+distinguir unidades de un vistazo sin leer la letra. El icono sigue el color del texto (rojo si protegida).
+- Dónde: `UI/DriveViewModel` (`Glyph` por tipo) + template en `MainWindow.xaml`.
+
+### 32. Estado vacío del selector de unidades — ✅ implementado (v1.13.0)
+`PlaceholderText` localizado («No hay unidades — conecta un dispositivo») cuando no hay unidades
+elegibles; antes el selector quedaba vacío y la tarjeta con guiones, sin explicación.
+- Dónde: `UI/MainWindow` (`ApplyLanguage`) + clave `drive.none` en `Localization`.
+
+### 33. Salud coloreada en la tarjeta Unidad — ✅ implementado (v1.13.0) · refina #16
+Reusa los umbrales de `SmartLevel` para colorear la línea «Salud:» de la tarjeta principal
+(verde/ámbar/rojo), como el diálogo S.M.A.R.T.: aviso temprano sin abrirlo. El estado del diálogo
+también pasa a niveles (`HealthLevel`): gana el texto de estado localizado y un estado no reportado
+deja de pintarse en rojo.
+- Dónde: `Core/SmartInfo.HealthLevel` (puro testeable) + `UI/MainWindow.RenderHealth` +
+  `UI/HealthDialog.LevelBrush` (ahora estático compartido).
+
+### 34. Validación inline de la etiqueta — ✅ implementado (v1.13.0) · refina la validación compartida (1.9.1)
+Hint de error bajo el `TextBox` mientras se teclean caracteres inválidos o al cambiar de FS (antes solo
+un diálogo modal al pulsar Iniciar; el `MaxLength` dinámico ya era inline desde 1.9.1). El modal se
+mantiene como respaldo al enviar.
+- Dónde: `Core/FormatLogic.ValidateLabel` (+ `LabelValidation`/`InvalidLabelChars`, puros testeables,
+  compartidos por el hint y `ValidateLabelAsync`) + `UI/MainWindow` (`LabelErrorText`,
+  `VolumeLabelBox_TextChanged`, `UpdateLabelHint`).
+
+### 35. Progreso en la barra de tareas de Windows — ✅ implementado (v1.13.0) · refina #12
+`ITaskbarList3.SetProgressValue`/`SetProgressState` durante operaciones largas: el progreso (o el estado
+indeterminado) se ve en el icono de la barra de tareas con la app minimizada, a la misma cadencia de 1 s
+del cronómetro (complementa el aviso al terminar).
+- Dónde: `Services/TaskbarProgress` (helper COM/Win32 propio, no-op si el shell no lo soporta) +
+  `UI/MainWindow` (`TimerElapsed_Tick` espeja `FormatProgress`; `EndOperation` limpia el icono).
+
+### 36. Estado de error en la barra de progreso — ✅ implementado (v1.13.0)
+`ProgressBar.ShowError` (rojo Fluent) al fallar o cancelar una operación, hasta el siguiente inicio;
+antes la barra simplemente se vaciaba y el único feedback era el diálogo modal.
+- Dónde: `UI/MainWindow` (`_lastOperationFailed` + `EndOperation` combina con `_cancelRequested`;
+  caso especial del benchmark, que detecta el fallo tras `EndOperation`).
+
+---
+
 ## 🚫 Deliberadamente fuera de alcance
 
 Se excluyen a propósito para no desviar el producto de su propósito. Adoptar cualquiera de ellos sería
@@ -211,7 +276,17 @@ considera distribución suficiente. → **Tier 3 cerrado.**
 2. **Trabajo medio** — ✅ **v1.11.0**: **#16 umbrales S.M.A.R.T.**, **#22 accesibilidad**, **#19 historial (filtro/CSV)**, **#20 editar/reordenar presets**.
 3. **Integración con el sistema** — ✅ **v1.11.0**: **#17 refresco automático de unidades** (`WM_DEVICECHANGE`).
 
-→ **Tier 4 cerrado.** Solo queda lo deliberadamente fuera de alcance.
+→ **Tier 4 cerrado.** El **Tier 5** (confianza/legal/donaciones, #23–#27) va en **v1.12.0**.
+
+**Tier 6 (pulido UX/UI) — completado:**
+1. **Quick wins** — ✅ **#28 InfoBar de unidad protegida**, **#29 ConfirmDialog (foco + Enter)**,
+   **#30 barra de capacidad**, **#31 iconos por tipo**, **#32 estado vacío**.
+2. **Trabajo medio** — ✅ **#33 salud coloreada**, **#34 validación inline de etiqueta**,
+   **#35 progreso en la barra de tareas**, **#36 error en la barra de progreso**.
+
+Todo publicado en **v1.13.0**.
+
+→ **Tier 6 cerrado.** Solo queda lo deliberadamente fuera de alcance.
 
 Todos respetan la regla de oro (lógica pura testeable en `Core`) y el propósito del proyecto; ninguno entra en
 el territorio "fuera de alcance".

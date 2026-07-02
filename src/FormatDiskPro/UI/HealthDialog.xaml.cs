@@ -74,7 +74,7 @@ public sealed partial class HealthDialog : ContentDialog
             return;
         }
 
-        AddRow(L.T("health.status"),  Show(info.Health), HealthBrush(info.Health));
+        AddMetricRow(L.T("health.status"), Show(info.Health), SmartInfo.HealthLevel(info.Health));
         AddRow(L.T("health.bus"),     Show(info.Bus));
         AddRow(L.T("health.media"),   Show(info.Media));
         AddRow(L.T("health.spindle"), SpindleText(info));
@@ -104,7 +104,7 @@ public sealed partial class HealthDialog : ContentDialog
             AddRow(label, baseValue);
             return;
         }
-        AddRow(label, $"{baseValue} — {LevelLabel(level)}", LevelBrush(level));
+        AddRow(label, $"{baseValue} — {LevelLabel(level)}", LevelBrush(level, _dark));
     }
 
     private static string LevelLabel(SmartLevel level) => level switch
@@ -115,14 +115,18 @@ public sealed partial class HealthDialog : ContentDialog
         _                   => "",
     };
 
-    private Brush LevelBrush(SmartLevel level)
+    /// <summary>
+    /// Pincel Fluent (verde/ámbar/rojo) para un nivel S.M.A.R.T. según el tema efectivo.
+    /// Compartido con la línea «Salud:» de la tarjeta principal (<c>MainWindow.RenderHealth</c>).
+    /// </summary>
+    internal static Brush LevelBrush(SmartLevel level, bool dark)
     {
         Color c = level switch
         {
-            SmartLevel.Ok       => _dark ? Color.FromArgb(255, 0x6C, 0xCB, 0x5F) : Color.FromArgb(255, 0x0F, 0x7B, 0x0F),
-            SmartLevel.Warning  => _dark ? Color.FromArgb(255, 0xFC, 0xC8, 0x4A) : Color.FromArgb(255, 0x9D, 0x5D, 0x00),
-            SmartLevel.Critical => _dark ? Color.FromArgb(255, 0xFF, 0x99, 0xA4) : Color.FromArgb(255, 0xC4, 0x2B, 0x1C),
-            _                   => _dark ? Color.FromArgb(255, 0xFF, 0xFF, 0xFF) : Color.FromArgb(255, 0x00, 0x00, 0x00),
+            SmartLevel.Ok       => dark ? Color.FromArgb(255, 0x6C, 0xCB, 0x5F) : Color.FromArgb(255, 0x0F, 0x7B, 0x0F),
+            SmartLevel.Warning  => dark ? Color.FromArgb(255, 0xFC, 0xC8, 0x4A) : Color.FromArgb(255, 0x9D, 0x5D, 0x00),
+            SmartLevel.Critical => dark ? Color.FromArgb(255, 0xFF, 0x99, 0xA4) : Color.FromArgb(255, 0xC4, 0x2B, 0x1C),
+            _                   => dark ? Color.FromArgb(255, 0xFF, 0xFF, 0xFF) : Color.FromArgb(255, 0x00, 0x00, 0x00),
         };
         return new SolidColorBrush(c);
     }
@@ -158,14 +162,5 @@ public sealed partial class HealthDialog : ContentDialog
         grid.Children.Add(lbl);
         grid.Children.Add(val);
         RowsPanel.Children.Add(grid);
-    }
-
-    private Brush HealthBrush(string health)
-    {
-        bool healthy = health.Equals("Healthy", StringComparison.OrdinalIgnoreCase);
-        Color c = healthy
-            ? (_dark ? Color.FromArgb(255, 0x6C, 0xCB, 0x5F) : Color.FromArgb(255, 0x0F, 0x7B, 0x0F))
-            : (_dark ? Color.FromArgb(255, 0xFF, 0x99, 0xA4) : Color.FromArgb(255, 0xC4, 0x2B, 0x1C));
-        return new SolidColorBrush(c);
     }
 }

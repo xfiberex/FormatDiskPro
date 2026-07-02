@@ -80,6 +80,7 @@ public static class L
         ["btn.close"]        = ["Cerrar", "Close", "Fechar", "Fermer", "Chiudi"],
         ["btn.cancel"]       = ["Cancelar", "Cancel", "Cancelar", "Annuler", "Annulla"],
         ["tip.refresh"]      = ["Actualizar lista de unidades", "Refresh drive list", "Atualizar lista de unidades", "Actualiser la liste des lecteurs", "Aggiorna elenco unità"],
+        ["drive.none"]       = ["No hay unidades — conecta un dispositivo", "No drives — connect a device", "Sem unidades — conecte um dispositivo", "Aucun lecteur — connectez un périphérique", "Nessuna unità — collega un dispositivo"],
 
         ["info.total"]       = ["Total: {0}", "Total: {0}", "Total: {0}", "Total : {0}", "Totale: {0}"],
         ["info.free"]        = ["Libre: {0}", "Free: {0}", "Livre: {0}", "Libre : {0}", "Libero: {0}"],
@@ -87,6 +88,7 @@ public static class L
         ["info.type"]        = ["Tipo: {0}", "Type: {0}", "Tipo: {0}", "Type : {0}", "Tipo: {0}"],
         ["info.health"]      = ["Salud: {0}", "Health: {0}", "Saúde: {0}", "Santé : {0}", "Stato: {0}"],
         ["info.bus"]         = ["Conexión: {0}", "Bus: {0}", "Conexão: {0}", "Connexion : {0}", "Connessione: {0}"],
+        ["info.used"]        = ["Espacio utilizado", "Used space", "Espaço utilizado", "Espace utilisé", "Spazio utilizzato"],
         ["info.dash"]        = ["–", "–", "–", "–", "–"],
         ["info.loading"]     = ["consultando…", "querying…", "consultando…", "interrogation…", "interrogazione…"],
 
@@ -126,7 +128,7 @@ public static class L
         ["type.unknown"]     = ["Desconocido", "Unknown", "Desconhecido", "Inconnu", "Sconosciuto"],
 
         ["protected.tag"]    = ["[Protegido] ", "[Protected] ", "[Protegido] ", "[Protégé] ", "[Protetto] "],
-        ["protected.status"] = ["⚠  Disco fijo protegido — el formateo está deshabilitado.", "⚠  Fixed disk protected — formatting is disabled.", "⚠  Disco fixo protegido — a formatação está desativada.", "⚠  Disque fixe protégé — le formatage est désactivé.", "⚠  Disco fisso protetto — la formattazione è disabilitata."],
+        ["protected.status"] = ["Disco fijo protegido — el formateo está deshabilitado.", "Fixed disk protected — formatting is disabled.", "Disco fixo protegido — a formatação está desativada.", "Disque fixe protégé — le formatage est désactivé.", "Disco fisso protetto — la formattazione è disabilitata."],
 
         ["fmt.quick"]        = ["rápido", "quick", "rápido", "rapide", "rapida"],
         ["fmt.full"]         = ["completo", "full", "completo", "complet", "completa"],

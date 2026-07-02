@@ -67,6 +67,19 @@ public sealed record SmartInfo(
         : SmartLevel.Critical;
 
     /// <summary>
+    /// Clasifica el <c>HealthStatus</c> que reporta el disco físico (enumeración de Storage, siempre
+    /// en inglés: "Healthy" / "Warning" / "Unhealthy") en niveles. Cualquier otro valor (vacío, "?",
+    /// no reportado) → <see cref="SmartLevel.Unknown"/>. Lógica pura.
+    /// </summary>
+    public static SmartLevel HealthLevel(string? health) => (health ?? "").Trim().ToUpperInvariant() switch
+    {
+        "HEALTHY"   => SmartLevel.Ok,
+        "WARNING"   => SmartLevel.Warning,
+        "UNHEALTHY" => SmartLevel.Critical,
+        _           => SmartLevel.Unknown,
+    };
+
+    /// <summary>
     /// Clasifica un contador de errores de lectura/escritura: 0 normal, 1–99 atención, ≥ 100 crítico.
     /// <c>null</c> → <see cref="SmartLevel.Unknown"/>. Lógica pura.
     /// </summary>

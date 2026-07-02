@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace FormatDiskPro.UI;
@@ -26,6 +27,14 @@ public sealed partial class ConfirmDialog : ContentDialog
         InputBox.PlaceholderText = _letter;
 
         InputBox.TextChanged += (_, _) =>
-            IsPrimaryButtonEnabled = InputBox.Text.Trim().ToUpperInvariant() == _letter;
+        {
+            bool match = InputBox.Text.Trim().ToUpperInvariant() == _letter;
+            IsPrimaryButtonEnabled = match;
+            // Enter confirma solo cuando la letra coincide: se mantiene la fricción deliberada
+            // (escribir la letra) sin obligar a soltar el teclado para pulsar el botón.
+            DefaultButton = match ? ContentDialogButton.Primary : ContentDialogButton.None;
+        };
+
+        Opened += (_, _) => InputBox.Focus(FocusState.Programmatic);
     }
 }

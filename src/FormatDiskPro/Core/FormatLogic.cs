@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace FormatDiskPro;
 
@@ -63,6 +64,26 @@ public static partial class FormatLogic
         "FAT32" or "FAT" or "exFAT" => 11,
         _                           => 32,
     };
+
+    /// <summary>Caracteres no permitidos en una etiqueta de volumen de Windows.</summary>
+    public static readonly char[] InvalidLabelChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
+
+    /// <summary>Motivo por el que una etiqueta de volumen no es válida (o <see cref="Ok"/>).</summary>
+    public enum LabelValidation { Ok, InvalidChars, TooLong }
+
+    /// <summary>
+    /// Valida una etiqueta de volumen para el sistema de archivos dado: caracteres permitidos
+    /// (<see cref="InvalidLabelChars"/>) y longitud máxima por FS (<see cref="MaxLabelLength"/>).
+    /// Una etiqueta vacía siempre es válida. Lógica pura, compartida por el hint en vivo del
+    /// <c>TextBox</c> y la validación al enviar (formatear / reinicializar).
+    /// </summary>
+    public static LabelValidation ValidateLabel(string label, string fs)
+    {
+        if (string.IsNullOrEmpty(label)) return LabelValidation.Ok;
+        if (label.Any(c => InvalidLabelChars.Contains(c))) return LabelValidation.InvalidChars;
+        if (label.Length > MaxLabelLength(fs)) return LabelValidation.TooLong;
+        return LabelValidation.Ok;
+    }
 
     /// <summary>Extrae el último porcentaje (0-100) de un fragmento de salida de <c>format.com</c>; -1 si no hay.</summary>
     public static int ExtractPercent(string chunk)

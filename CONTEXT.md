@@ -6,11 +6,14 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-06-27
-- **Versión actual:** **1.12.0** (en preparación — **Tier 5: confianza, legal y sostenibilidad**: relicenciado a
-  **GNU GPL v3.0** (antes MIT) con licencia visible in-app, **disclaimer** de uso destructivo/sin garantía, **avisos de
-  terceros**, **aviso de privacidad** y **donaciones opcionales (PayPal)** — pendiente la **URL de PayPal** del usuario
-  antes de publicar). La **1.11.0** completó el **Tier 4**: **#16 umbrales de color + estado + botón Actualizar
+- **Última actualización de este documento:** 2026-07-02
+- **Versión actual:** **1.13.0** (en preparación — **Tier 6: pulido UX/UI**: InfoBar de unidad protegida,
+  `ConfirmDialog` con foco+Enter, barra de capacidad, iconos por tipo de unidad, estado vacío del selector,
+  salud coloreada, validación inline de etiqueta, progreso en la barra de tareas y estado de error en la
+  barra de progreso; incluye también el **fix de ancho** de `LegalTextDialog`/`ConfirmDialog`, que desbordaban
+  la ventana). La **1.12.0** trajo el **Tier 5**: relicenciado a **GNU GPL v3.0** (antes MIT) con licencia
+  visible in-app, **disclaimer** de uso destructivo/sin garantía, **avisos de terceros**, **aviso de
+  privacidad** y **donaciones opcionales (PayPal)**. La **1.11.0** completó el **Tier 4**: **#16 umbrales de color + estado + botón Actualizar
   en S.M.A.R.T.**, **#19 filtro + exportación CSV del historial**, **#20 editar/reordenar presets**, **#22 accesibilidad
   (nombres accesibles, aceleradores de menú, F5)** y **#17 refresco automático de unidades (`WM_DEVICECHANGE`)**. La **1.10.1**
   fue un **fix UI/UX de adaptación a DPI/escalado** (ventana dimensionada por DPI +
@@ -28,7 +31,7 @@
   **Tier 1** (persistencia, ETA/velocidad, borrado seguro con progreso real, visor de historial); la 1.3.0 el rediseño
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
-- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado**). **Tier 4 COMPLETADO** (#14–#22; v1.10.0 + v1.11.0). **Tier 5 — Confianza, legal y sostenibilidad (#23–#27) en v1.12.0:** relicenciado a GPLv3 + apartados legales in-app + donaciones PayPal. Tras Tier 5, solo queda lo deliberadamente fuera de alcance.
+- **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado**). **Tier 4 COMPLETADO** (#14–#22; v1.10.0 + v1.11.0). **Tier 5 COMPLETADO** (#23–#27; v1.12.0): relicenciado a GPLv3 + apartados legales in-app + donaciones PayPal. **Tier 6 COMPLETADO** (#28–#36; v1.13.0): pulido UX/UI.
 - **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
 
 ---
@@ -63,6 +66,7 @@ src/FormatDiskPro/
 │  ├─ BenchmarkRunner.cs   Benchmark de lectura/escritura, no destructivo (#9)
 │  ├─ AppSettings.cs       Persistencia de preferencias (settings.json: idioma/tema/unidad/presets/aviso)
 │  ├─ Notifier.cs          Aviso al terminar: sonido + parpadeo de barra de tareas (Win32)
+│  ├─ TaskbarProgress.cs   Progreso en el icono de la barra de tareas (ITaskbarList3, Win32) (#35)
 │  ├─ UpdateService.cs     GitHub Releases API: consulta, descarga con progreso, lanza instalador
 │  └─ History.cs           Auditoría en %AppData%\FormatDiskPro\history.log
 ├─ UI/              WinUI 3 (Windows App SDK)
@@ -73,7 +77,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (165 tests)
+tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (249 tests)
 release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
 FormatDiskPro.slnx           Solución (app + tests)
 ```
@@ -84,15 +88,32 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **226/226** (`dotnet test`) — 224 previas + 2 del Tier 5 (`LegalText.License`/`ThirdParty`).
-- ✅ **Tier 5 — confianza/legal/sostenibilidad (v1.12.0, pendiente de publicar):**
+- ✅ Pruebas: **249/249** (`dotnet test`) — 226 previas + 23 del Tier 6 (8 `SmartInfo.HealthLevel` + 15 `FormatLogic.ValidateLabel`).
+- ✅ **Tier 6 — Pulido UX/UI (#28–#36), COMPLETADO (2026-07-02, publicado en v1.13.0):**
+  **#28** aviso de unidad protegida como `InfoBar` Fluent sobre las tarjetas (antes texto rojo en el
+  `StatusText` del footer, que competía con el estado de operaciones); **#29** `ConfirmDialog` con foco
+  inicial en la caja y **Enter** para confirmar cuando la letra coincide; **#30** barra de capacidad
+  usado/libre en la tarjeta Unidad (`CapacityBar`, oculta si la unidad no está lista, con nombre accesible
+  y tooltip `info.used`). Los tres **verificados por el usuario**. **#31** iconos por tipo de unidad en el
+  selector (`DriveViewModel.Glyph`: USB/RAM/disco fijo, siguen el color del texto); **#32** estado vacío
+  del selector (`PlaceholderText` con la clave `drive.none`); **#33** línea «Salud:» de la tarjeta
+  coloreada con `Core/SmartInfo.HealthLevel` (puro, +8 tests) vía `HealthDialog.LevelBrush` (ahora
+  estático compartido; el diálogo S.M.A.R.T. usa el mismo nivel para su fila de estado, ganando el texto
+  localizado y sin pintar en rojo un estado no reportado). **#34** validación inline de la etiqueta
+  (`Core/FormatLogic.ValidateLabel`, puro, +15 tests, compartido por el hint en vivo y el modal de envío).
+  **#35** progreso en la barra de tareas (`Services/TaskbarProgress`, helper COM/Win32 propio, no-op si el
+  shell no lo soporta). **#36** `ProgressBar.ShowError` al fallar/cancelar (`_lastOperationFailed` +
+  `_cancelRequested`, combinados en `EndOperation`). **#31–#36 sin verificación visual explícita** del
+  usuario antes de publicar (build+tests en verde; #28–#30 sí se validaron con capturas).
+- ✅ **Fix (mismo día):** `LegalTextDialog`/`ConfirmDialog` (`MaxWidth` 460→420 DIP) desbordaban el ancho de
+  la ventana (500 DIP) — ver entrada del registro de cambios; verificado por el usuario.
+- ✅ **Tier 5 — confianza/legal/sostenibilidad (v1.12.0, publicado):**
   Relicenciado **MIT → GNU GPL v3.0**: `LICENSE` con el texto oficial (descargado de gnu.org), embebido vía `.csproj`
   como recurso (`FormatDiskPro.LICENSE.txt`) + `THIRD-PARTY-NOTICES.txt`. `Core/LegalText` lee ambos recursos.
   `UI/AboutDialog` (Acerca de ampliado: descripción, versión, copyright/licencia, **disclaimer** de uso destructivo/sin
   garantía, **privacidad**, botones *GitHub* y *Apoyar el proyecto*); `UI/LegalTextDialog` (visor con scroll para
-  *Ayuda → Licencia* y *Ayuda → Avisos de terceros*). `AppInfo.DonateUrl` (PayPal) + `RepoUrl`; donación **opcional**,
-  sin bloquear nada. **Pendiente:** sustituir `AppInfo.DonateUrl` por la URL real de PayPal del usuario y añadir
-  `.github/FUNDING.yml` antes de publicar v1.12.0.
+  *Ayuda → Licencia* y *Ayuda → Avisos de terceros*). `AppInfo.DonateUrl` (PayPal, URL real ya configurada) + `RepoUrl`;
+  donación **opcional**, sin bloquear nada. `.github/FUNDING.yml` añadido.
 - ✅ **Tier 4 COMPLETADO (resto publicado en 1.11.0):**
   **#16 S.M.A.R.T. con umbrales** — `Core/SmartInfo` (`SmartLevel` + `TemperatureLevel`/`WearLevel`/`ErrorLevel` puros);
   el `HealthDialog` colorea temperatura/desgaste/errores por rango con **texto de estado** (Normal/Atención/Crítico) y
@@ -236,6 +257,104 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-07-02 — feat(ui): Tier 6 cerrado — #34 validación inline + #35 progreso en taskbar + #36 error en la barra
+
+Última tanda del Tier 6: cierra los tres items de "trabajo medio" que quedaban. Build **0/0**,
+**249/249 tests** (234 + 15).
+
+- **#34 — Validación inline de la etiqueta (refina 1.9.1):** nueva `Core/FormatLogic.ValidateLabel(label, fs)`
+  pura (`LabelValidation.{Ok,InvalidChars,TooLong}` + `InvalidLabelChars` compartido), extraída del array
+  local que antes vivía solo dentro de `ValidateLabelAsync`. `MainWindow` añade `LabelErrorText` (hint rojo
+  bajo el `TextBox`) actualizado en `VolumeLabelBox_TextChanged` y al cambiar de FS (un cambio de FS puede
+  volver inválida una etiqueta ya escrita, p. ej. NTFS→FAT32 acorta el máximo de 32 a 11). El modal de
+  `ValidateLabelAsync` se mantiene como respaldo al enviar (Iniciar/Reinicializar), ahora reescrito sobre
+  el mismo `ValidateLabel`. +15 tests (`FormatLogicTests`): vacío/null, válida, los 9 caracteres inválidos,
+  longitud límite/excedida, prioridad de InvalidChars sobre TooLong.
+- **#35 — Progreso en la barra de tareas (refina #12):** `Services/TaskbarProgress` (nuevo), wrapper COM/Win32
+  de `ITaskbarList3` (mismo estilo que `Notifier`: P/Invoke propio, todo en `try/catch` silencioso —no-op si
+  el shell no lo soporta—). `MainWindow.TimerElapsed_Tick` (ya corre cada 1 s mientras hay una operación en
+  curso) espeja `FormatProgress.Value`/`IsIndeterminate` al icono; `EndOperation` lo limpia.
+- **#36 — Estado de error en la barra de progreso:** nuevo campo `_lastOperationFailed` (paralelo a
+  `_cancelRequested`), reseteado en `BeginOperation` junto con `FormatProgress.ShowError = false`; se fija en
+  las 4 ramas de fallo real —no cancelación— que existían (formatear: código de salida ≠ 0 y excepción
+  inesperada; verificar: resultado no-OK; reinicializar: resultado no-OK; descarga de actualización:
+  excepción). `EndOperation` combina `_cancelRequested || _lastOperationFailed` → `FormatProgress.ShowError`
+  (rojo Fluent nativo, sin CSS/color a mano). Caso especial: el benchmark detecta "sin espacio" **después**
+  de que su `finally` ya llamó a `EndOperation()`, así que esa rama fija `ShowError` directamente. `chkdsk`
+  queda fuera a propósito: encontrar errores de disco no es un fallo de la *operación* (siempre llega a 100 %
+  y lo reporta por diálogo); solo su cancelación entra por la vía `_cancelRequested` ya centralizada.
+
+**Sin cambios:** `Services/DiskService|SecureWipe|CheckDisk|ReinitDrive|BenchmarkRunner|UpdateService`,
+lógica de formateo, `release.ps1`.
+**Verificación visual pendiente** (la app requiere admin; la realiza el usuario).
+
+### 2026-07-02 — feat(ui): Tier 6 — #31 iconos por tipo + #32 estado vacío + #33 salud coloreada
+
+Segunda tanda del Tier 6 (los quick wins #28–#30 ya validados visualmente por el usuario). Build **0/0**,
+**234/234 tests** (226 + 8).
+
+- **#31 — Iconos por tipo de unidad:** `DriveViewModel.Glyph` (Segoe Fluent Icons: USB `E88E`,
+  RAM/Component `E950`, disco fijo `EDA2`, escapes `\u` explícitos en el código) + `FontIcon` en el
+  `DataTemplate` del `DrivePicker`, con el mismo `ForegroundBrush` que el texto (rojo si protegida).
+- **#32 — Estado vacío del selector:** `DrivePicker.PlaceholderText` (solo visible sin selección, es decir,
+  sin unidades elegibles) con la clave nueva `drive.none` («No hay unidades — conecta un dispositivo»),
+  asignada en `ApplyLanguage` (5 idiomas).
+- **#33 — Salud coloreada en la tarjeta (refina #16):** nuevo `Core/SmartInfo.HealthLevel(string?)` puro
+  (mapea el `HealthStatus` de Storage — "Healthy"/"Warning"/"Unhealthy", siempre en inglés — a `SmartLevel`;
+  otro valor → `Unknown`). `MainWindow.RenderHealth` colorea la línea «Salud:» con
+  `HealthDialog.LevelBrush(level, dark)` (refactorizado a **estático interno** para compartirlo), limpia el
+  color en `ClearInfo`/estado nulo y se re-deriva al cambiar de tema (`ApplyTheme` → `RenderHealth`).
+  En el propio `HealthDialog`, la fila de estado pasa de `HealthBrush` (binario verde/rojo, que pintaba en
+  rojo un estado no reportado) a `AddMetricRow` + `HealthLevel`: gana el texto de estado localizado
+  («Healthy — Normal») y el estado desconocido queda neutro. `HealthBrush` eliminado.
+- Pruebas: +8 casos de `HealthLevel` en `SmartInfoTests` (mayúsculas/espacios, Warning/Unhealthy,
+  "?"/vacío/null → Unknown).
+
+**Sin cambios:** lógica de formateo, `Services/*`, `release.ps1`.
+**Verificación visual pendiente de #31–#33** (la app requiere admin; la realiza el usuario).
+
+### 2026-07-02 — feat(ui): Tier 6 abierto (pulido UX/UI, #28–#36) + quick wins #28/#29/#30 implementados
+
+Se abre el **Tier 6 — Pulido UX/UI** en [`ROADMAP.md`](ROADMAP.md) (como el Tier 4, refina lo existente:
+presentación y feedback con patrones Fluent/WinUI, sin tocar lógica de formateo ni servicios; numeración
+global #28–#36) y se implementan los tres primeros quick wins. Build **0/0**, **226/226 tests**.
+
+- **#28 — Aviso de unidad protegida como `InfoBar`:** el aviso «Disco fijo protegido…» era el `StatusText`
+  del footer con foreground rojo, repintado en 3 sitios (`ApplyProtection`/`ApplyLanguage`/`SetFormEnabled`)
+  y recoloreado en `ApplyTheme`; se pisaba con el estado de las operaciones. Ahora es un `InfoBar`
+  (`Severity=Warning`, no cerrable) sobre las tarjetas (`ProtectedBar` en `MainWindow.xaml`): icono, color y
+  accesibilidad de serie, se tematiza solo y persiste durante operaciones. Los 4 puntos de repintado quedan
+  reducidos a abrir/cerrar la barra y refrescar su mensaje en `ApplyLanguage`. La clave `protected.status`
+  pierde el prefijo «⚠» (el icono lo pone el `InfoBar`) en los 5 idiomas.
+- **#29 — `ConfirmDialog`: foco inicial + Enter:** al abrir, el foco va a la caja de la letra
+  (`Opened` → `Focus`); cuando la letra coincide, `DefaultButton` pasa a `Primary` dinámicamente y **Enter**
+  confirma (antes había que ir al ratón tras escribir). La fricción deliberada se mantiene intacta.
+- **#30 — Barra de capacidad en la tarjeta Unidad:** `ProgressBar` fino (`CapacityBar`, 0–100) bajo el grid
+  de datos con el % usado (`(total − libre) / total`), calculado en `UpdateInfo` con los mismos valores que
+  las líneas Total/Libre; oculta si la unidad no está lista (`ClearInfo`). Nombre accesible + tooltip con la
+  clave nueva `info.used` (5 idiomas, la prueba de completitud sigue verde).
+
+**Sin cambios:** `Core/*`, `Services/*`, lógica de formateo, `release.ps1`.
+**Verificación visual pendiente** (la app requiere admin; la realiza el usuario).
+
+### 2026-07-02 — fix(ui): LegalTextDialog/ConfirmDialog desbordaban el ancho de la ventana (Licencia/Avisos de terceros pegados a los bordes)
+
+Reportado con captura: en *Ayuda → Licencia* y *Ayuda → Avisos de terceros* el diálogo llegaba hasta los bordes
+laterales de la app (más visible en portátiles de alta densidad, mismo problema de fondo que el fix de DPI de
+la v1.10.1). Build **0/0**, **226/226 tests** (sin cambios de lógica).
+
+- **Causa:** la ventana principal mide **500 DIP** de ancho (`MainWindow.DesignWidthDip`) y `ContentDialog`
+  añade **24 DIP de padding por lado** (48 DIP fijos, tema Fluent por defecto). `LegalTextDialog` fijaba
+  `MaxWidth="460"` en su `ScrollViewer` → 460 + 48 = **508 DIP**, **más ancho que la propia ventana**; WinUI lo
+  comprimía al espacio disponible y el diálogo quedaba pegado a ambos bordes. `ConfirmDialog` tenía el mismo
+  `MaxWidth="460"` (mismo bug latente, no reportado aún porque se usa menos).
+  Los demás diálogos (`HistoryDialog` 420, `AboutDialog` 400, `WhatsNewDialog`/`PresetsDialog` 380,
+  `HealthDialog` 360) ya dejaban margen suficiente y no lo sufrían.
+- **Fix:** `MaxWidth` de `460` → **`420`** en `UI/LegalTextDialog.xaml` y `UI/ConfirmDialog.xaml` (total 468 DIP,
+  igual que `HistoryDialog`, con 32 DIP de margen respecto a la ventana). Verificado por el usuario en laptop.
+
+**Sin cambios:** `Core/*`, `Services/*`, lógica de formateo, `release.ps1`.
 
 ### 2026-06-27 — feat: Tier 5 — relicencia GPLv3 + apartados legales in-app + donaciones (#23–#27) — v1.12.0 (en preparación)
 

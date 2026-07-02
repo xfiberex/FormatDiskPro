@@ -104,4 +104,16 @@ public sealed class SmartInfoTests
     [InlineData(100L, SmartLevel.Critical)]
     public void ErrorLevel_ClassifiesByRange(long? e, SmartLevel expected)
         => Assert.Equal(expected, SmartInfo.ErrorLevel(e));
+
+    [Theory]
+    [InlineData("Healthy", SmartLevel.Ok)]
+    [InlineData("healthy", SmartLevel.Ok)]
+    [InlineData(" Healthy ", SmartLevel.Ok)]
+    [InlineData("Warning", SmartLevel.Warning)]
+    [InlineData("Unhealthy", SmartLevel.Critical)]
+    [InlineData("?", SmartLevel.Unknown)]
+    [InlineData("", SmartLevel.Unknown)]
+    [InlineData(null, SmartLevel.Unknown)]
+    public void HealthLevel_ClassifiesReportedStatus(string? health, SmartLevel expected)
+        => Assert.Equal(expected, SmartInfo.HealthLevel(health));
 }

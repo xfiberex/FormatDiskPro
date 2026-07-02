@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml.Media;
+﻿using Microsoft.UI.Xaml.Media;
 using System.ComponentModel;
 
 namespace FormatDiskPro.UI;
@@ -11,6 +11,8 @@ public sealed class DriveViewModel : INotifyPropertyChanged
     public string DisplayText { get; }
     public DriveInfo Info { get; }
     public bool IsProtected { get; }
+    /// <summary>Glifo Segoe Fluent Icons según el tipo de unidad (USB / RAM / disco fijo).</summary>
+    public string Glyph { get; }
 
     public SolidColorBrush ForegroundBrush
     {
@@ -28,5 +30,11 @@ public sealed class DriveViewModel : INotifyPropertyChanged
         Info = info;
         IsProtected = isProtected;
         _foregroundBrush = brush;
+        Glyph = info.DriveType switch
+        {
+            DriveType.Removable => "\uE88E",   // USB
+            DriveType.Ram       => "\uE950",   // Component (chip de memoria)
+            _                   => "\uEDA2",   // HardDrive
+        };
     }
 }

@@ -15,7 +15,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <StackPanel Spacing="12" MinWidth="360" MaxWidth="460">
+    <StackPanel Spacing="12" MinWidth="360" MaxWidth="420">
         <ScrollViewer MaxHeight="180">
             <TextBlock x:Name="SummaryText" TextWrapping="Wrap" FontSize="12.5"
                        FontFamily="Consolas" Margin="2,0" />

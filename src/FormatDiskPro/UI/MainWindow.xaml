@@ -69,6 +69,9 @@
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0">
             <StackPanel Padding="16,14,16,16" Spacing="12">
 
+                <!-- Aviso persistente: unidad de sistema protegida (formateo deshabilitado) -->
+                <InfoBar x:Name="ProtectedBar" Severity="Warning" IsClosable="False" IsOpen="False" />
+
                 <!-- ── Card: Unidad (selección + información) ── -->
                 <Border Style="{StaticResource AppCardStyle}">
                     <StackPanel Spacing="10">
@@ -82,8 +85,12 @@
                                       SelectionChanged="DrivePicker_SelectionChanged">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="ui:DriveViewModel">
-                                        <TextBlock Text="{x:Bind DisplayText}"
-                                                   Foreground="{x:Bind ForegroundBrush, Mode=OneWay}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" VerticalAlignment="Center"
+                                                      Foreground="{x:Bind ForegroundBrush, Mode=OneWay}" />
+                                            <TextBlock Text="{x:Bind DisplayText}" VerticalAlignment="Center"
+                                                       Foreground="{x:Bind ForegroundBrush, Mode=OneWay}" />
+                                        </StackPanel>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
@@ -110,6 +117,10 @@
                             <TextBlock x:Name="InfoHealthText" Grid.Row="2" Grid.Column="0" Style="{StaticResource InfoTextStyle}" Text="Salud: –" />
                             <TextBlock x:Name="InfoBusText"    Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Conexión: –" />
                         </Grid>
+
+                        <!-- Ocupación usado/libre de un vistazo (oculta si la unidad no está lista) -->
+                        <ProgressBar x:Name="CapacityBar" Maximum="100" Margin="0,2,0,0"
+                                     Visibility="Collapsed" />
                     </StackPanel>
                 </Border>
 
@@ -130,7 +141,11 @@
                                   Header="Tamaño de unidad de asignación" Margin="0,2,0,0" />
 
                         <TextBox x:Name="VolumeLabelBox" MaxLength="32" HorizontalAlignment="Stretch"
-                                 Header="Etiqueta del volumen:" Margin="0,2,0,0" />
+                                 Header="Etiqueta del volumen:" Margin="0,2,0,0"
+                                 TextChanged="VolumeLabelBox_TextChanged" />
+                        <TextBlock x:Name="LabelErrorText" FontSize="12" TextWrapping="Wrap"
+                                   Margin="2,-4,0,0" Visibility="Collapsed"
+                                   Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
 
                         <Button x:Name="RestoreButton" Content="Restaurar valores predeterminados"
                                 HorizontalAlignment="Stretch" Margin="0,2,0,0"

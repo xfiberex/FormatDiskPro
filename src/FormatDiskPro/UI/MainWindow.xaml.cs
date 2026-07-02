@@ -50,6 +50,9 @@ public sealed partial class MainWindow : Window
     // ── State ─────────────────────────────────────────────────────
 
     private bool _isBusy, _cancelRequested, _isDriveProtected, _darkMode, _autoTheme = true;
+    // Falla real (no cancelación) de la operación en curso: la fija cada flujo en su rama de error
+    // no-cancelación; EndOperation la combina con _cancelRequested para el estado visual de la barra.
+    private bool _lastOperationFailed;
     // Cierre intencional para auto-actualizarse: la app debe cerrarse (aunque _isBusy siga
     // activo por la descarga) para soltar el AppMutex y los archivos y que el instalador la reemplace.
     private bool _closingForUpdate;
@@ -363,10 +366,18 @@ public sealed partial class MainWindow : Window
         {
             InfoHealthText.Text = L.T("info.health", L.T("info.dash"));
             InfoBusText.Text    = L.T("info.bus", L.T("info.dash"));
+            InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
             return;
         }
         InfoHealthText.Text = L.T("info.health", h.Health);
         InfoBusText.Text    = L.T("info.bus", $"{h.Bus} · {h.Media}");
+
+        // Umbrales de #16: colorear el estado reportado (el texto ya transmite el estado; el color refuerza).
+        var level = SmartInfo.HealthLevel(h.Health);
+        if (level == SmartLevel.Unknown)
+            InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
+        else
+            InfoHealthText.Foreground = HealthDialog.LevelBrush(level, _darkMode);
     }
 
     private void ApplyProtection()
@@ -381,8 +392,8 @@ public sealed partial class MainWindow : Window
             QuickFormatCheck.IsEnabled  = false;
             CompressCheck.IsEnabled     = false;
             SecureWipeCheck.IsEnabled   = false;
-            StatusText.Foreground = new SolidColorBrush(ProtectedColor());
-            StatusText.Text       = L.T("protected.status");
+            ProtectedBar.Message = L.T("protected.status");
+            ProtectedBar.IsOpen  = true;
         }
         else
         {
@@ -394,6 +405,7 @@ public sealed partial class MainWindow : Window
             QuickFormatCheck.IsEnabled  = true;
             SecureWipeCheck.IsEnabled   = true;
             CompressCheck.IsEnabled     = FileSystemPicker.SelectedItem?.ToString() == "NTFS";
+            ProtectedBar.IsOpen = false;
             StatusText.ClearValue(TextBlock.ForegroundProperty);
             StatusText.Text = "";
         }
@@ -415,10 +427,13 @@ public sealed partial class MainWindow : Window
         try
         {
             if (!drive.IsReady) { ClearInfo(); return; }
-            InfoTotalText.Text = L.T("info.total", FormatBytes(drive.TotalSize));
-            InfoFreeText.Text  = L.T("info.free", FormatBytes(drive.AvailableFreeSpace));
+            long total = drive.TotalSize, free = drive.AvailableFreeSpace;
+            InfoTotalText.Text = L.T("info.total", FormatBytes(total));
+            InfoFreeText.Text  = L.T("info.free", FormatBytes(free));
             InfoFsText.Text    = L.T("info.fs", drive.DriveFormat);
             InfoTypeText.Text  = L.T("info.type", DriveTypeName(drive.DriveType));
+            CapacityBar.Value      = total > 0 ? (total - free) * 100.0 / total : 0;
+            CapacityBar.Visibility = Visibility.Visible;
         }
         catch { ClearInfo(); }
     }
@@ -431,6 +446,8 @@ public sealed partial class MainWindow : Window
         InfoTypeText.Text   = L.T("info.type", L.T("info.dash"));
         InfoHealthText.Text = L.T("info.health", L.T("info.dash"));
         InfoBusText.Text    = L.T("info.bus", L.T("info.dash"));
+        InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
+        CapacityBar.Visibility = Visibility.Collapsed;
     }
 
     // ── File system ───────────────────────────────────────────────
@@ -469,6 +486,8 @@ public sealed partial class MainWindow : Window
         UpdateFsDescription();
         UpdateCompressionOption();
         UpdateLabelMaxLength();
+        // Un cambio de FS puede volver inválida la etiqueta ya escrita (p. ej. NTFS→FAT32 acorta el máximo).
+        UpdateLabelHint();
     }
 
     // Ajusta el máximo de caracteres de la etiqueta al límite del FS seleccionado (FAT/FAT32/exFAT: 11;
@@ -679,25 +698,37 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task<bool> ValidateLabelAsync(string label, string fs, bool focusOnError)
     {
-        if (string.IsNullOrEmpty(label)) return true;
-
-        char[] invalidChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
-        if (label.Any(c => invalidChars.Contains(c)))
+        switch (FormatLogic.ValidateLabel(label, fs))
         {
-            await ShowInfoAsync(L.T("msg.invalidTitle"), L.T("msg.invalidLabel"));
-            if (focusOnError) VolumeLabelBox.Focus(FocusState.Programmatic);
-            return false;
+            case FormatLogic.LabelValidation.InvalidChars:
+                await ShowInfoAsync(L.T("msg.invalidTitle"), L.T("msg.invalidLabel"));
+                if (focusOnError) VolumeLabelBox.Focus(FocusState.Programmatic);
+                return false;
+            case FormatLogic.LabelValidation.TooLong:
+                await ShowInfoAsync(L.T("msg.labelLongTitle"), L.T("msg.labelLong", FormatLogic.MaxLabelLength(fs), fs));
+                if (focusOnError) VolumeLabelBox.Focus(FocusState.Programmatic);
+                return false;
+            default:
+                return true;
         }
-
-        int maxLabel = FormatLogic.MaxLabelLength(fs);
-        if (label.Length > maxLabel)
-        {
-            await ShowInfoAsync(L.T("msg.labelLongTitle"), L.T("msg.labelLong", maxLabel, fs));
-            if (focusOnError) VolumeLabelBox.Focus(FocusState.Programmatic);
-            return false;
-        }
-        return true;
     }
+
+    // Hint en vivo bajo la etiqueta (mientras se escribe / al cambiar de FS): el modal de
+    // ValidateLabelAsync queda como respaldo al enviar (Iniciar / Reinicializar).
+    private void UpdateLabelHint()
+    {
+        string fs = FileSystemPicker.SelectedItem?.ToString() ?? "NTFS";
+        var result = FormatLogic.ValidateLabel(VolumeLabelBox.Text, fs);
+        LabelErrorText.Text = result switch
+        {
+            FormatLogic.LabelValidation.InvalidChars => L.T("msg.invalidLabel"),
+            FormatLogic.LabelValidation.TooLong       => L.T("msg.labelLong", FormatLogic.MaxLabelLength(fs), fs),
+            _                                          => "",
+        };
+        LabelErrorText.Visibility = result == FormatLogic.LabelValidation.Ok ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void VolumeLabelBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateLabelHint();
 
     private async Task RunFormatAsync(
         char driveLetter, string fs, long allocBytes,
@@ -783,6 +814,7 @@ public sealed partial class MainWindow : Window
             else
             {
                 FormatProgress.Value = 0;
+                _lastOperationFailed = true;
                 StatusText.Text = L.T("status.error");
                 History.Log($"FORMAT FAIL {driveLetter}: fs={fs} code={code}");
                 await ShowInfoAsync(L.T("error.formatTitle"), L.T("error.formatBody", driveLetter, output.Trim()));
@@ -798,6 +830,7 @@ public sealed partial class MainWindow : Window
         {
             FormatProgress.IsIndeterminate = false;
             FormatProgress.Value = 0;
+            _lastOperationFailed = true;
             StatusText.Text = _cancelRequested ? L.T("status.cancelled") : L.T("status.unexpected");
             History.Log($"FORMAT ERROR {driveLetter}: {ex.Message}");
             if (!_cancelRequested)
@@ -944,6 +977,7 @@ public sealed partial class MainWindow : Window
             else
             {
                 FormatProgress.Value = 0;
+                _lastOperationFailed = true;
                 StatusText.Foreground = new SolidColorBrush(ProtectedColor());
                 StatusText.Text = L.T("verify.failTitle");
                 History.Log($"VERIFY FAIL {item.Letter}: {result.FailureDetail} ok-until={result.WrittenBytes}");
@@ -1180,6 +1214,7 @@ public sealed partial class MainWindow : Window
             else
             {
                 FormatProgress.Value = 0;
+                _lastOperationFailed = true;
                 History.Log($"REINIT FAIL {item.Letter}: {r.Detail}");
                 StatusText.Foreground = new SolidColorBrush(ProtectedColor());
                 StatusText.Text = L.T("reinit.failed");
@@ -1251,7 +1286,10 @@ public sealed partial class MainWindow : Window
 
         if (res is null)
         {
+            // Se detecta tras EndOperation() (arriba, en el finally): no puede pasar por
+            // _lastOperationFailed, se fija ShowError directamente.
             FormatProgress.Value = 0;
+            FormatProgress.ShowError = true;
             StatusText.Text = L.T("bench.failed", item.Letter);
             await ShowInfoAsync(L.T("bench.resultTitle"), L.T("bench.noSpace", item.Letter));
             return;
@@ -1491,6 +1529,7 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             FormatProgress.Value = 0;
+            _lastOperationFailed = true;
             StatusText.Text = "";
             History.Log($"UPDATE DOWNLOAD ERROR {rel.Version}: {ex.Message}");
             await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ex.Message));
@@ -1654,8 +1693,13 @@ public sealed partial class MainWindow : Window
         StartButton.Content      = L.T("btn.start");
         if (!_isBusy) CloseButton.Content = L.T("btn.close");
         RefreshTooltip.Content   = L.T("tip.refresh");
+        // Solo visible cuando no hay unidades elegibles (sin selección): explica el estado vacío.
+        DrivePicker.PlaceholderText = L.T("drive.none");
         AutomationProperties.SetName(RefreshButton, L.T("tip.refresh"));
         AutomationProperties.SetName(WipePassesPicker, L.T("opt.passes"));
+        AutomationProperties.SetName(CapacityBar, L.T("info.used"));
+        ToolTipService.SetToolTip(CapacityBar, L.T("info.used"));
+        UpdateLabelHint();   // refresca el hint visible (si lo hay) al cambiar de idioma
 
         MnuLangEs.IsChecked = L.Current == AppLang.Es;
         MnuLangEn.IsChecked = L.Current == AppLang.En;
@@ -1678,10 +1722,7 @@ public sealed partial class MainWindow : Window
         UpdateFsDescription();
 
         if (_isDriveProtected)
-        {
-            StatusText.Foreground = new SolidColorBrush(ProtectedColor());
-            StatusText.Text       = L.T("protected.status");
-        }
+            ProtectedBar.Message = L.T("protected.status");
     }
 
     private bool IsSystemDark()
@@ -1706,8 +1747,8 @@ public sealed partial class MainWindow : Window
         foreach (var vm in _driveItems)
             vm.ForegroundBrush = DriveBrush(vm.IsProtected);
 
-        if (_isDriveProtected)
-            StatusText.Foreground = new SolidColorBrush(ProtectedColor());
+        // Re-derivar el color de la línea «Salud:» con la paleta del tema efectivo.
+        if (_lastHealth is not null) RenderHealth(_lastHealth);
     }
 
     // Tematiza los botones de caption (minimizar/maximizar/cerrar) según el tema EFECTIVO.
@@ -1747,6 +1788,8 @@ public sealed partial class MainWindow : Window
     {
         _isBusy = true;
         _cancelRequested = false;
+        _lastOperationFailed = false;
+        FormatProgress.ShowError = false;
         _cts = new CancellationTokenSource();
         SetFormEnabled(false);
         StatusText.ClearValue(TextBlock.ForegroundProperty);
@@ -1766,10 +1809,13 @@ public sealed partial class MainWindow : Window
         _activeProcess = null;
         _cts?.Dispose();
         _cts = null;
+        TaskbarProgress.Clear(WinRT.Interop.WindowNative.GetWindowHandle(this));
         // Si nos estamos cerrando para actualizar, la ventana ya se va: no tocar la UI.
         if (_closingForUpdate) return;
         SetFormEnabled(true);
         CloseButton.Content = L.T("btn.close");
+        // Barra en rojo (Fluent ShowError) al fallar o cancelar, hasta el próximo BeginOperation.
+        FormatProgress.ShowError = _cancelRequested || _lastOperationFailed;
 
         // Aviso al terminar operaciones largas: sonido + parpadeo de la barra (solo si el usuario
         // no está mirando la ventana). No aplica a operaciones cortas ni canceladas.
@@ -1817,6 +1863,12 @@ public sealed partial class MainWindow : Window
         }
 
         ElapsedText.Text = text;
+
+        // Espeja el estado de FormatProgress en el icono de la barra de tareas (visible con la app
+        // minimizada), a la misma cadencia de 1 s del cronómetro — complementa el aviso al terminar.
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (FormatProgress.IsIndeterminate) TaskbarProgress.SetIndeterminate(hwnd);
+        else                                TaskbarProgress.SetValue(hwnd, (int)FormatProgress.Value);
     }
 
     // ── Helpers ───────────────────────────────────────────────────
@@ -1845,12 +1897,6 @@ public sealed partial class MainWindow : Window
         SecureWipeCheck.IsEnabled   = canFormat;
         CompressCheck.IsEnabled     = canFormat && FileSystemPicker.SelectedItem?.ToString() == "NTFS";
         UpdateWipePassesEnabled();
-
-        if (enabled && _isDriveProtected)
-        {
-            StatusText.Foreground = new SolidColorBrush(ProtectedColor());
-            StatusText.Text       = L.T("protected.status");
-        }
     }
 
     private long GetSelectedAllocBytes() =>

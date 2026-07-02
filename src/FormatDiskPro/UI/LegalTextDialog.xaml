@@ -10,7 +10,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <ScrollViewer MinWidth="360" MaxWidth="460" MaxHeight="420"
+    <ScrollViewer MinWidth="360" MaxWidth="420" MaxHeight="420"
                   VerticalScrollBarVisibility="Auto"
                   HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
         <TextBlock x:Name="BodyText" TextWrapping="Wrap" FontSize="12"
