@@ -6,7 +6,7 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-07-02
+- **Última actualización de este documento:** 2026-07-05
 - **Versión actual:** **1.14.0** (**Tier 7 — #37: partición FAT32 pequeña al reinicializar en discos
   grandes**, con tamaño seleccionable 1/2/4/8/16/32 GB, verificado con hardware real; incluye el **fix de
   `Initialize-Disk`** que hacía fallar todo Reinicializar unidad en algunos USB, y el pulido UX posterior:
@@ -36,7 +36,7 @@
   UI/UX inspirado en Win11Debloat + fixes de tema. La auto-actualización silenciosa aplica **desde la 1.2.2 en adelante**
   (1.2.2 corrigió el bug de cierre que cancelaba `Application.Current.Exit()` por `_isBusy`). La 1.2.0 sigue obsoleta/rota.
 - **Hoja de ruta:** ver [`ROADMAP.md`](ROADMAP.md) (Tier 2 y **Tier 3 completados** — **#13 winget/firma descartado**). **Tier 4 COMPLETADO** (#14–#22; v1.10.0 + v1.11.0). **Tier 5 COMPLETADO** (#23–#27; v1.12.0): relicenciado a GPLv3 + apartados legales in-app + donaciones PayPal. **Tier 6 COMPLETADO** (#28–#36; v1.13.0): pulido UX/UI. **Tier 7 COMPLETADO** (#37; pendiente de publicar): partición FAT32 pequeña al reinicializar en discos grandes.
-- **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · Inno Setup 6
+- **Stack:** C# 13 · .NET 10 · **WinUI 3** (Windows App SDK 1.8, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI (pruebas UI) · Inno Setup 6
 
 ---
 
@@ -81,13 +81,72 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core (249 tests)
-release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
-FormatDiskPro.slnx           Solución (app + tests)
+tests/FormatDiskPro.Tests/    Pruebas xUnit sobre la lógica de Core (269 tests)
+tests/FormatDiskPro.UiTests/  Pruebas de UI/UX con FlaUI (UIA3) sobre el .exe real — ver nota abajo
+release.ps1                   Corte de versión en un paso (build + tag + GitHub Release)
+FormatDiskPro.slnx            Solución (app + FormatDiskPro.Tests — UiTests NO está incluido, ver nota)
 ```
 
 **Regla de oro:** la lógica de negocio testeable vive en `Core` (sin dependencias de
 WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `FormatDiskPro`.
+
+**Pruebas de UI (`FormatDiskPro.UiTests`, FlaUI/UIA3) — cobertura de la app completa, 23/23 verificado
+con hardware real (2026-07-05, incluido el ciclo de vida destructivo completo Formatear → Reinicializar
+→ Reinicializar con FAT32 pequeña) + 1 test lento marcado `Category=Slow` excluido del filtro por
+defecto (ver más abajo):**
+lanza el `FormatDiskPro.exe` compilado y lo automatiza vía UI Automation, localizando controles por
+`AutomationId` (en WinUI, el `x:Name` del XAML se expone como `AutomationId` sin configuración extra).
+Un `ContentDialog` puede coexistir con MÁS DE UN `ControlType.Window` en el árbol de MainWindow (WinUI
+deja un proxy de Popup vacío, "Ventana emergente", junto al diálogo real, confirmado por volcado de
+árbol): `DialogHelper.FindDialog` busca TODOS los candidatos y se queda con el que tiene contenido
+(más hijos), con `WaitForDialogContaining(fixture, automationId)` como variante para cuando ese
+heurístico no basta (p. ej. un `MenuFlyout` que tarda en cerrarse). Los botones nativos del diálogo
+(`PrimaryButton`/`SecondaryButton`/`CloseButton`) sí heredan su AutomationId de la plantilla de WinUI
+igual que un control nombrado en el XAML de la app. **Deliberadamente fuera de `FormatDiskPro.slnx`** para no
+afectar `dotnet test`/`release.ps1` (que siguen corriendo solo los 269 tests rápidos de `Core`): son
+pruebas E2E lentas que además **requieren una terminal elevada** (UIPI bloquea la automatización de un
+proceso no elevado contra la ventana elevada del `.exe`, que pide `requireAdministrator`). `AppFixture`
+comprueba la elevación al vuelo (falla con un mensaje claro en vez de colgarse), resuelve el `.exe` más
+reciente bajo `src/FormatDiskPro/bin/**` (o `FORMATDISKPRO_EXE`), y hace **backup/restauración de
+`%AppData%\FormatDiskPro\settings.json`+`history.log`** alrededor de cada corrida (la app es unpackaged:
+sin esto, cambiar idioma/tema/unidad durante las pruebas filtraría esos cambios a la instalación real
+del usuario).
+- **24 tests** en 6 clases, todas bajo `[Collection("FormatDiskPro app")]` (una sola instancia de la
+  app compartida, sin paralelismo entre ellas): `MainWindowTests` (smoke), `FormatOptionsUiTests`
+  (checkboxes/combos/`RestoreButton`, sin tocar ninguna unidad), `MenuDialogsTests` (Acerca de/
+  Licencia/Avisos de terceros/Novedades/Historial/Presets/chkdsk-cancelar — todos de solo lectura),
+  `SettingsTests` (idioma/tema, con roll-back a español/automático al final), `DriveDiagnosticsTests`
+  y `DestructiveLifecycleTests` (necesitan la unidad USB de pruebas, ver abajo). **23 corren en el
+  filtro por defecto**; `VerifyCapacity_CompletesForTestDrive` (`DriveDiagnosticsTests`) lleva
+  `[Trait("Category", "Slow")]` — escribe/relee prácticamente todo el espacio libre reportado (a
+  propósito: así detecta capacidad falsificada) y en una unidad real de decenas de GB puede tardar
+  más de 30 min, así que queda fuera de una corrida rutinaria.
+- **Unidad USB de pruebas dedicada** (`TestDrive.cs`, localizada por **etiqueta de volumen**, no por
+  letra — Reinicializar puede reasignarla): partición `utilidades` en un USB dedicado, autorizada
+  explícitamente por el usuario para pruebas destructivas (2026-07-05; el disco físico solo tenía esa
+  partición y otra "Bios Flash" desechable, que Reinicializar fusionó en una sola al reinicializar el
+  disco completo — comportamiento esperado, ver registro de cambios). `DriveDiagnosticsTests` corre
+  S.M.A.R.T./chkdsk-solo-comprobar/Benchmark contra ella — no destructivo (Benchmark escribe un
+  archivo propio y lo borra al terminar). `DestructiveLifecycleTests` añade las guardas de
+  `ConfirmDialog` (letra incorrecta deshabilita el botón; Cancelar no ejecuta nada — corren siempre,
+  sin riesgo) y un ciclo de vida completo (Formatear → Reinicializar normal → Reinicializar con FAT32
+  pequeña si la unidad cualifica, ≥32 GB) que **sí borra la unidad de verdad**, gateado tras la
+  variable de entorno `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` (sin ella, falla con mensaje claro en vez de
+  arriesgar cualquier unidad conectada por accidente). Al terminar, relabela la unidad de vuelta a
+  `TestDrive.PrimaryLabel` directamente por `DriveInfo` (no por la UI): xUnit no garantiza el orden
+  entre `[Fact]` de una clase, así que sin esto los otros tests de la misma clase quedarían en flaky
+  según el orden en que corra este.
+- Ejecutar: `dotnet build -c Release` (o Debug) del proyecto principal, luego, **desde una terminal
+  como administrador**: `dotnet test tests/FormatDiskPro.UiTests --filter "Category!=Slow"` (con la
+  USB de pruebas conectada para `DriveDiagnosticsTests`/`DestructiveLifecycleTests`; con
+  `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` además para el ciclo de vida completo). Para `VerifyCapacity`
+  aparte: `dotnet test tests/FormatDiskPro.UiTests --filter "Category=Slow"` con tiempo de sobra
+  (puede superar los 30 min en discos grandes).
+- **Nunca lanzar dos corridas de `dotnet test` de este proyecto en paralelo** contra la misma app/unidad:
+  cada una lanza su propia instancia elevada del `.exe` y ambas compiten por el mismo `DrivePicker`
+  real y por `%AppData%\FormatDiskPro\settings.json`/`history.log` — confirmado que produce fallos
+  imposibles de diagnosticar (etiqueta cambiada a medio camino, "unidad no encontrada" en pruebas que
+  antes pasaban) hasta notar los dos procesos corriendo a la vez.
 
 ## 3. Estado actual
 
@@ -289,6 +348,215 @@ WinUI/Process/HttpClient). La UI y los servicios la consumen. Namespace único `
 ---
 
 ## Registro de cambios
+
+### 2026-07-05 — fix(test): USB de pruebas reconectada — 23/23 en `FormatDiskPro.UiTests`, incluido el ciclo destructivo completo
+
+Continuación de la sesión anterior (mismo día): con la USB de pruebas reconectada, se reverificaron
+los 7 tests pendientes (`DriveDiagnosticsTests`/`DestructiveLifecycleTests`). 6 causas raíz reales más,
+encontradas iterativamente con hardware real (varias corridas, cada una con diagnóstico propio):
+
+- **`DialogHelper.FindDialog` seguía usando "el `ControlType.Window` con más hijos"**, heurístico que a
+  veces atrapaba un proxy de Popup vacío o un residuo de `MenuFlyout` en vez de la ausencia real de
+  diálogo — `WaitForNoDialog` esperaba entonces a que "cerrara" algo que ya no era el diálogo real
+  (visto en `Benchmark_CompletesForTestDrive`, que arrastraba a los 3 tests siguientes). **Fix:** todo
+  diálogo real de esta app fija siempre `CloseButtonText`/`PrimaryButtonText`/`SecondaryButtonText`
+  (confirmado en las 8 clases de diálogo del proyecto) — `FindDialog` ahora exige que el candidato
+  tenga uno de esos tres botones (`HasDialogChrome`), sin heurístico de "más hijos" de respaldo.
+- **`VerifyCapacity_CompletesForTestDrive` no es un bug, es lento por diseño:** `CapacityVerifier`
+  escribe/relee prácticamente TODO el espacio libre reportado (deja 64 MB de margen) — así es como
+  detecta una unidad de capacidad falsificada. En la USB de pruebas (62 GB) no terminó ni en 30 min,
+  dejando la app "ocupada" (el `AppWindow_Closing` de la app cancela el cierre mientras `_isBusy`) y
+  arrastrando los 3 tests siguientes. **Fix:** marcado `[Trait("Category", "Slow")]`, excluido del
+  filtro por defecto (`--filter "Category!=Slow"`); su propio comentario ya sugería esta exclusión.
+  **Nota operativa:** al matar el proceso de test a mitad de la escritura, `CapacityVerifier` no llegó
+  a su `finally` (borrar los archivos temporales) — quedaron ~51 GB de `__fdp_verify__` ocupando la
+  unidad; se limpiaron manualmente (`Remove-Item`, PowerShell lo bloqueó por parecer una "ruta de
+  sistema" protegida, hubo que borrarlo vía `rm` de Git Bash).
+- **`SelectDriveByLetter`/`SelectAnyNonSystemDrive` leían `combo.Items` una sola vez.** Tras un
+  Formatear/Reinicializar real (o cualquier evento de dispositivo que dispare
+  `HookDeviceNotifications`), `LoadDrives()` vacía y repuebla el `ComboBox` de forma asíncrona — una
+  lectura única justo tras cerrar el diálogo de resultado puede atrapar la ventana momentánea en la
+  que está vacío ("El DrivePicker no ofrece ninguna unidad… Ítems vistos: (ninguno)"). **Fix:** ambos
+  ahora reintentan `combo.Items` durante 10 s con el desplegable ya abierto (WinUI lo repuebla en vivo,
+  al estar enlazado a la misma `ObservableCollection`) en vez de una comprobación única.
+- **`SmallFat32Check`/`ConfirmDialog.PrimaryButton`: se leía `IsEnabled` justo tras la acción que lo
+  cambia, sin darle tiempo al hilo de UI.** `SetFormEnabled(true)` (que rehabilita `SmallFat32Check`)
+  corre en el `finally` de `MnuReinit_Click`, DESPUÉS de que el `await` de `ShowInfoAsync` se resuelva
+  — hay margen de dispatcher entre "el diálogo ya no está en el árbol" y "el `finally` ya se ejecutó".
+  Mismo patrón con `ConfirmDialog.PrimaryButton.IsEnabled` tras escribir la letra correcta en
+  `InputBox` (el primer assert, con la letra incorrecta, pasaba siempre porque ya arrancaba en
+  `False` por defecto — no probaba nada async; el segundo sí exige una transición real). **Fix:** nuevo
+  `MainWindowActions.WaitUntilEnabled(window, automationId)` (reintenta hasta 5 s), usado antes de
+  todos estos asserts/toggles.
+- **`FullLifecycle_FormatThenReinit_OnDedicatedTestUsb` deja la unidad con OTRA etiqueta al terminar**
+  (usa `"UITESTFMT"` para verificar el formateo) — como xUnit no garantiza el orden entre `[Fact]` de
+  una clase, si este test corre antes que las guardas de `ConfirmDialog` (`StartConfirm_*`/
+  `ReinitConfirm_*`) en el mismo proceso, esas fallan con "unidad de pruebas no conectada" (buscan por
+  `TestDrive.PrimaryLabel`). **Fix:** el test ahora relabela la unidad de vuelta a `PrimaryLabel` en su
+  `finally`, directamente por `DriveInfo` (no por la UI — no es la operación bajo prueba).
+- **Incidente operativo (no bug de producto):** durante la depuración se lanzó por error una segunda
+  corrida de `dotnet test` en paralelo a una ya en curso en segundo plano (ambas contra la misma app/
+  unidad) — produjo fallos indiagnosticables (etiqueta cambiada a medio camino de una corrida limpia,
+  "unidad no encontrada" en tests que antes pasaban) hasta notar los dos procesos compitiendo. La
+  unidad terminó reinicializada de verdad (autorizado) pero con la etiqueta "UITESTFMT" en vez de
+  "utilidades"; se verificó con `Get-Partition`/`Get-Volume` que el disco físico seguía sano (una
+  reinicialización real solo había llegado a completarse una vez, la tabla de particiones no quedó a
+  medias) y se relabeló manualmente antes de continuar. Lección: no relanzar una corrida de este
+  proyecto para "solo mirar el log" — usar Read sobre el archivo de log, nunca una nueva invocación.
+- Build **0/0** en cada iteración. **Resultado final: 23/23** (`--filter "Category!=Slow"`),
+  ~1.5–1.8 min por corrida completa, sin cuelgues ni cascadas.
+
+### 2026-07-05 — fix(test): 5 causas raíz reales resueltas en `FormatDiskPro.UiTests` — 17/17 tests no dependientes de unidad en verde
+
+Segunda ronda de depuración contra hardware real (varias corridas iterativas, cada una con diagnóstico
+propio para no volver a adivinar a ciegas). Punto de partida: 13/24 tras el lote anterior. Llegada:
+**17/17** en los tests que no requieren la unidad USB (los 7 restantes —
+`DriveDiagnosticsTests`/`DestructiveLifecycleTests`— no se pudieron reverificar porque **la USB de
+pruebas se desconectó físicamente durante la sesión**, ver "Pendiente" abajo). Se añadió volcado de
+árbol de automatización (`DialogHelper.DumpTree`/`DumpWindowCandidates`, `MainWindowActions.DumpDriveItems`)
+para pasar de conjeturas a datos reales del hardware en cada iteración — clave para encontrar lo
+siguiente:
+
+- **Un `ContentDialog` puede coexistir con MÁS DE UN `ControlType.Window`** en el árbol de MainWindow
+  (WinUI deja un proxy de Popup vacío, "Ventana emergente", junto al diálogo real). `FindFirstDescendant`
+  atrapaba el proxy vacío la mayoría de las veces. **Fix:** `DialogHelper.FindDialog` ahora busca TODOS
+  los `ControlType.Window` y se queda con el que tiene más hijos; se añadió también
+  `WaitForDialogContaining(fixture, automationId)` para cuando ese heurístico no basta (ver el caso de
+  `PresetsDialog` más abajo).
+- **`DrivePicker.SelectedItem.Text`/`ComboBoxItem.Text` no refleja el `DisplayText` enlazado.** El
+  `DrivePicker` usa un `DataTemplate` (icono + `TextBlock` con `{x:Bind DisplayText}`) sobre
+  `DriveViewModel`: la propiedad `Text`/`Name` del contenedor del ítem no seguía ese binding y devolvía
+  el `ToString()` por defecto del objeto (`"FormatDiskPro.UI.DriveViewModel"`). **Fix:**
+  `MainWindowActions.GetItemDisplayText` lee el `TextBlock` descendiente en su lugar (mismo patrón que
+  `DialogHelper.ReadText` para el cuerpo largo de los diálogos legales).
+- **La unidad protegida se muestra como `"[Protegido] C:"`, no `"C:"`.** `SelectAnyNonSystemDrive`
+  comparaba `text[0]` directamente contra la letra de sistema — para ese ítem, `text[0]` es `'['`, así
+  que la lógica concluía "no es la de sistema" y **elegía justo la unidad que debía evitar**, dejando
+  todos los controles de la tarjeta de opciones deshabilitados (de ahí los `ElementNotEnabledException`
+  en `SecureWipeCheck`/`RestoreButton` y `CompressCheck.IsEnabled` siempre en `false`). **Fix:** nuevo
+  `MainWindowActions.ExtractDriveLetter` busca el primer patrón "letra+`:`" real en el texto en vez de
+  asumir que la letra está en la posición 0; usado también en `SelectDriveByLetter`/`GetSelectedDriveLetter`.
+- **Timeouts COM en cascada durante operaciones de disco reales** (visto en `Benchmark_CompletesForTestDrive`:
+  `COMException: Operation timed out`, luego arrastrado a los tests siguientes). `Retry.WhileNull`/
+  `WhileTrue` de FlaUI no tolera excepciones dentro del predicado por defecto. **Fix:** `ignoreException: true`
+  en todos los `Retry.*` de `DialogHelper`/`MainWindowActions` — una excepción COM transitoria durante
+  E/S intensa ahora se trata como "todavía no", no como fallo inmediato.
+- **`PresetsDialog`: el `MenuFlyout` de `MnuPresets` no siempre termina de cerrarse** tras invocar
+  "Gestionar presets…" por patrón UIA (`Invoke()`, no un clic real) — competía con el diálogo real como
+  candidato "`ControlType.Window` con más hijos". Además, localizar el ítem como "el último `MenuItem`
+  visible" es frágil si hay más de un menú renderizando a la vez. **Fix:** el ítem se localiza por
+  `Name == "Gestionar presets…"` (no por posición), y el diálogo se espera con
+  `WaitForDialogContaining(fixture, "SaveHeader")` (exige contenido propio, no solo "más hijos").
+- Build **0/0** en cada iteración.
+
+**Pendiente:** la unidad USB de pruebas (`utilidades`/`Bios Flash`) apareció conectada al principio de
+esta sesión (confirmado con `Get-Volume`: `I: Utilidades`, `G: BIOS FLASH`) pero **ya no aparece** en
+una comprobación posterior — se desconectó físicamente en algún punto de las múltiples corridas. No
+se pudo reverificar `DriveDiagnosticsTests`/`DestructiveLifecycleTests` (7 tests) con hardware real tras
+estos fixes; sí se validó estructuralmente que fallan con el mensaje correcto y claro ("no aparece en el
+selector"/"unidad de pruebas no conectada") en vez de un error críptico. **Siguiente paso:** reconectar
+la USB y volver a correr `dotnet test` completo.
+
+### 2026-07-05 — fix(test): 3 causas raíz encontradas en la primera corrida real de `FormatDiskPro.UiTests` ampliado
+
+Primera corrida del lote de 24 tests contra hardware real (sin la USB de pruebas conectada esta vez):
+19 con error, 5 correctos. Los 19 se explican por 3 causas raíz, no por fallos aleatorios:
+
+- **`ClickMenuPath` usaba `.Click()` (clic de ratón simulado por coordenadas de pantalla), frágil
+  tras el primer clic de la sesión:** el primer test en tocar un menú (`MnuHelp` → `MnuLicense`)
+  funcionó, pero **todos los siguientes** (`MnuTheme`, `MnuAbout`, `MnuThirdParty`, `MnuWhatsNew`,
+  `MnuPresets`, `MnuCheck`, `MnuHistory`, y el segundo tramo de `LanguageSwitch` volviendo a español)
+  fallaron con "no se encontró el ítem de menú". **Fix:** `ClickMenuPath` ahora usa los patrones UIA
+  (`ExpandCollapse.Expand()` para abrir un submenú, `Invoke()` para el ítem hoja final) en vez de
+  clic por coordenadas — no depende de la posición real del cursor ni del foco de la ventana.
+- **`LicenseDialog`/`ThirdPartyDialog`: `BodyText` se localizaba bien pero `.AsLabel().Text` venía
+  vacío** para el texto largo (la licencia GPL completa). **Fix:** nuevo `DialogHelper.ReadText()`,
+  que usa el patrón `Text` de UIA (`DocumentRange.GetText(-1)`, pensado para contenido de solo
+  lectura potencialmente largo) con `Name` como respaldo — más fiable que `Name` sola para bloques
+  de texto extensos.
+- **`FormatOptionsUiTests` asumía "alguna unidad formateable" pero no seleccionaba ninguna,** y la
+  unidad que quedaba seleccionada (arranque/tests previos) resultó ser la de **sistema (protegida)**:
+  `SetFormEnabled` deshabilita ahí casi todos los controles de la tarjeta de opciones, de ahí
+  `CompressCheck.IsEnabled == false` con NTFS y `ElementNotEnabledException` al hacer `Toggle()`
+  sobre `QuickFormatCheck`/`SecureWipeCheck`. **Fix:** nuevo `MainWindowActions.SelectAnyNonSystemDrive`
+  (compara contra `Path.GetPathRoot(Environment.SystemDirectory)` en el propio proceso de pruebas),
+  llamado en el constructor de `FormatOptionsUiTests` — cualquier unidad no-sistema sirve para estos
+  tests de UI pura.
+- Los fallos de `DriveDiagnosticsTests`/`DestructiveLifecycleTests` ("la unidad de pruebas (I:) no
+  aparece en el selector") fueron correctos: la USB dedicada no estaba conectada en esa corrida (el
+  usuario solo probó el primer comando, sin el ciclo destructivo). `LanguageSwitch` ahora envuelve el
+  tramo inglés en `try/finally` para garantizar la vuelta a español aunque el assert intermedio falle.
+- Build **0/0** tras los 3 fixes. **Pendiente:** reverificar con hardware real (con la USB conectada
+  esta vez, para cubrir también `DriveDiagnosticsTests`).
+
+### 2026-07-05 — test: `FormatDiskPro.UiTests` ampliado a cobertura de la app completa (4 → 24 tests)
+
+El usuario pidió ampliar el proyecto de pruebas de UI (ver entrada siguiente, mismo día) para cubrir
+**la app completa**, y ofreció una unidad USB física dedicada para las pruebas que lo necesiten: la
+partición con etiqueta `utilidades` (vacía) y otra en el mismo disco físico, `Bios Flash` (también
+vacía) — ambas explícitamente autorizadas para pruebas destructivas ("puedes probar todo con esa
+unidad conectada"). Antes de tocar Formatear/Reinicializar (irreversibles: Reinicializar además
+limpia el **disco físico completo**, no solo la partición) se preguntó el alcance; el usuario
+confirmó que ambas particiones son desechables.
+
+- **6 clases de test, 24 casos** (antes: 1 clase, 4 casos): `MainWindowTests` (sin cambios),
+  `FormatOptionsUiTests` (checkboxes/combos de la tarjeta de opciones + `RestoreButton`, ninguna
+  unidad real), `MenuDialogsTests` (Acerca de/Licencia/Avisos de terceros/Novedades/Historial/
+  Presets/chkdsk-cancelar, todos de solo lectura), `SettingsTests` (idioma/tema, con roll-back a
+  español/automático), `DriveDiagnosticsTests` y `DestructiveLifecycleTests` (contra la USB de
+  pruebas).
+- **`TestDrive.cs`:** localiza la USB por **etiqueta de volumen** (`utilidades`), no por letra —
+  Reinicializar puede reasignarla. Las pruebas realmente destructivas (ciclo completo Formatear →
+  Reinicializar) están gateadas tras `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`; sin esa variable fallan con
+  un mensaje claro. Las guardas del `ConfirmDialog` (letra incorrecta deshabilita el botón; Cancelar
+  no ejecuta nada) sí corren siempre, sin gate, porque nunca llegan a confirmar de verdad.
+- **`SettingsBackup.cs` (protección no pedida explícitamente, pero necesaria):** la app es unpackaged
+  y `settings.json`/`history.log` viven en `%AppData%\FormatDiskPro`, el mismo sitio que usa la
+  instalación real del usuario. `AppFixture` ahora hace backup de ambos archivos al lanzar la app y
+  los restaura al cerrarla, para que idioma/tema/última unidad/historial de las pruebas no se filtren
+  a su uso diario de la app.
+- **`DialogHelper.cs`:** los `ContentDialog` de WinUI (app unpackaged, sin HWND propio) se localizan
+  como un descendiente `ControlType.Window` del árbol de la ventana principal; sus botones nativos
+  usan los AutomationId de plantilla de WinUI (`PrimaryButton`/`SecondaryButton`/`CloseButton`) — el
+  mismo mecanismo de `x:Name` → `AutomationId` ya verificado, aplicado a la plantilla del control en
+  vez de al XAML de la app (confirmado por investigación: PowerToys documenta el mismo comportamiento
+  en su PR #48033 de AutomationIds para Command Palette).
+- **`MainWindowActions.cs`:** helpers de selección de unidad por letra (con reintento sobre
+  `ComboBoxItem`), navegación de menús por ruta de AutomationIds (`ClickMenuPath`, para submenús como
+  Configuración → Idioma → Inglés) y toggles de checkbox idempotentes.
+- **Pendiente de verificar con hardware real:** este lote cubre superficie de automatización nueva
+  (botones nativos de ContentDialog, navegación de menús anidados, selección de ComboBox/
+  ComboBoxItem, el ciclo Formatear/Reinicializar completo) más allá de lo ya confirmado (`DrivePicker`/
+  `StartButton`/`CloseButton`/`QuickFormatCheck`, 4/4). Compila limpio (0/0) y falla correctamente por
+  el guard de elevación desde una terminal no elevada (24/24 "con error", mismo mensaje que antes).
+
+### 2026-07-05 — test: nuevo proyecto `FormatDiskPro.UiTests` — pruebas de UI/UX con FlaUI (UIA3)
+
+El usuario pidió poder automatizar pruebas de UI/UX sobre el `.exe` real. Se evaluó un MCP de
+automatización de escritorio Windows (control interactivo en vivo, tipo chrome-devtools-mcp pero para
+Win32/UIA) frente a integrar FlaUI como pruebas xUnit dentro del propio repo; el usuario eligió **FlaUI**
+porque encaja con el stack ya existente (xUnit) y no requiere instalar/autorizar un MCP de terceros con
+control de mouse/teclado sobre el escritorio real.
+
+- **Nuevo proyecto `tests/FormatDiskPro.UiTests/`** (`net10.0-windows10.0.19041.0`, xUnit + `FlaUI.Core`
+  5.0.0 + `FlaUI.UIA3` 5.0.0): `AppFixture` lanza `FormatDiskPro.exe` (resuelto buscando el más reciente
+  bajo `src/FormatDiskPro/bin/**`, o vía `FORMATDISKPRO_EXE`) y expone su `Window` principal por UI
+  Automation, compartida entre tests mediante `ICollectionFixture`. `MainWindowTests` cubre 4 smoke
+  checks: la ventana abre, `DrivePicker`/`StartButton`/`CloseButton` existen, `QuickFormatCheck` está
+  marcado por defecto — localizados por `AutomationId` (= `x:Name` del XAML, sin tocar `MainWindow.xaml`).
+- **Gotcha de plataforma documentado:** `FormatDiskPro.exe` exige `requireAdministrator`; un proceso de
+  pruebas no elevado no puede automatizar (UIPI) su ventana. `AppFixture.EnsureElevated()` comprueba
+  `WindowsPrincipal.IsInRole(Administrator)` al construirse y lanza un `InvalidOperationException` con
+  instrucciones, en vez de dejar que FlaUI cuelgue/haga timeout sin explicación. Verificado: ejecutando
+  `dotnet test` desde una terminal **no elevada**, las 4 pruebas fallan de inmediato con ese mensaje (no
+  se llega a lanzar la app ni a disparar UAC).
+- **Deliberadamente NO añadido a `FormatDiskPro.slnx`:** `release.ps1` y `dotnet test` a nivel de solución
+  siguen ejecutando solo los 269 tests rápidos de `FormatDiskPro.Tests` (verificado sin regresión tras el
+  cambio). Las pruebas de UI son E2E lentas, requieren el `.exe` ya compilado y una terminal elevada, así
+  que se ejecutan aparte: `dotnet test tests/FormatDiskPro.UiTests` (como administrador).
+- **Verificado por el usuario** ejecutando `dotnet test` desde una terminal elevada: **4/4** — confirma
+  que FlaUI localiza y lee correctamente los controles reales (`DrivePicker`/`StartButton`/`CloseButton`/
+  `QuickFormatCheck`) contra la ventana ya elevada del `.exe`, no solo el guard de elevación.
 
 ### 2026-07-02 — fix+ux: hint de FAT32 pequeña corregido + 4 mejoras UX (enlace directo, aviso en Iniciar, estados vacíos, FormatBytes)
 
