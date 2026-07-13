@@ -65,6 +65,36 @@ function Ok($m)    { Write-Host "[OK] $m" -ForegroundColor Green }
 function Warn($m)  { Write-Host "[!] $m" -ForegroundColor Yellow }
 function Die($m)   { Write-Host "[X] $m" -ForegroundColor Red; exit 1 }
 
+<#
+.SYNOPSIS
+    Ejecuta git de forma segura cuando la salida del script está redirigida. Devuelve el código de salida.
+
+.DESCRIPTION
+    git escribe por stderr en su operación NORMAL, sin que nada haya fallado: el resumen del push
+    ("To https://github.com/..."), los avisos de finales de línea ("LF will be replaced by CRLF")...
+
+    Ejecutando el script de forma normal eso es inocuo: stderr va a la consola y sigue adelante. PERO si
+    alguien captura la salida —`.\release.ps1 ... | Tee-Object release.log`, un `2>&1 |`, un wrapper que
+    recoja la salida—, Windows PowerShell 5.1 convierte cada línea de stderr de un exe nativo en un
+    NativeCommandError y, con $ErrorActionPreference = "Stop", ABORTA el script aunque git haya devuelto 0.
+
+    En un `git push` eso es especialmente malo: el script muere DESPUÉS de haber empujado la rama, y deja
+    el release a medias (rama subida, sin tag ni GitHub Release). Ocurrió al cortar la v1.15.0 (2026-07-12),
+    precisamente por lanzarlo con la salida filtrada.
+
+    Aquí se baja la preferencia solo mientras corre git y se decide por $LASTEXITCODE, que es el único
+    indicador fiable de si git falló. La salida se sigue mostrando, atenuada.
+#>
+function Invoke-Git {
+    $eap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & git @args 2>&1 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        return $LASTEXITCODE
+    }
+    finally { $ErrorActionPreference = $eap }
+}
+
 # ── Rutas ──────────────────────────────────────────────────────────────────
 $root         = $PSScriptRoot
 $csproj       = Join-Path $root "src\FormatDiskPro\FormatDiskPro.csproj"
@@ -200,28 +230,26 @@ try {
     # Añade todos los archivos rastreados modificados/eliminados (tracked changes).
     # Los archivos nuevos sin rastrear requieren 'git add' manual previo.
     Info "Preparando commit de release..."
-    & git add -u
-    if ($LASTEXITCODE -ne 0) { Die "git add -u falló." }
+    if ((Invoke-Git add -u) -ne 0) { Die "git add -u falló." }
     $staged = (& git diff --cached --name-only)
     if ($staged) {
         Info "Archivos incluidos en el commit:"
         $staged | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-        & git commit -m "release: v$Version"
-        if ($LASTEXITCODE -ne 0) { Die "git commit falló." }
+        if ((Invoke-Git commit -m "release: v$Version") -ne 0) { Die "git commit falló." }
         Ok "Commit de release creado."
     } else {
         Info "Sin cambios que commitear; se etiqueta el HEAD actual."
     }
     Info "Creando tag $tag..."
-    & git tag -a $tag -m "FormatDiskPro $tag"
-    if ($LASTEXITCODE -ne 0) { Die "git tag falló." }
+    if ((Invoke-Git tag -a $tag -m "FormatDiskPro $tag") -ne 0) { Die "git tag falló." }
 
     # ── 4. Push ──────────────────────────────────────────────────────────────
+    # Vía Invoke-Git a propósito: git escribe el resumen del push por stderr y, con
+    # $ErrorActionPreference = "Stop", eso abortaría el script DESPUÉS de haber empujado la rama,
+    # dejando el release a medias (sin tag ni GitHub Release). Ver la nota de Invoke-Git.
     Info "Push de la rama y el tag a origin..."
-    & git push origin $branch
-    if ($LASTEXITCODE -ne 0) { Die "git push de la rama falló." }
-    & git push origin $tag
-    if ($LASTEXITCODE -ne 0) { Die "git push del tag falló." }
+    if ((Invoke-Git push origin $branch) -ne 0) { Die "git push de la rama falló." }
+    if ((Invoke-Git push origin $tag) -ne 0) { Die "git push del tag falló. La rama YA está subida; reintenta." }
     Ok "Rama y tag publicados."
 
     # ── 5. GitHub Release ────────────────────────────────────────────────────

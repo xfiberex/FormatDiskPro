@@ -351,6 +351,13 @@ del usuario).
   que se compile.
 - **Scripts PowerShell** que se ejecuten en Windows PowerShell 5.1 deben guardarse con **BOM UTF-8**
   (si no, los acentos rompen el parser). `release.ps1` ya lo tiene.
+- **git + PS 5.1 + salida capturada = trampa.** git escribe por stderr en su operación **normal** (el resumen
+  del `push`, los avisos de CRLF), sin que nada haya fallado. Si la salida del script se captura
+  (`| Tee-Object`, `2>&1 |`, un wrapper), PS 5.1 convierte cada línea de stderr de un exe nativo en
+  `NativeCommandError` y, con `$ErrorActionPreference = "Stop"`, **aborta aunque git devuelva 0**. En un
+  `push` eso deja el release **a medias**: rama subida, sin tag ni GitHub Release (ocurrió al cortar la
+  v1.15.0). Por eso los git que mutan estado van por **`Invoke-Git`** en `release.ps1`, que baja la
+  preferencia mientras corre git y decide por `$LASTEXITCODE` (el único indicador fiable).
 - **`gh` (GitHub CLI):** si no está autenticado, los scripts reutilizan la credencial de git
   cacheada (`git credential fill` → `GH_TOKEN`), solo en local, sin imprimir el token.
 - **Skills de buenas prácticas** en `.agents/skills/` (registro `awesome-copilot`); ver la
@@ -401,6 +408,25 @@ del usuario).
 ---
 
 ## Registro de cambios
+
+### 2026-07-12 — fix(release): `release.ps1` sobrevive a que se capture su salida (`Invoke-Git`)
+
+Al cortar la v1.15.0, el script **abortó a mitad del push**: dejó la rama subida pero sin tag ni GitHub
+Release, y hubo que completar los dos pasos a mano.
+
+**Causa (no era un bug del script, era cómo se invocó):** git escribe por stderr en su operación **normal**
+—el resumen del `push`, los avisos de CRLF—, sin que nada falle. Ejecutando el script tal cual, eso es inocuo:
+stderr va a la consola. Pero si la salida **se captura** (`2>&1 |`, `| Tee-Object release.log`, un wrapper),
+Windows PowerShell 5.1 convierte cada línea de stderr de un exe nativo en un `NativeCommandError` y, con
+`$ErrorActionPreference = "Stop"`, **aborta el script aunque git haya devuelto 0**. Se cortó la v1.15.0
+lanzando el script con la salida filtrada, y murió justo después de `git push origin master`.
+
+**Arreglo:** los git que **mutan estado** (`add -u`, `commit`, `tag`, `push`) pasan por `Invoke-Git`, que baja
+la preferencia solo mientras corre git y decide por **`$LASTEXITCODE`** —el único indicador fiable de si git
+falló—. Los que ya capturaban su salida (`rev-parse`, `ls-remote`, `diff --cached`) no cambian.
+
+**Verificado** reproduciendo el escenario exacto: el mismo script con la salida capturada moría en el push;
+con `Invoke-Git` llega al final (`exit=0`) y, ante un fallo real de git, sigue abortando como debe.
 
 ### 2026-07-12 — feat: Tier 8 (#38–#40) — seguridad y confianza — v1.15.0
 
