@@ -31,7 +31,17 @@
     Ruta a un archivo Markdown con las notas del release. Si se omite, se genera una plantilla.
 
 .PARAMETER SkipTests
-    Omite la ejecución de pruebas.
+    Omite la ejecución de pruebas (unitarias y de UI).
+
+.PARAMETER UiTests
+    Ejecuta también los UI tests (FlaUI/UIA3), que conducen la app REAL. No van en la solución, así que
+    `dotnet test` no los toca: hay que pedirlos. Requieren TERMINAL ELEVADA (la app es
+    requireAdministrator y un proceso no elevado no puede automatizar su ventana), y el script lo valida
+    antes de correr nada. Los 6 tests que necesitan la USB física de pruebas se OMITEN solos si no está
+    conectada (no fallan), y el que borra datos de verdad se omite salvo FORMATDISKPRO_ALLOW_DESTRUCTIVE=1
+    — que este script RECHAZA: un corte de release nunca debe formatear una unidad.
+
+    Sin este flag, el script avisa de que el release sale sin haber ejercido la app real.
 
 .PARAMETER AllowDirty
     Permite continuar con cambios sin commitear en el árbol de trabajo.
@@ -41,6 +51,7 @@
 
 .EXAMPLE
     .\release.ps1 -Version 1.2.0
+    .\release.ps1 -Version 1.2.0 -UiTests   # recomendado: ejerce también la app real
     .\release.ps1 -Version 1.2.0 -DryRun
     .\release.ps1 -Version 1.2.0 -NotesFile notas.md
 #>
@@ -49,6 +60,7 @@ param(
     [string]$Version,
     [string]$NotesFile,
     [switch]$SkipTests,
+    [switch]$UiTests,
     [switch]$AllowDirty,
     [switch]$DryRun,
     # Firma de código (opcional): se reenvían a build-installer.ps1.
@@ -96,17 +108,30 @@ function Invoke-Git {
 }
 
 # ── Rutas ──────────────────────────────────────────────────────────────────
-$root         = $PSScriptRoot
-$csproj       = Join-Path $root "src\FormatDiskPro\FormatDiskPro.csproj"
-$solution     = Join-Path $root "FormatDiskPro.slnx"
-$buildScript  = Join-Path $root "src\FormatDiskPro\installer\build-installer.ps1"
-$outputDir    = Join-Path $root "src\FormatDiskPro\installer\Output"
+$root          = $PSScriptRoot
+$csproj        = Join-Path $root "src\FormatDiskPro\FormatDiskPro.csproj"
+$solution      = Join-Path $root "FormatDiskPro.slnx"
+$buildScript   = Join-Path $root "src\FormatDiskPro\installer\build-installer.ps1"
+$outputDir     = Join-Path $root "src\FormatDiskPro\installer\Output"
+# Fuera de la solución a propósito (ver -UiTests): se lanza por ruta, solo si se pide.
+$uiTestProject = Join-Path $root "tests\FormatDiskPro.UiTests\FormatDiskPro.UiTests.csproj"
 
 if (-not (Test-Path $csproj))      { Die "No se encontró el proyecto: $csproj" }
 if (-not (Test-Path $buildScript)) { Die "No se encontró el script de instalador: $buildScript" }
+if ($UiTests -and -not (Test-Path $uiTestProject)) { Die "No se encontró el proyecto de UI tests: $uiTestProject" }
+
+# Se rechaza en vez de ignorarse en silencio: quien pasa las dos cosas cree que su corte lleva la app real
+# probada, y saldría sin ninguna prueba en absoluto.
+if ($UiTests -and $SkipTests) { Die "-UiTests y -SkipTests se contradicen: -SkipTests omite TODAS las pruebas. Elige una." }
 
 # ── Versión ────────────────────────────────────────────────────────────────
-$csprojRaw = Get-Content $csproj -Raw
+# OJO con la codificación: NO usar `Get-Content -Raw`. En PS 5.1 lee con la página de códigos ANSI del
+# sistema, así que los bytes UTF-8 de un acento (é = C3 A9) se convierten en dos caracteres (Ã©) y, al
+# reescribir el archivo como UTF-8 más abajo, la corrupción queda GRABADA. Como el bump de versión ocurre
+# en CADA release, el daño se acumulaba capa sobre capa: <Authors>/<Copyright> del .csproj llevaban el
+# nombre del autor destrozado tras 14 versiones, y esa basura acababa en las propiedades del .exe
+# publicado. ReadAllText detecta el BOM y asume UTF-8 si no lo hay; se reescribe CONSERVANDO el BOM.
+$csprojRaw = [System.IO.File]::ReadAllText($csproj)
 $currentVersion = $null
 if ($csprojRaw -match '<Version>(.*?)</Version>') { $currentVersion = $Matches[1] }
 
@@ -154,10 +179,51 @@ try {
     if ($SkipTests) {
         Warn "Pruebas omitidas (-SkipTests)."
     } else {
-        Info "Ejecutando pruebas..."
+        Info "Ejecutando pruebas unitarias..."
         & dotnet test $solution --nologo
-        if ($LASTEXITCODE -ne 0) { Die "Las pruebas fallaron. Release abortado." }
-        Ok "Pruebas correctas."
+        if ($LASTEXITCODE -ne 0) { Die "Las pruebas unitarias fallaron. Release abortado." }
+        Ok "Pruebas unitarias correctas."
+
+        # ── UI tests (opcionales): los únicos que ejercen la app REAL ────────
+        # No están en la solución a propósito: si lo estuvieran, el `dotnet test` de arriba los
+        # arrastraría siempre, y necesitan condiciones que no toda máquina tiene (elevación, y la USB
+        # de pruebas para 6 de ellos). Por eso se piden con -UiTests y se lanzan por ruta.
+        if ($UiTests) {
+            # 1. Elevación. La app es requireAdministrator: un proceso de pruebas NO elevado no puede
+            #    automatizar su ventana por UI Automation. Sin esto, los 17 tests que sí corren fallarían
+            #    todos a la vez con un error que no tiene nada que ver con el código.
+            $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+            $isAdmin = (New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole(
+                [Security.Principal.WindowsBuiltInRole]::Administrator)
+            if (-not $isAdmin) {
+                Die "-UiTests requiere una terminal ELEVADA: FormatDiskPro.exe exige administrador y un proceso no elevado no puede automatizar su ventana. Reabre PowerShell como administrador y reintenta."
+            }
+
+            # 2. Opt-in destructivo. Con la variable a 1, la suite FORMATEA de verdad la USB de pruebas.
+            #    Un corte de release jamás debe hacer eso, ni aunque quien lo lanza la tuviera activada de
+            #    una sesión anterior de depuración.
+            if ($env:FORMATDISKPRO_ALLOW_DESTRUCTIVE -eq "1") {
+                Die "FORMATDISKPRO_ALLOW_DESTRUCTIVE=1 está activa: la suite formatearía la USB de pruebas. Un corte de release nunca debe hacerlo. Limpia la variable (`$env:FORMATDISKPRO_ALLOW_DESTRUCTIVE = `$null) y reintenta."
+            }
+
+            # 3. La USB de pruebas es OPCIONAL: los tests que la necesitan se omiten solos si no está
+            #    (ver TestDriveFactAttribute). Se avisa para que quede claro qué cobertura llevó el corte.
+            $testUsb = [System.IO.DriveInfo]::GetDrives() | Where-Object {
+                $_.DriveType -eq 'Removable' -and $_.IsReady -and $_.VolumeLabel -eq 'utilidades'
+            } | Select-Object -First 1
+            if ($testUsb) {
+                Info "USB de pruebas detectada ($($testUsb.Name)): los tests de diagnóstico también correrán."
+            } else {
+                Warn "USB de pruebas ('utilidades') NO conectada: sus tests se OMITIRÁN (no fallarán). El resto sí ejerce la app real."
+            }
+
+            Info "Ejecutando UI tests (conducen la app real; se abrirán ventanas)..."
+            & dotnet test $uiTestProject --filter "Category!=Slow" --nologo
+            if ($LASTEXITCODE -ne 0) { Die "Los UI tests fallaron. Release abortado." }
+            Ok "UI tests correctos."
+        } else {
+            Warn "UI tests NO ejecutados (sin -UiTests): este release sale sin haber ejercido la app real. Recomendado: .\release.ps1 -Version $Version -UiTests (desde una terminal elevada)."
+        }
     }
 
     # ── Notas del release ──────────────────────────────────────────────────────
@@ -193,6 +259,10 @@ try {
         Write-Host "    4. git push origin $branch" -ForegroundColor DarkGray
         Write-Host "       git push origin $tag" -ForegroundColor DarkGray
         Write-Host "    5. gh release create $tag (assets: FormatDiskPro-$Version-setup.exe + .sha256)" -ForegroundColor DarkGray
+        if (-not $SkipTests) {
+            $uiNote = if ($UiTests) { "unitarias + UI tests (app real)" } else { "solo unitarias (sin -UiTests)" }
+            Write-Host "    Pruebas ya ejecutadas en este dry run: $uiNote" -ForegroundColor DarkGray
+        }
         if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
         Ok "Dry run completado."
         return
@@ -202,7 +272,10 @@ try {
     if ($currentVersion -ne $Version) {
         Info "Actualizando <Version> en el .csproj..."
         $newRaw = $csprojRaw -replace '<Version>.*?</Version>', "<Version>$Version</Version>"
-        [System.IO.File]::WriteAllText($csproj, $newRaw, (New-Object System.Text.UTF8Encoding($false)))
+        # CON BOM ($true), no sin él: es lo que hace que la próxima lectura —la del siguiente release, o la
+        # de MSBuild— sepa con certeza que el archivo es UTF-8. Sin BOM, PS 5.1 y MSBuild caen en la página
+        # de códigos ANSI y vuelven a romper los acentos de <Authors>/<Copyright>. Ver la nota de arriba.
+        [System.IO.File]::WriteAllText($csproj, $newRaw, (New-Object System.Text.UTF8Encoding($true)))
     }
 
     # ── 2. Compilar instalador ─────────────────────────────────────────────────

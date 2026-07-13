@@ -163,8 +163,13 @@ del usuario).
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
 - ✅ Pruebas: **289/289** (`dotnet test`) — 269 previas + 20 del Tier 8 (6 de verificación del instalador,
   7 de neutralización de fórmulas en el CSV y 7 de contraste WCAG AA de la paleta de severidad).
-- ✅ UI tests: **17/17** de los que no dependen de la USB de pruebas (los 6 restantes exigen la unidad
-  extraíble etiquetada `utilidades` conectada, y `Category=Slow` queda fuera del filtro por defecto).
+- ✅ UI tests: **17 pasan / 6 omitidos / 0 fallan** sin la USB de pruebas conectada (antes esos 6 salían en
+  **rojo**: ver Tier 9 #41). Ya integrables en el release con `-UiTests`.
+- ✅ **Tier 9 — Infraestructura (#41, #42, #45), COMPLETADO (2026-07-13, sin publicar):** los UI tests entran
+  en el pipeline (`release.ps1 -UiTests`), el instalador está probado **end-to-end** (instalación limpia +
+  actualización in-place con el flujo silencioso real, que cierra la app y la relanza), y se arregló que
+  `release.ps1` **corrompiera la codificación del `.csproj` en cada bump** —el `.exe` publicado mostraba el
+  nombre del autor destrozado en sus propiedades—, hallado inspeccionando el binario instalado.
 - ✅ **Tier 8 — Seguridad y confianza (#38–#40), COMPLETADO (2026-07-12, publicado en v1.15.0):**
   **#38** la auto-actualización descargaba el instalador y lo **ejecutaba elevado sin comprobar nada**; ahora
   verifica firma Authenticode y, si no la hay (no se firma: #13 descartado), el **SHA-256** contra el asset
@@ -351,6 +356,12 @@ del usuario).
   que se compile.
 - **Scripts PowerShell** que se ejecuten en Windows PowerShell 5.1 deben guardarse con **BOM UTF-8**
   (si no, los acentos rompen el parser). `release.ps1` ya lo tiene.
+- **El `.csproj` también va con BOM UTF-8, y NO se lee con `Get-Content -Raw`.** Sin BOM, PS 5.1 lo lee con la
+  página de códigos ANSI: los bytes UTF-8 de `é` se vuelven `Ã©` y, al reescribirlo, la corrupción queda
+  grabada. Como el bump de versión ocurre en **cada** release, el daño se acumulaba capa sobre capa y el
+  nombre del autor de `<Authors>`/`<Copyright>` acabó destrozado **en las propiedades del `.exe` publicado**.
+  `release.ps1` usa `[System.IO.File]::ReadAllText` (detecta el BOM) y reescribe **conservándolo**. Cualquier
+  script que toque el `.csproj` debe hacer lo mismo.
 - **git + PS 5.1 + salida capturada = trampa.** git escribe por stderr en su operación **normal** (el resumen
   del `push`, los avisos de CRLF), sin que nada haya fallado. Si la salida del script se captura
   (`| Tee-Object`, `2>&1 |`, un wrapper), PS 5.1 convierte cada línea de stderr de un exe nativo en
@@ -375,13 +386,17 @@ del usuario).
 
 `release.ps1` hace: validar → tests → bump `<Version>` → build instalador → commit + tag `vX.Y.Z`
 → push → `gh release create` con el instalador **y su `.sha256`**. Flags: `-DryRun`, `-SkipTests`,
-`-AllowDirty`, `-NotesFile`.
+**`-UiTests`**, `-AllowDirty`, `-NotesFile`.
 
-> Los **UI tests no están en la solución**, así que `release.ps1` no los ejecuta. Correrlos a mano antes de
-> cortar, desde una **terminal elevada** (la app es `requireAdministrator`):
-> `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`. Los 6 de
-> `DestructiveLifecycleTests`/`DriveDiagnosticsTests` exigen además la **USB de pruebas** (partición
-> extraíble etiquetada `utilidades`) conectada; sin ella fallan por diseño, no por regresión.
+> **Corte recomendado:** `.\release.ps1 -Version X.Y.Z -UiTests` desde una **terminal elevada**. Con
+> `-UiTests` el release también ejerce la **app real** (FlaUI/UIA3) y no sale si falla.
+>
+> Los UI tests **no están en la solución** (si lo estuvieran, el `dotnet test` de los unitarios los
+> arrastraría siempre): se lanzan por ruta y solo con el flag. Requieren **elevación** —la app es
+> `requireAdministrator` y un proceso no elevado no puede automatizar su ventana—, y el script lo valida.
+> Los 6 que necesitan la **USB de pruebas** (partición extraíble etiquetada `utilidades`) **se omiten solos**
+> si no está conectada: omitido ≠ fallido. `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` hace que la suite **formatee**
+> esa USB de verdad; `release.ps1` **aborta** si la encuentra activa.
 
 ## 6. Pendientes / ideas
 
@@ -390,11 +405,14 @@ del usuario).
   GPLv3 + legal + donaciones; Tier 6: pulido UX/UI; Tier 7 — #37 partición FAT32 pequeña al reinicializar,
   publicado en v1.14.0; **Tier 8 — #38 verificación del instalador, #39 anti CSV injection y #40 contraste
   WCAG AA: publicado en v1.15.0 (2026-07-12)**). Solo queda lo deliberadamente fuera de alcance.
-- Probar el instalador end-to-end (instalación + actualización in-place). **Ojo:** la verificación del #38
-  solo se ejerce de verdad al actualizar **desde** una versión ≥ 1.15.0; los clientes ≤ 1.14.1 se actualizarán
-  a la 1.15.0 con el código viejo, que no verifica nada.
-- (Opcional) Meter los UI tests en el pipeline de release (hoy se lanzan a mano; requieren terminal elevada
-  y, seis de ellos, la USB física de pruebas).
+- **Pendiente de verificar en producción:** la verificación del instalador (#38) solo se ejerce de verdad al
+  actualizar **desde** una versión ≥ 1.15.0. Los clientes ≤ 1.14.1 se actualizaron a la 1.15.0 con el código
+  viejo, que no verifica nada. El primer uso real será **1.15.0 → la siguiente versión**: comprobar entonces
+  que la app acepta el instalador (y que el release lleva su `.sha256`, o lo rechazará).
+- **Capturas de pantalla en el README** (lo único de peso que queda del plan): no hay ninguna, y para un
+  proyecto publicado es lo primero que vende. Portar `tools/capture-screenshots.ps1` de WingetUSoft, que
+  conduce la app real por UI Automation. Dos diferencias aquí: la app pide **elevación** y su `settings.json`
+  vive en `%AppData%`, no en `%LocalAppData%`.
 - (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
 - S2 (menor, por diseño): la validación de etiqueta no rechaza `'`, pero queda cubierto por el escape.
 
@@ -408,6 +426,57 @@ del usuario).
 ---
 
 ## Registro de cambios
+
+### 2026-07-13 — feat: Tier 9 (#41, #42, #45) — infraestructura y calidad
+
+**#41 — Los UI tests entran en el pipeline de release.** `release.ps1` solo corría los unitarios; los UI
+tests —los únicos que ejercen la app **real**— se lanzaban a mano. El obstáculo no era el script: **6 tests
+fallaban por diseño** sin la USB de pruebas conectada (`TestDrive.RequireLetter` lanza), así que integrarlos
+habría tumbado cualquier corte hecho sin el hardware delante.
+- `tests/FormatDiskPro.UiTests/TestDriveFacts.cs` (nuevo): `[TestDriveFact]` y `[DestructiveFact]`, que ponen
+  `Skip` al **descubrir** el test si falta su precondición. Un test **omitido** dice "no tengo el hardware";
+  uno **fallido** dice "la app está rota" — confundirlos era justo el problema. Sin la USB: **17 pasan, 6 se
+  omiten, 0 fallan** (antes, 6 en rojo).
+- `release.ps1`: flag **`-UiTests`** con tres guardas — exige **terminal elevada** (la app es
+  `requireAdministrator`: un proceso no elevado no puede automatizar su ventana, y los 17 fallarían de golpe
+  por un motivo ajeno al código), **rechaza** `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` (un corte jamás debe
+  formatear una unidad, ni aunque quien lo lanza la tuviera activa de una sesión de depuración) y **rechaza**
+  `-UiTests -SkipTests` juntos, que se contradicen. Sin el flag, avisa de que el release sale sin ejercer la
+  app real. La USB es **opcional**: si no está, se avisa y sus tests se omiten.
+- Los UI tests **siguen fuera de la solución** a propósito: si estuvieran, el `dotnet test` de los unitarios
+  los arrastraría siempre. Se lanzan por ruta, solo si se piden.
+- Verificado de punta a punta: las dos guardas abortan cuando deben, y el camino feliz corre 289 unitarios +
+  17 UI tests contra la app real.
+
+**#42 — Instalador probado end-to-end** (contra el instalador real de la v1.15.0, con log de Inno):
+- **Instalación limpia:** desinstala sin dejar rastro y **conserva** `%AppData%\FormatDiskPro` (datos del
+  usuario: `settings.json`, `history.log`); instala 511 archivos en ~5 s, deja **una sola** entrada de
+  desinstalación y sus accesos directos, y la app arranca.
+- **Actualización in-place con el flujo silencioso real** (`/VERYSILENT /NORESTART /AUTOUPDATE=1`: los
+  argumentos exactos de `UpdateService.LaunchInstaller`): cierra la app en ejecución, actualiza y **la relanza
+  sola**.
+- ⚠️ **Hallazgo — un diálogo modal abierto bloquea el instalador silencioso.** Con un `ContentDialog` encima,
+  la app no atiende la petición de cierre de `CloseApplications=yes` y Setup cae al aviso del `AppMutex`, **que
+  bloquea incluso en `/VERYSILENT`**. Si ahí se cancela, el `[InstallDelete]` ya borró `{app}\*` y la
+  instalación queda **incompleta** (observado: 498 de 511 archivos; la máquina de pruebas se reparó con una
+  reinstalación limpia). **No afecta a la auto-actualización real**: allí la app se cierra sola
+  (`Application.Current.Exit()` tras `LaunchInstaller`) antes de que el instalador arranque. Solo se alcanza
+  lanzando el instalador **a mano** con la app abierta y un diálogo encima — y entonces avisar es lo correcto.
+
+**#45 — La codificación del `.csproj` se corrompía en CADA release.** Apareció **inspeccionando el binario
+instalado** durante el #42, no revisando código: el `.exe` publicado mostraba `Ricky Angel JimÃ©nez Bueno` en
+sus propiedades de archivo (pestaña *Detalles*).
+- **Causa:** el bump de versión de `release.ps1` leía con `Get-Content -Raw` —que en PS 5.1, **sin BOM**, usa
+  la página de códigos ANSI, así que los bytes UTF-8 de `é` (C3 A9) se convierten en dos caracteres `Ã©`— y
+  reescribía el archivo como **UTF-8 sin BOM**. Cada release añadía **una capa** de mojibake y dejaba el
+  archivo sin BOM para la siguiente. Tras 14 versiones, el nombre del autor estaba destrozado en varios
+  niveles. El "arreglo" del 2026-07-12 (corregir el texto) fue **incompleto**: no atacó la causa, y el propio
+  corte de la v1.15.0 volvió a romperlo.
+- **Arreglo:** `[System.IO.File]::ReadAllText` (detecta el BOM; asume UTF-8 si no lo hay) + escritura
+  **conservando el BOM** (`UTF8Encoding($true)`), y el `.csproj` guardado con BOM UTF-8.
+- **Verificado** simulando 3 bumps seguidos sobre una copia: el patrón viejo corrompe en cada uno
+  (`Jiménez` → `JimÃ©nez` → `JimÃƒÂ©nez`); el nuevo aguanta los tres intactos. Y el binario recompilado ya
+  lleva `U+00E9` real, no `U+00C3`.
 
 ### 2026-07-12 — fix(release): `release.ps1` sobrevive a que se capture su salida (`Invoke-Git`)
 

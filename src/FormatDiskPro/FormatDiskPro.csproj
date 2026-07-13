@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -14,8 +14,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>FormatDiskPro.ico</ApplicationIcon>
     <Version>1.15.0</Version>
-    <Authors>Ricky Angel JimÃ©nez Bueno</Authors>
-    <Copyright>Copyright (C) 2026 Ricky Angel JimÃ©nez Bueno</Copyright>
+    <Authors>Ricky Angel Jiménez Bueno</Authors>
+    <Copyright>Copyright (C) 2026 Ricky Angel Jiménez Bueno</Copyright>
   </PropertyGroup>
   <!-- Textos legales mostrados dentro de la app (Ayuda -> Licencia / Avisos de terceros). -->
   <ItemGroup>

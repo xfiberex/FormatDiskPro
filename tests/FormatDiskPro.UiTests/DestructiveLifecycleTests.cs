@@ -28,7 +28,7 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
 
     // ── Guardas de ConfirmDialog (seguras, sin opt-in) ─────────────────────────────
 
-    [Fact]
+    [TestDriveFact]
     public void StartConfirm_WrongLetterDisabled_CancelDoesNotFormat()
     {
         char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
@@ -60,7 +60,7 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
         }
     }
 
-    [Fact]
+    [TestDriveFact]
     public void ReinitConfirm_WrongLetterDisabled_CancelDoesNotReinit()
     {
         char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
@@ -94,9 +94,12 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
     /// [Fact] de xUnit no está garantizado, y cada paso depende del resultado del anterior
     /// (Reinicializar puede reasignar la letra de unidad).
     /// </summary>
-    [Fact]
+    [DestructiveFact]
     public void FullLifecycle_FormatThenReinit_OnDedicatedTestUsb()
     {
+        // Redundante con [DestructiveFact] (que ya salta el test sin opt-in), pero se mantiene como
+        // segunda barrera: este es el único test que BORRA datos reales, y no debe depender de que nadie
+        // se equivoque al copiar el atributo.
         TestDrive.RequireDestructiveOptIn();
         char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
         char? finalLetter = letter;

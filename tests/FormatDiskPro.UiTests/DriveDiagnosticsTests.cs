@@ -26,7 +26,7 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
         Assert.True(found, $"La unidad de pruebas ({letter}:) no aparece en el selector — ¿está conectada?");
     }
 
-    [Fact]
+    [TestDriveFact]
     public void HealthDialog_OpensForTestDrive()
     {
         SelectTestDrive();
@@ -45,7 +45,7 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
         }
     }
 
-    [Fact]
+    [TestDriveFact]
     public void CheckDisk_ScanOnly_CompletesForTestDrive()
     {
         SelectTestDrive();
@@ -66,7 +66,7 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
         }
     }
 
-    [Fact]
+    [TestDriveFact]
     public void Benchmark_CompletesForTestDrive()
     {
         SelectTestDrive();
@@ -94,7 +94,7 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
     /// Por eso NO corre en el filtro por defecto — excluida vía Category=Slow. Para ejecutarla a
     /// propósito: <c>dotnet test --filter "Category=Slow"</c> (con tiempo de sobra delante).
     /// </summary>
-    [Fact]
+    [TestDriveFact]
     [Trait("Category", "Slow")]
     public void VerifyCapacity_CompletesForTestDrive()
     {

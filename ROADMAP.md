@@ -352,6 +352,57 @@ un paquete más nuevo que lo incluye.
 
 ---
 
+## ✅ Tier 9 — Infraestructura y calidad (2026-07-13, sin publicar)
+
+> No añade funciones: cierra los dos pendientes de infraestructura del proyecto y arregla lo que
+> destaparon. Numeración global (#41, #42, #45).
+
+### 41. UI tests en el pipeline de release — ✅ implementado
+`release.ps1` solo corría los unitarios; los UI tests —los únicos que ejercen la app **real**— se lanzaban a
+mano y era fácil olvidarlos. El obstáculo no era el script: era que **6 tests fallaban por diseño** cuando la
+USB de pruebas no estaba conectada (`TestDrive.RequireLetter` lanza), así que meterlos en el pipeline habría
+tumbado cualquier corte hecho sin el hardware delante.
+- **Los tests con precondición ahora se OMITEN en vez de fallar** (`TestDriveFactAttribute`,
+  `DestructiveFactAttribute` en `tests/FormatDiskPro.UiTests/TestDriveFacts.cs`): un test omitido dice "no
+  tengo el hardware"; uno fallido dice "la app está rota". Confundirlos era el problema.
+  Sin la USB: **17 pasan, 6 se omiten, 0 fallan** (antes: 6 en rojo).
+- **Nuevo flag `-UiTests`** en `release.ps1`, con tres guardas: exige **terminal elevada** (la app es
+  `requireAdministrator` y un proceso no elevado no puede automatizar su ventana), **rechaza**
+  `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` (un corte de release jamás debe formatear una unidad) y **rechaza**
+  `-UiTests -SkipTests` juntos, que se contradicen. Sin el flag, avisa de que el release sale sin haber
+  ejercido la app real.
+- **Por qué no van en la solución:** si estuvieran, el `dotnet test` de los unitarios los arrastraría siempre,
+  y necesitan condiciones que no toda máquina tiene. Se lanzan por ruta, solo si se piden.
+
+### 42. Instalador probado end-to-end — ✅ hecho (2026-07-13)
+Verificado contra el instalador real de la v1.15.0, con log de Inno Setup:
+- **Instalación limpia:** desinstala sin dejar rastro (y **conserva** `%AppData%\FormatDiskPro` — son datos
+  del usuario), instala 511 archivos en 5 s, crea **una sola** entrada de desinstalación y sus accesos
+  directos, y la app arranca.
+- **Actualización in-place con el flujo silencioso real** (`/VERYSILENT /NORESTART /AUTOUPDATE=1`, los
+  argumentos exactos que usa `UpdateService.LaunchInstaller`): cierra la app en ejecución, actualiza y **la
+  relanza sola**. Confirmado en la máquina del autor.
+- ⚠️ **Hallazgo (limitación real de Inno, no un bug del proyecto):** si la app tiene un **diálogo modal
+  abierto**, no puede atender la petición de cierre de `CloseApplications`, y Setup cae al aviso del
+  `AppMutex` — **que bloquea incluso en `/VERYSILENT`**. Si ahí se cancela, el `[InstallDelete]` ya ha
+  borrado `{app}\*` y la instalación queda **incompleta** (se observó: 498 de 511 archivos). **No afecta a la
+  auto-actualización real**, porque ahí la app se cierra sola (`Application.Current.Exit()`) antes de que el
+  instalador arranque. Solo se alcanza lanzando el instalador **a mano** con la app abierta y un diálogo
+  encima, y entonces el aviso es lo correcto: avisa en vez de romper por sorpresa.
+
+### 45. La codificación del `.csproj` se corrompía en CADA release — ✅ implementado
+Apareció **inspeccionando el binario instalado** en el #42, no revisando código: el `.exe` publicado mostraba
+`Ricky Angel JimÃ©nez Bueno` en sus propiedades de archivo.
+- **Causa:** el bump de versión de `release.ps1` hacía `Get-Content -Raw` (que en PS 5.1, **sin BOM**, lee con
+  la página de códigos ANSI: los bytes UTF-8 de `é` se vuelven `Ã©`) y reescribía el archivo como **UTF-8 sin
+  BOM**. Cada release añadía **una capa** de mojibake y borraba el BOM, dejando la siguiente lectura
+  igual de ciega. Tras 14 versiones, el nombre del autor estaba destrozado en varios niveles.
+- **Arreglo:** `[IO.File]::ReadAllText` (detecta el BOM) + escritura **conservando el BOM**, y el `.csproj`
+  guardado con BOM UTF-8. Verificado simulando 3 bumps seguidos: el patrón viejo corrompe en cada uno
+  (`Jiménez` → `JimÃ©nez` → `JimÃƒÂ©nez`), el nuevo aguanta los tres intactos.
+
+---
+
 ## 🚫 Deliberadamente fuera de alcance
 
 Se excluyen a propósito para no desviar el producto de su propósito. Adoptar cualquiera de ellos sería
