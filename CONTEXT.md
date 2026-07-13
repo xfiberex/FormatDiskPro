@@ -6,11 +6,21 @@
 > _Estado actual_ y añadir una entrada en el _Registro de cambios_. Usar fechas absolutas.
 
 - **Repositorio:** https://github.com/xfiberex/FormatDiskPro
-- **Última actualización de este documento:** 2026-07-05
-- **Versión actual:** **1.14.0** (**Tier 7 — #37: partición FAT32 pequeña al reinicializar en discos
-  grandes**, con tamaño seleccionable 1/2/4/8/16/32 GB, verificado con hardware real; incluye el **fix de
-  `Initialize-Disk`** que hacía fallar todo Reinicializar unidad en algunos USB, y el pulido UX posterior:
-  enlace directo, aviso en Iniciar, estados vacíos de Salud/Conexión y `FormatBytes` sin «.0»). La
+- **Última actualización de este documento:** 2026-07-12
+- **Versión actual:** **1.15.0** (**Tier 8 — seguridad y confianza**: **#38** el instalador descargado se
+  **verifica antes de ejecutarse como administrador** (firma Authenticode → si no, SHA-256 contra el asset
+  `*.exe.sha256` del release; sin ninguna de las dos, se borra y no se ejecuta), **#39** neutralización de
+  **fórmulas en la exportación CSV** del historial y **#40** **contraste WCAG AA** de los colores de severidad
+  S.M.A.R.T., ahora medido por tests. Incluye el fix de build **MAX_PATH** (la publicación intermedia se movió
+  a `%TEMP%` porque Inno Setup no maneja rutas > 260 y el Windows App SDK incorporó un archivo de nombre largo
+  que rompía la compilación del instalador), el **fijado de la versión del Windows App SDK** —era `1.8.*`,
+  flotante: el build no era reproducible y ese archivo apareció **solo**— y la corrección de
+  `<Authors>`/`<Copyright>`, que estaban **corrompidos** y salían así en las propiedades del `.exe`). La **1.14.1**
+  fue mantenimiento de las pruebas de UI. La **1.14.0** trajo el **Tier 7 — #37: partición FAT32 pequeña al
+  reinicializar en discos grandes**, con tamaño seleccionable 1/2/4/8/16/32 GB, verificado con hardware real;
+  incluye el **fix de `Initialize-Disk`** que hacía fallar todo Reinicializar unidad en algunos USB, y el
+  pulido UX posterior: enlace directo, aviso en Iniciar, estados vacíos de Salud/Conexión y `FormatBytes` sin
+  «.0». La
   **1.13.0** trajo el **Tier 6: pulido UX/UI**: InfoBar de unidad protegida,
   `ConfirmDialog` con foco+Enter, barra de capacidad, iconos por tipo de unidad, estado vacío del selector,
   salud coloreada, validación inline de etiqueta, progreso en la barra de tareas y estado de error en la
@@ -151,9 +161,17 @@ del usuario).
 ## 3. Estado actual
 
 - ✅ Build de solución: **0 advertencias / 0 errores** (WinUI 3, WAS 1.8).
-- ✅ Pruebas: **269/269** (`dotnet test`) — 226 previas + 23 del Tier 6 (8 `SmartInfo.HealthLevel` + 15
-  `FormatLogic.ValidateLabel`) + 17 del Tier 7 (`ReinitPlan.AllowedSmallFat32SizesGb`/`NormalizeSmallFat32SizeGb`/
-  `SmallFat32PartitionBytes`) + 3 del pulido UX posterior (`FormatBytes` sin ".0" en enteros).
+- ✅ Pruebas: **289/289** (`dotnet test`) — 269 previas + 20 del Tier 8 (6 de verificación del instalador,
+  7 de neutralización de fórmulas en el CSV y 7 de contraste WCAG AA de la paleta de severidad).
+- ✅ UI tests: **17/17** de los que no dependen de la USB de pruebas (los 6 restantes exigen la unidad
+  extraíble etiquetada `utilidades` conectada, y `Category=Slow` queda fuera del filtro por defecto).
+- ✅ **Tier 8 — Seguridad y confianza (#38–#40), COMPLETADO (2026-07-12, publicado en v1.15.0):**
+  **#38** la auto-actualización descargaba el instalador y lo **ejecutaba elevado sin comprobar nada**; ahora
+  verifica firma Authenticode y, si no la hay (no se firma: #13 descartado), el **SHA-256** contra el asset
+  `*.exe.sha256` del release — sin ninguna de las dos, borra el instalador y aborta. **#39** `ToCsv` escapaba
+  según RFC 4180 pero no neutralizaba **fórmulas** (`=`/`+`/`-`/`@` → Excel las ejecuta). **#40** los colores de
+  severidad se elegían a ojo; ahora un test mide su **contraste real (WCAG AA 4.5:1)** en ambos temas —los
+  ocho casos ya pasaban, así que aquí no había bug latente: el valor es que no pueda aparecer.
 - ✅ **Tier 7 — Partición FAT32 pequeña al reinicializar (#37), COMPLETADO Y VERIFICADO con hardware real
   (2026-07-02, publicado en v1.14.0):**
   Windows nunca permite crear un volumen FAT32 mayor de 32 GB (ni `Format-Volume` ni `format.com`; confirmado por
@@ -305,7 +323,32 @@ del usuario).
 - **Versionado:** fuente única en `src/FormatDiskPro/FormatDiskPro.csproj` `<Version>`.
   El updater compara esa versión contra el `tag_name` del último release (`UpdateChecker.IsNewer`).
 - **Actualizaciones:** chequeo silencioso al iniciar (`OnShown`) + manual (Ayuda → Buscar
-  actualizaciones). Si hay versión mayor, descarga el asset `*.exe` (preferente "setup") y lo lanza.
+  actualizaciones). Si hay versión mayor, descarga el asset `*.exe` (preferente "setup"), lo **verifica** y
+  lo lanza.
+- **Verificación del instalador (desde v1.15.0, #38) — NO ROMPER:** el instalador se ejecuta **elevado**, así
+  que antes se comprueba que es el del proyecto: firma Authenticode válida → OK; si no, **SHA-256** contra el
+  asset `*.exe.sha256`. Sin ninguna de las dos, se **borra y no se ejecuta**. Consecuencias operativas:
+  - **Todo release debe subir su `.sha256`** o la auto-actualización lo rechazará. `build-installer.ps1` lo
+    genera (**después** de firmar, si se firma: firmar cambia el binario) y `release.ps1` lo sube como segundo
+    asset y **aborta si falta**.
+  - La descarga vive en su propio método (`DownloadToFileAsync`) **a propósito**: su `FileStream` es
+    `FileShare.None` y debe cerrarse **antes** de verificar. Si se vuelve a fusionar con la verificación, esta
+    no podrá ni abrir el archivo ("lo está usando otro proceso" — el proceso es la propia app) y la
+    actualización fallará **siempre**. Hay test que lo caza.
+  - `HttpCompletionOption.ResponseHeadersRead` en la descarga **no es decorativo**: deja el cuerpo fuera del
+    `Timeout` de 30 s del `HttpClient`. Con `ResponseContentRead`, un instalador de ~60 MB fallaría en toda
+    conexión que no llegue a 2 MB/s.
+- **Publicación del instalador a `%TEMP%` (no dentro del repo) — MAX_PATH:** Inno Setup no usa las APIs de
+  rutas largas, y el publish self-contained del Windows App SDK trae nombres de hasta 76 caracteres
+  (`WindowsAppSdk.AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll`). Sumados a
+  `<repo>\src\FormatDiskPro\bin\Release\<tfm>\win-x64\publish\`, pasan de 260 en cuanto el repo no cuelga de
+  una carpeta corta, e ISCC aborta con «El sistema no puede encontrar la ruta especificada» sin decir cuál.
+  Publicar en `%TEMP%\FormatDiskPro-publish` lo deja resuelto sea cual sea la ubicación del repo.
+- **`Microsoft.WindowsAppSDK` con versión EXACTA (`1.8.260529003`), no flotante — no volver a `1.8.*`:**
+  con comodín, NuGet resuelve el paquete más nuevo que encaje y **el conjunto de archivos publicados cambia
+  solo**, sin tocar el repo. Así apareció, de un día para otro, el archivo que rompió el build (ver MAX_PATH
+  arriba). Subir de versión debe ser un cambio **deliberado y probado**, no un efecto colateral de la fecha en
+  que se compile.
 - **Scripts PowerShell** que se ejecuten en Windows PowerShell 5.1 deben guardarse con **BOM UTF-8**
   (si no, los acentos rompen el parser). `release.ps1` ya lo tiene.
 - **`gh` (GitHub CLI):** si no está autenticado, los scripts reutilizan la credencial de git
@@ -324,17 +367,27 @@ del usuario).
 | **Publicar versión** | `.\release.ps1 -Version X.Y.Z` (usa `-DryRun` para simular) |
 
 `release.ps1` hace: validar → tests → bump `<Version>` → build instalador → commit + tag `vX.Y.Z`
-→ push → `gh release create` con el instalador. Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile`.
+→ push → `gh release create` con el instalador **y su `.sha256`**. Flags: `-DryRun`, `-SkipTests`,
+`-AllowDirty`, `-NotesFile`.
+
+> Los **UI tests no están en la solución**, así que `release.ps1` no los ejecuta. Correrlos a mano antes de
+> cortar, desde una **terminal elevada** (la app es `requireAdministrator`):
+> `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`. Los 6 de
+> `DestructiveLifecycleTests`/`DriveDiagnosticsTests` exigen además la **USB de pruebas** (partición
+> extraíble etiquetada `utilidades`) conectada; sin ella fallan por diseño, no por regresión.
 
 ## 6. Pendientes / ideas
 
-- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — **Tiers 2 a 7 completados** (Tier 3:
+- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — **Tiers 2 a 8 completados** (Tier 3:
   presets, idiomas, avisos, **#13 winget/firma descartado el 2026-06-24**; Tier 4: refinado #14–#22; Tier 5:
-  GPLv3 + legal + donaciones; Tier 6: pulido UX/UI; **Tier 7 — #37 partición FAT32 pequeña al reinicializar en
-  discos grandes, con tamaño seleccionable: publicado en v1.14.0 (2026-07-02)**). Solo queda lo
-  deliberadamente fuera de alcance.
-- Probar el instalador end-to-end (instalación + actualización in-place).
-- (Opcional) Workflow de GitHub Actions que ejecute `release.ps1` o equivalente.
+  GPLv3 + legal + donaciones; Tier 6: pulido UX/UI; Tier 7 — #37 partición FAT32 pequeña al reinicializar,
+  publicado en v1.14.0; **Tier 8 — #38 verificación del instalador, #39 anti CSV injection y #40 contraste
+  WCAG AA: publicado en v1.15.0 (2026-07-12)**). Solo queda lo deliberadamente fuera de alcance.
+- Probar el instalador end-to-end (instalación + actualización in-place). **Ojo:** la verificación del #38
+  solo se ejerce de verdad al actualizar **desde** una versión ≥ 1.15.0; los clientes ≤ 1.14.1 se actualizarán
+  a la 1.15.0 con el código viejo, que no verifica nada.
+- (Opcional) Meter los UI tests en el pipeline de release (hoy se lanzan a mano; requieren terminal elevada
+  y, seis de ellos, la USB física de pruebas).
 - (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
 - S2 (menor, por diseño): la validación de etiqueta no rechaza `'`, pero queda cubierto por el escape.
 
@@ -348,6 +401,81 @@ del usuario).
 ---
 
 ## Registro de cambios
+
+### 2026-07-12 — feat: Tier 8 (#38–#40) — seguridad y confianza — v1.15.0
+
+Port de los tres puntos que **WingetUSoft** (proyecto hermano) resolvió después, con sus tests y con los
+tropiezos ya conocidos. No añade funciones de disco: cierra huecos de seguridad y hace **verificable** una
+decisión de diseño que se tomaba a ojo.
+
+**#38 — Verificar el instalador antes de ejecutarlo elevado.** Era el agujero más serio del proyecto:
+`UpdateService` descargaba el instalador por HTTPS y lo lanzaba **con permisos de administrador sin comprobar
+ni firma ni hash** (el README lo reconocía como "modelo de confianza asumido"). Ahora:
+firma Authenticode válida → se acepta; si no la hay —y no la hay, porque **no se firma** (#13 descartado)—,
+se compara el **SHA-256** del archivo con el asset `*.exe.sha256` del release. Sin ninguna de las dos, **se
+borra y no se ejecuta nada**.
+- `Services/UpdateService`: `ReleaseInfo.ChecksumUrl` (nuevo, el parser ya distinguía assets por extensión, y
+  `.sha256` no compite con `.exe`), `DownloadToFileAsync` + `VerifyInstallerAsync` + `ComputeSha256Async` +
+  `VerifyAuthenticodeSignature` (P/Invoke a `WinVerifyTrust`), y `TryDeleteRejectedInstaller`.
+- **La descarga se separó en su propio método a propósito.** Su `FileStream` es `FileShare.None`: si sigue
+  abierto al verificar, ni la firma ni el hash pueden abrir el archivo ("lo está usando otro proceso" — el
+  proceso es la propia app) y la actualización **se rechaza siempre a sí misma**. Es la regresión que sufrió
+  WingetUSoft en su v1.4.1; aquí nace ya con el test que la caza (`DownloadAsync_ClosesFileBeforeVerifying…`).
+- `installer/build-installer.ps1` genera el `.sha256` **después** de firmar (firmar cambia el binario) y
+  `release.ps1` lo sube como **segundo asset**, abortando si no existe.
+- 2 claves de localización nuevas × 5 idiomas (`update.unverifiable`, `update.checksumMismatch`): el rechazo
+  llega al usuario explicado, dentro del diálogo de error que ya existía.
+- **Alcance honesto:** el `.exe` y su hash salen del mismo release → detecta corrupción y manipulación **en
+  tránsito**, no un compromiso de la cuenta de GitHub. Es la garantía que **sustituye** a la firma.
+- **Compatibilidad:** los clientes ≤ 1.14.1 no verifican nada → se actualizan a la 1.15.0 con el código viejo,
+  sin romperse. La verificación solo se ejerce de verdad **desde** la 1.15.0 en adelante.
+
+**#39 — Neutralizar fórmulas en la exportación CSV del historial.** `HistoryEntry.ToCsv` entrecomillaba según
+RFC 4180, pero eso protege la *estructura* del CSV, no al programa que lo abre: un campo que empieza por `=`,
+`+`, `-` o `@` lo ejecuta Excel/Calc como **fórmula** (`=cmd|'/c calc'!A1`). Ahora se prefija con apóstrofo
+(mitigación OWASP), comprobándolo sobre el valor **sin espacios delanteros**.
+- `Core/HistoryEntry.CsvField` (puro), sin tocar el escape RFC 4180: una fórmula con coma lleva las dos cosas.
+- **Alcance honesto (el plan lo atribuía a "una etiqueta de volumen maliciosa", y eso no era exacto):** las
+  líneas que escribe la app **siempre** empiezan por una palabra clave (`FORMAT`, `WIPE`, `EJECT`…) y la
+  etiqueta va incrustada a mitad del detalle, así que **no alcanza la primera posición del campo**. Lo que esto
+  blinda son los dos caminos que sí quedan: `history.log` es texto plano en `%AppData%` que otro proceso puede
+  haber tocado y `Parse` convierte fielmente en `Detail` cualquier línea que halle allí; y un futuro formato de
+  log que empiece por un dato variable dejaría de ser seguro sin que nadie se acordara de esto.
+
+**#40 — Contraste WCAG AA de los colores de severidad, verificado por tests.** Los verde/ámbar/rojo de la salud
+S.M.A.R.T. estaban cableados en `HealthDialog` y se eligieron a ojo para los dos temas.
+- Nuevo `Core/SeverityPalette` (RGB por tema + fondos de tarjeta + `ContrastRatio`, puro testeable);
+  `UI/HealthDialog.LevelBrush` queda como envoltorio que solo construye el `Brush`. `using Windows.UI` retirado
+  del diálogo, que ya no lo necesita.
+- El test recorre `SmartLevel × tema` (8 casos) y exige **4.5:1**. **Los ocho ya pasaban**: aquí no había bug
+  latente —a diferencia de WingetUSoft, donde el mismo test destapó colores ilegibles en tema oscuro—. El valor
+  es que a partir de ahora un color mal elegido **rompe el build** en vez de degradar la app en silencio.
+
+**Fix de build (MAX_PATH) — no buscado, apareció al compilar el instalador.** ISCC abortaba con «El sistema no
+puede encontrar la ruta especificada», sin decir qué archivo. Causa: Inno Setup no usa las APIs de rutas largas
+y **un** archivo del publish pasaba de 260 caracteres
+(`WindowsAppSdk.AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll`, 76 de nombre, sobre un prefijo
+de repo de 191). Apareció **solo**, sin tocar el repo, porque `Microsoft.WindowsAppSDK` está referenciado como
+**`1.8.*`** (versión flotante) y NuGet resolvió un paquete más nuevo que lo incluye.
+- `build-installer.ps1` publica ahora en `%TEMP%\FormatDiskPro-publish` (~40 caracteres de base) en vez de
+  dentro del repo: el instalador compila desde cualquier ubicación del checkout.
+- **Causa de raíz atacada (#44):** `Microsoft.WindowsAppSDK` pasa de `1.8.*` a la versión **exacta**
+  `1.8.260529003` (la que se estaba usando y con la que pasan los 289 tests). Con comodín el build **no era
+  reproducible**: una versión que compilaba ayer podía no compilar hoy sin que nadie tocara el repo. Se
+  reconstruyó desde cero (`obj`/`bin` borrados) para confirmar que resuelve exactamente esa versión.
+
+**Fix de metadatos del binario — `<Authors>`/`<Copyright>` estaban corrompidos.** El `.csproj` guardaba el
+nombre del autor con **doble codificación acumulada** (`Ricky Angel JimÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©nez Bueno`), y como
+MSBuild lo lee tal cual, **el `.exe` publicado mostraba esa basura en sus propiedades de archivo** (pestaña
+*Detalles* de Windows). Corregido a `Ricky Angel Jiménez Bueno`, junto con un comentario XML igual de roto.
+El archivo se reescribió en UTF-8 sin BOM.
+
+**Pruebas:** 269 → **289** (+20: 6 de verificación del instalador con servidor HTTP local sobre `TcpListener`,
+7 de anti CSV injection, 7 de contraste). UI tests: **17/17** de los que no dependen de la USB de pruebas.
+
+**Documentación:** README (modelo de confianza reescrito — **afirmaba en falso** que el instalador no se
+verificaba, que era cierto hasta hoy), `ROADMAP.md` (Tier 8 + sección de decisiones cerradas con #13 y CI) y
+este documento (§3 estado, §4 decisiones nuevas, §5 cómo correr los UI tests, §6 pendientes).
 
 ### 2026-07-05 — fix(test): USB de pruebas reconectada — 23/23 en `FormatDiskPro.UiTests`, incluido el ciclo destructivo completo
 

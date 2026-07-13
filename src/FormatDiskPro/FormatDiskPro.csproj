@@ -13,19 +13,27 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>FormatDiskPro.ico</ApplicationIcon>
-    <Version>1.14.1</Version>
-    <Authors>Ricky Angel JimÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©nez Bueno</Authors>
-    <Copyright>Copyright (C) 2026 Ricky Angel JimÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©nez Bueno</Copyright>
+    <Version>1.15.0</Version>
+    <Authors>Ricky Angel JimÃ©nez Bueno</Authors>
+    <Copyright>Copyright (C) 2026 Ricky Angel JimÃ©nez Bueno</Copyright>
   </PropertyGroup>
-
-  <!-- Textos legales mostrados dentro de la app (Ayuda ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ InformaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n legal). -->
+  <!-- Textos legales mostrados dentro de la app (Ayuda -> Licencia / Avisos de terceros). -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\LICENSE" LogicalName="FormatDiskPro.LICENSE.txt" />
     <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.txt" LogicalName="FormatDiskPro.THIRD-PARTY-NOTICES.txt" />
   </ItemGroup>
 
+  <!--
+    Version EXACTA a proposito, no flotante (era `1.8.*` hasta la v1.15.0).
+    Con un comodin, NuGet resuelve el paquete mas nuevo que encaje y el conjunto de archivos publicados
+    puede cambiar sin que nadie toque el repo: asi aparecio, de un dia para otro,
+    WindowsAppSdk.AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll, cuyo nombre hacia que la
+    ruta del publish pasara de MAX_PATH y reventaba la compilacion del instalador con Inno Setup.
+    Subir de version debe ser un cambio deliberado, con sus pruebas, no un efecto colateral de la fecha
+    en que se compile.
+  -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.*" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260529003" />
   </ItemGroup>
 
   <!-- Exponer los miembros internal al proyecto de pruebas (p. ej. el diccionario de traducciones L.Map). -->

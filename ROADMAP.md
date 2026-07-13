@@ -291,6 +291,67 @@ USB de 64 GB (o mayor) cuya utilidad de BIOS/UEFI solo lee FAT32.
 
 ---
 
+## ✅ Tier 8 — Seguridad y confianza (v1.15.0)
+
+> Nace de comparar FormatDiskPro con su proyecto hermano **WingetUSoft** (misma arquitectura, mismo autor),
+> que resolvió estos tres puntos después: el port viene con sus tests y con los tropiezos ya conocidos.
+> No añade funciones de disco; cierra huecos de **seguridad** y hace **verificable** una decisión de diseño
+> que hasta ahora se tomaba a ojo. Numeración global (#38…).
+
+### 38. Verificar el instalador descargado (Authenticode → SHA-256) — ✅ implementado (v1.15.0)
+La auto-actualización descargaba el instalador por HTTPS y lo **ejecutaba con permisos de administrador sin
+comprobar nada**: el README lo reconocía como "modelo de confianza asumido". Ahora, antes de lanzarlo: firma
+Authenticode válida → se acepta; si no (que es el caso, porque **no se firma**, #13), se compara su **SHA-256**
+con el asset `*.exe.sha256` del release. Sin ninguna de las dos, el instalador **se borra y no se ejecuta**.
+- Dónde: `Services/UpdateService` (`VerifyInstallerAsync`, `ComputeSha256Async`, `VerifyAuthenticodeSignature`
+  vía `WinVerifyTrust`; `ReleaseInfo.ChecksumUrl`), `installer/build-installer.ps1` (genera el `.sha256`
+  **después** de firmar, porque firmar cambia el binario) y `release.ps1` (lo sube como segundo asset y
+  **aborta si falta**).
+- **La descarga se separó en su propio método** (`DownloadToFileAsync`) para que su `FileStream`
+  (`FileShare.None`) quede cerrado *antes* de verificar. Si no, la verificación no puede ni abrir el archivo
+  —"lo está usando otro proceso", siendo el proceso ella misma— y la actualización se rechazaría siempre a sí
+  misma. Es la regresión que sufrió WingetUSoft; aquí nace con el test que la caza.
+- **Alcance honesto:** el `.exe` y su hash salen del mismo release → detecta corrupción y manipulación **en
+  tránsito**, no un compromiso de la cuenta de GitHub. Es la garantía que **sustituye** a la firma, no un
+  sustituto de tenerla.
+- **Compatibilidad:** los clientes ≤ 1.14.1 no verifican nada, así que no se rompen. Desde la 1.15.0, **todo
+  release futuro debe llevar su `.sha256`** o la auto-actualización lo rechazará (por eso `release.ps1` aborta).
+
+### 39. Neutralizar fórmulas en la exportación CSV del historial — ✅ implementado (v1.15.0) · refina #19
+`HistoryEntry.ToCsv` entrecomillaba según RFC 4180, pero eso protege la *estructura* del CSV, no al programa
+que lo abre: un valor que empiece por `=`, `+`, `-` o `@` lo ejecuta Excel/Calc como **fórmula**. Ahora se
+prefija con apóstrofo (mitigación estándar OWASP), comprobándolo sobre el valor sin espacios delanteros.
+- Dónde: `Core/HistoryEntry.CsvField` (puro), manteniendo intacto el escape RFC 4180.
+- **Alcance honesto:** hoy las líneas que escribe la app siempre empiezan por una palabra clave (`FORMAT`,
+  `WIPE`…) y la etiqueta de volumen va incrustada a mitad del detalle, así que no alcanza la primera posición
+  del campo. Esto blinda los dos caminos que sí quedan: `history.log` es texto plano en `%AppData%` que otro
+  proceso puede haber tocado, y un futuro formato de log que empiece por un dato variable.
+
+### 40. Contraste WCAG AA verificado por tests en los colores de severidad — ✅ implementado (v1.15.0) · refina #16/#33
+Los verde/ámbar/rojo de la salud S.M.A.R.T. se eligieron **a ojo** para ambos temas. Ahora los RGB viven en un
+módulo puro y **un test mide el contraste real de cada color contra el fondo de su tarjeta en los dos temas y
+exige 4.5:1**: un color mal elegido rompe el build en vez de degradar la app en silencio.
+- Dónde: `Core/SeverityPalette` (colores por tema + `ContrastRatio`, puro testeable); `UI/HealthDialog.LevelBrush`
+  pasa a ser un envoltorio que solo construye el `Brush`.
+- Al medirlos, los colores que ya había **pasaron los ocho casos**: aquí no había ningún bug latente (en
+  WingetUSoft, el mismo test sí destapó uno). El valor está en que a partir de ahora no puede aparecer.
+
+### 44. Build reproducible: versión exacta del Windows App SDK — ✅ implementado (v1.15.0)
+No estaba planeado: **apareció al compilar el instalador del Tier 8**. ISCC abortaba con «El sistema no puede
+encontrar la ruta especificada», sin decir qué archivo. Causa: Inno Setup no usa las APIs de rutas largas y
+**un** archivo del publish pasaba de **MAX_PATH** (260):
+`WindowsAppSdk.AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll`. Y había aparecido **solo**, sin
+que nadie tocara el repo, porque `Microsoft.WindowsAppSDK` estaba referenciado como **`1.8.*`** y NuGet resolvió
+un paquete más nuevo que lo incluye.
+- **Dónde:** `FormatDiskPro.csproj` → versión **exacta** `1.8.260529003` (la que ya se estaba usando; se
+  reconstruyó desde cero para confirmarlo). `installer/build-installer.ps1` → publica a
+  `%TEMP%\FormatDiskPro-publish` en vez de dentro del repo, así el instalador compila **desde cualquier
+  ubicación del checkout**.
+- De paso: `<Authors>` y `<Copyright>` estaban **corrompidos** (doble codificación acumulada) y esa basura
+  acababa en las **propiedades del `.exe` publicado**. Corregidos.
+
+---
+
 ## 🚫 Deliberadamente fuera de alcance
 
 Se excluyen a propósito para no desviar el producto de su propósito. Adoptar cualquiera de ellos sería
@@ -299,6 +360,17 @@ una **decisión de cambiar el alcance**:
 - **Creador de USB booteable desde ISO** (territorio Rufus) — gran expansión.
 - **Gestor de particiones completo** (redimensionar/fusionar/mover).
 - **Clonado / imagen / backup de discos.**
+
+## 🚫 Decisiones cerradas (no reabrir)
+
+- **#13 paquete winget + firma del instalador — descartado (2026-06-24).** GitHub Releases con
+  auto-actualización integrada es la distribución del proyecto, y **no se firmará el instalador**: SmartScreen
+  seguirá mostrando "editor desconocido". La firma Authenticode sigue disponible como **opción** del pipeline,
+  no como objetivo. El **#38 no lo contradice**: verifica el hash, no exige firmar — de hecho es *más*
+  necesario precisamente porque no hay firma.
+- **CI con GitHub Actions — descartado (2026-07-12).** Un runner hospedado **no puede** ejecutar los UI tests
+  (necesitan sesión elevada y la USB física de pruebas), así que solo duplicaría los unitarios que `release.ps1`
+  ya corre antes de cada corte, con menos cobertura. Misma decisión que en WingetUSoft.
 
 ---
 
@@ -331,7 +403,14 @@ Todo publicado en **v1.13.0**.
 **#37** partición FAT32 pequeña en discos grandes al reinicializar (para casos como flashear el BIOS/UEFI
 de una placa base desde un USB grande que solo lee FAT32), con tamaño seleccionable (1–32 GB).
 
-→ **Tier 7 completado y publicado en v1.14.0.** Solo queda lo deliberadamente fuera de alcance.
+→ **Tier 7 completado y publicado en v1.14.0.**
+
+**Tier 8 (seguridad y confianza) — completado y publicado en v1.15.0:**
+**#38** verificación del instalador descargado (Authenticode → SHA-256), **#39** neutralización de fórmulas en
+el CSV del historial, **#40** contraste WCAG AA de los colores de severidad verificado por tests, y **#44**
+build reproducible (versión exacta del Windows App SDK + fix de MAX_PATH), que salió al compilar el propio Tier 8.
+
+→ **Tier 8 cerrado.** No queda ninguna tier en curso: solo lo deliberadamente fuera de alcance y lo descartado.
 
 Todos respetan la regla de oro (lógica pura testeable en `Core`) y el propósito del proyecto; ninguno entra en
 el territorio "fuera de alcance".

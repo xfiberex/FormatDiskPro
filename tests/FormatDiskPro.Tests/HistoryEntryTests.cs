@@ -105,4 +105,50 @@ public sealed class HistoryEntryTests
         // El detalle contiene coma y comillas → debe ir entrecomillado con comillas duplicadas.
         Assert.Contains("\"FORMAT OK G: label=\"\"a,b\"\"\"", csv);
     }
+
+    // Un detalle que empieza por uno de estos cuatro caracteres lo ejecuta Excel/Calc como FÓRMULA al
+    // abrir el CSV exportado, no lo muestra como texto. history.log es texto plano en %AppData% y Parse
+    // convierte fielmente en Detail cualquier línea que haya allí, así que el exportador no puede
+    // confiar en lo que le llega.
+    [Theory]
+    [InlineData("=cmd|'/c calc'!A1")]
+    [InlineData("+1+1")]
+    [InlineData("-2+3")]
+    [InlineData("@SUM(1:2)")]
+    public void ToCsv_NeutralizesFormulaInjection(string detail)
+    {
+        string csv = HistoryEntry.ToCsv([HistoryEntry.Parse($"{Ts}\t{detail}")!]);
+
+        // El apóstrofo delante es lo que fuerza a tratarlo como texto (OWASP).
+        Assert.Contains($"'{detail}", csv);
+        // Y el peligroso no puede quedar nunca al principio de la celda.
+        Assert.DoesNotContain($",{detail}", csv);
+        Assert.DoesNotContain($"\"{detail}", csv);
+    }
+
+    /// <summary>
+    /// Un espacio delante no salva: Excel lo recorta y evalúa la fórmula igual. Hoy <see cref="HistoryEntry.Parse"/>
+    /// recorta el mensaje, así que este detalle no puede llegar por ahí; se construye la entrada a mano
+    /// para ejercitar la guarda, que es justamente lo que protege si el parseo dejara de recortar.
+    /// </summary>
+    [Fact]
+    public void ToCsv_NeutralizesFormula_EvenWithLeadingWhitespace()
+    {
+        var e = new HistoryEntry(DateTime.MinValue, HistoryCategory.Other, HistoryResult.Info, " =1+1", " =1+1");
+        Assert.Contains("' =1+1", HistoryEntry.ToCsv([e]));
+    }
+
+    /// <summary>Neutralizar no puede romper el escape de RFC 4180: una fórmula con coma lleva las dos cosas.</summary>
+    [Fact]
+    public void ToCsv_FormulaWithComma_IsBothPrefixedAndQuoted()
+        => Assert.Contains("\"'=1,2\"", HistoryEntry.ToCsv([HistoryEntry.Parse($"{Ts}\t=1,2")!]));
+
+    /// <summary>Lo normal no se toca: sin apóstrofos espurios en las líneas que escribe la app.</summary>
+    [Fact]
+    public void ToCsv_OrdinaryDetail_IsNotPrefixed()
+    {
+        string csv = HistoryEntry.ToCsv([HistoryEntry.Parse($"{Ts}\tFORMAT OK G: fs=NTFS")!]);
+        Assert.Contains("FORMAT OK G: fs=NTFS", csv);
+        Assert.DoesNotContain("'FORMAT", csv);
+    }
 }

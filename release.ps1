@@ -10,10 +10,19 @@
       4. Compila el instalador (publish self-contained + Inno Setup).
       5. Commit del bump de versión + tag anotado vX.Y.Z.
       6. Push de la rama y el tag a origin.
-      7. Crea el GitHub Release adjuntando el instalador.
+      7. Crea el GitHub Release adjuntando el instalador Y su .sha256.
 
     Para 'gh' reutiliza la credencial de GitHub ya cacheada (la del push) si no
     estuviera autenticado; nunca se imprime el token.
+
+    IMPORTANTE: el asset .sha256 es OBLIGATORIO mientras se publique sin firmar. Desde la v1.15.0 la app
+    verifica el instalador descargado antes de ejecutarlo como administrador
+    (Services/UpdateService.VerifyInstallerAsync): firma Authenticode válida si la hay; si no, el hash
+    SHA-256 publicado como asset. Sin ninguna de las dos, la app borra el instalador y la
+    auto-actualización falla.
+
+    Firmar (-CertThumbprint/-CertFile) sigue siendo lo deseable: evita el aviso de SmartScreen
+    ("editor desconocido") y es una garantía más fuerte que el hash.
 
 .PARAMETER Version
     Versión a publicar (X.Y.Z). Si se omite, usa la del .csproj.
@@ -133,7 +142,9 @@ try {
             "",
             "Descarga ``FormatDiskPro-$Version-setup.exe`` y ejecútalo (requiere privilegios de administrador).",
             "",
-            "La app comprueba actualizaciones automáticamente desde *Ayuda → Buscar actualizaciones…*."
+            "La app comprueba actualizaciones automáticamente desde *Ayuda → Buscar actualizaciones…*.",
+            "",
+            "El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la app verifica la descarga antes de ejecutarla."
         ) | Out-File -FilePath $tempNotes -Encoding utf8
         $notesPath = $tempNotes
     }
@@ -143,7 +154,7 @@ try {
     if ($DryRun) {
         Write-Host ""
         Warn "DRY RUN — no se modificará nada. Plan:"
-        $signNote = if ($CertThumbprint -or $CertFile) { " (firmando con Authenticode)" } else { " (SIN firmar)" }
+        $signNote = if ($CertThumbprint -or $CertFile) { " (firmando con Authenticode)" } else { " (SIN firmar — la app verificará por el .sha256)" }
         Write-Host "    1. Actualizar <Version> a $Version en el .csproj" -ForegroundColor DarkGray
         Write-Host "    2. build-installer.ps1 -Version $Version$signNote" -ForegroundColor DarkGray
         Write-Host "    3. git add -u  (todos los archivos rastreados modificados)" -ForegroundColor DarkGray
@@ -151,7 +162,7 @@ try {
         Write-Host "       git tag -a $tag" -ForegroundColor DarkGray
         Write-Host "    4. git push origin $branch" -ForegroundColor DarkGray
         Write-Host "       git push origin $tag" -ForegroundColor DarkGray
-        Write-Host "    5. gh release create $tag (asset: FormatDiskPro-$Version-setup.exe)" -ForegroundColor DarkGray
+        Write-Host "    5. gh release create $tag (assets: FormatDiskPro-$Version-setup.exe + .sha256)" -ForegroundColor DarkGray
         if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
         Ok "Dry run completado."
         return
@@ -177,6 +188,13 @@ try {
     if (-not (Test-Path $setup)) { Die "No se encontró el instalador esperado: $setup" }
     $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
     Ok "Instalador: $setup ($sizeMB MB)"
+
+    # Lo genera build-installer.ps1. Es con lo que la app verifica la descarga mientras los instaladores
+    # se publiquen sin firmar (UpdateService.VerifyInstallerAsync): si no se sube como asset, la
+    # auto-actualización no puede verificar nada, borra el instalador y falla.
+    $setupHash = "$setup.sha256"
+    if (-not (Test-Path $setupHash)) { Die "No se encontró el checksum esperado: $setupHash" }
+    Ok "Checksum: $setupHash"
 
     # ── 3. Commit + tag ──────────────────────────────────────────────────────
     # Añade todos los archivos rastreados modificados/eliminados (tracked changes).
@@ -238,7 +256,7 @@ try {
     }
 
     Info "Creando el GitHub Release..."
-    & $gh release create $tag --title "FormatDiskPro $tag" --notes-file $notesPath $setup
+    & $gh release create $tag --title "FormatDiskPro $tag" --notes-file $notesPath $setup $setupHash
     if ($LASTEXITCODE -ne 0) { Die "gh release create falló (el tag ya está publicado; puedes reintentar el release)." }
 
     if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }

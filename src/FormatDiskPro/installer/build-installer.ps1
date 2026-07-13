@@ -96,7 +96,7 @@ if ($signEnabled) {
     if (-not $signtool) { throw "Se pidió firmar pero no se encontró signtool.exe. Instala el Windows SDK o añádelo al PATH." }
     Write-Host "==> Firma de código habilitada (signtool: $signtool)" -ForegroundColor Cyan
 } else {
-    Write-Warning "Firma de código DESHABILITADA (sin -CertThumbprint/-CertFile). El instalador no estará firmado: SmartScreen mostrará 'editor desconocido'."
+    Write-Warning "Firma de código DESHABILITADA (sin -CertThumbprint/-CertFile). El instalador NO estará firmado, así que SmartScreen mostrará 'editor desconocido'. La auto-actualización SÍ funciona igualmente: al no haber firma, la app verifica la descarga contra el .sha256 que se genera aquí y que release.ps1 sube como asset (UpdateService.VerifyInstallerAsync). Firmar sigue siendo lo deseable: es una garantía más fuerte que el hash."
 }
 
 $installerDir = $PSScriptRoot
@@ -115,8 +115,21 @@ if (-not $Version) {
     if (-not $Version) { $Version = "1.0.0" }
 }
 
-$publishDir = Join-Path $projectDir "bin\$Configuration\$tfm\$Runtime\publish"
+# La publicación NO va dentro del repo, sino a una ruta corta y fija bajo %TEMP%.
+#
+# Motivo: Inno Setup no usa las APIs de rutas largas de Windows, así que no puede comprimir un archivo
+# cuya ruta pase de MAX_PATH (260). El publish self-contained del Windows App SDK trae nombres
+# larguísimos —hoy el peor es WindowsAppSdk.AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll,
+# 76 caracteres—, y sumados a "<repo>\src\FormatDiskPro\bin\Release\<tfm>\win-x64\publish\" se pasan del
+# límite en cuanto el repo no cuelga de una carpeta corta. ISCC entonces aborta con "El sistema no puede
+# encontrar la ruta especificada", que no dice ni qué archivo era.
+#
+# Publicando a %TEMP% la ruta base baja a ~40 caracteres y el instalador se compila igual desde
+# cualquier ubicación del repo. (El .csproj referencia el SDK como 1.8.*, así que el conjunto de
+# archivos puede crecer solo, sin tocar nada: esto lo deja resuelto de antemano.)
+$publishDir = Join-Path $env:TEMP "FormatDiskPro-publish"
 Write-Host "==> Versión: $Version  (TFM: $tfm)" -ForegroundColor Cyan
+Write-Host "==> Publicando en: $publishDir" -ForegroundColor Cyan
 
 # --- Localizar ISCC --------------------------------------------------------
 $iscc = @(
@@ -159,10 +172,22 @@ if ($LASTEXITCODE -ne 0) { throw "ISCC falló (código $LASTEXITCODE)" }
 
 $setup = Join-Path $installerDir "Output\FormatDiskPro-$Version-setup.exe"
 if (Test-Path $setup) {
-    # Firmar el instalador (lo que comprueba SmartScreen al descargarlo).
+    # Firmar el instalador (lo que comprueban SmartScreen y VerifyAuthenticodeSignature al descargarlo).
     if ($signEnabled) { Invoke-Sign @($setup) }
+
+    # SHA-256 del instalador YA FIRMADO (firmar cambia el binario, así que el hash va DESPUÉS).
+    # Con esto verifica la app la descarga cuando el instalador no está firmado —que es siempre, porque
+    # firmar está descartado— antes de ejecutarlo como administrador (UpdateService.VerifyInstallerAsync).
+    # release.ps1 lo sube como segundo asset del release: sin este archivo, la app no puede verificar
+    # nada, borra el instalador y la auto-actualización falla.
+    $hash = (Get-FileHash $setup -Algorithm SHA256).Hash
+    $sha256File = "$setup.sha256"
+    "$hash *$(Split-Path $setup -Leaf)" | Out-File -FilePath $sha256File -Encoding ascii -NoNewline
+    Write-Host "==> SHA-256: $hash" -ForegroundColor Cyan
+
     $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
     Write-Host "`n[OK] Instalador generado: $setup ($sizeMB MB)" -ForegroundColor Green
+    Write-Host "[OK] Checksum generado:   $sha256File" -ForegroundColor Green
 } else {
     Write-Warning "ISCC terminó pero no se encontró el instalador esperado en $setup"
 }

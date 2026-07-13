@@ -68,7 +68,14 @@ Descarga el instalador más reciente desde la página de **[Releases](https://gi
 
 La aplicación comprueba si hay una versión más reciente en GitHub Releases al iniciarse y mediante **Ayuda → Buscar actualizaciones…**. Si hay una nueva versión, ofrece descargar e instalar el nuevo instalador automáticamente (actualización silenciosa con relanzado desde la 1.2.2 en adelante).
 
-> **Modelo de confianza:** la descarga se realiza por **HTTPS** desde GitHub Releases (lo que protege frente a manipulación en tránsito), pero el instalador **no se verifica con firma ni hash** antes de ejecutarse con elevación. En la práctica esto implica confiar en la integridad de la cuenta y los releases del proyecto en GitHub. La firma Authenticode (que también eliminaría los avisos de SmartScreen) está disponible de forma **opcional** en el flujo de publicación —ver [Construcción](#construcción)—, pero no se aplica a los binarios publicados por decisión del proyecto.
+> **Modelo de confianza (desde la v1.15.0).** El instalador se ejecuta **con permisos de administrador**, así que antes de lanzarlo la app comprueba que es el que publicó el proyecto:
+>
+> 1. Si lleva una **firma Authenticode** válida y de confianza para Windows, se acepta (es la garantía más fuerte, porque la avala una CA).
+> 2. Si no —hoy los instaladores se publican **sin firmar**, ver más abajo—, se calcula su **SHA-256** y se compara con el que se publica como asset del release (`FormatDiskPro-x.y.z-setup.exe.sha256`).
+>
+> Si no supera ninguna de las dos, **el instalador se borra y no se ejecuta nada**.
+>
+> **Alcance honesto:** el instalador y su hash salen del mismo release, así que esto detecta un archivo **corrupto o manipulado en tránsito**, pero no protegería frente a un compromiso de la cuenta de GitHub (quien pudiera sustituir el `.exe` podría sustituir también el hash). Es el compromiso habitual de un proyecto sin certificado, y es exactamente la garantía que sustituye a la firma. La firma Authenticode —que además eliminaría el aviso de SmartScreen— sigue disponible como **opción** del flujo de publicación (ver [Construcción](#construcción)), pero no se aplica a los binarios publicados por decisión del proyecto.
 
 ## Construcción
 
@@ -86,7 +93,9 @@ Requiere [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSo
 src\FormatDiskPro\installer\build-installer.ps1
 ```
 
-Publica la app *self-contained* (win-x64) y compila el instalador en `src\FormatDiskPro\installer\Output\`. El instalador limpia la instalación previa antes de copiar y, en una actualización in-place, cierra y relanza la app automáticamente.
+Publica la app *self-contained* (win-x64) y compila el instalador en `src\FormatDiskPro\installer\Output\`, junto con su **`.sha256`** (el hash con el que la app verifica la descarga al auto-actualizarse). El instalador limpia la instalación previa antes de copiar y, en una actualización in-place, cierra y relanza la app automáticamente.
+
+> La publicación intermedia va a `%TEMP%\FormatDiskPro-publish`, no dentro del repo: Inno Setup no maneja rutas de más de 260 caracteres, y los nombres de archivo del Windows App SDK *self-contained* se pasan del límite en cuanto el repositorio no cuelga de una carpeta corta.
 
 **Firma de código (opcional, recomendada):** sin firma, SmartScreen muestra "editor desconocido". Si tienes un certificado, fírmalo pasando la huella o un `.pfx`:
 
@@ -110,7 +119,9 @@ src\FormatDiskPro\installer\new-selfsigned-cert.ps1 -Trust   # (como admin) adem
 
 ### Publicar una versión
 
-El script `release.ps1` (raíz del repo) corta una versión completa en un paso: valida, ejecuta las pruebas, actualiza `<Version>`, compila el instalador, hace commit + tag, lo sube y crea el **GitHub Release** con el instalador adjunto.
+El script `release.ps1` (raíz del repo) corta una versión completa en un paso: valida, ejecuta las pruebas, actualiza `<Version>`, compila el instalador, hace commit + tag, lo sube y crea el **GitHub Release** con el instalador y su **`.sha256`** adjuntos.
+
+> ⚠️ El asset `.sha256` es **obligatorio** mientras se publique sin firmar: es con lo que la app verifica la descarga antes de ejecutarla como administrador. `release.ps1` aborta si no lo encuentra.
 
 ```powershell
 .\release.ps1 -Version 1.7.0           # release completo
@@ -126,7 +137,7 @@ Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los 
 dotnet test
 ```
 
-Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón y número de pasadas del borrado seguro, parseo del historial (más filtro y exportación CSV) y del detalle S.M.A.R.T. (más umbrales de severidad), interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad/IOPS del benchmark, conversión de las notas de versión (Markdown → texto plano), validación y renombrado de nombres de presets personalizados, clasificación de eventos de cambio de dispositivo, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma y de cultura del sistema, y la decisión de aviso al terminar.
+Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón y número de pasadas del borrado seguro, parseo del historial (más filtro y exportación CSV, con neutralización de fórmulas) y del detalle S.M.A.R.T. (más umbrales de severidad), **verificación del instalador descargado** (SHA-256 contra un servidor HTTP local, rechazo del hash que no coincide y del release sin hash), **contraste WCAG AA de los colores de severidad** en ambos temas, interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad/IOPS del benchmark, conversión de las notas de versión (Markdown → texto plano), validación y renombrado de nombres de presets personalizados, clasificación de eventos de cambio de dispositivo, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma y de cultura del sistema, y la decisión de aviso al terminar.
 
 ## Uso
 
@@ -168,7 +179,8 @@ src/FormatDiskPro/
 │  ├─ FormatLogic.cs        Construcción de comandos, parseo de progreso, formato de bytes
 │  ├─ Throughput.cs         Velocidad y tiempo restante (ETA) de operaciones largas
 │  ├─ SmartInfo.cs          Modelo + parseo del detalle S.M.A.R.T. + umbrales de severidad
-│  ├─ HistoryEntry.cs       Parseo del historial + filtro y exportación a CSV
+│  ├─ SeverityPalette.cs    Colores verde/ámbar/rojo por tema (contraste WCAG AA verificado por tests)
+│  ├─ HistoryEntry.cs       Parseo del historial + filtro y exportación a CSV (anti CSV injection)
 │  ├─ ReinitPlan.cs         Estilo MBR/GPT por tamaño + parseo de la nueva letra
 │  ├─ Benchmark.cs          Tamaño de prueba, velocidad e IOPS
 │  ├─ ReleaseNotes.cs       Notas de versión (Markdown) → texto plano
@@ -186,7 +198,7 @@ src/FormatDiskPro/
 │  ├─ CapacityVerifier.cs   Verificación de capacidad real
 │  ├─ AppSettings.cs        Preferencias persistentes (settings.json: idioma/tema/unidad/presets/aviso)
 │  ├─ Notifier.cs           Aviso al terminar (sonido + parpadeo de barra de tareas, Win32)
-│  ├─ UpdateService.cs      GitHub Releases: consulta, descarga e instalación
+│  ├─ UpdateService.cs      GitHub Releases: consulta, descarga, VERIFICACIÓN (firma/SHA-256) e instalación
 │  └─ History.cs            Registro de auditoría
 ├─ UI/              WinUI 3 (Windows App SDK)
 │  ├─ MainWindow.xaml / .cs        Ventana principal y orquestación

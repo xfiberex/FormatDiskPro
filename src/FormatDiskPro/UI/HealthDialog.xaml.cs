@@ -2,7 +2,6 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 
 namespace FormatDiskPro.UI;
 
@@ -118,18 +117,10 @@ public sealed partial class HealthDialog : ContentDialog
     /// <summary>
     /// Pincel Fluent (verde/ámbar/rojo) para un nivel S.M.A.R.T. según el tema efectivo.
     /// Compartido con la línea «Salud:» de la tarjeta principal (<c>MainWindow.RenderHealth</c>).
+    /// El RGB vive en <see cref="SeverityPalette"/>, donde los tests miden su contraste (WCAG AA).
     /// </summary>
-    internal static Brush LevelBrush(SmartLevel level, bool dark)
-    {
-        Color c = level switch
-        {
-            SmartLevel.Ok       => dark ? Color.FromArgb(255, 0x6C, 0xCB, 0x5F) : Color.FromArgb(255, 0x0F, 0x7B, 0x0F),
-            SmartLevel.Warning  => dark ? Color.FromArgb(255, 0xFC, 0xC8, 0x4A) : Color.FromArgb(255, 0x9D, 0x5D, 0x00),
-            SmartLevel.Critical => dark ? Color.FromArgb(255, 0xFF, 0x99, 0xA4) : Color.FromArgb(255, 0xC4, 0x2B, 0x1C),
-            _                   => dark ? Color.FromArgb(255, 0xFF, 0xFF, 0xFF) : Color.FromArgb(255, 0x00, 0x00, 0x00),
-        };
-        return new SolidColorBrush(c);
-    }
+    internal static Brush LevelBrush(SmartLevel level, bool dark) =>
+        new SolidColorBrush(SeverityPalette.For(level, dark));
 
     private string SpindleText(SmartInfo info)
     {

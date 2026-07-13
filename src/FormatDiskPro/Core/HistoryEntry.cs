@@ -69,6 +69,7 @@ public sealed record HistoryEntry(
     /// Serializa entradas a CSV (estilo RFC 4180): cabecera + una fila por entrada con columnas
     /// <c>Time,Category,Result,Detail</c>. Los campos con coma, comillas o saltos de línea se
     /// entrecomillan y las comillas internas se duplican. Salto de línea CRLF. Lógica pura.
+    /// Los campos que Excel/Calc interpretarían como fórmula se neutralizan (ver <see cref="CsvField"/>).
     /// </summary>
     public static string ToCsv(IEnumerable<HistoryEntry> entries)
     {
@@ -87,8 +88,33 @@ public sealed record HistoryEntry(
         return sb.ToString();
     }
 
-    private static string CsvField(string v) =>
-        v.IndexOfAny(['"', ',', '\n', '\r']) < 0 ? v : "\"" + v.Replace("\"", "\"\"") + "\"";
+    /// <summary>
+    /// Escapa un campo (RFC 4180) y lo neutraliza si Excel/Calc lo interpretarían como <b>fórmula</b>.
+    ///
+    /// Un valor que empieza por <c>=</c>, <c>+</c>, <c>-</c> o <c>@</c> no se abre como texto sino como
+    /// fórmula (CSV injection): <c>=cmd|'/c calc'!A1</c> en una celda intenta ejecutar un programa al
+    /// abrir el archivo. Prefijar con apóstrofo obliga a tratarlo como texto (mitigación estándar, OWASP).
+    /// Se mira el valor <b>sin espacios delanteros</b>, porque <c>" =cmd|…"</c> también dispara la fórmula.
+    ///
+    /// Escapar comillas no basta: el escape de RFC 4180 protege la <i>estructura</i> del CSV (que un valor
+    /// con comas no parta la fila), no al programa que lo abre después.
+    ///
+    /// Alcance honesto: hoy las líneas que escribe la propia app siempre empiezan por una palabra clave
+    /// (<c>FORMAT</c>, <c>WIPE</c>, <c>EJECT</c>…), y la etiqueta de volumen —lo único que elige el
+    /// usuario— va incrustada a mitad del detalle, así que NO alcanza la primera posición del campo. Esto
+    /// blinda los dos caminos que sí quedan: <c>history.log</c> es un archivo de texto plano en
+    /// <c>%AppData%</c> que cualquier otro proceso puede haber tocado, y <see cref="Parse"/> convierte
+    /// fielmente en <c>Detail</c> cualquier línea que encuentre allí; y un futuro formato de log que
+    /// empiece por un dato variable dejaría de ser seguro sin que nadie se acordase de esto.
+    /// </summary>
+    private static string CsvField(string v)
+    {
+        string trimmed = v.TrimStart();
+        if (trimmed.Length > 0 && trimmed[0] is '=' or '+' or '-' or '@')
+            v = "'" + v;
+
+        return v.IndexOfAny(['"', ',', '\n', '\r']) < 0 ? v : "\"" + v.Replace("\"", "\"\"") + "\"";
+    }
 
     private static HistoryCategory ParseCategory(string message) => message switch
     {
