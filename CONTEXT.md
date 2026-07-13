@@ -170,6 +170,10 @@ del usuario).
   actualización in-place con el flujo silencioso real, que cierra la app y la relanza), y se arregló que
   `release.ps1` **corrompiera la codificación del `.csproj` en cada bump** —el `.exe` publicado mostraba el
   nombre del autor destrozado en sus propiedades—, hallado inspeccionando el binario instalado.
+- ✅ **README con capturas** (`docs/screenshots/`), generadas por `tools/capture-screenshots.ps1` conduciendo
+  la app real: no se editan a mano, se regeneran.
+- 🏁 **PROYECTO TERMINADO (2026-07-13).** Hoja de ruta cerrada; las dos ideas mayores (elevación `asInvoker`,
+  ventana redimensionable) **descartadas** — ver §4 y §6.
 - ✅ **Tier 8 — Seguridad y confianza (#38–#40), COMPLETADO (2026-07-12, publicado en v1.15.0):**
   **#38** la auto-actualización descargaba el instalador y lo **ejecutaba elevado sin comprobar nada**; ahora
   verifica firma Authenticode y, si no la hay (no se firma: #13 descartado), el **SHA-256** contra el asset
@@ -323,6 +327,16 @@ del usuario).
   en archivos de 1 GB (seguro en FAT32, pocos archivos).
 - **Publicación:** `dotnet publish` **self-contained** `win-x64` (`WindowsAppSDKSelfContained=true`) →
   el usuario final NO necesita instalar .NET ni Windows App SDK.
+- **La app corre SIEMPRE elevada (`requireAdministrator` en `app.manifest`) — NO REABRIR (2026-07-13).**
+  Se evaluó el modelo `asInvoker` + worker elevado por named pipe (el de WingetUSoft) y **se descartó**: esta
+  app formatea, borra y reinicializa discos, así que **casi todo lo que hace necesita administrador**. El
+  "menor privilegio" sería nominal (pediría UAC igual, solo más tarde y más veces) a cambio de refactorizar
+  **todos** los `Services`, que hoy asumen proceso elevado. Consecuencia asumida: los UI tests y
+  `tools/capture-screenshots.ps1` **exigen terminal elevada**, y ambos lo validan con un mensaje claro.
+- **La ventana es de tamaño FIJO (500×900) — NO REABRIR (2026-07-13).** Es un **diálogo de tarea**, no un
+  espacio de trabajo: ningún contenido gana con más ancho y el layout de tarjetas ya cabe entero. No portar
+  `WindowSizing`/`ContentScroller` de WingetUSoft: allí la ventana lista paquetes en una tabla y lo
+  necesitaba; aquí resolvería un problema que no existe.
 - **Instalador (Inno Setup):** `AppId = {CEC07916-C9B5-4EA8-9102-3273384395AD}` — **no cambiar
   nunca** (permite actualización in-place). `PrivilegesRequired=admin`, `CloseApplications=yes`.
 - **Versionado:** fuente única en `src/FormatDiskPro/FormatDiskPro.csproj` `<Version>`.
@@ -381,8 +395,10 @@ del usuario).
 |-------|---------|
 | Compilar | `dotnet build -c Release` |
 | Pruebas | `dotnet test` |
+| UI tests (app real, **terminal elevada**) | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"` |
+| Regenerar capturas del README (**terminal elevada**) | `.\tools\capture-screenshots.ps1` |
 | Generar instalador | `src\FormatDiskPro\installer\build-installer.ps1` |
-| **Publicar versión** | `.\release.ps1 -Version X.Y.Z` (usa `-DryRun` para simular) |
+| **Publicar versión** | `.\release.ps1 -Version X.Y.Z -UiTests` (usa `-DryRun` para simular) |
 
 `release.ps1` hace: validar → tests → bump `<Version>` → build instalador → commit + tag `vX.Y.Z`
 → push → `gh release create` con el instalador **y su `.sha256`**. Flags: `-DryRun`, `-SkipTests`,
@@ -398,21 +414,25 @@ del usuario).
 > si no está conectada: omitido ≠ fallido. `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` hace que la suite **formatee**
 > esa USB de verdad; `release.ps1` **aborta** si la encuentra activa.
 
-## 6. Pendientes / ideas
+## 6. Estado del proyecto: TERMINADO (2026-07-13)
 
-- **Hoja de ruta de características:** [`ROADMAP.md`](ROADMAP.md) — **Tiers 2 a 8 completados** (Tier 3:
-  presets, idiomas, avisos, **#13 winget/firma descartado el 2026-06-24**; Tier 4: refinado #14–#22; Tier 5:
-  GPLv3 + legal + donaciones; Tier 6: pulido UX/UI; Tier 7 — #37 partición FAT32 pequeña al reinicializar,
-  publicado en v1.14.0; **Tier 8 — #38 verificación del instalador, #39 anti CSV injection y #40 contraste
-  WCAG AA: publicado en v1.15.0 (2026-07-12)**). Solo queda lo deliberadamente fuera de alcance.
-- **Pendiente de verificar en producción:** la verificación del instalador (#38) solo se ejerce de verdad al
-  actualizar **desde** una versión ≥ 1.15.0. Los clientes ≤ 1.14.1 se actualizaron a la 1.15.0 con el código
-  viejo, que no verifica nada. El primer uso real será **1.15.0 → la siguiente versión**: comprobar entonces
-  que la app acepta el instalador (y que el release lleva su `.sha256`, o lo rechazará).
-- (Opcional) Más capturas: hoy hay 3 (principal claro/oscuro + S.M.A.R.T.). El benchmark o *Reinicializar
-  unidad* también lucirían, pero el benchmark tarda minutos y no encaja bien en un script desatendido.
-- (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
-- S2 (menor, por diseño): la validación de etiqueta no rechaza `'`, pero queda cubierto por el escape.
+**Tiers 1–9 completados. No hay trabajo pendiente.** La hoja de ruta ([`ROADMAP.md`](ROADMAP.md)) está
+cerrada: lo que queda fuera está **deliberadamente** fuera. Las dos ideas mayores que restaban
+—**elevación `asInvoker`** y **ventana redimensionable**— se **descartaron** el 2026-07-13: ambas revertían
+una decisión de diseño que es correcta para lo que este producto es (ver §4, "NO REABRIR").
+
+**Lo único a vigilar en el próximo corte** (no es trabajo, es una comprobación):
+
+- **La verificación del instalador (#38) aún no se ha ejercido en producción.** Solo actúa al actualizar
+  **desde** una versión ≥ 1.15.0, y los clientes ≤ 1.14.1 llegaron a la 1.15.0 con el código viejo, que no
+  verificaba nada. El primer uso real será **1.15.0 → la siguiente versión**: comprobar entonces que la app
+  acepta el instalador. Si el release no lleva su `.sha256`, **lo rechazará** (`release.ps1` aborta si falta).
+- **`master` va por delante de la v1.15.0 publicada:** lleva el Tier 9 y las capturas. La v1.15.0 que está en
+  Releases todavía muestra el nombre del autor **corrupto** en las propiedades del `.exe` (#45); se corrige
+  solo con el siguiente corte.
+
+Pulido opcional, sin impacto: más capturas (hoy 3), renombrar el `Name` interno del form, y S2 (menor, por
+diseño: la validación de etiqueta no rechaza `'`, pero el escape lo cubre).
 
 ## 7. Cómo mantener este documento
 
@@ -424,6 +444,31 @@ del usuario).
 ---
 
 ## Registro de cambios
+
+### 2026-07-13 — decisión: proyecto TERMINADO — descartadas las dos ideas mayores
+
+Cerrada la hoja de ruta. Las dos únicas ideas que quedaban revertían una decisión de diseño deliberada, y el
+usuario las **descarta** porque esa decisión es **correcta para lo que el producto es**:
+
+- **Elevación `asInvoker` + worker elevado por named pipe — NO.** Era el patrón de WingetUSoft (la app corre
+  sin privilegios y eleva solo lo que los exige). Aquí no aporta: FormatDiskPro **formatea, borra y
+  reinicializa discos**, así que casi todo lo que hace necesita administrador. El "menor privilegio" sería
+  **nominal** —pediría UAC igual, solo más tarde y más veces— a cambio de refactorizar **todos** los
+  `Services`, que asumen proceso elevado. Pedirlo de entrada es honesto: el manifiesto lo declara en vez de
+  escalar por sorpresa. Consecuencia asumida y ya gestionada: los UI tests y el script de capturas exigen
+  terminal elevada, y ambos lo validan con un mensaje claro.
+- **Ventana redimensionable + snap layouts — NO.** La ventana es **fija (500×900) por diseño**: es un
+  **diálogo de tarea**, no un espacio de trabajo. Ningún contenido gana con más ancho (no hay tablas ni
+  listas largas) y el layout de tarjetas ya cabe entero. Portar `WindowSizing`/`ContentScroller` de
+  WingetUSoft resolvería un problema que **aquí no existe** — allí la ventana lista paquetes en una tabla, y
+  sí lo necesitaba.
+
+Reflejado en `ROADMAP.md` (nuevo bloque *Estado: proyecto terminado* + *Decisiones cerradas*), en §4 y §6 de
+este documento, y en el plan de comparación del workspace.
+
+**Estado final:** Tiers 1–9 · 289 unitarios · 17 UI tests sobre la app real (6 omitidos sin la USB) ·
+instalador verificado por SHA-256 y probado end-to-end · GPLv3 + avisos de terceros + donaciones · README con
+capturas generadas. Único apunte para el próximo corte: `master` va por delante de la v1.15.0 publicada.
 
 ### 2026-07-13 — docs: capturas de pantalla del README, generadas conduciendo la app real
 

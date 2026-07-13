@@ -5,6 +5,25 @@
 > dónde viviría en la arquitectura por capas (`Core` lógica pura testeable · `Services` efectos
 > colaterales · `UI` WinUI 3 · `Localization`). El detalle del estado vive en [`CONTEXT.md`](CONTEXT.md).
 
+## 🏁 Estado: proyecto terminado (2026-07-13)
+
+**Tiers 1–9 completados.** No hay ninguna tier abierta ni trabajo pendiente. Lo que queda fuera está
+**deliberadamente** fuera: ver *Deliberadamente fuera de alcance* y *Decisiones cerradas* al final —incluidas
+las dos que definen el producto y **no se van a reabrir**: la app corre **siempre elevada** y su ventana es de
+**tamaño fijo**.
+
+| Tier | Tema | Versión |
+|---|---|---|
+| 1 | Quick wins (persistencia, ETA, borrado seguro, historial) | 1.4.0 |
+| 2 | Diagnóstico y gestión (S.M.A.R.T., chkdsk, protección de escritura, reinicializar, benchmark) | 1.5.0–1.7.0 |
+| 3 | Pulido / distribución (presets, 5 idiomas, aviso al terminar) | 1.8.0 |
+| 4 | Refinado de lo existente (#14–#22) | 1.10.0 / 1.11.0 |
+| 5 | Confianza, transparencia legal y sostenibilidad (GPLv3, avisos, donaciones) | 1.12.0 |
+| 6 | Pulido UX/UI (#28–#36) | 1.13.0 |
+| 7 | Partición FAT32 pequeña al reinicializar (#37) | 1.14.0 |
+| 8 | **Seguridad y confianza** (verificación del instalador, anti CSV injection, contraste WCAG AA) | 1.15.0 |
+| 9 | **Infraestructura** (UI tests en el release, instalador probado end-to-end, build reproducible) | *sin publicar* |
+
 ---
 
 ## ✅ Tier 1 — Quick wins (implementado en v1.4.0)
@@ -422,6 +441,17 @@ una **decisión de cambiar el alcance**:
 - **CI con GitHub Actions — descartado (2026-07-12).** Un runner hospedado **no puede** ejecutar los UI tests
   (necesitan sesión elevada y la USB física de pruebas), así que solo duplicaría los unitarios que `release.ps1`
   ya corre antes de cada corte, con menos cobertura. Misma decisión que en WingetUSoft.
+- **La app corre SIEMPRE elevada (`requireAdministrator`) — decisión firme (2026-07-13).** Se evaluó el modelo
+  `asInvoker` + worker elevado por named pipe (el de WingetUSoft) y **se descartó**: FormatDiskPro formatea,
+  borra y reinicializa discos, así que **casi todo lo que hace necesita administrador**. El "menor privilegio"
+  sería nominal —la app pediría UAC igual, solo que más tarde y más veces— a cambio de refactorizar **todos**
+  los `Services`, que hoy asumen proceso elevado. Pedirlo de entrada es coherente con lo que la herramienta es,
+  y el manifiesto lo declara en vez de escalar por sorpresa. Consecuencia asumida: los UI tests y
+  `tools/capture-screenshots.ps1` exigen terminal elevada, y ambos lo validan con un mensaje claro.
+- **La ventana es de tamaño fijo (500×900) — decisión firme (2026-07-13).** Es un **diálogo de tarea**, no un
+  espacio de trabajo: no hay contenido que gane con más ancho (ni tablas, ni listas largas, ni paneles) y el
+  layout de tarjetas ya cabe entero. Portar `WindowSizing`/`ContentScroller` de WingetUSoft resolvería un
+  problema que **aquí no existe** (allí la ventana lista paquetes en una tabla, y sí lo necesitaba).
 
 ---
 
