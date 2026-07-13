@@ -409,10 +409,8 @@ del usuario).
   actualizar **desde** una versión ≥ 1.15.0. Los clientes ≤ 1.14.1 se actualizaron a la 1.15.0 con el código
   viejo, que no verifica nada. El primer uso real será **1.15.0 → la siguiente versión**: comprobar entonces
   que la app acepta el instalador (y que el release lleva su `.sha256`, o lo rechazará).
-- **Capturas de pantalla en el README** (lo único de peso que queda del plan): no hay ninguna, y para un
-  proyecto publicado es lo primero que vende. Portar `tools/capture-screenshots.ps1` de WingetUSoft, que
-  conduce la app real por UI Automation. Dos diferencias aquí: la app pide **elevación** y su `settings.json`
-  vive en `%AppData%`, no en `%LocalAppData%`.
+- (Opcional) Más capturas: hoy hay 3 (principal claro/oscuro + S.M.A.R.T.). El benchmark o *Reinicializar
+  unidad* también lucirían, pero el benchmark tarda minutos y no encaja bien en un script desatendido.
 - (Opcional) Renombrar el `Name` interno del form / pulir cadenas.
 - S2 (menor, por diseño): la validación de etiqueta no rechaza `'`, pero queda cubierto por el escape.
 
@@ -426,6 +424,26 @@ del usuario).
 ---
 
 ## Registro de cambios
+
+### 2026-07-13 — docs: capturas de pantalla del README, generadas conduciendo la app real
+
+El README de un proyecto publicado no tenía **ninguna captura** — para quien llega desde LinkedIn o GitHub,
+es lo primero que vende, y no había nada que ver hasta instalarlo.
+
+- `tools/capture-screenshots.ps1` (nuevo, port del de WingetUSoft): conduce la app **real** por UI
+  Automation, fija tema/idioma/unidad, abre el diálogo S.M.A.R.T. y fotografía la ventana. Las capturas se
+  **regeneran**, no se editan a mano, así que no envejecen en silencio con la UI.
+- Genera `docs/screenshots/`: `main-light.png`, `main-dark.png` y `health-dark.png` (486 × 893).
+- **Diferencias con el script de WingetUSoft** (allí la app corre `asInvoker` y es redimensionable):
+  - **Exige terminal elevada** (`Assert-Elevated`): la app es `requireAdministrator` y un proceso no elevado
+    no puede automatizar su ventana. Falla con un mensaje claro en vez de dar capturas en negro.
+  - El `settings.json` vive en **`%AppData%`** (no `%LocalAppData%`) y tiene **`LastDriveLetter`**: la unidad
+    se preselecciona **desde el archivo**, sin pelearse con el `ComboBox` por UI Automation.
+  - La ventana es de **tamaño fijo por diseño**: se coloca, pero **no se redimensiona**.
+  - Elige por defecto una unidad **que no sea la del sistema**: esa sale como `[Protegido]` con los controles
+    deshabilitados — una foto pésima del producto.
+- Como en WingetUSoft, **respalda y restaura** el `settings.json` real del usuario (es el mismo archivo que
+  usa su instalación), y prefiere el binario de **Release** (el que se distribuye), avisando si cae a Debug.
 
 ### 2026-07-13 — feat: Tier 9 (#41, #42, #45) — infraestructura y calidad
 

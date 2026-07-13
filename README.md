@@ -9,6 +9,16 @@ Herramienta de formateo y **gestión de unidades** para Windows con soporte para
 
 Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada hasta convertirse en una utilidad seria de gestión y diagnóstico de memorias USB y discos, con una **interfaz moderna basada en tarjetas** (WinUI 3 / Fluent Design 2).
 
+## Capturas
+
+| Tema claro | Tema oscuro | Salud del disco (S.M.A.R.T.) |
+|:---:|:---:|:---:|
+| ![Ventana principal en tema claro](docs/screenshots/main-light.png) | ![Ventana principal en tema oscuro](docs/screenshots/main-dark.png) | ![Diálogo de salud S.M.A.R.T.](docs/screenshots/health-dark.png) |
+
+> El tema sigue al de Windows en tiempo real (o se fuerza a claro/oscuro), y el color de acento es el
+> que tengas configurado en el sistema. El diálogo S.M.A.R.T. **colorea cada métrica por rango**
+> (verde / ámbar / rojo) y añade su estado en texto, para no depender solo del color.
+
 ## Características
 
 ### Formateo
@@ -131,11 +141,35 @@ El script `release.ps1` (raíz del repo) corta una versión completa en un paso:
 
 Flags: `-DryRun`, `-SkipTests`, `-AllowDirty`, `-NotesFile <archivo.md>`, y los de firma (`-CertThumbprint` / `-CertFile` / `-CertPassword` / `-TimestampUrl`, reenviados a `build-installer.ps1`). Los usuarios con una versión anterior recibirán el aviso de actualización automáticamente.
 
+### Regenerar las capturas del README
+
+Las capturas de arriba **no se hacen a mano**: las genera un script que conduce la app real por UI
+Automation (fija tema, idioma y unidad, abre el diálogo S.M.A.R.T. y fotografía la ventana).
+
+```powershell
+.\tools\capture-screenshots.ps1                          # claro + oscuro + S.M.A.R.T.
+.\tools\capture-screenshots.ps1 -Theme dark -Language en -Drive H
+```
+
+Requiere **terminal elevada** (la app es `requireAdministrator`) y una sesión de escritorio sin nada
+encima de la ventana. Respalda y restaura tu `settings.json` real, así que no altera tu configuración.
+
 ### Pruebas
 
 ```bash
-dotnet test
+dotnet test                                   # unitarias (xUnit)
 ```
+
+Los **UI tests** (FlaUI/UIA3) conducen la app real y **no están en la solución**: se lanzan aparte, desde
+una **terminal elevada**.
+
+```powershell
+dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"
+```
+
+Los que necesitan la USB física de pruebas **se omiten solos** si no está conectada (omitido ≠ fallido), y
+el que borra datos de verdad solo corre con `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`. Para incluirlos en un corte
+de versión: `.\release.ps1 -Version X.Y.Z -UiTests`.
 
 Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón y número de pasadas del borrado seguro, parseo del historial (más filtro y exportación CSV, con neutralización de fórmulas) y del detalle S.M.A.R.T. (más umbrales de severidad), **verificación del instalador descargado** (SHA-256 contra un servidor HTTP local, rechazo del hash que no coincide y del release sin hash), **contraste WCAG AA de los colores de severidad** en ambos temas, interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad/IOPS del benchmark, conversión de las notas de versión (Markdown → texto plano), validación y renombrado de nombres de presets personalizados, clasificación de eventos de cambio de dispositivo, completitud de las traducciones (5 idiomas) y mapeo de códigos de idioma y de cultura del sistema, y la decisión de aviso al terminar.
 
@@ -215,9 +249,12 @@ src/FormatDiskPro/
 ├─ installer/       Inno Setup (installer.iss + build-installer.ps1 → Output/)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/   Pruebas xUnit sobre la lógica de Core y los helpers de Services
-ROADMAP.md                   Hoja de ruta de características (tiers)
-release.ps1                  Corte de versión en un paso (build + tag + GitHub Release)
+tests/FormatDiskPro.Tests/     Pruebas xUnit sobre la lógica de Core y los helpers de Services
+tests/FormatDiskPro.UiTests/  Pruebas de UI con FlaUI/UIA3 sobre la app real (fuera de la solución)
+tools/capture-screenshots.ps1 Regenera las capturas del README conduciendo la app por UI Automation
+docs/screenshots/             Capturas del README (generadas, no editadas a mano)
+ROADMAP.md                    Hoja de ruta de características (tiers)
+release.ps1                   Corte de versión en un paso (build + tag + GitHub Release)
 ```
 
 ## Stack
