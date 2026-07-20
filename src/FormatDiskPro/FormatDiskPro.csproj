@@ -13,7 +13,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>FormatDiskPro.ico</ApplicationIcon>
-    <Version>1.15.1</Version>
+    <Version>1.15.2</Version>
     <Authors>Ricky Angel Jiménez Bueno</Authors>
     <Copyright>Copyright (C) 2026 Ricky Angel Jiménez Bueno</Copyright>
   </PropertyGroup>

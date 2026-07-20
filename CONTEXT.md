@@ -16,7 +16,7 @@
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **289** unitarias · **23** de UI sobre la app real (17 pasan / 6 se omiten sin la USB de pruebas) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — cerrada |
-| **Última actualización** | 2026-07-13 |
+| **Última actualización** | 2026-07-20 (pase UX/UI, sin publicar) |
 
 ---
 
@@ -220,6 +220,18 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 - **`gh` (GitHub CLI):** si no está autenticado, los scripts reutilizan la credencial de git cacheada
   (`git credential fill` → `GH_TOKEN`), solo en local, sin imprimir el token.
 - **Framework de pruebas: xUnit.** Hay skills de mstest/nunit/tunit en `.agents/skills/`, pero **no se usan**.
+- **La barra de capacidad NO usa el color de acento** (desde el pase de UX del 2026-07-20). Un `ProgressBar`
+  por defecto hereda el acento del sistema; en un equipo con **acento rojo** la barra de ocupación se veía
+  roja con el disco medio vacío y leía como *alarma*. Ahora codifica ocupación, no marca: neutro <80 %,
+  ámbar ≥80 %, rojo ≥90 % (`MainWindow.CapacityBrush`). Ámbar/rojo reusan `SeverityPalette` (theme-aware,
+  contraste medido); el neutro sigue `_darkMode`. Es —junto a `SeverityPalette`— la otra excepción
+  deliberada al "sin colores hardcodeados" de `AppTheme.xaml`: una barra de datos debe usar color semántico.
+- **Capturas: fotografía el PUBLISH self-contained, no el `dotnet build`.** En esta máquina el apphost de un
+  `dotnet build -c Release` (runtime .NET *framework-dependent*) **no arranca**: muestra "You must install or
+  update .NET". `tools/capture-screenshots.ps1` prefiere `bin\Release`, así que tras un build plano capturaba
+  el **diálogo de error** en vez de la app. Publica primero como `build-installer.ps1`
+  (`dotnet publish -r win-x64 --self-contained true` a `%TEMP%\FormatDiskPro-publish`) y pásalo con
+  `-Exe <publish>\FormatDiskPro.exe`. Es además la foto correcta: el publish es lo que se distribuye.
 
 ## 5. Tareas comunes
 
@@ -294,6 +306,31 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-07-20 — Pase de refinamiento UX/UI dirigido por capturas *(sin publicar aún)*
+
+Revisión visual de **cada** pantalla/diálogo conduciendo la app real por UI Automation. Se amplió
+`tools/capture-screenshots.ps1` con un **modo galería** (`-Gallery`, `-Only`): en una corrida fotografía
+los 12 diálogos/estados en claro **y** oscuro (proceso fresco por toma → una toma que falle no arrastra al
+resto). Salida en `docs/screenshots/gallery/` (gitignorada, no toca las 3 del README). Encontró y arregló:
+
+- **P1 — chkdsk: "Comprobar y reparar" salía truncado** a "Comprobar y repar" (3 botones no cabían en la
+  fila del `ContentDialog`, en **ambos** temas). Ahora las dos acciones van **apiladas a todo el ancho**
+  dentro del `Content` (nunca truncan, en ningún idioma); *Solo comprobar* queda enfocado para preservar
+  Enter. `MainWindow.MnuCheck_Click`.
+- **P2 — barra de capacidad en color de acento** → falsa alarma (roja con el disco sano). Ahora **semántica**
+  por ocupación (neutro/ámbar/rojo). Ver §4 *Otros*.
+- **P3 — S.M.A.R.T. "Velocidad: SSD"** era ambiguo (suena a MB/s) y redundante con "Tipo de medio". Renombrado
+  a **"Velocidad de rotación"** en ES/PT/IT (EN/FR ya lo eran). `health.spindle`.
+- **Fix de calidad de captura:** las 3 imágenes del README tenían una tira multicolor de 1px a la izquierda
+  (columna del borde semitransparente del DWM). `Save-WindowPng` recorta 1px en los 4 lados. README
+  regenerado limpio.
+
+**Lección (costó un round trip):** las capturas deben hacerse contra el **publish self-contained**, no contra
+`dotnet build`. Ver §4 *Otros*. **Falsos positivos descartados:** "JimÃ©nez" en Novedades (el changelog cita
+el string corrupto del #45, intencional) y el subrayado rojo de cajas con foco (acento estándar de WinUI).
+
+Build 0/0, **289/289** unitarias. Cambios **sin commitear ni publicar**: a la espera de decidir el corte.
 
 ### 2026-07-13 — Tier 9 (#41, #42, #45) + capturas + cierre del proyecto — **v1.15.1**
 

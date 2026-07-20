@@ -149,10 +149,20 @@ Automation (fija tema, idioma y unidad, abre el diálogo S.M.A.R.T. y fotografí
 ```powershell
 .\tools\capture-screenshots.ps1                          # claro + oscuro + S.M.A.R.T.
 .\tools\capture-screenshots.ps1 -Theme dark -Language en -Drive H
+.\tools\capture-screenshots.ps1 -Gallery                 # modo galería: cada diálogo/estado en ambos temas
+.\tools\capture-screenshots.ps1 -Gallery -Only checkdisk,confirm   # solo unas tomas concretas
 ```
+
+El **modo galería** (`-Gallery`) fotografía cada diálogo y estado clave (Confirmar, Historial, Presets,
+chkdsk, Reinicializar, S.M.A.R.T., Acerca de…) en claro **y** oscuro para revisar la UX/UI de un vistazo;
+guarda en `docs/screenshots/gallery/` (ignorada por git) sin tocar las capturas del README.
 
 Requiere **terminal elevada** (la app es `requireAdministrator`) y una sesión de escritorio sin nada
 encima de la ventana. Respalda y restaura tu `settings.json` real, así que no altera tu configuración.
+
+> Fotografía el **publish self-contained** (lo que se distribuye), no el `dotnet build`: en algunas máquinas
+> el apphost *framework-dependent* de un build plano no arranca. Publica con `build-installer.ps1` (o
+> `dotnet publish … --self-contained true`) y pásalo con `-Exe <publish>\FormatDiskPro.exe`.
 
 ### Pruebas
 

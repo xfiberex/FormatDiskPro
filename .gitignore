@@ -40,3 +40,6 @@ artifacts/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Galería de revisión UX/UI (capture-screenshots.ps1 -Gallery): artefactos de revisión, no del README
+docs/screenshots/gallery/

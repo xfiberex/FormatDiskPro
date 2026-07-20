@@ -44,14 +44,29 @@ param(
     [ValidateSet('es', 'en', 'pt', 'fr', 'it')][string]$Language = 'es',
     [string]$Drive,
     [string]$OutDir,
-    [switch]$SkipHealth
+    [switch]$SkipHealth,
+
+    # Modo GALERÍA: en vez de las 3 capturas del README, fotografía CADA diálogo y estado clave
+    # (Confirmar, Historial, Presets, Acerca de, Novedades, Licencia, Terceros, chkdsk, Reinicializar,
+    # S.M.A.R.T., y la ventana con exFAT/FAT32 seleccionado) en AMBOS temas, para revisar la UX/UI de un
+    # vistazo. Lanza un proceso fresco por toma (a prueba de fallos: una toma que falle no arrastra al
+    # resto) y guarda en docs\screenshots\gallery por defecto — NO toca las capturas del README.
+    [switch]$Gallery,
+
+    # Filtra la galería a un subconjunto de tomas por nombre (p. ej. -Only checkdisk,confirm). Útil
+    # para reverificar un diálogo concreto sin re-lanzar las 24 tomas. Solo aplica con -Gallery.
+    [string[]]$Only
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-if (-not $OutDir) { $OutDir = Join-Path $repoRoot 'docs\screenshots' }
+if (-not $OutDir) {
+    # La galería va a su propia subcarpeta para NO sobrescribir las 3 capturas del README.
+    $OutDir = if ($Gallery) { Join-Path $repoRoot 'docs\screenshots\gallery' }
+              else          { Join-Path $repoRoot 'docs\screenshots' }
+}
 
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
@@ -194,14 +209,20 @@ function Save-WindowPng($hwnd, [string]$path) {
     # que si no aparece como un borde transparente/negro alrededor de la captura.
     [void][Win32Capture]::DwmGetWindowAttribute($hwnd, [Win32Capture]::DWMWA_EXTENDED_FRAME_BOUNDS, [ref]$rect, $size)
 
-    $w = $rect.Right - $rect.Left
-    $h = $rect.Bottom - $rect.Top
+    # Recorte de 1px en los 4 lados: EXTENDED_FRAME_BOUNDS aún incluye la columna del borde del DWM,
+    # que es semitransparente y deja ver el escritorio (aparecía como una tira multicolor de 1px en el
+    # borde izquierdo de las capturas). Ese pixel no es de la app: se descarta.
+    $inset = 1
+    $srcLeft = $rect.Left + $inset
+    $srcTop  = $rect.Top + $inset
+    $w = ($rect.Right - $rect.Left) - 2 * $inset
+    $h = ($rect.Bottom - $rect.Top) - 2 * $inset
     if ($w -le 0 -or $h -le 0) { throw "Rectángulo de ventana inválido ($w x $h)." }
 
     $bmp = New-Object System.Drawing.Bitmap $w, $h
     try {
         $g = [System.Drawing.Graphics]::FromImage($bmp)
-        try { $g.CopyFromScreen($rect.Left, $rect.Top, 0, 0, (New-Object System.Drawing.Size $w, $h)) }
+        try { $g.CopyFromScreen($srcLeft, $srcTop, 0, 0, (New-Object System.Drawing.Size $w, $h)) }
         finally { $g.Dispose() }
         $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
     } finally { $bmp.Dispose() }
@@ -256,6 +277,158 @@ function Capture-Theme([string]$exePath, [string]$themeName, [string]$driveLette
     }
 }
 
+# ══ Modo GALERÍA ══════════════════════════════════════════════════════════════════
+# Selecciona un ítem (por texto) en un ComboBox localizado por AutomationId. Los ítems del
+# FileSystemPicker son strings simples ("NTFS"/"exFAT"/…), así que su Name de automatización es el
+# propio texto. Se busca desde $window (el popup del ComboBox cuelga de la raíz de la app, no siempre
+# del propio control), igual que el patrón de los UI tests.
+function Select-ComboItem($window, [string]$automationId, [string]$text) {
+    $combo = Find-ByAutomationId $window $automationId
+    $ecp = $combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+    $ecp.Expand()
+    Start-Sleep -Milliseconds 400
+    try {
+        $cond = New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::NameProperty, $text)
+        $deadline = (Get-Date).AddSeconds(5)
+        $item = $null
+        while ((Get-Date) -lt $deadline) {
+            $item = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
+            if ($item) { break }
+            Start-Sleep -Milliseconds 200
+        }
+        if (-not $item) { throw "No se encontró el ítem '$text' en '$automationId'." }
+        $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    } finally {
+        Start-Sleep -Milliseconds 200
+        $ecp.Collapse()
+    }
+    Start-Sleep -Milliseconds 400
+}
+
+# Localiza un MenuItem por su texto visible (para ítems construidos en runtime sin AutomationId, como
+# "Gestionar presets…"). Se busca desde $window: el submenú es otro Popup y sus hijos no cuelgan
+# siempre del elemento que lo abre (mismo motivo que en los UI tests).
+function Find-MenuItemByName($window, [string]$name, [int]$timeoutSec = 5) {
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
+    $cond = New-Object System.Windows.Automation.AndCondition(
+        (New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+            [System.Windows.Automation.ControlType]::MenuItem)),
+        (New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::NameProperty, $name)))
+    while ((Get-Date) -lt $deadline) {
+        $el = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
+        if ($el) { return $el }
+        Start-Sleep -Milliseconds 200
+    }
+    throw "No se encontró el ítem de menú '$name'."
+}
+
+# Lanza el .exe, encuentra y coloca su ventana (tamaño fijo por diseño: solo se posiciona), y espera a
+# que la tarjeta de unidad se rellene. Devuelve un objeto con el proceso, el elemento y el hwnd.
+function Start-AppInstance([string]$exePath) {
+    $proc = Start-Process -FilePath $exePath -PassThru
+    $window = Find-MainWindow $proc.Id
+    $hwnd = [IntPtr]$window.Current.NativeWindowHandle
+    [void][Win32Capture]::ShowWindow($hwnd, 9)   # SW_RESTORE
+    $r = $window.Current.BoundingRectangle
+    [void][Win32Capture]::MoveWindow($hwnd, 80, 30, [int]$r.Width, [int]$r.Height, $true)
+    Start-Sleep -Seconds 2
+    return [pscustomobject]@{ Proc = $proc; Window = $window; Hwnd = $hwnd }
+}
+
+function Stop-AppInstance($app) {
+    if ($app -and $app.Proc -and -not $app.Proc.HasExited) {
+        [void]$app.Proc.CloseMainWindow()
+        Start-Sleep -Seconds 1
+        if (-not $app.Proc.HasExited) { $app.Proc.Kill() }
+    }
+}
+
+# Cada toma de la galería: proceso fresco → setup opcional (navega/selecciona y espera contenido) →
+# captura → cierra. El proceso-por-toma evita tener que cerrar diálogos (WinUI solo permite uno) y
+# hace que un fallo de navegación no contamine la siguiente toma.
+function Capture-GalleryShot([string]$exePath, [string]$themeName, [string]$driveLetter,
+    [string]$shotName, [scriptblock]$setup) {
+    $out = Join-Path $OutDir "$shotName-$themeName.png"
+    Write-Host "  [$themeName] $shotName..." -ForegroundColor DarkGray
+    Set-CaptureSettings $exePath $themeName $driveLetter
+    $app = $null
+    try {
+        $app = Start-AppInstance $exePath
+        if ($setup) { & $setup $app.Window $app.Hwnd }
+        Save-WindowPng $app.Hwnd $out
+    } catch {
+        Write-Warning "    Omitida ($shotName-$themeName): $($_.Exception.Message)"
+    } finally {
+        Stop-AppInstance $app
+    }
+}
+
+function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
+    $manageName = @{ es='Gestionar presets…'; en='Manage presets…'; pt='Gerenciar predefinições…';
+                     fr='Gérer les préréglages…'; it='Gestisci preset…' }[$Language]
+
+    # Cada toma: nombre + scriptblock de setup (o $null para la ventana principal tal cual). El setup
+    # navega y ESPERA a un elemento estable del destino, para que la captura lo pille ya poblado.
+    $shots = @(
+        @{ Name = 'main';      Setup = $null }
+        @{ Name = 'main-exfat'; Setup = { param($w,$h) Select-ComboItem $w 'FileSystemPicker' 'exFAT' } }
+        @{ Name = 'main-fat32'; Setup = { param($w,$h) Select-ComboItem $w 'FileSystemPicker' 'FAT32' } }
+        @{ Name = 'health';    Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuHealth')
+                [void](Find-ByAutomationId $w 'NoteText' 60); Start-Sleep -Seconds 2 } }
+        @{ Name = 'history';   Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuHistory')
+                [void](Find-ByAutomationId $w 'SearchBox' 20); Start-Sleep -Milliseconds 800 } }
+        @{ Name = 'checkdisk'; Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuCheck'); Start-Sleep -Milliseconds 1200 } }
+        @{ Name = 'reinit';    Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuReinit'); Start-Sleep -Milliseconds 1200 } }
+        @{ Name = 'presets';   Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuConfig'); Start-Sleep -Milliseconds 500
+                Expand-Element (Find-ByAutomationId $w 'MnuPresets'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-MenuItemByName $w $manageName)
+                [void](Find-ByAutomationId $w 'ListHeader' 15); Start-Sleep -Milliseconds 800 } }
+        @{ Name = 'whatsnew';  Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuWhatsNew')
+                [void](Find-ByAutomationId $w 'VersionText' 15); Start-Sleep -Milliseconds 800 } }
+        @{ Name = 'license';   Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuLicense')
+                [void](Find-ByAutomationId $w 'BodyText' 15); Start-Sleep -Milliseconds 800 } }
+        @{ Name = 'thirdparty'; Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuThirdParty')
+                [void](Find-ByAutomationId $w 'BodyText' 15); Start-Sleep -Milliseconds 800 } }
+        @{ Name = 'about';     Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuAbout')
+                [void](Find-ByAutomationId $w 'VersionText' 15); Start-Sleep -Milliseconds 800 } }
+        @{ Name = 'confirm';   Setup = { param($w,$h)
+                Invoke-Element (Find-ByAutomationId $w 'StartButton'); Start-Sleep -Milliseconds 1200 } }
+    )
+
+    if ($Only) {
+        $shots = $shots | Where-Object { $Only -contains $_.Name }
+        if (-not $shots) { throw "El filtro -Only no coincide con ninguna toma. Válidas: main, main-exfat, main-fat32, health, history, checkdisk, reinit, presets, whatsnew, license, thirdparty, about, confirm." }
+    }
+
+    $themes = if ($Theme -eq 'both') { @('light', 'dark') } else { @($Theme) }
+    foreach ($t in $themes) {
+        Write-Host "Galería — tema $t..." -ForegroundColor Cyan
+        foreach ($s in $shots) {
+            Capture-GalleryShot $exePath $t $driveLetter $s.Name $s.Setup
+        }
+    }
+}
+
 # ── Ejecución ───────────────────────────────────────────────────────────────────
 Assert-Elevated
 $exePath = Resolve-Exe
@@ -276,9 +449,14 @@ if (Test-Path $settingsPath) {
 }
 
 try {
-    $themes = if ($Theme -eq 'both') { @('light', 'dark') } else { @($Theme) }
-    foreach ($t in $themes) { Capture-Theme $exePath $t $driveLetter }
-    Write-Host "`nCapturas completadas en $OutDir" -ForegroundColor Green
+    if ($Gallery) {
+        Invoke-Gallery $exePath $driveLetter
+        Write-Host "`nGalería completada en $OutDir" -ForegroundColor Green
+    } else {
+        $themes = if ($Theme -eq 'both') { @('light', 'dark') } else { @($Theme) }
+        foreach ($t in $themes) { Capture-Theme $exePath $t $driveLetter }
+        Write-Host "`nCapturas completadas en $OutDir" -ForegroundColor Green
+    }
 } finally {
     if ($backup) {
         Copy-Item $backup $settingsPath -Force

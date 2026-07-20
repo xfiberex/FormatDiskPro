@@ -442,10 +442,29 @@ public sealed partial class MainWindow : Window
             InfoFreeText.Text  = L.T("info.free", FormatBytes(free));
             InfoFsText.Text    = L.T("info.fs", drive.DriveFormat);
             InfoTypeText.Text  = L.T("info.type", DriveTypeName(drive.DriveType));
-            CapacityBar.Value      = total > 0 ? (total - free) * 100.0 / total : 0;
+            double usedPct = total > 0 ? (total - free) * 100.0 / total : 0;
+            CapacityBar.Value      = usedPct;
+            CapacityBar.Foreground = CapacityBrush(usedPct);
             CapacityBar.Visibility = Visibility.Visible;
         }
         catch { ClearInfo(); }
+    }
+
+    /// <summary>
+    /// Pincel de la barra de OCUPACIÓN: neutro cuando hay espacio de sobra, ámbar al llenarse (≥80 %),
+    /// rojo casi llena (≥90 %). Una barra de capacidad no debe usar el color de ACENTO del sistema
+    /// (lo que hace un <c>ProgressBar</c> por defecto): en un equipo con acento rojo se veía roja con el
+    /// disco medio vacío y leía como alarma. El color codifica cuánto queda, no la marca. Ámbar/rojo
+    /// reusan <see cref="SeverityPalette"/> (theme-aware, contraste medido por tests); el neutro sigue el
+    /// tema efectivo (<c>_darkMode</c>), y se re-deriva al cambiar de tema porque <see cref="UpdateInfo"/>
+    /// vuelve a correr (ver <c>ApplyThemeMode</c>).
+    /// </summary>
+    private Brush CapacityBrush(double usedPct)
+    {
+        Color c = usedPct >= 90 ? SeverityPalette.For(SmartLevel.Critical, _darkMode)
+                : usedPct >= 80 ? SeverityPalette.For(SmartLevel.Warning, _darkMode)
+                : (_darkMode ? Color.FromArgb(255, 0xA0, 0xA0, 0xA0) : Color.FromArgb(255, 0x8A, 0x8A, 0x8A));
+        return new SolidColorBrush(c);
     }
 
     private void ClearInfo()
@@ -1165,21 +1184,49 @@ public sealed partial class MainWindow : Window
 
         // Modo: Solo comprobar (read-only, por defecto) / Comprobar y reparar / Cancelar.
         // La reparación (/f) no se ofrece en el disco de sistema (programaría un reinicio).
+        //
+        // Las dos acciones van como botones APILADOS a todo el ancho dentro del Content, no como
+        // Primary/Secondary del ContentDialog: con tres botones en una fila, "Comprobar y reparar"
+        // (y aún más su traducción PT/IT) no cabía y WinUI lo truncaba sin puntos suspensivos
+        // ("Comprobar y repar"). Apilados nunca truncan, en ningún idioma.
         var modeDlg = new ContentDialog
         {
-            Title             = L.T("check.modeTitle"),
-            Content           = L.T("check.modeBody", item.Letter),
-            PrimaryButtonText = L.T("check.scanOnly"),
-            CloseButtonText   = L.T("btn.cancel"),
-            DefaultButton     = ContentDialogButton.Primary,
-            XamlRoot          = Content.XamlRoot,
-            RequestedTheme    = CurrentTheme,
+            Title          = L.T("check.modeTitle"),
+            CloseButtonText = L.T("btn.cancel"),
+            XamlRoot       = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
         };
-        if (!protectedDrive) modeDlg.SecondaryButtonText = L.T("check.repair");
 
-        var choice = await modeDlg.ShowAsync();
-        if (choice == ContentDialogResult.None) return;
-        bool repair = choice == ContentDialogResult.Secondary;
+        bool? repairChoice = null;   // null = cancelar · false = solo comprobar · true = comprobar y reparar
+
+        var scanButton = new Button
+        {
+            Content             = L.T("check.scanOnly"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Style               = (Style)Application.Current.Resources["AccentButtonStyle"],
+        };
+        scanButton.Click += (_, _) => { repairChoice = false; modeDlg.Hide(); };
+        // Enfocar el botón por defecto preserva "Enter = Solo comprobar" (antes lo daba DefaultButton).
+        scanButton.Loaded += (_, _) => scanButton.Focus(FocusState.Programmatic);
+
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(new TextBlock { Text = L.T("check.modeBody", item.Letter), TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(scanButton);
+        if (!protectedDrive)
+        {
+            var repairButton = new Button
+            {
+                Content             = L.T("check.repair"),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+            };
+            repairButton.Click += (_, _) => { repairChoice = true; modeDlg.Hide(); };
+            panel.Children.Add(repairButton);
+        }
+        modeDlg.Content = panel;
+
+        await modeDlg.ShowAsync();
+        if (repairChoice is null) return;   // Cancelar (botón Cerrar, Esc o clic fuera)
+        bool repair = repairChoice.Value;
 
         BeginOperation();
         FormatProgress.IsIndeterminate = false;

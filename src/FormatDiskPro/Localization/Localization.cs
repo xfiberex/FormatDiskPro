@@ -179,7 +179,7 @@ public static class L
         ["health.status"]   = ["Estado de salud", "Health status", "Estado de saúde", "État de santé", "Stato di salute"],
         ["health.bus"]      = ["Conexión", "Bus", "Conexão", "Connexion", "Connessione"],
         ["health.media"]    = ["Tipo de medio", "Media type", "Tipo de mídia", "Type de support", "Tipo di supporto"],
-        ["health.spindle"]  = ["Velocidad", "Spindle speed", "Velocidade", "Vitesse de rotation", "Velocità"],
+        ["health.spindle"]  = ["Velocidad de rotación", "Spindle speed", "Velocidade de rotação", "Vitesse de rotation", "Velocità di rotazione"],
         ["health.temp"]     = ["Temperatura", "Temperature", "Temperatura", "Température", "Temperatura"],
         ["health.hours"]    = ["Horas de encendido", "Power-on hours", "Horas ligado", "Heures de fonctionnement", "Ore di accensione"],
         ["health.wear"]     = ["Desgaste (SSD)", "Wear (SSD)", "Desgaste (SSD)", "Usure (SSD)", "Usura (SSD)"],
