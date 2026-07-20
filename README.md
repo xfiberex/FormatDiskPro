@@ -40,7 +40,7 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Reinicializar unidad**: para USB con particiones raras o RAW, limpia el disco y recrea una única partición primaria formateada y usable. **Solo unidades extraíbles**, con guardas reforzadas (bloqueo del disco de sistema, verificación de que el disco físico no es el de Windows y confirmación escribiendo la letra); en discos extraíbles ≥ 32 GB permite opcionalmente crear solo una pequeña partición FAT32 (tamaño elegible: 1/2/4/8/16/32 GB) y dejar el resto sin asignar (por ejemplo, para actualizar el BIOS/UEFI de una placa base desde un USB grande, ya que Windows nunca permite un volumen FAT32 mayor de 32 GB)
 
 ### Diagnóstico
-- **Panel de información**: tamaño, espacio libre, FS actual y tipo
+- **Panel de información**: tamaño, espacio libre, FS actual y tipo, con una **barra de ocupación** cuyo color indica lo llena que está la unidad (neutro con espacio de sobra, **ámbar** al llenarse ≥80 % y **rojo** casi llena ≥90 %), no el color de acento del sistema
 - **Salud S.M.A.R.T. avanzada**: estado de salud, conexión (USB/SATA/NVMe) y tipo de medio (SSD/HDD) en el panel, más un **diálogo de detalle** con temperatura, horas de encendido, desgaste de SSD, RPM y errores de lectura/escritura (`Get-StorageReliabilityCounter`). Temperatura, desgaste y errores se **colorean por rango** (verde/ámbar/rojo) con texto de estado (Normal/Atención/Crítico) y un botón **Actualizar**
 - **Verificación de capacidad real**: detecta memorias USB falsificadas escribiendo y releyendo un patrón
 - **Comprobación de errores (chkdsk)**: *Solo comprobar* (solo lectura, universal) o *Comprobar y reparar* (`/f`), con progreso en vivo y resultado claro
@@ -94,6 +94,11 @@ dotnet build -c Release
 ```
 
 El ejecutable queda en `src\FormatDiskPro\bin\Release\net10.0-windows10.0.19041.0\win-x64\FormatDiskPro.exe`.
+
+> Para **ejecutarlo** directamente puede hacer falta el *publish self-contained* (`build-installer.ps1`
+> o `dotnet publish … --self-contained true`): `dotnet build` produce un apphost *framework-dependent*
+> que, en máquinas sin el runtime .NET 10 de escritorio, avisa «You must install or update .NET». El
+> instalador distribuido no tiene este problema (es self-contained).
 
 ### Generar el instalador
 
