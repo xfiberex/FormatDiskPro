@@ -10,13 +10,13 @@
 | | |
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
-| **Versión publicada** | **1.15.1** (2026-07-13) |
+| **Versión publicada** | **1.15.2** (2026-07-20) |
 | **Estado** | 🏁 **TERMINADO** — Tiers 1–9 completados, sin trabajo pendiente |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **289** unitarias · **23** de UI sobre la app real (17 pasan / 6 se omiten sin la USB de pruebas) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — cerrada |
-| **Última actualización** | 2026-07-20 (pase UX/UI, sin publicar) |
+| **Última actualización** | 2026-07-20 (pase UX/UI — v1.15.2) |
 
 ---
 
@@ -119,7 +119,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Unitarias | **289 / 289** |
 | UI tests | **17 pasan · 6 omitidos · 0 fallan** sin la USB conectada |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
-| Publicado | v1.15.1 |
+| Publicado | v1.15.2 |
 
 **Tiers completados**
 
@@ -282,6 +282,7 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 | Versión | Qué trajo |
 |---|---|
+| **1.15.2** | Pase de refinamiento UX/UI: fix truncación del botón chkdsk, barra de capacidad semántica, etiqueta S.M.A.R.T. más clara. Modo galería de capturas. |
 | **1.15.1** | Tier 9: UI tests en el pipeline, instalador probado end-to-end, build reproducible. Fix: metadatos del `.exe` corrompidos. Capturas en el README. |
 | **1.15.0** | Tier 8 (seguridad): verificación del instalador (SHA-256), anti CSV injection, contraste WCAG AA. |
 | **1.14.1** | Mantenimiento de las pruebas de UI. |
@@ -307,7 +308,7 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 ---
 
-### 2026-07-20 — Pase de refinamiento UX/UI dirigido por capturas *(sin publicar aún)*
+### 2026-07-20 — Pase de refinamiento UX/UI dirigido por capturas — **v1.15.2**
 
 Revisión visual de **cada** pantalla/diálogo conduciendo la app real por UI Automation. Se amplió
 `tools/capture-screenshots.ps1` con un **modo galería** (`-Gallery`, `-Only`): en una corrida fotografía
@@ -330,7 +331,8 @@ resto). Salida en `docs/screenshots/gallery/` (gitignorada, no toca las 3 del RE
 `dotnet build`. Ver §4 *Otros*. **Falsos positivos descartados:** "JimÃ©nez" en Novedades (el changelog cita
 el string corrupto del #45, intencional) y el subrayado rojo de cajas con foco (acento estándar de WinUI).
 
-Build 0/0, **289/289** unitarias. Cambios **sin commitear ni publicar**: a la espera de decidir el corte.
+Build 0/0, **289/289** unitarias, **17 UI tests** pasan (6 omitidos sin la USB). Cortado con
+`release.ps1 -UiTests` (los UI tests contra el publish self-contained, vía `FORMATDISKPRO_EXE`).
 
 ### 2026-07-13 — Tier 9 (#41, #42, #45) + capturas + cierre del proyecto — **v1.15.1**
 
