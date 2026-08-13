@@ -29,22 +29,19 @@ public sealed partial class MainWindow : Window
         ["FAT"]   = ([512, 1024, 2048, 4096, 8192, 16384, 32768], 4096),
     };
 
-    private static readonly Dictionary<string, string> FsDescEs = new()
+    /// <summary>
+    /// Clave de localización con la descripción de cada sistema de archivos (<c>fs.desc.*</c>).
+    /// El texto vive en <see cref="L"/>, no aquí: hasta la v1.15.2 estas descripciones estaban
+    /// incrustadas como dos diccionarios ES/EN, así que PT/FR/IT veían inglés.
+    /// </summary>
+    private static string FsDescriptionKey(string fs) => fs switch
     {
-        ["NTFS"]  = "Ideal para discos internos Windows. Soporta archivos grandes, permisos y cifrado BitLocker.",
-        ["exFAT"] = "Recomendado para memorias USB grandes (> 32 GB). Compatible con Windows, macOS y Linux sin límite de tamaño de archivo.",
-        ["ReFS"]  = "Sistema resiliente a errores. Óptimo para almacenamiento de datos críticos. Requiere Windows Pro o superior.",
-        ["FAT32"] = "Alta compatibilidad con dispositivos y consolas. Límite máximo de 4 GB por archivo.",
-        ["FAT"]   = "Sistema heredado para unidades muy pequeñas (< 2 GB). Compatibilidad máxima con hardware antiguo.",
-    };
-
-    private static readonly Dictionary<string, string> FsDescEn = new()
-    {
-        ["NTFS"]  = "Ideal for internal Windows disks. Supports large files, permissions and BitLocker encryption.",
-        ["exFAT"] = "Recommended for large USB drives (> 32 GB). Works on Windows, macOS and Linux with no file-size limit.",
-        ["ReFS"]  = "Error-resilient file system. Optimal for critical data storage. Requires Windows Pro or higher.",
-        ["FAT32"] = "High compatibility with devices and consoles. Maximum 4 GB per file.",
-        ["FAT"]   = "Legacy system for very small drives (< 2 GB). Maximum compatibility with old hardware.",
+        "NTFS"  => "fs.desc.ntfs",
+        "exFAT" => "fs.desc.exfat",
+        "ReFS"  => "fs.desc.refs",
+        "FAT32" => "fs.desc.fat32",
+        "FAT"   => "fs.desc.fat",
+        _       => "",
     };
 
     // ── State ─────────────────────────────────────────────────────
@@ -260,6 +257,31 @@ public sealed partial class MainWindow : Window
             RequestedTheme = CurrentTheme,
         };
         return await dlg.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    /// <summary>
+    /// Deja la UI en estado de error tras una excepción no esperada de una operación, la registra y
+    /// avisa al usuario. Comparte el tratamiento de <see cref="RunFormatAsync"/> con los flujos que
+    /// no lo tenían (verificar capacidad, chkdsk, reinicializar, benchmark).
+    ///
+    /// <para>Existe porque esos cuatro son <c>async void</c>: sin un <c>catch</c> propio, un
+    /// <see cref="IOException"/> —una USB que se desconecta a mitad, justo lo que la verificación de
+    /// capacidad provoca a propósito— escapaba del handler y terminaba el proceso. El handler global
+    /// de <see cref="App"/> es la red de último recurso; esto es el mensaje con contexto.</para>
+    ///
+    /// <para>Una cancelación NO pasa por aquí: cada flujo la trata antes, y no es un fallo.</para>
+    /// </summary>
+    /// <param name="operation">Etiqueta de la operación para el historial (p. ej. <c>"VERIFY"</c>).</param>
+    /// <param name="letter">Letra de la unidad implicada.</param>
+    /// <param name="ex">Excepción capturada.</param>
+    private async Task ReportOperationErrorAsync(string operation, char letter, Exception ex)
+    {
+        FormatProgress.IsIndeterminate = false;
+        FormatProgress.Value = 0;
+        _lastOperationFailed = true;
+        StatusText.Text = L.T("status.unexpected");
+        History.Log($"{operation} ERROR {letter}: {ex.Message}");
+        await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ex.Message}");
     }
 
     private async Task ShowDialogAsync(string title, string message,
@@ -552,8 +574,8 @@ public sealed partial class MainWindow : Window
     private void UpdateFsDescription()
     {
         string? fs = FileSystemPicker.SelectedItem?.ToString();
-        var dict = L.Current == AppLang.Es ? FsDescEs : FsDescEn;
-        FsDescText.Text = fs is not null && dict.TryGetValue(fs, out string? desc) ? desc : "";
+        string key = fs is not null ? FsDescriptionKey(fs) : "";
+        FsDescText.Text = key.Length > 0 ? L.T(key) : "";
     }
 
     private void UpdateCompressionOption()
@@ -1092,6 +1114,17 @@ public sealed partial class MainWindow : Window
                 await ShowInfoAsync(L.T("verify.failTitle"), L.T("verify.failBody", item.Letter, FormatBytes(result.WrittenBytes)));
             }
         }
+        catch (OperationCanceledException)
+        {
+            FormatProgress.Value = 0;
+            StatusText.Text = L.T("status.cancelled");
+        }
+        catch (Exception ex)
+        {
+            // Una unidad falsificada o que se desconecta a mitad lanza IOException aquí: es el
+            // escenario que esta herramienta existe para provocar, no un caso remoto.
+            await ReportOperationErrorAsync("VERIFY", item.Letter, ex);
+        }
         finally
         {
             EndOperation();
@@ -1266,6 +1299,12 @@ public sealed partial class MainWindow : Window
             FormatProgress.Value = 0;
             StatusText.Text = L.T("status.cancelled");
         }
+        catch (Exception ex)
+        {
+            // CheckDisk.RunAsync no atrapa nada: Process.Start puede lanzar Win32Exception si
+            // chkdsk.exe no está disponible o lo bloquea una política.
+            await ReportOperationErrorAsync("CHKDSK", item.Letter, ex);
+        }
         finally
         {
             EndOperation();
@@ -1366,6 +1405,18 @@ public sealed partial class MainWindow : Window
                 await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.failed"));
             }
         }
+        catch (OperationCanceledException)
+        {
+            FormatProgress.Value = 0;
+            StatusText.Text = L.T("status.cancelled");
+        }
+        catch (Exception ex)
+        {
+            // ReinitDrive.RunAsync ya devuelve el fallo como resultado en vez de lanzarlo, así que
+            // aquí solo llegaría un fallo de la propia UI. Se cubre igual: el disco ya está borrado
+            // a estas alturas y morir sin decir nada sería el peor momento para hacerlo.
+            await ReportOperationErrorAsync("REINIT", item.Letter, ex);
+        }
         finally
         {
             FormatProgress.IsIndeterminate = false;
@@ -1406,6 +1457,7 @@ public sealed partial class MainWindow : Window
 
         BenchmarkResult? res = null;
         bool cancelled = false;
+        Exception? failure = null;
         try
         {
             res = await BenchmarkRunner.RunAsync(item.Letter, progress, _cts!.Token);
@@ -1413,6 +1465,13 @@ public sealed partial class MainWindow : Window
         catch (OperationCanceledException)
         {
             cancelled = true;   // se trata abajo como cancelación
+        }
+        catch (Exception ex)
+        {
+            // Igual que la cancelación: se guarda y se trata DESPUÉS del finally, para no mostrar un
+            // modal con la operación todavía abierta. File.OpenHandle lanza si la unidad no admite
+            // E/S sin búfer (algunos medios virtuales o de red) o si se queda sin espacio.
+            failure = ex;
         }
         finally
         {
@@ -1426,6 +1485,15 @@ public sealed partial class MainWindow : Window
         {
             FormatProgress.Value = 0;
             StatusText.Text = L.T("status.cancelled");
+            return;
+        }
+
+        if (failure is not null)
+        {
+            // ShowError directo: EndOperation() ya corrió en el finally, así que _lastOperationFailed
+            // no llegaría a la barra (mismo motivo que el caso `res is null` de abajo).
+            FormatProgress.ShowError = true;
+            await ReportOperationErrorAsync("BENCH", item.Letter, failure);
             return;
         }
 
@@ -2023,10 +2091,12 @@ public sealed partial class MainWindow : Window
 
     // ── Helpers ───────────────────────────────────────────────────
 
+    // La comparación va por DriveLetter.Same (invariante de cultura) y NO por char.ToUpper: esta es la
+    // guarda que impide formatear el disco de Windows, y con cultura turca ToUpper('i') no da 'I'.
     private static bool IsSystemDrive(char letter)
     {
         char sys = Path.GetPathRoot(Environment.SystemDirectory)![0];
-        return char.ToUpper(letter) == char.ToUpper(sys);
+        return DriveLetter.Same(letter, sys);
     }
 
     private void SetFormEnabled(bool enabled)

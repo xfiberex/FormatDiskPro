@@ -149,9 +149,6 @@ public static class UpdateService
 
     private static string PrepareDownloadPath(ReleaseInfo release)
     {
-        string fileName = string.IsNullOrEmpty(release.AssetName)
-            ? $"FormatDiskPro-{release.Version}-setup.exe"
-            : release.AssetName!;
         string dir = Path.Combine(Path.GetTempPath(), "FormatDiskPro_update");
         Directory.CreateDirectory(dir);
 
@@ -159,7 +156,42 @@ public static class UpdateService
         try { foreach (var old in Directory.GetFiles(dir)) File.Delete(old); }
         catch { /* archivo en uso u otro problema: no es crítico */ }
 
-        return Path.Combine(dir, fileName);
+        return Path.Combine(dir, SafeAssetFileName(release.AssetName, release.Version));
+    }
+
+    /// <summary>
+    /// Nombre de archivo seguro a partir del nombre de asset que publica GitHub, para componerlo con la
+    /// carpeta de descarga.
+    ///
+    /// <para><b>Por qué no se usa tal cual:</b> <see cref="Path.Combine(string, string)"/> <b>descarta el
+    /// primer argumento</b> si el segundo es una ruta absoluta (<c>Path.Combine(@"C:\a", @"C:\b")</c>
+    /// devuelve <c>C:\b</c>), y tampoco resuelve <c>..</c>. Como la app corre elevada y el archivo se
+    /// ejecuta después, un nombre manipulado podría escribir en cualquier sitio como administrador.</para>
+    ///
+    /// <para><b>Alcance honesto:</b> el nombre viene del JSON del propio repositorio, así que explotarlo
+    /// exige controlar el release — y quien pueda hacer eso ya controla el <c>.exe</c> que se descarga.
+    /// Esto no cierra un agujero abierto: evita que la seguridad del flujo dependa de que GitHub sanee
+    /// los nombres de asset, que es una suposición que nadie verificó.</para>
+    /// </summary>
+    /// <param name="assetName">Nombre del asset tal como llega del API de GitHub.</param>
+    /// <param name="version">Versión del release, para el nombre de reserva.</param>
+    /// <returns>Un nombre de archivo sin componentes de ruta.</returns>
+    internal static string SafeAssetFileName(string? assetName, string version)
+    {
+        string fallback = $"FormatDiskPro-{version}-setup.exe";
+        if (string.IsNullOrWhiteSpace(assetName)) return fallback;
+
+        // GetFileName se queda con lo que hay tras el último separador y descarta la raíz: convierte
+        // "C:\Windows\System32\x.exe" y "..\..\x.exe" en "x.exe".
+        string name;
+        try { name = Path.GetFileName(assetName.Trim()); }
+        catch (ArgumentException) { return fallback; }   // caracteres no válidos en la ruta
+
+        // "..", "." o una cadena vacía no son nombres de archivo utilizables (p. ej. assetName = "a\..").
+        if (name.Length == 0 || name == "." || name == "..") return fallback;
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return fallback;
+
+        return name;
     }
 
     private static async Task DownloadToFileAsync(

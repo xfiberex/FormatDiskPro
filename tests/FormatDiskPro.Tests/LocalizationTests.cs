@@ -31,6 +31,31 @@ public sealed class LocalizationTests
         });
     }
 
+    /// <summary>
+    /// Las descripciones de sistema de archivos vivían como dos diccionarios ES/EN dentro de
+    /// <c>MainWindow</c>, fuera del alcance de <see cref="EveryEntry_HasFiveNonEmptyTranslations"/>:
+    /// portugués, francés e italiano mostraban el texto en inglés y la suite seguía en verde. Ahora
+    /// están en <see cref="L.Map"/>, y esto comprueba que siguen ahí.
+    /// </summary>
+    [Theory]
+    [InlineData("fs.desc.ntfs")]
+    [InlineData("fs.desc.exfat")]
+    [InlineData("fs.desc.refs")]
+    [InlineData("fs.desc.fat32")]
+    [InlineData("fs.desc.fat")]
+    public void FileSystemDescriptions_AreLocalized(string key)
+    {
+        Assert.True(L.Map.ContainsKey(key), $"Falta la clave '{key}' en el diccionario de traducciones.");
+
+        // No basta con que existan cinco entradas: el fallo original era precisamente que PT/FR/IT
+        // repetían el texto inglés. Estas cinco descripciones difieren en los cinco idiomas.
+        string[] translations = L.Map[key];
+        string english = translations[(int)AppLang.En];
+        foreach (AppLang lang in (AppLang[])[AppLang.Pt, AppLang.Fr, AppLang.It])
+            Assert.False(translations[(int)lang] == english,
+                $"'{key}' en {lang} es idéntico al inglés: probablemente quedó sin traducir.");
+    }
+
     [Theory]
     [InlineData("es", AppLang.Es)]
     [InlineData("en", AppLang.En)]

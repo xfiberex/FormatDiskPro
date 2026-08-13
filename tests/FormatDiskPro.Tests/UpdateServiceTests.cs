@@ -18,6 +18,46 @@ namespace FormatDiskPro.Tests;
 /// </summary>
 public sealed class UpdateServiceTests
 {
+    // ── SafeAssetFileName: la ruta de descarga no puede salirse de su carpeta ──────────────
+
+    /// <summary>
+    /// El instalador se descarga a <c>%TEMP%\FormatDiskPro_update</c> y luego se ejecuta ELEVADO, así que
+    /// el nombre de archivo no puede arrastrar componentes de ruta. <c>Path.Combine</c> descarta su primer
+    /// argumento ante una ruta absoluta, de modo que un nombre de asset manipulado escribiría donde
+    /// quisiera con permisos de administrador.
+    /// </summary>
+    [Theory]
+    [InlineData(@"C:\Windows\System32\evil.exe", "evil.exe")]        // ruta absoluta: Path.Combine la respetaría
+    [InlineData(@"..\..\evil.exe",               "evil.exe")]        // traversal relativo
+    [InlineData("../../evil.exe",                "evil.exe")]        // idem con separador POSIX
+    [InlineData(@"sub\dir\evil.exe",             "evil.exe")]        // subcarpeta que no existe
+    [InlineData("FormatDiskPro-1.2.3-setup.exe", "FormatDiskPro-1.2.3-setup.exe")]   // caso normal: intacto
+    public void SafeAssetFileName_StripsPathComponents(string assetName, string expected)
+        => Assert.Equal(expected, UpdateService.SafeAssetFileName(assetName, "1.2.3"));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("..")]
+    [InlineData(@"a\..")]      // GetFileName deja "..", que no es un nombre utilizable
+    public void SafeAssetFileName_UnusableName_FallsBackToVersionedName(string? assetName)
+        => Assert.Equal("FormatDiskPro-1.2.3-setup.exe", UpdateService.SafeAssetFileName(assetName, "1.2.3"));
+
+    /// <summary>El resultado, combinado con la carpeta de descarga, nunca sale de ella.</summary>
+    [Theory]
+    [InlineData(@"C:\Windows\System32\evil.exe")]
+    [InlineData(@"..\..\..\evil.exe")]
+    public void SafeAssetFileName_CombinedPath_StaysInsideDownloadFolder(string assetName)
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "FormatDiskPro_update");
+        string combined = Path.GetFullPath(Path.Combine(dir, UpdateService.SafeAssetFileName(assetName, "1.2.3")));
+
+        Assert.StartsWith(Path.GetFullPath(dir) + Path.DirectorySeparatorChar, combined, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── Verificación por SHA-256 ──────────────────────────────────────────────────────────
+
     [Fact]
     public async Task ComputeSha256Async_MatchesKnownHash_AsUppercaseHexWithoutSeparators()
     {

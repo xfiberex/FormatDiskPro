@@ -11,7 +11,7 @@
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Versión publicada** | **1.15.2** (2026-07-20) |
-| **Estado** | 🏁 **TERMINADO** — Tiers 1–9 completados, sin trabajo pendiente |
+| **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **289** unitarias · **23** de UI sobre la app real (17 pasan / 6 se omiten sin la USB de pruebas) |
@@ -116,10 +116,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **289 / 289** |
+| Unitarias | **314 / 314** (289 + 25 de la primera tanda de la auditoría) |
 | UI tests | **17 pasan · 6 omitidos · 0 fallan** sin la USB conectada |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.15.2 |
+| Auditoría | 2026-08-13 — **6/37 completadas**, 31 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 5 · T2: 11 · T3: 10 · T4: 5) |
 
 **Tiers completados**
 
@@ -307,6 +308,73 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-13 — Auditoría: primera tanda (T0 completo + 4 de T1)
+
+Seis tareas del backlog. Build 0/0, **314/314** unitarias (289 → +25). Sin cambios funcionales: nada de
+lo que hace la app cambia, solo deja de romperse y empieza a decirlo en cinco idiomas.
+
+- **T0-01 · La app ya no muere en silencio.** `App.OnLaunched` engancha `UnhandledException`: registra
+  `CRASH:` en el historial, fija `Handled` y muestra un diálogo. **El orden importa** — `e.Handled` se
+  fija de forma síncrona antes del primer `await`, porque en un `async void` el método "vuelve" ahí y es
+  entonces cuando WinUI lee la propiedad.
+- **T0-02 · Cada operación cuenta su propio fallo.** Los cuatro handlers que solo tenían `try/finally`
+  (verificar capacidad, chkdsk, reinicializar, benchmark) ya capturan, vía el helper compartido
+  `MainWindow.ReportOperationErrorAsync`. El benchmark guarda la excepción y la trata **después** del
+  `finally`, para respetar su decisión previa de cerrar la operación antes de abrir un modal.
+- **T1-01 · `Core/DriveLetter` (nuevo archivo).** `IsSystemDrive` comparaba con `char.ToUpper`, sensible a
+  la cultura: en turco `ToUpper('i')` es `'İ'`, así que la unidad `I:` habría dejado de reconocerse como
+  disco de sistema y la guarda no se habría activado. La comparación se aisló en `Core` para poder
+  probarla; el test fija `tr-TR` y **primero comprueba que la cultura se comporta como se afirma**, para
+  no seguir en verde si .NET cambia ese detalle.
+- **T1-03 · Contraste.** El gris de «Cancelado» en el historial pasa de `#868686` (3.52:1 sobre `#FBFBFB`)
+  a `#6E6E6E` (**4.93:1**). No se eligió el primer valor que cumple (`#747474`, 4.52:1): demasiado justo.
+  El tema oscuro ya cumplía. **Sigue sin test hasta `T1-04`** — ver abajo.
+- **T1-05 · `fs.desc.*`.** Las descripciones de sistema de archivos eran dos diccionarios ES/EN dentro de
+  `MainWindow`; PT/FR/IT veían inglés. Ahora viven en `Localization`, y el test nuevo no se conforma con
+  que existan: **exige que PT/FR/IT difieran del inglés**, que es la forma exacta en que el fallo se
+  camuflaba.
+- **T1-09 · `UpdateService.SafeAssetFileName`.** El nombre de asset de GitHub iba directo a
+  `Path.Combine`, que descarta su primer argumento ante una ruta absoluta. Ahora se sanea con
+  `Path.GetFileName` + validación, con reserva al nombre versionado.
+
+**La lección que dejan T1-01, T1-05 y T1-03 juntas:** las tres eran fallos que el proyecto **ya tenía
+mecanismos para cazar** —tests de cultura, test de completitud de traducciones, test de contraste— y que
+pasaron igualmente, porque cada mecanismo cubría un poco menos de lo que parecía. El patrón a vigilar no es
+«falta un test», es «hay un test que cubre menos de lo que su nombre sugiere».
+
+> **Aviso para el próximo que siga:** `T1-04` es lo siguiente por una razón concreta, no por orden de
+> lista. `T1-03` arregló un color **a mano y sin test**, que es literalmente cómo se coló el fallo. Hasta
+> que `T1-04` mueva esos RGB a `SeverityPalette` y el barrido de contraste los cubra, la regresión puede
+> volver sin romper el build.
+
+### 2026-08-13 — Auditoría técnica transversal (sin cambios de código)
+
+Revisión de las 12 áreas del repositorio completo contra el código real, no contra la documentación.
+Resultado en [`ROADMAP.md`](ROADMAP.md) **Parte 2**: **37 tareas**, ninguna de ellas funcionalidad nueva.
+El archivo se **fusionó de forma aditiva** — la Parte 1 (historial de tiers 1–9) se conserva íntegra.
+
+Lo que hay que saber sin abrir el roadmap:
+
+- **T0 — la app puede morir en mitad de una operación.** Cuatro handlers `async void`
+  (`MnuVerify_Click`, `MnuCheck_Click`, `MnuReinit_Click`, `MnuBenchmark_Click`) usan `try/finally`
+  **sin `catch`**, y ni `CapacityVerifier` ni `CheckDisk` atrapan `IOException`/`Win32Exception`. En
+  Release **no hay red de seguridad**: el único `UnhandledException` del proyecto lo genera WinUI bajo
+  `#if DEBUG`. Un USB que se desconecta durante *Verificar capacidad* —el escenario que la herramienta
+  existe para provocar— termina el proceso sin aviso ni línea de historial.
+- **La barrera de i18n que el test no veía.** `EveryEntry_HasFiveNonEmptyTranslations` solo recorre
+  `L.Map`, así que daba verde mientras **PT/FR/IT veían en inglés** las descripciones de sistema de
+  archivos (`MainWindow.FsDescEs/FsDescEn`) y **en español** los nombres de los presets integrados
+  (`Presets.All`). Un test que solo cubre parte del texto de UI produce confianza, no cobertura.
+- **El mismo patrón, en color.** Los RGB de severidad están duplicados a mano en `HistoryDialog.ColorFor`
+  y `MainWindow.ProtectedColor`, fuera de `SeverityPalette` — que es justo lo que mide
+  `SeverityPaletteTests`. Por ahí se coló un `#868686` sobre `#FBFBFB` a **3.52:1**, por debajo del 4.5:1
+  de WCAG AA. Medido, no estimado.
+- **`IsSystemDrive` usa `char.ToUpper` sensible a la cultura** en una guarda contra formatear el disco de
+  sistema (bug de la I turca). `ParseDriveLetter` y `CheckDisk`, al lado, ya usan `ToUpperInvariant`.
+- **Confirmado sano:** el blindaje anti-inyección de PowerShell (sin una sola ruta explotable), la
+  ausencia de secretos, la disciplina de versión exacta del SDK y el pipeline de `release.ps1`. Las
+  **289/289** unitarias se ejecutaron y pasan (224 ms).
 
 ### 2026-07-20 — Pase de refinamiento UX/UI dirigido por capturas — **v1.15.2**
 

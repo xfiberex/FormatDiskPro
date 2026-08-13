@@ -157,11 +157,22 @@ public sealed partial class HistoryDialog : ContentDialog
     });
 
     // Color semántico por resultado, según el tema efectivo.
+    //
+    // Estos valores tiñen el TÍTULO de cada fila (ver HistoryDialog.xaml), no solo el glifo: son texto
+    // normal de 13 px, así que les aplica el 4.5:1 de WCAG AA, no el 3:1 de los objetos gráficos.
+    //
+    // El gris de "Cancelado" en tema claro era #868686 = 3.52:1 sobre la tarjeta #FBFBFB, por debajo del
+    // mínimo. Ahora es #6E6E6E = 4.93:1 (se eligió con margen: el primer valor que pasa, #747474, se
+    // queda en 4.52:1). El de tema oscuro ya cumplía (#9B9B9B sobre #2B2B2B = 5.09:1) y no se toca.
+    //
+    // PENDIENTE (T1-04): estos RGB están duplicados fuera de Core/SeverityPalette, que es lo único que
+    // recorre SeverityPaletteTests — por eso este fallo pudo entrar sin romper el build. Al moverlos
+    // allí, el barrido de contraste los cubrirá y esta regresión dejará de ser posible.
     private static Color ColorFor(HistoryResult r, bool dark) => r switch
     {
         HistoryResult.Ok                          => dark ? Color.FromArgb(255, 0x6C, 0xCB, 0x5F) : Color.FromArgb(255, 0x0F, 0x7B, 0x0F),
         HistoryResult.Fail or HistoryResult.Error => dark ? Color.FromArgb(255, 0xFF, 0x99, 0xA4) : Color.FromArgb(255, 0xC4, 0x2B, 0x1C),
-        HistoryResult.Cancelled                   => dark ? Color.FromArgb(255, 0x9B, 0x9B, 0x9B) : Color.FromArgb(255, 0x86, 0x86, 0x86),
+        HistoryResult.Cancelled                   => dark ? Color.FromArgb(255, 0x9B, 0x9B, 0x9B) : Color.FromArgb(255, 0x6E, 0x6E, 0x6E),
         _                                         => dark ? Color.FromArgb(255, 0xFF, 0xFF, 0xFF) : Color.FromArgb(255, 0x19, 0x19, 0x19),
     };
 }
