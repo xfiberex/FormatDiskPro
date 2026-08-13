@@ -7,6 +7,7 @@ namespace FormatDiskPro.Tests;
 /// Verifica que los presets predefinidos sean internamente consistentes
 /// (sistemas de archivos válidos, compresión solo en NTFS, clúster positivo).
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public sealed class PresetsTests
 {
     private static readonly HashSet<string> KnownFileSystems =
@@ -59,6 +60,29 @@ public sealed class PresetsTests
         Assert.False(Presets.IsNameAvailable("mi preset", existing));      // distinta caja
         Assert.False(Presets.IsNameAvailable("  Mi   preset ", existing)); // distinta separación
         Assert.True(Presets.IsNameAvailable("Otro", existing));
+    }
+
+    /// <summary>
+    /// La comprobación de duplicados de <c>PresetsDialog.ExistingNames</c> usa el nombre MOSTRADO de los
+    /// integrados, no su nombre en español. Con la app en inglés hay que seguir sin poder crear un preset
+    /// propio llamado «Windows data disk» — pero sí uno llamado «Disco de datos Windows», que en ese
+    /// idioma ya no está ocupado por nadie.
+    /// </summary>
+    [Fact]
+    public void IsNameAvailable_ComparesAgainstTranslatedBuiltInNames()
+    {
+        var prev = L.Current;
+        try
+        {
+            L.Set(AppLang.En);
+            string[] existing = [.. Presets.All.Select(Presets.DisplayName)];
+
+            Assert.Contains("Windows data disk", existing);
+            Assert.False(Presets.IsNameAvailable("Windows data disk", existing));
+            Assert.False(Presets.IsNameAvailable("windows  data disk", existing));  // caja y espacios
+            Assert.True(Presets.IsNameAvailable("Disco de datos Windows", existing));
+        }
+        finally { L.Set(prev); }
     }
 
     [Fact]

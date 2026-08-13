@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **321** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
+| **Pruebas** | **327** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 8/38 · suite de UI completa sobre hardware) |
+| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 10/38 · i18n de presets cerrada con barrido de fuentes) |
 
 ---
 
@@ -42,7 +42,7 @@ src/FormatDiskPro/
 │  ├─ ReinitPlan.cs       Estilo MBR/GPT por tamaño, partición FAT32 pequeña, parseo de la nueva letra
 │  ├─ Benchmark.cs        Tamaño de prueba, velocidad, IOPS, mediana
 │  ├─ SecureWipe.cs*      Patrón y nº de pasadas del borrado seguro (*la parte pura)
-│  ├─ Presets.cs          Presets integrados + validación/renombrado de los del usuario
+│  ├─ Presets.cs          Presets integrados (nombre traducido vía NameKey) + validación de los del usuario
 │  ├─ Throughput.cs       Velocidad y ETA de operaciones largas
 │  ├─ DeviceChange.cs     Interpretación de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ReleaseNotes.cs     Notas de versión (Markdown) → texto plano
@@ -77,7 +77,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    321 pruebas xUnit sobre Core y los helpers de Services
+tests/FormatDiskPro.Tests/    327 pruebas xUnit sobre Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  23 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
@@ -117,11 +117,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **321 / 321** (289 + 32 de la auditoría) |
+| Unitarias | **327 / 327** (289 + 38 de la auditoría) |
 | UI tests | **23/23** con la USB de pruebas y opt-in destructivo (2026-08-13) · 17+6 omitidos sin ella |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.16.0 |
-| Auditoría | 2026-08-13 — **8/38 completadas**, 30 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 4 · T2: 12 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **10/38 completadas**, 28 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 2 · T2: 12 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -315,6 +315,42 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-13 — Auditoría: `T1-06`/`T1-07`, la i18n medida desde el otro lado
+
+Los nombres de los cinco presets integrados estaban **fijos en español** dentro de `Core/Presets.cs` y el
+menú los pintaba tal cual en los cinco idiomas. `FormatPreset` gana un `NameKey` opcional y `Presets`
+un `DisplayName` que lo resuelve con `L.T`; los presets del usuario lo dejan en `null` y se muestran
+literales, que es lo correcto: ese nombre lo escribió una persona. **Detalle que importa:** la detección
+de duplicados de `PresetsDialog` compara ahora contra el nombre **mostrado**, así que con la app en
+inglés sigue sin poder crearse un preset propio llamado «Windows data disk». `NameKey` es opcional, de
+modo que los ajustes guardados por versiones anteriores se leen sin migración.
+
+Lo relevante no es la traducción, es **por qué la suite no la echaba de menos**. Este es el mismo patrón
+que ya apareció en `T1-03`, `T1-04` y `T1-05`, y conviene tenerlo escrito:
+
+> `EveryEntry_HasFiveNonEmptyTranslations` comprobaba que **lo registrado** estuviera traducido, no que
+> **lo mostrado** estuviera registrado. No faltaba un test: había un test que cubría menos de lo que su
+> nombre sugiere.
+
+`tests/FormatDiskPro.Tests/LocalizationCoverageTests.cs` ataca el lado que faltaba: recorre el **código
+fuente** de `src/FormatDiskPro/` buscando `Dictionary<string, string>` fuera de `Localization/` — la forma
+exacta que tomó el fallo de `T1-05` (`FsDescEs`/`FsDescEn` dentro de `MainWindow`). Incluye dos guardas
+contra el propio barrido: aborta si encuentra menos de 15 fuentes, y comprueba que el patrón sigue
+reconociendo el diccionario real de `Localization.cs` — *un barrido que ha dejado de detectar nada no se
+distingue de uno limpio*.
+
+Verificado por reversión, no por confianza: quitar la clave a un preset y reintroducir un
+`Dictionary<string,string>` en `MainWindow` hace fallar cuatro pruebas, cada una nombrando al culpable
+con fichero y línea.
+
+También se añadió `LanguageCollection`: `L.Current` es estado estático global y ya son tres clases las que
+lo mueven; xUnit paraleliza entre colecciones, así que sin serializarlas entre sí habría fallos
+intermitentes. Solo se frenan esas tres.
+
+Build 0/0, **327/327** (321 → +6). Auditoría **10/38**; queda `T1-08` para cerrar el Tier 1.
 
 ---
 

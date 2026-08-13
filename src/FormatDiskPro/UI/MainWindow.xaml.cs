@@ -693,7 +693,7 @@ public sealed partial class MainWindow : Window
 
     private MenuFlyoutItem MakePresetItem(FormatPreset preset)
     {
-        var item = new MenuFlyoutItem { Text = preset.Name, Tag = preset };
+        var item = new MenuFlyoutItem { Text = Presets.DisplayName(preset), Tag = preset };
         item.Click += MnuPreset_Click;
         return item;
     }
@@ -726,7 +726,7 @@ public sealed partial class MainWindow : Window
         int idx = FileSystemPicker.Items.IndexOf(preset.FileSystem);
         if (idx < 0)
         {
-            await ShowInfoAsync(L.T("msg.warning"), L.T("preset.na", preset.Name));
+            await ShowInfoAsync(L.T("msg.warning"), L.T("preset.na", Presets.DisplayName(preset)));
             return;
         }
 
@@ -739,7 +739,7 @@ public sealed partial class MainWindow : Window
         SecureWipeCheck.IsChecked  = preset.SecureWipe;
 
         StatusText.ClearValue(TextBlock.ForegroundProperty);
-        StatusText.Text = L.T("preset.body", preset.Name);
+        StatusText.Text = L.T("preset.body", Presets.DisplayName(preset));
     }
 
     // ── Format ────────────────────────────────────────────────────

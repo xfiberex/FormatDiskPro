@@ -6,6 +6,7 @@ namespace FormatDiskPro.Tests;
 /// <summary>
 /// Verifica el comportamiento defensivo del proveedor de localización <see cref="L"/>.
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public sealed class LocalizationTests
 {
     [Fact]

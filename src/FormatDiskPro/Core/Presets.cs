@@ -3,24 +3,42 @@ namespace FormatDiskPro;
 /// <summary>
 /// Configuraciones de formato predefinidas aplicables con un clic.
 /// </summary>
+/// <param name="NameKey">
+/// Clave de <see cref="L"/> con la que se traduce el nombre en los presets integrados. Los presets del
+/// usuario son <c>null</c> aquí: su nombre lo escribe la persona y no se traduce. Se serializa junto al
+/// resto en <see cref="AppSettings.UserPresets"/>; al ser opcional, los ajustes guardados por versiones
+/// anteriores se siguen leyendo sin migración.
+/// </param>
 public sealed record FormatPreset(
     string Name,
     string FileSystem,
     long AllocationUnit,
     bool QuickFormat,
     bool Compress,
-    bool SecureWipe);
+    bool SecureWipe,
+    string? NameKey = null);
 
 public static class Presets
 {
+    // El `Name` de un preset integrado es su nombre en español y actúa de reserva si la clave faltara;
+    // lo que ve la persona usuaria sale siempre de `DisplayName`.
     public static readonly IReadOnlyList<FormatPreset> All =
     [
-        new("USB universal (Windows / macOS / Linux)", "exFAT", 131072, QuickFormat: true,  Compress: false, SecureWipe: false),
-        new("Consola / TV / Cámara",                   "FAT32", 32768,  QuickFormat: true,  Compress: false, SecureWipe: false),
-        new("Disco de datos Windows",                  "NTFS",  4096,   QuickFormat: true,  Compress: false, SecureWipe: false),
-        new("Almacenamiento comprimido (NTFS)",        "NTFS",  4096,   QuickFormat: true,  Compress: true,  SecureWipe: false),
-        new("Borrado seguro + NTFS",                   "NTFS",  4096,   QuickFormat: false, Compress: false, SecureWipe: true),
+        new("USB universal (Windows / macOS / Linux)", "exFAT", 131072, QuickFormat: true,  Compress: false, SecureWipe: false, NameKey: "preset.builtin.usb"),
+        new("Consola / TV / Cámara",                   "FAT32", 32768,  QuickFormat: true,  Compress: false, SecureWipe: false, NameKey: "preset.builtin.console"),
+        new("Disco de datos Windows",                  "NTFS",  4096,   QuickFormat: true,  Compress: false, SecureWipe: false, NameKey: "preset.builtin.windowsData"),
+        new("Almacenamiento comprimido (NTFS)",        "NTFS",  4096,   QuickFormat: true,  Compress: true,  SecureWipe: false, NameKey: "preset.builtin.compressed"),
+        new("Borrado seguro + NTFS",                   "NTFS",  4096,   QuickFormat: false, Compress: false, SecureWipe: true,  NameKey: "preset.builtin.secureWipe"),
     ];
+
+    /// <summary>
+    /// Nombre a mostrar de un preset: el traducido al idioma activo si es integrado, o el que escribió la
+    /// persona usuaria si es propio. **Es también el nombre frente al que se comprueban los duplicados**
+    /// (<see cref="IsNameAvailable"/>), para que en inglés no se pueda crear un preset propio llamado
+    /// «Windows data disk» mientras el integrado se llama así en pantalla.
+    /// </summary>
+    public static string DisplayName(FormatPreset preset) =>
+        string.IsNullOrEmpty(preset.NameKey) ? preset.Name : L.T(preset.NameKey);
 
     /// <summary>Longitud máxima admitida para el nombre de un preset propio.</summary>
     public const int MaxNameLength = 40;

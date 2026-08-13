@@ -326,7 +326,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T1-06] Localizar los nombres de los presets integrados**
+- [x] **[T1-06] Localizar los nombres de los presets integrados**
   - **Área:** i18n
   - **Ubicación:** `src/FormatDiskPro/Core/Presets.cs:16-23`
   - **Qué hacer:** los cinco presets integrados llevan el nombre **en español fijo** («USB universal
@@ -340,7 +340,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** medio
   - **Depende de:** ninguna
 
-- [ ] **[T1-07] Test que impida que vuelva a haber texto de UI fuera de `Localization`**
+- [x] **[T1-07] Test que impida que vuelva a haber texto de UI fuera de `Localization`**
   - **Área:** QA / i18n
   - **Ubicación:** `tests/FormatDiskPro.Tests/LocalizationTests.cs:24-32`
   - **Qué hacer:** `EveryEntry_HasFiveNonEmptyTranslations` solo recorre `L.Map`, así que daba **luz verde
@@ -659,11 +659,13 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T1-09** | `UpdateService.SafeAssetFileName` sanea el nombre de asset antes de `Path.Combine`. +12 pruebas. |
 | 2026-08-13 | **T1-04** | Inventario único `SeverityPalette.All()` + barrido de contraste sobre él; los 4 consumidores delegan. +7 pruebas. |
 | 2026-08-13 | **T3-05** | Cerrada con T1-04: `AppTheme.xaml` y `CONTEXT.md` §4 ya enumeran las dos únicas excepciones reales de color. |
+| 2026-08-13 | **T1-06** | `FormatPreset.NameKey` + `Presets.DisplayName`: los 5 integrados se traducen a EN/PT/FR/IT. Los duplicados se comparan contra el nombre mostrado. +1 prueba. |
+| 2026-08-13 | **T1-07** | `LocalizationCoverageTests`: barrido del código fuente contra tablas de cadenas fuera de `Localization/`, más el anclaje de los presets a claves reales. +5 pruebas. |
 
-**Estado:** 8/38 completadas · **30 abiertas** (T0: 0 · T1: 4 · T2: 12 · T3: 9 · T4: 5).
+**Estado:** 10/38 completadas · **28 abiertas** (T0: 0 · T1: 2 · T2: 12 · T3: 9 · T4: 5).
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
 (23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo.
-Build Release **0 advertencias / 0 errores**; suite **321/321** (eran 289; +32 pruebas nuevas).
+Build Release **0 advertencias / 0 errores**; suite **327/327** (eran 289; +38 pruebas nuevas).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que
@@ -672,9 +674,19 @@ Build Release **0 advertencias / 0 errores**; suite **321/321** (eran 289; +32 p
 > barra de título, excluidos a propósito (cromo de ventana, superpuesto sobre Mica/Acrylic: no hay fondo
 > fijo contra el que medir).
 >
-> **Siguiente paso recomendado: `T1-07`.** Es el mismo movimiento aplicado a la i18n — hoy
-> `EveryEntry_HasFiveNonEmptyTranslations` sigue recorriendo solo `L.Map`, así que un texto de UI nuevo
-> fuera de `Localization` volvería a pasar desapercibido, que es como entraron `T1-05` y `T1-06`.
+> **`T1-06`/`T1-07` lo cierran también en la i18n.** El problema no era que faltara un test, sino que
+> `EveryEntry_HasFiveNonEmptyTranslations` cubría menos de lo que su nombre sugiere: comprobaba que **lo
+> registrado** estuviera traducido, no que **lo mostrado** estuviera registrado. `LocalizationCoverageTests`
+> ataca el otro lado — recorre el código fuente buscando tablas de cadenas fuera de `Localization/`, que es
+> la forma exacta que tomó el fallo de `T1-05`. Verificado por reversión: quitarle la clave a un preset y
+> reintroducir un `Dictionary<string,string>` en `MainWindow` hace fallar cuatro pruebas, cada una nombrando
+> al culpable con fichero y línea. Incluye un test que comprueba que el propio patrón sigue reconociendo el
+> diccionario real de `Localization.cs`: un barrido que ha dejado de detectar nada no se distingue de uno
+> limpio.
+>
+> **Siguiente paso recomendado: `T1-08`** (revocación al validar Authenticode) para cerrar el Tier 1, o
+> saltar a `T2-05`, que es lo único que puede confirmar que los `catch` de `T0-02` funcionan de verdad:
+> hoy siguen sin haberse disparado nunca en una ejecución real.
 
 <!-- Al completar una tarea: marcar [x] arriba y añadir aquí una fila con la fecha absoluta y el commit. -->
 

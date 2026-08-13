@@ -46,8 +46,10 @@ public sealed partial class PresetsDialog : ContentDialog
         UpdateEmptyState();
     }
 
+    // Los integrados entran por su nombre TRADUCIDO al idioma activo: es el que se ve en el menú, y por
+    // tanto el que no debe poder duplicarse desde aquí (ver `Presets.DisplayName`).
     private IEnumerable<string> ExistingNames() =>
-        Presets.All.Select(p => p.Name).Concat(_userPresets.Select(p => p.Name));
+        Presets.All.Select(Presets.DisplayName).Concat(_userPresets.Select(p => p.Name));
 
     /// <summary>Fija el nombre accesible y el tooltip (localizados) de cada botón de icono de fila.</summary>
     private void IconBtn_Loaded(object sender, RoutedEventArgs e)

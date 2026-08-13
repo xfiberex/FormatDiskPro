@@ -312,6 +312,15 @@ public static class L
         ["legal.unavailable"]= ["Texto no disponible.", "Text not available.", "Texto indisponível.", "Texte indisponible.", "Testo non disponibile."],
         ["preset.body"]      = ["Configuración «{0}» aplicada.", "Preset \"{0}\" applied.", "Predefinição «{0}» aplicada.", "Préréglage « {0} » appliqué.", "Preset «{0}» applicato."],
         ["preset.na"]        = ["El preset «{0}» no es compatible con esta unidad.", "Preset \"{0}\" is not compatible with this drive.", "A predefinição «{0}» não é compatível com esta unidade.", "Le préréglage « {0} » n'est pas compatible avec ce lecteur.", "Il preset «{0}» non è compatibile con questa unità."],
+        // Nombres de los cinco presets integrados (`Presets.All`). Vivían fijos en español dentro de
+        // Core y el menú los pintaba tal cual en los 5 idiomas; el test de completitud no los alcanzaba
+        // porque solo recorre este Map. Ver `Presets.DisplayName`.
+        ["preset.builtin.usb"]        = ["USB universal (Windows / macOS / Linux)", "Universal USB (Windows / macOS / Linux)", "USB universal (Windows / macOS / Linux)", "Clé USB universelle (Windows / macOS / Linux)", "USB universale (Windows / macOS / Linux)"],
+        ["preset.builtin.console"]    = ["Consola / TV / Cámara", "Console / TV / Camera", "Console / TV / Câmera", "Console / TV / Appareil photo", "Console / TV / Fotocamera"],
+        ["preset.builtin.windowsData"]= ["Disco de datos Windows", "Windows data disk", "Disco de dados Windows", "Disque de données Windows", "Disco dati Windows"],
+        ["preset.builtin.compressed"] = ["Almacenamiento comprimido (NTFS)", "Compressed storage (NTFS)", "Armazenamento comprimido (NTFS)", "Stockage compressé (NTFS)", "Archiviazione compressa (NTFS)"],
+        ["preset.builtin.secureWipe"] = ["Borrado seguro + NTFS", "Secure erase + NTFS", "Apagamento seguro + NTFS", "Effacement sécurisé + NTFS", "Cancellazione sicura + NTFS"],
+
         ["preset.manage"]    = ["Gestionar presets", "Manage presets", "Gerenciar predefinições", "Gérer les préréglages", "Gestisci preset"],
         ["preset.saveHeader"]= ["Guardar configuración actual", "Save current settings", "Salvar configuração atual", "Enregistrer les paramètres actuels", "Salva impostazioni correnti"],
         ["preset.currentIs"] = ["Actual: {0}", "Current: {0}", "Atual: {0}", "Actuel : {0}", "Attuale: {0}"],
