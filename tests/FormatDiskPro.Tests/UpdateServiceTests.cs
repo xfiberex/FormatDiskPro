@@ -116,6 +116,22 @@ public sealed class UpdateServiceTests
         }
     }
 
+    /// <summary>
+    /// Tripwire. <c>VerifyAuthenticodeSignature</c> responde por la VALIDEZ de una firma, no por su
+    /// AUTORÍA: le vale cualquier certificado en el que Windows confíe. Mientras el proyecto no firme
+    /// (#13), dejar que una firma válida exima del SHA-256 convierte cualquier ejecutable firmado por
+    /// cualquier CA en un modo de saltarse la única verificación que hay — y al otro lado está
+    /// <c>LaunchInstaller</c> ejecutando como administrador.
+    ///
+    /// Si esta prueba falla es porque alguien puso el flag en <c>true</c>. Eso solo es correcto si además
+    /// se fija el publicador esperado (comparar el sujeto del certificado con el del proyecto). Con lo
+    /// primero sin lo segundo, se reabre el agujero.
+    /// </summary>
+    [Fact]
+    public void SignsItsInstallers_StaysFalse_WhileTheProjectHasNoCertificate()
+        => Assert.False(UpdateService.SignsItsInstallers,
+            "Si el proyecto ya firma, fija también el publicador esperado antes de dar la firma por buena.");
+
     // Ruta propia por prueba: la de producción es fija y compartida, y escribir ahí podría borrar un
     // instalador real que el usuario tuviera a medio descargar.
     private static string ScratchInstallerPath() =>
@@ -180,6 +196,68 @@ public sealed class UpdateServiceTests
 
             // Un instalador que no se pudo verificar no puede quedarse en disco esperando a que alguien
             // lo ejecute como administrador.
+            Assert.False(File.Exists(destination));
+        }
+        finally
+        {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
+    /// <summary>
+    /// Un binario con firma Authenticode <b>embebida</b> y válida, garantizado presente porque estas
+    /// pruebas corren sobre él: <c>dotnet.exe</c>. (Los binarios de Windows como <c>explorer.exe</c> no
+    /// valen: su firma es de <i>catálogo</i>, y <c>WinVerifyTrust</c> con <c>WTD_CHOICE_FILE</c> no la ve.)
+    /// </summary>
+    private static string SignedBinaryPath()
+    {
+        // .../dotnet/shared/Microsoft.NETCore.App/10.0.x/  →  tres niveles arriba está la raíz de dotnet.
+        var dir = new DirectoryInfo(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory());
+        string root = dir.Parent?.Parent?.Parent?.FullName
+            ?? throw new InvalidOperationException($"Ruta de runtime inesperada: {dir.FullName}");
+
+        string exe = Path.Combine(root, "dotnet.exe");
+        Assert.True(File.Exists(exe), $"No se encontró {exe}, pero estas pruebas se están ejecutando con él.");
+        return exe;
+    }
+
+    /// <summary>
+    /// La comprobación de revocación (<c>WTD_REVOKE_WHOLECHAIN</c>) NO debe romper una firma legítima.
+    /// Es el riesgo real del cambio: pedir revocación sin <c>WTD_CACHE_ONLY_URL_RETRIEVAL</c> haría que la
+    /// validación dependiera de poder contactar con la CA, y una máquina sin red rechazaría firmas buenas.
+    /// Esta prueba corre sobre un binario firmado de verdad, así que ejercita la ruta completa de
+    /// <c>WinVerifyTrust</c>, no una simulación.
+    /// </summary>
+    [Fact]
+    public void VerifyAuthenticodeSignature_GenuinelySignedFile_IsAccepted()
+        => Assert.True(UpdateService.VerifyAuthenticodeSignature(SignedBinaryPath()),
+            "Una firma Authenticode válida se está rechazando: revisa los flags de revocación.");
+
+    /// <summary>
+    /// El núcleo de la decisión: un instalador <b>firmado y válido</b> pero sin hash publicado se rechaza
+    /// igual. Hasta la v1.16.0 la firma era un atajo que devolvía sin mirar el hash — y como el proyecto no
+    /// firma (#13), ese atajo solo podía activarse sobre un binario que no produjimos nosotros.
+    ///
+    /// Nótese que el contenido servido es un ejecutable de Microsoft legítimamente firmado: exactamente el
+    /// material con el que se construiría el ataque, y aun así no pasa.
+    /// </summary>
+    [Fact]
+    public async Task DownloadAsync_SignedButNoChecksum_IsStillRejected()
+    {
+        byte[] signed = await File.ReadAllBytesAsync(SignedBinaryPath());
+
+        using var server = new LocalHttpServer(new Dictionary<string, byte[]>
+        {
+            ["/setup.exe"] = signed
+        });
+
+        string destination = ScratchInstallerPath();
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                UpdateService.DownloadAsync(
+                    Release(server, withChecksum: false), null, CancellationToken.None, destination));
+
             Assert.False(File.Exists(destination));
         }
         finally

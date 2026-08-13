@@ -352,7 +352,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** medio
   - **Depende de:** T1-05, T1-06
 
-- [ ] **[T1-08] Comprobar revocación al validar la firma Authenticode**
+- [x] **[T1-08] Comprobar revocación al validar la firma Authenticode**
   - **Área:** Seguridad
   - **Ubicación:** `src/FormatDiskPro/Services/UpdateService.cs:279`
   - **Qué hacer:** `fdwRevocationChecks = WTD_REVOKE_NONE` acepta como válida una firma cuyo certificado
@@ -363,8 +363,20 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     camino del SHA-256. Sigue funcionando sin conexión.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
-  - **Nota:** hoy el proyecto **no firma** (decisión `#13`), así que esta rama solo se ejercita si algún día
-    se firma. Es endurecimiento preventivo, no un agujero explotable hoy.
+  - **Resuelta el 2026-08-13, y NO como se planteó.** Al reafirmarse la decisión de no firmar (`#13`), la
+    nota de abajo resultó estar equivocada en lo importante: `VerifyAuthenticodeSignature` comprueba la
+    **validez** de una firma, no su **autoría**, y `VerifyInstallerAsync` devolvía **sin mirar el hash** si
+    la firma pasaba. Como el proyecto no firma, esa rama solo podía activarse sobre un binario **que no
+    produjimos nosotros**: era un modo de saltarse el SHA-256 con cualquier ejecutable firmado por
+    cualquier CA de confianza, con `LaunchInstaller` ejecutando **como administrador** al otro lado. El
+    hash pasa a ser obligatorio y el atajo queda tras `UpdateService.SignsItsInstallers` (`false`).
+    Se aplicó **también** el contenido original (`WTD_REVOKE_WHOLECHAIN` + `WTD_CACHE_ONLY_URL_RETRIEVAL`),
+    que sigue siendo lo correcto para el día que haya certificado.
+  - **Al firmar algún día:** poner el flag en `true` **y** fijar el publicador esperado. Lo primero sin lo
+    segundo reabre el agujero; hay un test tripwire que falla si se hace a medias.
+  - **Nota original (conservada porque explica cómo se coló):** *hoy el proyecto no firma (decisión `#13`),
+    así que esta rama solo se ejercita si algún día se firma. Es endurecimiento preventivo, no un agujero
+    explotable hoy.* — La primera frase era cierta; la conclusión, no.
 
 - [x] **[T1-09] No confiar en el nombre de asset de GitHub para construir la ruta de descarga**
   - **Área:** Seguridad
@@ -661,11 +673,13 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T3-05** | Cerrada con T1-04: `AppTheme.xaml` y `CONTEXT.md` §4 ya enumeran las dos únicas excepciones reales de color. |
 | 2026-08-13 | **T1-06** | `FormatPreset.NameKey` + `Presets.DisplayName`: los 5 integrados se traducen a EN/PT/FR/IT. Los duplicados se comparan contra el nombre mostrado. +1 prueba. |
 | 2026-08-13 | **T1-07** | `LocalizationCoverageTests`: barrido del código fuente contra tablas de cadenas fuera de `Localization/`, más el anclaje de los presets a claves reales. +5 pruebas. |
+| 2026-08-13 | **T1-08** | La firma Authenticode deja de eximir del SHA-256 mientras el proyecto no firme (era un bypass real, no endurecimiento preventivo). +`WTD_REVOKE_WHOLECHAIN`. +3 pruebas. |
 
-**Estado:** 10/38 completadas · **28 abiertas** (T0: 0 · T1: 2 · T2: 12 · T3: 9 · T4: 5).
+**Estado:** 11/38 completadas · **27 abiertas** (T0: 0 · T1: **1** · T2: 12 · T3: 9 · T4: 5).
+Del Tier 1 solo queda `T1-02`, que necesita un Windows no ES/EN para verificarse.
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
 (23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo.
-Build Release **0 advertencias / 0 errores**; suite **327/327** (eran 289; +38 pruebas nuevas).
+Build Release **0 advertencias / 0 errores**; suite **330/330** (eran 289; +41 pruebas nuevas).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que
@@ -684,9 +698,15 @@ Build Release **0 advertencias / 0 errores**; suite **327/327** (eran 289; +38 p
 > diccionario real de `Localization.cs`: un barrido que ha dejado de detectar nada no se distingue de uno
 > limpio.
 >
-> **Siguiente paso recomendado: `T1-08`** (revocación al validar Authenticode) para cerrar el Tier 1, o
-> saltar a `T2-05`, que es lo único que puede confirmar que los `catch` de `T0-02` funcionan de verdad:
-> hoy siguen sin haberse disparado nunca en una ejecución real.
+> **`T1-08` es el aviso de que una nota de auditoría también puede estar mal.** La tarea se archivó como
+> «endurecimiento preventivo, no explotable hoy» porque el proyecto no firma. Al reafirmarse esa decisión y
+> volver a mirar el código, resultó ser justo al revés: **precisamente porque no firmamos**, una firma válida
+> solo puede aparecer en un binario ajeno, y ese atajo saltaba la única verificación que existe antes de
+> ejecutar como administrador. Verificado con `dotnet.exe` —firmado de verdad, no simulado—: con el atajo
+> activo, un ejecutable de Microsoft se acepta como nuestro instalador.
+>
+> **Siguiente paso recomendado: `T2-05`.** Es lo único que puede confirmar que los `catch` de `T0-02`
+> funcionan de verdad: hoy siguen sin haberse disparado nunca en una ejecución real.
 
 <!-- Al completar una tarea: marcar [x] arriba y añadir aquí una fila con la fecha absoluta y el commit. -->
 

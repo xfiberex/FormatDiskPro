@@ -238,29 +238,36 @@ public static class UpdateService
     /// Comprueba que el instalador recién descargado es el que publicó el proyecto, <b>antes</b> de
     /// ejecutarlo con permisos de administrador (que es lo que hace <see cref="LaunchInstaller"/>).
     ///
-    /// Se aceptan dos pruebas, en este orden:
+    /// La prueba exigida es el <b>SHA-256 publicado como asset del release</b> (<c>*.exe.sha256</c>: lo
+    /// genera <c>installer/build-installer.ps1</c> y lo sube <c>release.ps1</c>). Sin él no se ejecuta
+    /// nada: el instalador se borra. Esto rechaza también los releases anteriores a la v1.15.0 (no
+    /// publicaban el hash), lo cual es correcto: solo importa hacia adelante, porque nunca se ofrece
+    /// actualizar a una versión más vieja que la instalada.
     ///
-    /// 1. <b>Firma Authenticode válida</b>: la más fuerte, porque la avala una CA en la que confía Windows.
-    ///    Es la vía preferente y la única que haría falta el día que el proyecto tenga certificado.
-    /// 2. <b>SHA-256 publicado como asset del release</b> (<c>*.exe.sha256</c>: lo genera
-    ///    <c>installer/build-installer.ps1</c> y lo sube <c>release.ps1</c>). Hoy los instaladores se
-    ///    publican SIN firmar —firmar está descartado (#13)—, así que sin este segundo camino la
-    ///    auto-actualización estaría muerta: rechazaría siempre su propio instalador.
+    /// <para><b>Por qué la firma Authenticode NO sirve hoy de atajo.</b> Hasta la v1.16.0 una firma válida
+    /// hacía devolver sin mirar el hash. Pero <see cref="VerifyAuthenticodeSignature"/> responde a «¿lo
+    /// firmó <i>alguien</i> en quien Windows confía?», no a «¿lo firmamos <i>nosotros</i>?» — no hay
+    /// publicador que fijar, porque firmar está descartado (#13) y esa decisión se ha reafirmado. Mientras
+    /// el proyecto no firme, esa rama <b>solo puede activarse sobre un binario que nosotros no
+    /// produjimos</b>: convertía cualquier ejecutable firmado por cualquier CA de confianza en un modo de
+    /// saltarse el hash, y lo que hay al otro lado es <see cref="LaunchInstaller"/> ejecutando con
+    /// permisos de administrador. El atajo queda bajo <see cref="SignsItsInstallers"/>, en <c>false</c>:
+    /// el día que haya certificado hay que poner el flag <b>y</b> fijar el publicador esperado, no solo lo
+    /// primero.</para>
     ///
     /// Alcance honesto del hash: el instalador y su <c>.sha256</c> salen del mismo release, así que esto
     /// detecta corrupción y manipulación <b>en tránsito</b>, pero NO protege frente a un compromiso de la
     /// cuenta de GitHub (quien pudiera sustituir el .exe podría sustituir también el hash). Es el
     /// compromiso habitual de un proyecto sin certificado, y es exactamente la garantía que sustituye a
     /// la firma.
-    ///
-    /// Sin firma válida y sin <c>.sha256</c> no se ejecuta nada: el instalador se borra. Esto rechaza
-    /// también los releases anteriores a la v1.15.0 (no publicaban el hash), lo cual es correcto: solo
-    /// importa hacia adelante, porque nunca se ofrece actualizar a una versión más vieja que la instalada.
     /// </summary>
     private static async Task VerifyInstallerAsync(string filePath, string? checksumUrl, CancellationToken ct)
     {
-        if (VerifyAuthenticodeSignature(filePath))
-            return;
+        if (SignsItsInstallers)
+        {
+            if (VerifyAuthenticodeSignature(filePath))
+                return;
+        }
 
         if (string.IsNullOrWhiteSpace(checksumUrl))
             throw new InvalidOperationException(L.T("update.unverifiable"));
@@ -284,8 +291,22 @@ public static class UpdateService
     }
 
     /// <summary>
-    /// ¿El archivo lleva una firma Authenticode válida y de confianza para Windows?
-    /// Devuelve false si no está firmado, si la firma está caducada o si su cadena no es de confianza.
+    /// ¿Firma el proyecto sus propios instaladores? <b>No</b> (decisión #13, reafirmada el 2026-08-13).
+    /// Mientras sea <c>false</c>, una firma Authenticode válida no exime de comprobar el SHA-256 — ver el
+    /// porqué en <see cref="VerifyInstallerAsync"/>. Ponerlo en <c>true</c> sin fijar además el publicador
+    /// esperado reabriría exactamente el agujero que este flag cierra.
+    /// </summary>
+    /// <remarks>
+    /// <c>static readonly</c> y no <c>const</c> a propósito: como constante, el compilador pliega el
+    /// <c>if</c> y marca la rama con CS0162 (código inaccesible), y este proyecto compila a 0 advertencias.
+    /// </remarks>
+    internal static readonly bool SignsItsInstallers = false;
+
+    /// <summary>
+    /// ¿El archivo lleva una firma Authenticode válida y de confianza para Windows? Ojo: responde por la
+    /// <b>validez</b> de la firma, no por su <b>autoría</b> — cualquier certificado de confianza vale.
+    /// Devuelve false si no está firmado, si la firma está caducada, si su cadena no es de confianza o si
+    /// el certificado ha sido <b>revocado</b>.
     /// </summary>
     internal static bool VerifyAuthenticodeSignature(string filePath)
     {
@@ -308,13 +329,16 @@ public static class UpdateService
                 pPolicyCallbackData = IntPtr.Zero,
                 pSIPClientData = IntPtr.Zero,
                 dwUIChoice = NativeMethods.WTD_UI_NONE,
-                fdwRevocationChecks = NativeMethods.WTD_REVOKE_NONE,
+                // WHOLECHAIN: una firma cuyo certificado haya sido revocado deja de contar como válida.
+                // CACHE_ONLY_URL_RETRIEVAL (en dwProvFlags) evita que esto dependa de la red: usa las CRL
+                // ya cacheadas por Windows en vez de bloquearse contactando con la CA.
+                fdwRevocationChecks = NativeMethods.WTD_REVOKE_WHOLECHAIN,
                 dwUnionChoice = NativeMethods.WTD_CHOICE_FILE,
                 pUnion = fileInfoPtr,
                 dwStateAction = NativeMethods.WTD_STATEACTION_IGNORE,
                 hWVTStateData = IntPtr.Zero,
                 pwszURLReference = null,
-                dwProvFlags = NativeMethods.WTD_SAFER_FLAG,
+                dwProvFlags = NativeMethods.WTD_SAFER_FLAG | NativeMethods.WTD_CACHE_ONLY_URL_RETRIEVAL,
                 dwUIContext = 0
             };
 
@@ -339,10 +363,11 @@ public static class UpdateService
     private static class NativeMethods
     {
         internal const uint WTD_UI_NONE = 2;
-        internal const uint WTD_REVOKE_NONE = 0;
+        internal const uint WTD_REVOKE_WHOLECHAIN = 1;
         internal const uint WTD_CHOICE_FILE = 1;
         internal const uint WTD_STATEACTION_IGNORE = 0;
         internal const uint WTD_SAFER_FLAG = 0x100;
+        internal const uint WTD_CACHE_ONLY_URL_RETRIEVAL = 0x1000;
 
         [DllImport("wintrust.dll", ExactSpelling = true, SetLastError = false, CharSet = CharSet.Unicode)]
         internal static extern uint WinVerifyTrust(IntPtr hwnd, ref Guid pgActionID, IntPtr pWVTData);

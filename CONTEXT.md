@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **327** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
+| **Pruebas** | **330** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 10/38 · i18n de presets cerrada con barrido de fuentes) |
+| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 11/38 · Tier 1 cerrado salvo `T1-02`) |
 
 ---
 
@@ -77,7 +77,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    327 pruebas xUnit sobre Core y los helpers de Services
+tests/FormatDiskPro.Tests/    330 pruebas xUnit sobre Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  23 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
@@ -117,11 +117,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **327 / 327** (289 + 38 de la auditoría) |
+| Unitarias | **330 / 330** (289 + 41 de la auditoría) |
 | UI tests | **23/23** con la USB de pruebas y opt-in destructivo (2026-08-13) · 17+6 omitidos sin ella |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.16.0 |
-| Auditoría | 2026-08-13 — **10/38 completadas**, 28 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 2 · T2: 12 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **11/38 completadas**, 27 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **1** · T2: 12 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -164,8 +164,16 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   `char.IsLetter(letter)` antes de interpolar. Etiqueta escapada (`'`→`''`) en `Format-Volume`; para
   `format.com`, `ArgumentList` (escape por argumento).
 - **Verificación del instalador (desde v1.15.0, #38) — NO ROMPER.** El instalador se ejecuta **elevado**, así
-  que antes se comprueba que es el del proyecto: firma Authenticode válida → OK; si no, **SHA-256** contra el
-  asset `*.exe.sha256`. Sin ninguna de las dos, **se borra y no se ejecuta**. Consecuencias operativas:
+  que antes se comprueba que es el del proyecto mediante el **SHA-256** contra el asset `*.exe.sha256`.
+  Sin él, **se borra y no se ejecuta**. Consecuencias operativas:
+  - **La firma Authenticode NO es un atajo mientras el proyecto no firme (`T1-08`, 2026-08-13).** Hasta la
+    v1.16.0, una firma válida devolvía sin mirar el hash. Pero `WinVerifyTrust` responde a «¿lo firmó
+    *alguien* de confianza?», no a «¿lo firmamos *nosotros*?», y no hay publicador que fijar porque no se
+    firma (#13). Es decir: esa rama **solo podía activarse sobre un binario que no produjimos**, y convertía
+    cualquier ejecutable firmado por cualquier CA en un modo de saltarse el hash — con `LaunchInstaller`
+    ejecutando como administrador al otro lado. Queda tras `UpdateService.SignsItsInstallers` (`false`).
+    **El día que haya certificado hay que poner el flag *y* fijar el publicador esperado**: lo primero sin
+    lo segundo reabre el agujero, y hay un test tripwire que falla si se hace a medias.
   - **Todo release debe subir su `.sha256`** o la auto-actualización lo rechazará. `build-installer.ps1` lo
     genera (**después** de firmar, si se firma: firmar cambia el binario) y `release.ps1` lo sube como segundo
     asset y **aborta si falta**.
@@ -315,6 +323,38 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-13 — `T1-08`: la firma Authenticode dejó de ser un atajo
+
+Se reafirmó **no firmar** (#13). Esa decisión, que parecía dejar `T1-08` en endurecimiento preventivo, es
+justo lo que convierte el hallazgo en real:
+
+> `VerifyAuthenticodeSignature` responde a «¿lo firmó **alguien** en quien Windows confía?», no a «¿lo
+> firmamos **nosotros**?». Y `VerifyInstallerAsync` devolvía sin mirar el hash si la firma pasaba. Como el
+> proyecto **no firma**, esa rama solo podía activarse sobre un binario que no produjimos: era un modo de
+> saltarse el SHA-256 usando cualquier ejecutable firmado por cualquier CA de confianza — y al otro lado
+> está `LaunchInstaller` ejecutando **como administrador**.
+
+El SHA-256 pasa a ser obligatorio. El atajo queda tras `UpdateService.SignsItsInstallers` (`static readonly
+bool`, no `const`: como constante el compilador pliega el `if` y salta CS0162, y aquí se compila a 0
+advertencias). Se aplicó además el contenido original de la tarea: `WTD_REVOKE_WHOLECHAIN` +
+`WTD_CACHE_ONLY_URL_RETRIEVAL`, para que un certificado revocado deje de valer **sin** que la validación
+pase a depender de tener red.
+
+**Verificado con un binario firmado de verdad**, no con una simulación: `dotnet.exe` tiene firma Authenticode
+*embebida* y válida, y está garantizado presente porque las pruebas corren sobre él. (Los binarios de Windows
+como `explorer.exe` no sirven: su firma es de *catálogo* y `WinVerifyTrust` con `WTD_CHOICE_FILE` no la ve.)
+Dos pruebas nuevas: que una firma legítima siga aceptándose —el riesgo real de tocar los flags de
+revocación— y que un instalador firmado sin hash publicado se rechace igual. Con el flag en `true` esta
+última falla: se aceptaba un ejecutable de Microsoft como si fuera nuestro instalador. Ese es el agujero.
+
+También se corrigió el mensaje `update.unverifiable` en los cinco idiomas: explicaba una regla («no está
+firmado y…») que ya no existe.
+
+Build 0/0, **330/330** (327 → +3). Auditoría **11/38**; del Tier 1 solo queda `T1-02`, que necesita un
+Windows no ES/EN para verificarse.
 
 ---
 
