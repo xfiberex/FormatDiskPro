@@ -10,7 +10,7 @@
 | | |
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
-| **Versión publicada** | **1.15.2** (2026-07-20) |
+| **Versión publicada** | **1.16.0** (2026-08-13) |
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
@@ -120,7 +120,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Unitarias | **321 / 321** (289 + 32 de la auditoría) |
 | UI tests | **17 pasan · 6 omitidos · 0 fallan** sin la USB conectada |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
-| Publicado | v1.15.2 |
+| Publicado | v1.16.0 |
 | Auditoría | 2026-08-13 — **8/37 completadas**, 29 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 4 · T2: 11 · T3: 9 · T4: 5) |
 
 **Tiers completados**
@@ -291,6 +291,7 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 | Versión | Qué trajo |
 |---|---|
+| **1.16.0** | Robustez y accesibilidad: la app deja de cerrarse ante fallos de E/S, guarda de disco de sistema invariante de cultura, contraste AA en el historial, descripciones de FS en los 5 idiomas. Primera tanda de la auditoría (8/37). |
 | **1.15.2** | Pase de refinamiento UX/UI: fix truncación del botón chkdsk, barra de capacidad semántica, etiqueta S.M.A.R.T. más clara. Modo galería de capturas. |
 | **1.15.1** | Tier 9: UI tests en el pipeline, instalador probado end-to-end, build reproducible. Fix: metadatos del `.exe` corrompidos. Capturas en el README. |
 | **1.15.0** | Tier 8 (seguridad): verificación del instalador (SHA-256), anti CSV injection, contraste WCAG AA. |
