@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **321** unitarias · **23** de UI sobre la app real (17 pasan / 6 se omiten sin la USB de pruebas) |
+| **Pruebas** | **321** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-13 (auditoría técnica: 8/37 tareas) |
+| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 8/38 · suite de UI completa sobre hardware) |
 
 ---
 
