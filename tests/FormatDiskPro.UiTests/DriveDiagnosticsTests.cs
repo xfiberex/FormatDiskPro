@@ -54,7 +54,11 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
         try
         {
             var modeDialog = DialogHelper.WaitForDialog(fixture);
-            DialogHelper.PrimaryButton(modeDialog).Invoke();   // "Solo comprobar" — nunca /f
+            // "Solo comprobar" — nunca /f. Desde la v1.15.2 las dos acciones son botones APILADOS dentro
+            // del Content, no el Primary/Secondary del ContentDialog: con tres botones en una fila,
+            // "Comprobar y reparar" se truncaba. Este test siguió buscando 'PrimaryButton' hasta que la
+            // USB de pruebas volvió a estar conectada y lo destapó.
+            DialogHelper.WaitForChild(modeDialog, "CheckScanButton").AsButton().Invoke();
             DialogHelper.WaitForNoDialog(fixture);
 
             // El escaneo corre en segundo plano; el resultado llega en un segundo ContentDialog.

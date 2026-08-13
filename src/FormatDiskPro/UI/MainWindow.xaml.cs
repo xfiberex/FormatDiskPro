@@ -1236,6 +1236,11 @@ public sealed partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Stretch,
             Style               = (Style)Application.Current.Resources["AccentButtonStyle"],
         };
+        // AutomationId explícito: al crearse en código no hay x:Name del que WinUI lo derive, y los UI
+        // tests localizan por AutomationId. Sin esto quedan fuera de su alcance — que es justo lo que
+        // pasó al apilar estos botones en la v1.15.2: el test seguía buscando el 'PrimaryButton' que
+        // dejó de existir, y nadie se enteró porque solo corre con la USB de pruebas conectada.
+        AutomationProperties.SetAutomationId(scanButton, "CheckScanButton");
         scanButton.Click += (_, _) => { repairChoice = false; modeDlg.Hide(); };
         // Enfocar el botón por defecto preserva "Enter = Solo comprobar" (antes lo daba DefaultButton).
         scanButton.Loaded += (_, _) => scanButton.Focus(FocusState.Programmatic);
@@ -1250,6 +1255,7 @@ public sealed partial class MainWindow : Window
                 Content             = L.T("check.repair"),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
             };
+            AutomationProperties.SetAutomationId(repairButton, "CheckRepairButton");
             repairButton.Click += (_, _) => { repairChoice = true; modeDlg.Hide(); };
             panel.Children.Add(repairButton);
         }
