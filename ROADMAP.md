@@ -214,10 +214,10 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 |---|---|---:|---|
 | **T0** | Crítico / bloqueante — la app puede morir en mitad de una operación | 2 | bajo |
 | **T1** | Alta prioridad — guardas destructivas, barreras a11y, i18n rota, seguridad | 9 | bajo-medio |
-| **T2** | Mejoras sustanciales — a11y, exactitud de medición, cobertura, CI, arquitectura | 11 | medio-alto |
+| **T2** | Mejoras sustanciales — a11y, exactitud de medición, cobertura, CI, arquitectura | 12 | medio-alto |
 | **T3** | Pulido — errores silenciosos, docs contradictorias, consistencia | 10 | bajo |
 | **T4** | Futuro / opcional — fuera del alcance inmediato | 5 | — |
-| | **Total** | **37** | |
+| | **Total** | **38** | |
 
 **Orden recomendado:** T0 → T1-01/02 (guardas destructivas) → T1-03/04 (a11y medible) → T1-05/06/07
 (i18n) → T1-08/09 (updater) → T2 → T3.
@@ -499,6 +499,22 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
+- [ ] **[T2-12] Que el corte diga cuánta cobertura de UI llevó realmente**
+  - **Área:** DevOps / QA
+  - **Ubicación:** `release.ps1:220-223`
+  - **Qué hacer:** el 2026-08-13, al conectar por fin la USB de pruebas, apareció que
+    `CheckDisk_ScanOnly_CompletesForTestDrive` llevaba **roto desde la v1.15.2** (el pase de UX apiló los
+    botones del diálogo de chkdsk y eliminó el `PrimaryButton` que el test buscaba). Los cortes de
+    **v1.15.2 y v1.16.0 salieron en verde con ese test roto**, porque sin la USB se omitía y «omitido» y
+    «correcto» se distinguen mal en el resumen. El diseño de omitir en vez de fallar **es el correcto** —
+    un corte no debe caer por falta de hardware — pero hoy no deja rastro de qué cobertura se sacrificó.
+    Hacer que `release.ps1` cuente los omitidos, los liste y lo repita en el resumen final del corte
+    (p. ej. «UI tests: 17/23 — 6 OMITIDOS por falta de la USB de pruebas»).
+  - **Criterio de aceptación:** un corte sin la USB imprime, al final, cuántos tests se omitieron y por
+    qué; con la USB conectada lo dice también, con el conteo a cero.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
 - [ ] **[T2-11] `SECURITY.md`, `CONTRIBUTING.md` y plantillas de issue**
   - **Área:** Documentación / DevOps
   - **Ubicación:** `.github/`
@@ -644,7 +660,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T1-04** | Inventario único `SeverityPalette.All()` + barrido de contraste sobre él; los 4 consumidores delegan. +7 pruebas. |
 | 2026-08-13 | **T3-05** | Cerrada con T1-04: `AppTheme.xaml` y `CONTEXT.md` §4 ya enumeran las dos únicas excepciones reales de color. |
 
-**Estado:** 8/37 completadas · **29 abiertas** (T0: 0 · T1: 4 · T2: 11 · T3: 9 · T4: 5).
+**Estado:** 8/38 completadas · **30 abiertas** (T0: 0 · T1: 4 · T2: 12 · T3: 9 · T4: 5).
+`T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
+(23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo.
 Build Release **0 advertencias / 0 errores**; suite **321/321** (eran 289; +32 pruebas nuevas).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función

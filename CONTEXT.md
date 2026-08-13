@@ -118,10 +118,10 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 |---|---|
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **321 / 321** (289 + 32 de la auditoría) |
-| UI tests | **17 pasan · 6 omitidos · 0 fallan** sin la USB conectada |
+| UI tests | **23/23** con la USB de pruebas y opt-in destructivo (2026-08-13) · 17+6 omitidos sin ella |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.16.0 |
-| Auditoría | 2026-08-13 — **8/37 completadas**, 29 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 4 · T2: 11 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **8/38 completadas**, 30 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 4 · T2: 12 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -351,6 +351,35 @@ lo que hace la app cambia, solo deja de romperse y empieza a decirlo en cinco id
 mecanismos para cazar** —tests de cultura, test de completitud de traducciones, test de contraste— y que
 pasaron igualmente, porque cada mecanismo cubría un poco menos de lo que parecía. El patrón a vigilar no es
 «falta un test», es «hay un test que cubre menos de lo que su nombre sugiere».
+
+### 2026-08-13 — Suite de UI completa sobre hardware real (23/23) y un test roto desde la v1.15.2
+
+Primera vez que se ejecutan **los 23 UI tests sin omitir ninguno**: USB de pruebas conectada
+(`utilidades`, 29.3 GB, extraíble) **y** `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`. Todos en verde.
+
+- **Ciclo destructivo completo, 59 s:** Formatear (NTFS, rápido) → Reinicializar (`Clear-Disk` +
+  partición + formato). La letra se mantuvo en `G:` y el `finally` devolvió la etiqueta a `utilidades`.
+  El paso 3 (FAT32 pequeña) se omitió **correctamente**: exige ≥ 32 GiB y la unidad son 29.3.
+- **`VerifyCapacity`, 57 min 3 s:** escribió y releyó los ~29 GB libres. Unos 58 GB de E/S a ~17 MB/s de
+  media. Deja la unidad limpia (borra sus propios archivos).
+  - *Dato para el `T2-03` del roadmap:* a este tamaño la caché del SO no puede falsear la relectura —29 GB
+    no caben en RAM—, así que esta corrida **no valida ni invalida** aquella preocupación. Confirma su
+    alcance: el riesgo se concentra en unidades pequeñas, no aquí.
+
+**El hallazgo de la sesión: `CheckDisk_ScanOnly_CompletesForTestDrive` llevaba roto desde la v1.15.2.**
+El pase de UX de aquella versión apiló los botones del diálogo de chkdsk dentro del `Content` (para que
+«Comprobar y reparar» no se truncara), lo que **eliminó el `PrimaryButton`** que el test invocaba. El test
+no se actualizó.
+
+Lo grave no es el test: es que **los cortes de v1.15.2 y v1.16.0 salieron en verde con él roto**. Sin la
+USB, ese test se *omite*, y en el resumen de `dotnet test` «omitido» y «correcto» se distinguen mal. La
+decisión de omitir en vez de fallar **sigue siendo la correcta** —un corte no debe caer por falta de
+hardware—, pero no dejaba rastro de qué cobertura se estaba sacrificando. Anotado como **`T2-12`**.
+
+Arreglado dando `AutomationId` explícito a los dos botones (`CheckScanButton` / `CheckRepairButton`): al
+crearse en código no hay `x:Name` del que WinUI lo derive, así que quedaban fuera del alcance de los UI
+tests. **Regla:** todo control creado en code-behind que un UI test deba tocar necesita su `AutomationId`
+a mano.
 
 ### 2026-08-13 — Auditoría: `T1-04`, el inventario de color medido
 
