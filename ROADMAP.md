@@ -300,7 +300,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna (pero se cierra de forma natural junto a `T1-04`)
 
-- [ ] **[T1-04] Unificar los colores de severidad en `SeverityPalette` y medirlos todos**
+- [x] **[T1-04] Unificar los colores de severidad en `SeverityPalette` y medirlos todos**
   - **Área:** Arquitectura / accesibilidad
   - **Ubicación:** `src/FormatDiskPro/UI/HistoryDialog.xaml.cs:160-166`,
     `src/FormatDiskPro/UI/MainWindow.xaml.cs:426-433`
@@ -549,7 +549,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** documentación y comportamiento coinciden.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
 
-- [ ] **[T3-05] «No hay colores hardcodeados» ya no es cierto**
+- [x] **[T3-05] «No hay colores hardcodeados» ya no es cierto**
   - **Área:** Documentación
   - **Ubicación:** `src/FormatDiskPro/UI/Theme/AppTheme.xaml:10`; `CONTEXT.md` §4 *Otros*
   - **Qué hacer:** el comentario afirma que no hay colores fijos, y `CONTEXT.md` reconoce **dos**
@@ -641,14 +641,22 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T1-03** | Gris de «Cancelado» en tema claro: `#868686` (3.52:1) → `#6E6E6E` (**4.93:1**). Tema oscuro sin cambios (ya cumplía). |
 | 2026-08-13 | **T1-05** | Descripciones de sistema de archivos movidas a `Localization` como `fs.desc.*` con PT/FR/IT reales. +5 pruebas. |
 | 2026-08-13 | **T1-09** | `UpdateService.SafeAssetFileName` sanea el nombre de asset antes de `Path.Combine`. +12 pruebas. |
+| 2026-08-13 | **T1-04** | Inventario único `SeverityPalette.All()` + barrido de contraste sobre él; los 4 consumidores delegan. +7 pruebas. |
+| 2026-08-13 | **T3-05** | Cerrada con T1-04: `AppTheme.xaml` y `CONTEXT.md` §4 ya enumeran las dos únicas excepciones reales de color. |
 
-**Estado tras la primera tanda:** 6/37 completadas · **31 abiertas** (T0: 0 · T1: 5 · T2: 11 · T3: 10 · T4: 5).
-Build Release **0 advertencias / 0 errores**; suite **314/314** (eran 289; +25 pruebas nuevas).
+**Estado:** 8/37 completadas · **29 abiertas** (T0: 0 · T1: 4 · T2: 11 · T3: 9 · T4: 5).
+Build Release **0 advertencias / 0 errores**; suite **321/321** (eran 289; +32 pruebas nuevas).
 
-> **Siguiente paso recomendado: `T1-04`.** La corrección de `T1-03` cambió un color a mano y **sigue sin
-> test**, exactamente como el que falló. `T1-04` mueve esos RGB a `Core/SeverityPalette` y extiende el
-> barrido de contraste para cubrirlos: hasta entonces, la regresión que se acaba de arreglar puede volver
-> sin romper el build.
+> **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
+> concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que
+> ponerlo bajo test, no hay forma de hacer una cosa sin la otra. Se verificó revirtiendo el gris a
+> `#868686` — el test falla y nombra el color. Fuera de `Core` solo quedan los colores del caption de la
+> barra de título, excluidos a propósito (cromo de ventana, superpuesto sobre Mica/Acrylic: no hay fondo
+> fijo contra el que medir).
+>
+> **Siguiente paso recomendado: `T1-07`.** Es el mismo movimiento aplicado a la i18n — hoy
+> `EveryEntry_HasFiveNonEmptyTranslations` sigue recorriendo solo `L.Map`, así que un texto de UI nuevo
+> fuera de `Localization` volvería a pasar desapercibido, que es como entraron `T1-05` y `T1-06`.
 
 <!-- Al completar una tarea: marcar [x] arriba y añadir aquí una fila con la fecha absoluta y el commit. -->
 

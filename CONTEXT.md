@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **289** unitarias · **23** de UI sobre la app real (17 pasan / 6 se omiten sin la USB de pruebas) |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — cerrada |
-| **Última actualización** | 2026-07-20 (pase UX/UI — v1.15.2) |
+| **Pruebas** | **321** unitarias · **23** de UI sobre la app real (17 pasan / 6 se omiten sin la USB de pruebas) |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
+| **Última actualización** | 2026-08-13 (auditoría técnica: 8/37 tareas) |
 
 ---
 
@@ -37,7 +37,7 @@ src/FormatDiskPro/
 ├─ Core/            Lógica PURA y testeable (sin UI, sin procesos, sin red)
 │  ├─ FormatLogic.cs      Comandos de formato, parseo de %, formato de bytes, validación de etiqueta
 │  ├─ SmartInfo.cs        Modelo + parseo del detalle S.M.A.R.T. + umbrales de severidad (SmartLevel)
-│  ├─ SeverityPalette.cs  Colores verde/ámbar/rojo por tema — contraste WCAG AA verificado por tests
+│  ├─ SeverityPalette.cs  INVENTARIO de colores semánticos por tema — contraste WCAG medido sobre All()
 │  ├─ HistoryEntry.cs     Parseo del historial + filtro + exportación CSV (anti CSV injection)
 │  ├─ ReinitPlan.cs       Estilo MBR/GPT por tamaño, partición FAT32 pequeña, parseo de la nueva letra
 │  ├─ Benchmark.cs        Tamaño de prueba, velocidad, IOPS, mediana
@@ -48,6 +48,7 @@ src/FormatDiskPro/
 │  ├─ ReleaseNotes.cs     Notas de versión (Markdown) → texto plano
 │  ├─ LegalText.cs        Licencia GPLv3 y avisos de terceros embebidos en el .exe
 │  ├─ UpdateChecker.cs    Comparación de versiones (IsNewer)
+│  ├─ DriveLetter.cs      Comparación de letras de unidad invariante de cultura (guarda del disco de sistema)
 │  └─ AppInfo.cs          Versión, coordenadas del repo, enlace de donación
 ├─ Services/        Efectos colaterales (procesos / disco / red)
 │  ├─ DiskService.cs       S.M.A.R.T., nº de disco, protección de escritura, expulsión (PowerShell)
@@ -76,7 +77,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    289 pruebas xUnit sobre Core y los helpers de Services
+tests/FormatDiskPro.Tests/    321 pruebas xUnit sobre Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  23 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
@@ -116,11 +117,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **314 / 314** (289 + 25 de la primera tanda de la auditoría) |
+| Unitarias | **321 / 321** (289 + 32 de la auditoría) |
 | UI tests | **17 pasan · 6 omitidos · 0 fallan** sin la USB conectada |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.15.2 |
-| Auditoría | 2026-08-13 — **6/37 completadas**, 31 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 5 · T2: 11 · T3: 10 · T4: 5) |
+| Auditoría | 2026-08-13 — **8/37 completadas**, 29 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: 4 · T2: 11 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -221,12 +222,19 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 - **`gh` (GitHub CLI):** si no está autenticado, los scripts reutilizan la credencial de git cacheada
   (`git credential fill` → `GH_TOKEN`), solo en local, sin imprimir el token.
 - **Framework de pruebas: xUnit.** Hay skills de mstest/nunit/tunit en `.agents/skills/`, pero **no se usan**.
+- **Los colores SEMÁNTICOS viven todos en `Core/SeverityPalette`, y están medidos** (desde `T1-04`,
+  2026-08-13). Salud S.M.A.R.T., resultado del historial, ocupación, unidad protegida y texto primario: uno
+  por tema, en un solo sitio. `SeverityPaletteTests` recorre **`SeverityPalette.All()`** —el inventario, no
+  una función concreta— y exige a cada color su umbral WCAG (4.5:1 texto, 3:1 objeto gráfico), componiendo
+  antes el alfa sobre el fondo. **Añadir un color al inventario es ponerlo bajo test: no hay forma de hacer
+  una cosa sin la otra.** Antes el barrido solo recorría `For(SmartLevel)` mientras los mismos RGB estaban
+  copiados en `HistoryDialog` y `MainWindow`, y por ahí entró un gris de 3.52:1 sin romper el build.
+  **Única excepción fuera de `Core`:** `MainWindow.UpdateCaptionButtonColors` (cromo de ventana, superpuesto
+  sobre Mica/Acrylic: no hay fondo fijo contra el que medir).
 - **La barra de capacidad NO usa el color de acento** (desde el pase de UX del 2026-07-20). Un `ProgressBar`
   por defecto hereda el acento del sistema; en un equipo con **acento rojo** la barra de ocupación se veía
   roja con el disco medio vacío y leía como *alarma*. Ahora codifica ocupación, no marca: neutro <80 %,
-  ámbar ≥80 %, rojo ≥90 % (`MainWindow.CapacityBrush`). Ámbar/rojo reusan `SeverityPalette` (theme-aware,
-  contraste medido); el neutro sigue `_darkMode`. Es —junto a `SeverityPalette`— la otra excepción
-  deliberada al "sin colores hardcodeados" de `AppTheme.xaml`: una barra de datos debe usar color semántico.
+  ámbar ≥80 %, rojo ≥90 % (`MainWindow.CapacityBrush`, con `SeverityPalette.NeutralFill` para el neutro).
 - **Capturas: fotografía el PUBLISH self-contained, no el `dotnet build`.** En esta máquina el apphost de un
   `dotnet build -c Release` (runtime .NET *framework-dependent*) **no arranca**: muestra "You must install or
   update .NET". `tools/capture-screenshots.ps1` prefiere `bin\Release`, así que tras un build plano capturaba
@@ -343,10 +351,32 @@ mecanismos para cazar** —tests de cultura, test de completitud de traducciones
 pasaron igualmente, porque cada mecanismo cubría un poco menos de lo que parecía. El patrón a vigilar no es
 «falta un test», es «hay un test que cubre menos de lo que su nombre sugiere».
 
-> **Aviso para el próximo que siga:** `T1-04` es lo siguiente por una razón concreta, no por orden de
-> lista. `T1-03` arregló un color **a mano y sin test**, que es literalmente cómo se coló el fallo. Hasta
-> que `T1-04` mueva esos RGB a `SeverityPalette` y el barrido de contraste los cubra, la regresión puede
-> volver sin romper el build.
+### 2026-08-13 — Auditoría: `T1-04`, el inventario de color medido
+
+Cierra el hueco que `T1-03` dejó abierto: aquel arregló un color **a mano y sin test**, que es literalmente
+cómo se coló el fallo. Build 0/0, **321/321** (+7).
+
+- **`SeverityPalette` pasa de ser una función a ser un inventario.** `All()` enumera *todos* los colores
+  semánticos —severidad S.M.A.R.T., resultado del historial, texto primario, relleno neutro— en ambos temas
+  y con el **umbral que le toca a cada uno**: 4.5:1 para texto, 3:1 para objeto gráfico (`ContrastRequirement`).
+  El barrido recorre el inventario, no una función, así que **añadir un color es ponerlo bajo test**.
+- **`Flatten` compone el alfa antes de medir.** El color de texto claro es `#E4000000` (el token real de
+  Fluent, con alfa). La fórmula de WCAG solo está definida entre colores opacos: medirlo sin componerlo
+  sobre el fondo habría dado un número que no corresponde a lo que se ve.
+- **Los cuatro consumidores delegan:** `HistoryDialog.ColorFor`, `MainWindow.ProtectedColor`, `DriveBrush` y
+  `CapacityBrush`. Correcto y fallido del historial **reutilizan** el verde y el rojo de severidad —mismo
+  significado, mismo color— y hay un test que lo fija, para que no diverjan.
+- **Verificado que el barrido caza el fallo original:** revirtiendo el gris a `#868686`, el test falla y
+  nombra el color. Un test que nunca has visto fallar no es una red, es una suposición.
+
+**`T3-05` se cierra aquí también**, porque este cambio dejó desactualizada la documentación que describía:
+`AppTheme.xaml` decía «No hay colores hardcodeados» (nunca fue cierto) y §4 contaba la barra de capacidad
+como una excepción aparte de `SeverityPalette` (ahora vive dentro). Ambos textos enumeran ya las dos únicas
+excepciones reales.
+
+> **Siguiente paso recomendado: `T1-07`** — el mismo movimiento, aplicado a la i18n.
+> `EveryEntry_HasFiveNonEmptyTranslations` sigue recorriendo solo `L.Map`, así que un texto de UI nuevo
+> fuera de `Localization` volvería a pasar desapercibido: es exactamente como entraron `T1-05` y `T1-06`.
 
 ### 2026-08-13 — Auditoría técnica transversal (sin cambios de código)
 

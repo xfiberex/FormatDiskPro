@@ -7,7 +7,21 @@
         (tarjetas con encabezado de sección + icono y título de acento, barra de
         acción inferior). Los colores derivan de recursos Fluent que SIGUEN el color
         de acento que el usuario elige en Windows 11 (AccentTextFillColorPrimaryBrush)
-        y se adaptan automáticamente a claro/oscuro. No hay colores hardcodeados.
+        y se adaptan automáticamente a claro/oscuro.
+
+        Aquí no hay colores fijos, pero en la app SÍ los hay, en dos sitios y a propósito:
+
+          1. Core/SeverityPalette — los colores SEMÁNTICOS (salud S.M.A.R.T., resultado
+             del historial, ocupación, unidad protegida, texto primario). Un significado
+             no puede seguir el acento que el usuario elija: el rojo tiene que ser rojo.
+             Viven en Core para poder MEDIRLOS: SeverityPaletteTests recorre
+             SeverityPalette.All() y exige a cada uno su umbral WCAG.
+          2. MainWindow.UpdateCaptionButtonColors — los botones de la barra de título.
+             Son cromo de ventana, no contenido, y WinUI no los retematiza de forma
+             fiable en un cambio de tema en caliente.
+
+        Cualquier otro Color.FromArgb fuera de Core/ es un color que se escapó de la
+        medición: así entró un gris de 3.52:1 que WCAG AA no admite (ver ROADMAP T1-03/T1-04).
     -->
 
     <!-- Radio de esquina de las tarjetas de sección -->

@@ -19,24 +19,76 @@ public sealed class SeverityPaletteTests
     // Se recorre por dentro en vez de con [Theory] para dar un único fallo con TODOS los colores que no
     // llegan al mínimo, en lugar de tener que arreglarlos de uno en uno.
     [Fact]
-    public void EverySeverityColor_MeetsWcagAaContrast_AgainstItsCardBackground()
+    public void EverySemanticColor_MeetsItsWcagContrast_AgainstItsCardBackground()
     {
         var offenders = new List<string>();
 
-        foreach (SmartLevel level in Enum.GetValues<SmartLevel>())
+        foreach (PaletteColor entry in SeverityPalette.All())
         {
-            foreach (bool dark in (bool[])[false, true])
-            {
-                double ratio = SeverityPalette.ContrastRatio(
-                    SeverityPalette.For(level, dark), SeverityPalette.Background(dark));
-
-                if (ratio < WcagAaNormalText)
-                    offenders.Add($"{level} en tema {(dark ? "oscuro" : "claro")}: {ratio:F2}:1");
-            }
+            double ratio = SeverityPalette.ContrastAgainstBackground(entry);
+            if (ratio < entry.MinimumRatio)
+                offenders.Add($"{entry.Name} en tema {(entry.Dark ? "oscuro" : "claro")}: " +
+                              $"{ratio:F2}:1 (mínimo {entry.MinimumRatio:F1}:1)");
         }
 
         Assert.True(offenders.Count == 0,
-            $"WCAG AA exige {WcagAaNormalText}:1 para texto normal. No llegan: {string.Join(" | ", offenders)}");
+            $"Colores por debajo de su umbral WCAG: {string.Join(" | ", offenders)}");
+    }
+
+    /// <summary>
+    /// El barrido solo protege lo que recorre. Hasta la v1.15.2 medía únicamente <c>For(SmartLevel)</c>
+    /// mientras los mismos RGB estaban copiados en <c>HistoryDialog</c> y <c>MainWindow</c>, y por ahí
+    /// entró un gris de 3.52:1. Esto fija que el inventario siga cubriendo las cuatro familias.
+    /// </summary>
+    [Theory]
+    [InlineData("SmartLevel.")]
+    [InlineData("HistoryResult.")]
+    [InlineData("Text")]
+    [InlineData("NeutralFill")]
+    public void All_CoversEverySemanticColorFamily_InBothThemes(string namePrefix)
+    {
+        var matching = SeverityPalette.All().Where(e => e.Name.StartsWith(namePrefix, StringComparison.Ordinal)).ToList();
+
+        Assert.NotEmpty(matching);
+        Assert.Contains(matching, e => !e.Dark);
+        Assert.Contains(matching, e =>  e.Dark);
+    }
+
+    /// <summary>
+    /// El resultado del historial y la severidad S.M.A.R.T. comparten significado: «correcto» y «fallo»
+    /// deben pintarse igual en los dos sitios, o el usuario aprendería dos códigos de color distintos.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ForResult_ReusesSeverityColors_ForOkAndFailure(bool dark)
+    {
+        Assert.Equal(SeverityPalette.For(SmartLevel.Ok, dark),       SeverityPalette.ForResult(HistoryResult.Ok, dark));
+        Assert.Equal(SeverityPalette.For(SmartLevel.Critical, dark), SeverityPalette.ForResult(HistoryResult.Fail, dark));
+        Assert.Equal(SeverityPalette.For(SmartLevel.Critical, dark), SeverityPalette.ForResult(HistoryResult.Error, dark));
+    }
+
+    /// <summary>
+    /// La fórmula de contraste de WCAG solo está definida entre colores opacos. El color de texto claro
+    /// lleva alfa (Fluent <c>TextFillColorPrimary</c> = <c>#E4000000</c>), así que medirlo sin componerlo
+    /// sobre el fondo daría un número que no corresponde a lo que se ve.
+    /// </summary>
+    [Fact]
+    public void Flatten_CompositesAlphaOverBackground()
+    {
+        Color opaque = Color.FromArgb(255, 0x12, 0x34, 0x56);
+        Assert.Equal(opaque, SeverityPalette.Flatten(opaque, SeverityPalette.LightBackground));
+
+        // Totalmente transparente sobre el fondo: se ve el fondo.
+        Assert.Equal(SeverityPalette.LightBackground,
+            SeverityPalette.Flatten(Color.FromArgb(0, 0, 0, 0), SeverityPalette.LightBackground));
+
+        // Negro al 20 % sobre blanco puro deja el 80 % del fondo: 255 * 0.8 = 204, exacto.
+        // (Se usa 51/255 = 0.2 justo, y no 128/255 = 0.50196, que daría 127 y parecería un error de ±1.)
+        Color white   = Color.FromArgb(255, 255, 255, 255);
+        Color faded   = SeverityPalette.Flatten(Color.FromArgb(51, 0, 0, 0), white);
+        Assert.Equal(255, faded.A);   // el resultado siempre es opaco: es lo que se puede medir
+        Assert.Equal(204, faded.R);
     }
 
     /// <summary>

@@ -444,15 +444,13 @@ public sealed partial class MainWindow : Window
         UpdateWipePassesEnabled();
     }
 
-    // Fluent SystemFillColorCritical: #C42B1C (light) / #FF99A4 (dark).
-    private Color ProtectedColor() =>
-        _darkMode ? Color.FromArgb(255, 255, 153, 164) : Color.FromArgb(255, 196, 43, 28);
+    // Una unidad protegida es la misma señal que una salud crítica, así que lleva el mismo color: se
+    // reusa SeverityPalette en vez de repetir el RGB. Repetirlo es exactamente como entró un fallo de
+    // contraste sin romper el build (ver el comentario de SeverityPalette.All).
+    private Color ProtectedColor() => SeverityPalette.For(SmartLevel.Critical, _darkMode);
 
-    // Fluent TextFillColorPrimary: #E4000000 (light) / #FFFFFFFF (dark).
     private SolidColorBrush DriveBrush(bool isProtected) =>
-        isProtected
-            ? new SolidColorBrush(ProtectedColor())
-            : new SolidColorBrush(_darkMode ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(228, 0, 0, 0));
+        new(isProtected ? ProtectedColor() : SeverityPalette.Text(_darkMode));
 
     private void UpdateInfo(DriveInfo drive)
     {
@@ -485,7 +483,7 @@ public sealed partial class MainWindow : Window
     {
         Color c = usedPct >= 90 ? SeverityPalette.For(SmartLevel.Critical, _darkMode)
                 : usedPct >= 80 ? SeverityPalette.For(SmartLevel.Warning, _darkMode)
-                : (_darkMode ? Color.FromArgb(255, 0xA0, 0xA0, 0xA0) : Color.FromArgb(255, 0x8A, 0x8A, 0x8A));
+                : SeverityPalette.NeutralFill(_darkMode);
         return new SolidColorBrush(c);
     }
 
