@@ -18,13 +18,20 @@ public static class History
         }
     }
 
+    /// <summary>
+    /// Añade una entrada al historial. El mensaje se aplana con
+    /// <see cref="HistoryEntry.SanitizeDetail"/>: este archivo es de una entrada por línea, y los caminos
+    /// de error escriben texto que no controlamos (mensajes de excepción, trazas de pila completas).
+    /// Defensivo: nunca lanza — el registro no puede romper la operación que está registrando.
+    /// </summary>
     public static void Log(string line)
     {
         try
         {
             string path = FilePath;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\t{line}{Environment.NewLine}");
+            string safe = HistoryEntry.SanitizeDetail(line);
+            File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\t{safe}{Environment.NewLine}");
         }
         catch { /* el log nunca debe romper la operación */ }
     }

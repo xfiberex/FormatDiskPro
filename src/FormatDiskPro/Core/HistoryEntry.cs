@@ -23,6 +23,36 @@ public sealed record HistoryEntry(
 {
     private const string TimeFormat = "yyyy-MM-dd HH:mm:ss";
 
+    /// <summary>Marca que sustituye a un salto de línea aplanado por <see cref="SanitizeDetail"/>.</summary>
+    public const string LineBreakMarker = " ⏎ ";
+
+    /// <summary>
+    /// Aplana un mensaje para que ocupe <b>una sola línea</b> del historial.
+    ///
+    /// <para><b>Por qué hace falta.</b> <c>history.log</c> es un formato de una entrada por línea
+    /// (<c>marca de tiempo TAB mensaje</c>) y <see cref="Parse"/> lo lee así. Los caminos de error escriben
+    /// texto que no controlamos: <c>ex.Message</c> puede traer saltos de línea, y el registro de caídas
+    /// guarda la excepción completa —con su <b>traza de pila</b>, que siempre es multilínea—. Sin aplanar,
+    /// **una sola caída se convierte en decenas de entradas fantasma** sin marca de tiempo, categoría
+    /// <c>Other</c> y resultado <c>Info</c>: justo el registro que uno va a consultar cuando algo ha ido
+    /// mal queda inservible.</para>
+    ///
+    /// <para>No se recorta la longitud a propósito: en una entrada <c>CRASH:</c> la traza es precisamente
+    /// lo que se quiere leer.</para>
+    ///
+    /// Lógica pura.
+    /// </summary>
+    public static string SanitizeDetail(string? detail)
+    {
+        if (string.IsNullOrEmpty(detail)) return "";
+
+        // \r\n primero, para que un salto de Windows no produzca DOS marcas.
+        return detail.Replace("\r\n", LineBreakMarker)
+                     .Replace("\n", LineBreakMarker)
+                     .Replace("\r", LineBreakMarker)
+                     .Trim();
+    }
+
     /// <summary>Interpreta una línea del historial. Devuelve <c>null</c> para comentarios o líneas vacías.</summary>
     public static HistoryEntry? Parse(string line)
     {

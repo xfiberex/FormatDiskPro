@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **330** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
+| **Pruebas** | **359** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 11/38 · Tier 1 cerrado salvo `T1-02`) |
+| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 14/39 · caminos de error bajo test) |
 
 ---
 
@@ -49,6 +49,7 @@ src/FormatDiskPro/
 │  ├─ LegalText.cs        Licencia GPLv3 y avisos de terceros embebidos en el .exe
 │  ├─ UpdateChecker.cs    Comparación de versiones (IsNewer)
 │  ├─ DriveLetter.cs      Comparación de letras de unidad invariante de cultura (guarda del disco de sistema)
+│  ├─ OperationFailure.cs Línea de historial de una operación fallida (camino de error de T0-02)
 │  └─ AppInfo.cs          Versión, coordenadas del repo, enlace de donación
 ├─ Services/        Efectos colaterales (procesos / disco / red)
 │  ├─ DiskService.cs       S.M.A.R.T., nº de disco, protección de escritura, expulsión (PowerShell)
@@ -77,7 +78,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    330 pruebas xUnit sobre Core y los helpers de Services
+tests/FormatDiskPro.Tests/    359 pruebas xUnit sobre Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  23 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
@@ -117,11 +118,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **330 / 330** (289 + 41 de la auditoría) |
+| Unitarias | **359 / 359** (289 + 70 de la auditoría) |
 | UI tests | **23/23** con la USB de pruebas y opt-in destructivo (2026-08-13) · 17+6 omitidos sin ella |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.16.0 |
-| Auditoría | 2026-08-13 — **11/38 completadas**, 27 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **1** · T2: 12 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **14/39 completadas**, 25 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **1** · T2: 11 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -323,6 +324,45 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-13 — `T2-05`: los caminos de error, y el defecto que escondían
+
+Ninguna prueba cubría qué pasa cuando una operación **falla** — que era la causa raíz de `T0-02`. Dos
+costuras nuevas, y un hallazgo que justifica la tarea entera.
+
+**`CapacityVerifier.RunInAsync(dir, target, …, afterWriteAsync)`.** El motor de la verificación, sin la
+unidad. El parámetro `afterWriteAsync` corre entre la fase de escritura y la de lectura, y permite
+**corromper lo escrito**: es decir, reproducir una unidad falsificada sin tener una. Hasta hoy, lo único
+que ejercitaba la detección era un test de UI de 57 minutos sobre una USB **auténtica** — o sea, sobre el
+único caso en el que la detección nunca se dispara. Ahora hay pruebas de bloque corrompido
+(`mismatch@1`), lectura corta (`short-read@1`), cancelación con limpieza y unidad no lista, todas en
+menos de medio segundo y sin tocar ninguna unidad real. Verificado por reversión: anular la comparación
+de patrones hace fallar la prueba del bloque corrompido.
+
+**`Core/OperationFailure.LogLine`**, extraído de `MainWindow.ReportOperationErrorAsync`, para poder
+comprobar que lo que escribe el camino de error **se vuelve a leer bien** por el visor de historial.
+
+Y al recorrerlo de punta a punta apareció un defecto real, registrado como `T3-11`:
+
+> `history.log` es un formato de **una entrada por línea**, pero `History.Log` escribía el texto recibido
+> tal cual. `T0-01` —de esta misma mañana— había empezado a registrar `e.Exception` **completa, con su
+> traza de pila**. Cada caída partía el historial en **decenas de entradas fantasma** sin marca de tiempo,
+> categoría `Other` y resultado `Info`: un fallo disfrazado de información, justo en el registro que uno
+> consulta cuando algo ha ido mal.
+
+Lo arregla `HistoryEntry.SanitizeDetail` (pura), que aplana los saltos a `⏎`. No recorta la longitud a
+propósito: en una entrada `CRASH:` la traza es justo lo que se quiere leer.
+
+**La lección, que es la misma de siempre en este proyecto:** el arreglo de la mañana introdujo el defecto
+de la tarde, y sobrevivió medio día porque el camino que tocaba no tenía pruebas. Un `catch` que nadie ha
+visto ejecutarse no es una red.
+
+**Lo que sigue sin estar verificado:** que esos `catch` *lleguen a ejecutarse*. Bajo test está lo que
+escriben, no que se disparen. Eso solo lo demuestra desconectar la USB a mitad de cada operación.
+
+Build 0/0, **359/359** (330 → +29). Auditoría **14/39**.
 
 ---
 

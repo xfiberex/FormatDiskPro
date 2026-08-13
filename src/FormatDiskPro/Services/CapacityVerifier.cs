@@ -19,7 +19,34 @@ public static class CapacityVerifier
         IProgress<(Phase phase, int percent, long bytes)> progress,
         CancellationToken ct)
     {
-        string dir = $"{letter}:\\__fdp_verify__";
+        // Fuera del try de RunInAsync a propósito: si esto lanza (letra inválida, unidad retirada), el
+        // directorio de trabajo aún no existe, así que no hay nada que limpiar. Comportamiento idéntico
+        // al de antes de extraer la costura.
+        var drive = new DriveInfo(letter.ToString());
+        if (!drive.IsReady)
+            return new VerifyResult(false, 0, "unit-not-ready");
+
+        long target = Math.Max(0, drive.AvailableFreeSpace - SafetyMargin);
+        return await RunInAsync($"{letter}:\\__fdp_verify__", target, progress, ct);
+    }
+
+    /// <summary>
+    /// El motor de la verificación, sin la unidad: escribe <paramref name="target"/> bytes en
+    /// <paramref name="dir"/> y los relee. Existe como método aparte para poder **probar la detección de
+    /// unidades falsificadas sin una unidad falsificada** — que es justo lo que ninguna prueba cubría.
+    /// </summary>
+    /// <param name="afterWriteAsync">
+    /// Solo para pruebas: se ejecuta entre la fase de escritura y la de lectura. Permite corromper lo
+    /// escrito para comprobar que la relectura lo detecta, que es exactamente lo que hace una unidad que
+    /// miente sobre su tamaño.
+    /// </param>
+    internal static async Task<VerifyResult> RunInAsync(
+        string dir,
+        long target,
+        IProgress<(Phase phase, int percent, long bytes)> progress,
+        CancellationToken ct,
+        Func<Task>? afterWriteAsync = null)
+    {
         // Cada archivo agrupa varios bloques de 8 MB; guardamos el índice de bloque global inicial
         // para regenerar el patrón exacto durante la verificación (la detección de aliasing se preserva).
         var files = new List<(string Path, int StartBlock, long Length)>();
@@ -27,11 +54,6 @@ public static class CapacityVerifier
 
         try
         {
-            var drive = new DriveInfo(letter.ToString());
-            if (!drive.IsReady)
-                return new VerifyResult(false, 0, "unit-not-ready");
-
-            long target = Math.Max(0, drive.AvailableFreeSpace - SafetyMargin);
             Directory.CreateDirectory(dir);
 
             // ── Fase de escritura ─────────────────────────────────
@@ -66,6 +88,8 @@ public static class CapacityVerifier
                 files.Add((path, startBlock, fileWritten));
                 fileNo++;
             }
+
+            if (afterWriteAsync is not null) await afterWriteAsync();
 
             // ── Fase de lectura/verificación ──────────────────────
             var readBuf  = new byte[BlockSize];

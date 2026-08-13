@@ -280,7 +280,7 @@ public sealed partial class MainWindow : Window
         FormatProgress.Value = 0;
         _lastOperationFailed = true;
         StatusText.Text = L.T("status.unexpected");
-        History.Log($"{operation} ERROR {letter}: {ex.Message}");
+        History.Log(OperationFailure.LogLine(operation, letter, ex));
         await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ex.Message}");
     }
 

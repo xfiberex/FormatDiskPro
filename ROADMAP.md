@@ -215,9 +215,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T0** | Crítico / bloqueante — la app puede morir en mitad de una operación | 2 | bajo |
 | **T1** | Alta prioridad — guardas destructivas, barreras a11y, i18n rota, seguridad | 9 | bajo-medio |
 | **T2** | Mejoras sustanciales — a11y, exactitud de medición, cobertura, CI, arquitectura | 12 | medio-alto |
-| **T3** | Pulido — errores silenciosos, docs contradictorias, consistencia | 10 | bajo |
+| **T3** | Pulido — errores silenciosos, docs contradictorias, consistencia | 11 | bajo |
 | **T4** | Futuro / opcional — fuera del alcance inmediato | 5 | — |
-| | **Total** | **38** | |
+| | **Total** | **39** | |
 
 **Orden recomendado:** T0 → T1-01/02 (guardas destructivas) → T1-03/04 (a11y medible) → T1-05/06/07
 (i18n) → T1-08/09 (updater) → T2 → T3.
@@ -448,7 +448,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** medio
   - **Depende de:** ninguna
 
-- [ ] **[T2-05] Pruebas de los caminos de error de las operaciones**
+- [x] **[T2-05] Pruebas de los caminos de error de las operaciones**
   - **Área:** QA
   - **Ubicación:** `tests/FormatDiskPro.Tests/`
   - **Qué hacer:** ninguna prueba cubre qué pasa cuando una operación **falla** (es la causa raíz de
@@ -458,6 +458,12 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     sin hardware.
   - **Esfuerzo:** alto
   - **Depende de:** T0-02
+  - **Resuelta el 2026-08-13.** Se extrajo una costura interna en `CapacityVerifier.RunInAsync(dir, target,
+    …, afterWriteAsync)` que permite **corromper lo escrito entre la fase de escritura y la de lectura** —
+    es decir, reproducir una unidad falsificada sin tener una—. Antes, lo único que probaba la detección
+    era un test de UI de 57 minutos sobre una USB **auténtica**, que por definición nunca la dispara.
+    También se extrajo `Core/OperationFailure.LogLine` desde `MainWindow.ReportOperationErrorAsync`.
+    **Encontró un defecto real:** ver `T3-11`.
 
 - [ ] **[T2-06] Emparejar el `.sha256` con el instalador que verifica**
   - **Área:** Seguridad
@@ -632,6 +638,22 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** código y documentación coinciden sobre qué garantiza la pasada aleatoria.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
 
+- [x] **[T3-11] El historial se corrompe al registrar texto multilínea** *(añadida y resuelta el 2026-08-13)*
+  - **Área:** Código / robustez
+  - **Ubicación:** `src/FormatDiskPro/Services/History.cs:21`, `src/FormatDiskPro/App.xaml.cs`
+  - **Qué pasaba:** `history.log` es un formato de **una entrada por línea**
+    (`marca de tiempo TAB mensaje`) y `HistoryEntry.Parse` lo lee así, pero `History.Log` escribía el texto
+    recibido tal cual. Los caminos de error registran texto que no controlamos: `ex.Message` puede traer
+    saltos de línea, y el registro de caídas de `T0-01` guarda `e.Exception` **completa, con su traza de
+    pila**, que siempre es multilínea. Resultado: **una sola caída se convertía en decenas de entradas
+    fantasma** sin marca de tiempo, categoría `Other` y resultado `Info` — es decir, el registro que uno
+    consulta justo cuando algo ha ido mal quedaba inservible, y el fallo aparecía disfrazado de
+    información. Lo introdujo `T0-01` esta misma mañana y no lo vio nadie porque **ningún test cubría el
+    camino de error**: exactamente el hueco que `T2-05` existía para cerrar.
+  - **Qué se hizo:** `HistoryEntry.SanitizeDetail` (pura) aplana los saltos a `⏎`; `History.Log` la aplica.
+    No se recorta la longitud a propósito: en una entrada `CRASH:` la traza es justo lo que se quiere leer.
+  - **Encontrada por:** `T2-05` · **Esfuerzo:** bajo
+
 ---
 
 ## 🔵 Tier 4 — Futuro / opcional *(fuera del alcance inmediato)*
@@ -674,12 +696,15 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T1-06** | `FormatPreset.NameKey` + `Presets.DisplayName`: los 5 integrados se traducen a EN/PT/FR/IT. Los duplicados se comparan contra el nombre mostrado. +1 prueba. |
 | 2026-08-13 | **T1-07** | `LocalizationCoverageTests`: barrido del código fuente contra tablas de cadenas fuera de `Localization/`, más el anclaje de los presets a claves reales. +5 pruebas. |
 | 2026-08-13 | **T1-08** | La firma Authenticode deja de eximir del SHA-256 mientras el proyecto no firme (era un bypass real, no endurecimiento preventivo). +`WTD_REVOKE_WHOLECHAIN`. +3 pruebas. |
+| 2026-08-13 | **T2-05** | Costura `CapacityVerifier.RunInAsync`: por fin se prueba la detección de unidades falsificadas **sin** una unidad falsificada. +`Core/OperationFailure`. +29 pruebas. |
+| 2026-08-13 | **T3-11** | *(hallada por T2-05)* `History.Log` aplana el texto multilínea: una caída ya no se parte en decenas de entradas fantasma. |
 
-**Estado:** 11/38 completadas · **27 abiertas** (T0: 0 · T1: **1** · T2: 12 · T3: 9 · T4: 5).
-Del Tier 1 solo queda `T1-02`, que necesita un Windows no ES/EN para verificarse.
+**Estado:** 14/39 completadas · **25 abiertas** (T0: 0 · T1: **1** · T2: 11 · T3: 9 · T4: 5).
+Del Tier 1 solo queda `T1-02`, que necesita un Windows no ES/EN para verificarse. `T3-11` se añadió
+**ya resuelta**: la encontró `T2-05` al recorrer el camino de error de punta a punta.
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
 (23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo.
-Build Release **0 advertencias / 0 errores**; suite **330/330** (eran 289; +41 pruebas nuevas).
+Build Release **0 advertencias / 0 errores**; suite **359/359** (eran 289; +70 pruebas nuevas).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que
@@ -705,8 +730,17 @@ Build Release **0 advertencias / 0 errores**; suite **330/330** (eran 289; +41 p
 > ejecutar como administrador. Verificado con `dotnet.exe` —firmado de verdad, no simulado—: con el atajo
 > activo, un ejecutable de Microsoft se acepta como nuestro instalador.
 >
-> **Siguiente paso recomendado: `T2-05`.** Es lo único que puede confirmar que los `catch` de `T0-02`
-> funcionan de verdad: hoy siguen sin haberse disparado nunca en una ejecución real.
+> **`T2-05` valió por lo que encontró, no por lo que verificó.** Al recorrer el camino de error entero
+> apareció `T3-11`: `T0-01` había empezado a registrar trazas de pila completas en un log de una entrada
+> por línea, así que **cada caída partía el historial en decenas de entradas fantasma clasificadas como
+> «información»**. Lo introdujo el arreglo de la mañana y pasó desapercibido justamente porque no había
+> pruebas del camino de error. También quedó bajo test lo que da sentido a la verificación de capacidad —
+> detectar una unidad falsificada—, que hasta hoy solo lo ejercitaba un test de UI de 57 minutos sobre una
+> USB **auténtica**, es decir, sobre el único caso en el que la detección nunca se dispara.
+>
+> **Sigue sin verificarse en ejecución real** que los `catch` de `T0-02` se disparen: lo que hay bajo test
+> es lo que *escriben*, no que lleguen a ejecutarse. Eso solo lo demuestra desconectar la USB a mitad de
+> cada operación.
 
 <!-- Al completar una tarea: marcar [x] arriba y añadir aquí una fila con la fecha absoluta y el commit. -->
 
