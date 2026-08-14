@@ -239,7 +239,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** forzar una excepción en un handler `async void` (p. ej. con un punto de
     interrupción condicional o una unidad extraída a mitad de *Verificar capacidad*) deja la app **viva**,
     con una entrada `CRASH:` en `history.log`.
-  - **Verificado sobre hardware el 2026-08-13.** Al desactivar el `catch` de `T0-02` y desmontar la USB a
+  - **Verificado sobre hardware el 2026-08-14.** Al desactivar el `catch` de `T0-02` y desmontar la USB a
     mitad de *Verificar capacidad*, el historial recibe exactamente
     `2026-08-14 12:03:31⇥CRASH: System.IO.IOException…` y la app sigue viva. La red global funciona.
   - **Esfuerzo:** bajo
@@ -257,7 +257,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     `Win32Exception` llega hasta el `async void`.
   - **Criterio de aceptación:** con la unidad de pruebas desconectada a mitad de cada una de las cuatro
     operaciones, la app muestra el error, escribe la línea de historial y vuelve a estado ocioso.
-  - **Verificado sobre hardware el 2026-08-13 para *Verificar capacidad* y *Benchmark*** (`T2-13`), las dos
+  - **Verificado sobre hardware el 2026-08-14 para *Verificar capacidad* y *Benchmark*** (`T2-13`), las dos
     que escriben en bucle. `CHKDSK` no entra por aquí —sale con código de error y se interpreta como
     `Failed`, sin excepción— y `REINIT` no se probó por ser destructivo.
   - **Esfuerzo:** bajo
@@ -291,7 +291,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     escribir nada en stdin. Verificar en un Windows no ES/EN, o con `chcp`/idioma de sistema cambiado.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
-  - **Resuelta y REPRODUCIDA el 2026-08-13.** Ya no estaba «pendiente de verificación»: se montó un VHD de
+  - **Resuelta y REPRODUCIDA el 2026-08-14.** Ya no estaba «pendiente de verificación»: se montó un VHD de
     400 MB y se lanzó `format.com` **sin escribir nada** por la entrada estándar, que es lo que le ocurre a
     un Windows cuyo idioma no responde ni a `Y` ni a `S`:
 
@@ -562,7 +562,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Depende de:** ninguna
 
 - [x] **[T2-13] Ejercitar los `catch` de las operaciones quitando la unidad de verdad**
-  *(añadida y resuelta el 2026-08-13)*
+  *(añadida y resuelta el 2026-08-14)*
   - **Área:** QA
   - **Ubicación:** `tests/FormatDiskPro.UiTests/OperationErrorTests.cs`, `DriveYank.cs`
   - **Por qué:** `T2-05` dejó bajo test lo que los `catch` de `T0-02` **escriben**, no que lleguen a
@@ -746,8 +746,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T1-08** | La firma Authenticode deja de eximir del SHA-256 mientras el proyecto no firme (era un bypass real, no endurecimiento preventivo). +`WTD_REVOKE_WHOLECHAIN`. +3 pruebas. |
 | 2026-08-13 | **T2-05** | Costura `CapacityVerifier.RunInAsync`: por fin se prueba la detección de unidades falsificadas **sin** una unidad falsificada. +`Core/OperationFailure`. +29 pruebas. |
 | 2026-08-13 | **T3-11** | *(hallada por T2-05)* `History.Log` aplana el texto multilínea: una caída ya no se parte en decenas de entradas fantasma. |
-| 2026-08-13 | **T2-13** | Los `catch` de `T0-02` ejecutados **de verdad**: desmontaje forzado de la USB a mitad de *Verificar capacidad* y *Benchmark*. +2 pruebas de UI (23 → 25). |
-| 2026-08-13 | **T1-02** | `format.com /Y` (cuelgue reproducido y arreglado) + `ExtractPercent` en 6 idiomas. **Tier 1 cerrado.** +10 pruebas. |
+| 2026-08-14 | **T2-13** | Los `catch` de `T0-02` ejecutados **de verdad**: desmontaje forzado de la USB a mitad de *Verificar capacidad* y *Benchmark*. +2 pruebas de UI (23 → 25). |
+| 2026-08-14 | **T1-02** | `format.com /Y` (cuelgue reproducido y arreglado) + `ExtractPercent` en 6 idiomas. **Tier 1 cerrado.** +10 pruebas. |
 
 **Estado:** 16/40 completadas · **24 abiertas** (T0: 0 · **T1: 0** · T2: 11 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows

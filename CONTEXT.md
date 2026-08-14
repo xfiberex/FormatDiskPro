@@ -10,13 +10,13 @@
 | | |
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
-| **Versión publicada** | **1.16.0** (2026-08-13) |
+| **Versión publicada** | **1.17.0** (2026-08-14) |
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **369** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 8 se omiten) |
+| **Pruebas** | **369** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-14 (sin la USB: 17 pasan / 8 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 16/40 · **Tiers 0 y 1 cerrados**) |
+| **Última actualización** | 2026-08-14 (v1.17.0 publicada · auditoría 16/40 · **Tiers 0 y 1 cerrados**) |
 
 ---
 
@@ -119,9 +119,9 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 |---|---|
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **369 / 369** (289 + 80 de la auditoría) |
-| UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-13) · 17+8 omitidos sin ella |
+| UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-14) · 17+8 omitidos sin ella |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
-| Publicado | v1.16.0 |
+| Publicado | v1.17.0 |
 | Auditoría | 2026-08-13 — **16/40 completadas**, 24 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 11 · T3: 9 · T4: 5) |
 
 **Tiers completados**
@@ -300,6 +300,7 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 | Versión | Qué trajo |
 |---|---|
+| **1.17.0** | Segunda tanda de la auditoría: el formato completo dejaba colgada la app en un Windows que no fuera ES/EN; barra de progreso del formato en 6 idiomas; presets integrados traducidos; el historial deja de partirse al registrar un error multilínea; la firma Authenticode deja de eximir del SHA-256. Tiers 0 y 1 cerrados (16/40). |
 | **1.16.0** | Robustez y accesibilidad: la app deja de cerrarse ante fallos de E/S, guarda de disco de sistema invariante de cultura, contraste AA en el historial, descripciones de FS en los 5 idiomas. Primera tanda de la auditoría (8/37). |
 | **1.15.2** | Pase de refinamiento UX/UI: fix truncación del botón chkdsk, barra de capacidad semántica, etiqueta S.M.A.R.T. más clara. Modo galería de capturas. |
 | **1.15.1** | Tier 9: UI tests en el pipeline, instalador probado end-to-end, build reproducible. Fix: metadatos del `.exe` corrompidos. Capturas en el README. |
@@ -327,7 +328,7 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 ---
 
-### 2026-08-13 — `T1-02`: el formato completo se colgaba en medio Windows, y no era el único idioma
+### 2026-08-14 — `T1-02`: el formato completo se colgaba en medio Windows, y no era el único idioma
 
 `format.com` hace dos preguntas por consola, y se les respondía escribiendo `"Y"` y `"S"` en la entrada
 estándar — las teclas de un Windows **inglés y español**. En uno francés (`O`) o alemán (`J`) ninguna
@@ -370,7 +371,7 @@ Build 0/0, **369/369** (359 → +10). Auditoría **16/40**: **Tiers 0 y 1 cerrad
 
 ---
 
-### 2026-08-13 — `T2-13`: los `catch` ejecutados de verdad, quitando la unidad
+### 2026-08-14 — `T2-13`: los `catch` ejecutados de verdad, quitando la unidad
 
 `T2-05` dejó bajo test lo que los `catch` de `T0-02` **escriben**; faltaba lo otro: que lleguen a
 **ejecutarse**. `DriveYank.ForceDismount` desmonta el volumen a la fuerza a mitad de la operación e
