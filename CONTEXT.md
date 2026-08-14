@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **359** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 8 se omiten) |
+| **Pruebas** | **369** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 8 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 15/40 · los `catch` ejecutados de verdad) |
+| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 16/40 · **Tiers 0 y 1 cerrados**) |
 
 ---
 
@@ -78,7 +78,7 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    359 pruebas xUnit sobre Core y los helpers de Services
+tests/FormatDiskPro.Tests/    369 pruebas xUnit sobre Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  25 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
@@ -118,11 +118,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **359 / 359** (289 + 70 de la auditoría) |
+| Unitarias | **369 / 369** (289 + 80 de la auditoría) |
 | UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-13) · 17+8 omitidos sin ella |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.16.0 |
-| Auditoría | 2026-08-13 — **15/40 completadas**, 25 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **1** · T2: 11 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **16/40 completadas**, 24 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 11 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -324,6 +324,49 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-13 — `T1-02`: el formato completo se colgaba en medio Windows, y no era el único idioma
+
+`format.com` hace dos preguntas por consola, y se les respondía escribiendo `"Y"` y `"S"` en la entrada
+estándar — las teclas de un Windows **inglés y español**. En uno francés (`O`) o alemán (`J`) ninguna
+coincide y **el proceso se queda esperando entrada con el formato a medias**.
+
+**Reproducido, no deducido.** La tarea llevaba la nota «pendiente de verificación: necesita un Windows no
+ES/EN». No hacía falta: basta con **no escribir nada**, que es lo que efectivamente ocurre cuando la tecla
+no coincide. Sobre un VHD de 400 MB:
+
+| | Resultado |
+|---|---|
+| Con `/Y` | Termina en **0.1 s**, exit 0, «Formato completado» |
+| Sin `/Y` | **Se cuelga** esperando una tecla que nunca llega |
+
+`/Y` suprime las **dos** preguntas —también la de la etiqueta de volumen, que la nota original dejaba como
+duda abierta, porque asume etiqueta vacía si no se pasa `/V:`— y fuerza el desmontaje si hace falta. Ya no
+se escribe nada por stdin: se **cierra**, para que una build hipotética sin `/Y` falle rápido en vez de
+colgarse indefinidamente.
+
+**Y había un segundo fallo de idioma en la misma ruta que la tarea no mencionaba.** `ExtractPercent`
+reconocía `%`, `percent` y `por ciento`: el mismo par inglés/español, en el mismo archivo. Como
+`format.com` escribe la **palabra** y no el símbolo, en un Windows francés o italiano la barra de progreso
+se quedaba clavada en 0 durante todo un formato completo **sin que nada fallara**. Añadidos `por cento`
+(pt), `per cento` (it), `pour cent` (fr) y `Prozent` (de).
+
+> **El matiz que hace esto distinto de `T1-05`/`T1-06`:** aquí el idioma que manda es el de **Windows**, no
+> el de la app. Alguien puede tener FormatDiskPro en español sobre un Windows alemán. Por eso esta lista es
+> incompleta por naturaleza y no puede dejar de serlo — lo que importa es **cómo se degrada**: sin
+> coincidencia, barra parada y formato correcto, nunca un fallo. Hay test de esa degradación.
+
+**Residuo honesto:** las cuatro palabras nuevas son traducciones, **no observaciones**. No se pudo ver la
+salida real de un `format.com` no español: un VHD montado se anuncia como aprovisionamiento fino y Windows
+rechaza el formato **completo** sobre él, que es el único que imprime porcentajes.
+
+**Y el barrido de `T1-07` no habría cazado esto**: busca `Dictionary<string,string>` y esto es un
+`[GeneratedRegex]`. La red tiene un agujero con la forma de lo que no se imaginó — que es, otra vez, el
+patrón de siempre.
+
+Build 0/0, **369/369** (359 → +10). Auditoría **16/40**: **Tiers 0 y 1 cerrados**.
 
 ---
 

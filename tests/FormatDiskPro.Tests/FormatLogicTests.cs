@@ -114,22 +114,34 @@ public sealed class FormatLogicTests : IDisposable
     public void BuildComArgumentList_HasExpectedElements()
     {
         var args = FormatLogic.BuildComArgumentList('G', "NTFS", 4096, "DATA");
-        Assert.Equal(["G:", "/FS:NTFS", "/A:4096", "/V:DATA"], args);
+        Assert.Equal(["G:", "/FS:NTFS", "/A:4096", "/Y", "/V:DATA"], args);
     }
 
     [Fact]
     public void BuildComArgumentList_EmptyLabel_OmitsVolumeArgument()
     {
         var args = FormatLogic.BuildComArgumentList('G', "NTFS", 4096, "");
-        Assert.Equal(["G:", "/FS:NTFS", "/A:4096"], args);
+        Assert.Equal(["G:", "/FS:NTFS", "/A:4096", "/Y"], args);
     }
+
+    /// <summary>
+    /// `/Y` es la diferencia entre "formatea" y "se queda esperando una tecla que nunca llega". Sin él,
+    /// format.com pregunta por consola y hay que contestarle en el idioma de Windows: escribir "Y"/"S"
+    /// acertaba en inglés y español, y colgaba el formato a medias en francés (O) o alemán (J).
+    /// Va en TODAS las invocaciones, con etiqueta y sin ella.
+    /// </summary>
+    [Theory]
+    [InlineData("MI ETIQUETA")]
+    [InlineData("")]
+    public void BuildComArgumentList_AlwaysSuppressesPrompts(string label)
+        => Assert.Contains("/Y", FormatLogic.BuildComArgumentList('G', "NTFS", 4096, label));
 
     [Fact]
     public void BuildComArgumentList_LabelWithSpaces_StaysSingleElement()
     {
         // El runtime escapa cada elemento; un espacio o comillas en la etiqueta no inyecta argumentos extra.
         var args = FormatLogic.BuildComArgumentList('G', "NTFS", 4096, "my \" evil");
-        Assert.Equal(4, args.Count);
+        Assert.Equal(5, args.Count);
         Assert.Equal("/V:my \" evil", args[^1]);
     }
 
@@ -201,6 +213,33 @@ public sealed class FormatLogicTests : IDisposable
     [Fact]
     public void ExtractPercent_NoMatch_ReturnsMinusOne()
         => Assert.Equal(-1, FormatLogic.ExtractPercent("formatting drive, please wait"));
+
+    /// <summary>
+    /// format.com escribe la PALABRA, no el símbolo «%», y en el idioma de <b>Windows</b> — que no es el
+    /// idioma de la app: se puede tener FormatDiskPro en español sobre un Windows alemán. El patrón cubría
+    /// solo inglés y español (el mismo par que la respuesta "Y"/"S" que había en RunFormatComAsync), así
+    /// que en un Windows francés o italiano la barra se quedaba clavada en 0 durante todo un formato
+    /// completo sin que nada fallara.
+    /// </summary>
+    [Theory]
+    [InlineData("42 percent completed.", 42)]           // en
+    [InlineData("42 por ciento completado.", 42)]       // es
+    [InlineData("42 por cento concluído.", 42)]         // pt
+    [InlineData("42 per cento completato.", 42)]        // it
+    [InlineData("42 pour cent effectué.", 42)]          // fr
+    [InlineData("42 Prozent abgeschlossen.", 42)]       // de
+    [InlineData("42% completado", 42)]                  // por si alguna build sí usa el símbolo
+    public void ExtractPercent_UnderstandsEachLanguage(string chunk, int expected)
+        => Assert.Equal(expected, FormatLogic.ExtractPercent(chunk));
+
+    /// <summary>
+    /// La lista de idiomas es incompleta por naturaleza y no puede dejar de serlo. Lo que importa es CÓMO
+    /// se degrada: sin coincidencia devuelve -1, que el llamador traduce en "no muevas la barra". El
+    /// formato sigue siendo correcto; lo único que se pierde es el progreso.
+    /// </summary>
+    [Fact]
+    public void ExtractPercent_UnknownLanguage_DegradesToNoProgress()
+        => Assert.Equal(-1, FormatLogic.ExtractPercent("42 procent voltooid."));   // nl
 
     // ── FormatBytes ──────────────────────────────────────────────
 

@@ -54,10 +54,19 @@ public static partial class FormatLogic
     /// <summary>
     /// Argumentos para <c>format.com</c> como lista (cada elemento se escapa de forma independiente
     /// por el runtime, evitando inyección a través de la etiqueta).
+    ///
+    /// <para><b><c>/Y</c> no es opcional.</b> Sin él, <c>format.com</c> hace DOS preguntas por consola:
+    /// la confirmación («¿Continuar con el formato (S/N)?») y, si no se pasa <c>/V:</c>, la etiqueta de
+    /// volumen. Antes se respondía escribiendo <c>"Y"</c> y <c>"S"</c> en la entrada estándar — las
+    /// respuestas de un Windows <b>inglés y español</b>. En uno francés (<c>O</c>) o alemán (<c>J</c>) no
+    /// coinciden y el proceso <b>se queda esperando entrada para siempre</b>, con el formato a medias.
+    /// <c>/Y</c> suprime las dos preguntas y asume etiqueta vacía cuando no se especifica, así que no
+    /// queda nada que dependa del idioma. También fuerza el desmontaje del volumen si hace falta, que es
+    /// lo que uno quiere de una herramienta de formateo.</para>
     /// </summary>
     public static IReadOnlyList<string> BuildComArgumentList(char driveLetter, string fs, long allocBytes, string label)
     {
-        var args = new List<string> { $"{driveLetter}:", $"/FS:{fs}", $"/A:{allocBytes}" };
+        var args = new List<string> { $"{driveLetter}:", $"/FS:{fs}", $"/A:{allocBytes}", "/Y" };
         if (!string.IsNullOrEmpty(label)) args.Add($"/V:{label}");
         return args;
     }
@@ -90,7 +99,21 @@ public static partial class FormatLogic
         return LabelValidation.Ok;
     }
 
-    /// <summary>Extrae el último porcentaje (0-100) de un fragmento de salida de <c>format.com</c>; -1 si no hay.</summary>
+    /// <summary>
+    /// Extrae el último porcentaje (0-100) de un fragmento de salida de <c>format.com</c>; -1 si no hay.
+    ///
+    /// <para><b>Ojo con el idioma.</b> <c>format.com</c> no escribe el símbolo <c>%</c> sino la palabra
+    /// («1 por ciento completado»), así que esto depende del idioma de <b>Windows</b> — que NO es el
+    /// idioma de la app: alguien puede tener FormatDiskPro en español sobre un Windows alemán. El patrón
+    /// cubría solo inglés y español, el mismo par que la respuesta <c>"Y"/"S"</c> que había en
+    /// <c>RunFormatComAsync</c>; en un Windows francés o italiano la barra de progreso se quedaba clavada
+    /// en 0 durante todo un formato completo, sin que nada fallara.</para>
+    ///
+    /// <para><b>Esta lista es incompleta por naturaleza</b> y no hay forma de completarla: Windows habla
+    /// muchos más idiomas de los que se pueden enumerar aquí. En el peor caso se degrada a lo de antes —
+    /// barra parada, formato correcto—, nunca a un fallo. Si aparece otro idioma, se añade aquí y a
+    /// <c>FormatLogicTests.ExtractPercent_UnderstandsEachLanguage</c>.</para>
+    /// </summary>
     public static int ExtractPercent(string chunk)
     {
         var matches = PercentRegex().Matches(chunk);
@@ -108,6 +131,10 @@ public static partial class FormatLogic
         return $"{v:0.#} {u[i]}";
     }
 
-    [GeneratedRegex(@"(\d{1,3})\s*(?:%|percent|por\s*ciento)", RegexOptions.IgnoreCase)]
+    // es: "por ciento" · pt: "por cento" · it: "per cento" · fr: "pour cent" · de: "Prozent".
+    // `percent` va antes que `per\s*cento` a propósito: son prefijos distintos y no se solapan (el
+    // italiano lleva espacio), pero el orden deja claro cuál es cuál.
+    [GeneratedRegex(@"(\d{1,3})\s*(?:%|percent|por\s*ciento|por\s*cento|per\s*cento|pour\s*cent|prozent)",
+        RegexOptions.IgnoreCase)]
     private static partial Regex PercentRegex();
 }

@@ -1017,13 +1017,11 @@ public sealed partial class MainWindow : Window
         _activeProcess.Start();
         using var reg = ct.Register(() => { try { _activeProcess?.Kill(entireProcessTree: true); } catch { } });
 
-        try
-        {
-            await _activeProcess.StandardInput.WriteLineAsync("Y");
-            await _activeProcess.StandardInput.WriteLineAsync("S");
-            await _activeProcess.StandardInput.FlushAsync(ct);
-        }
-        catch { }
+        // Ya no se responde nada por la entrada estándar: `/Y` (ver BuildComArgumentList) suprime las dos
+        // preguntas de format.com. Escribir "Y"/"S" solo acertaba en un Windows inglés o español; en uno
+        // francés o alemán el proceso se quedaba esperando entrada con el formato a medias. Se cierra la
+        // entrada para que, si alguna build llegara a preguntar algo, falle en vez de colgarse indefinida.
+        try { _activeProcess.StandardInput.Close(); } catch { }
 
         var errTask = _activeProcess.StandardError.ReadToEndAsync();
         var sb      = new StringBuilder();

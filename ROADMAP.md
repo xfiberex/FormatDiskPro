@@ -279,7 +279,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T1-02] `format.com`: pasar `/Y` en vez de teclear "Y"/"S" por stdin**
+- [x] **[T1-02] `format.com`: pasar `/Y` en vez de teclear "Y"/"S" por stdin**
   - **Área:** Código / i18n
   - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml.cs:1002-1004`,
     `src/FormatDiskPro/Core/FormatLogic.cs:58-63`
@@ -291,8 +291,30 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     escribir nada en stdin. Verificar en un Windows no ES/EN, o con `chcp`/idioma de sistema cambiado.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
-  - **Nota:** *pendiente de verificación* — el fallo se dedujo del código, no se reprodujo. Revisar de paso
-    el prompt de etiqueta de volumen que `format.com` hace en discos **fijos** (no extraíbles).
+  - **Resuelta y REPRODUCIDA el 2026-08-13.** Ya no estaba «pendiente de verificación»: se montó un VHD de
+    400 MB y se lanzó `format.com` **sin escribir nada** por la entrada estándar, que es lo que le ocurre a
+    un Windows cuyo idioma no responde ni a `Y` ni a `S`:
+
+    | | Resultado |
+    |---|---|
+    | **Con `/Y`** | Termina en **0.1 s**, exit 0, «Formato completado» |
+    | **Sin `/Y`** | **Se cuelga** esperando una tecla que nunca llega |
+
+    El `/Y` resuelve además el segundo prompt que esta nota dejaba abierto —el de la etiqueta de volumen—
+    porque asume etiqueta vacía cuando no se pasa `/V:`. Ya no se escribe nada por stdin: se **cierra**,
+    para que una build hipotética sin `/Y` falle en vez de colgarse indefinidamente.
+  - **Segundo fallo de idioma en la misma ruta, que esta tarea NO mencionaba.** `ExtractPercent` reconocía
+    `%`, `percent` y `por ciento` — el mismo par inglés/español que la respuesta por stdin. Como
+    `format.com` escribe la **palabra** y no el símbolo, en un Windows francés o italiano la barra de
+    progreso se quedaba clavada en 0 durante todo un formato completo sin que nada fallara. Añadidos
+    `por cento` (pt), `per cento` (it), `pour cent` (fr) y `Prozent` (de).
+  - **Residuo honesto:** las cuatro palabras nuevas son **traducciones, no observaciones** — no se ha visto
+    la salida real de un `format.com` no español. No se pudo: un VHD montado se anuncia como
+    aprovisionamiento fino y Windows rechaza el formato **completo** sobre él, que es el único que imprime
+    porcentajes. El riesgo está acotado: si alguna no coincide, se degrada a barra parada con el formato
+    correcto — nunca a un fallo. Hay test de esa degradación.
+  - **Ojo al matiz:** el idioma que manda aquí es el de **Windows**, no el de la app. Se puede tener
+    FormatDiskPro en español sobre un Windows alemán, así que esta lista es incompleta por naturaleza.
 
 - [x] **[T1-03] Contraste WCAG AA en el historial: estado «Cancelado» (3.52:1)**
   - **Área:** Accesibilidad
@@ -725,13 +747,16 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T2-05** | Costura `CapacityVerifier.RunInAsync`: por fin se prueba la detección de unidades falsificadas **sin** una unidad falsificada. +`Core/OperationFailure`. +29 pruebas. |
 | 2026-08-13 | **T3-11** | *(hallada por T2-05)* `History.Log` aplana el texto multilínea: una caída ya no se parte en decenas de entradas fantasma. |
 | 2026-08-13 | **T2-13** | Los `catch` de `T0-02` ejecutados **de verdad**: desmontaje forzado de la USB a mitad de *Verificar capacidad* y *Benchmark*. +2 pruebas de UI (23 → 25). |
+| 2026-08-13 | **T1-02** | `format.com /Y` (cuelgue reproducido y arreglado) + `ExtractPercent` en 6 idiomas. **Tier 1 cerrado.** +10 pruebas. |
 
-**Estado:** 15/40 completadas · **25 abiertas** (T0: 0 · T1: **1** · T2: 11 · T3: 9 · T4: 5).
-Del Tier 1 solo queda `T1-02`, que necesita un Windows no ES/EN para verificarse. `T3-11` se añadió
+**Estado:** 16/40 completadas · **24 abiertas** (T0: 0 · **T1: 0** · T2: 11 · T3: 9 · T4: 5).
+**Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
+extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
+`T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió
 **ya resuelta**: la encontró `T2-05` al recorrer el camino de error de punta a punta.
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
 (23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo.
-Build Release **0 advertencias / 0 errores**; suite **359/359** (eran 289; +70 pruebas nuevas).
+Build Release **0 advertencias / 0 errores**; suite **369/369** (eran 289; +80 pruebas nuevas).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que
