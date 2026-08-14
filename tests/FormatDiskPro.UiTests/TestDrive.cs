@@ -18,6 +18,14 @@ public static class TestDrive
     /// </summary>
     public const string DestructiveOptInVar = "FORMATDISKPRO_ALLOW_DESTRUCTIVE";
 
+    /// <summary>
+    /// Variable de entorno que debe valer "1" para permitir las pruebas que <b>desmontan</b> la USB a
+    /// mitad de una operación (`Set-Disk -IsOffline`) para comprobar que la app sobrevive. No borran
+    /// datos —por eso no reusan <see cref="DestructiveOptInVar"/>— pero sí hacen desaparecer la unidad
+    /// del sistema durante unos segundos, así que no deben correr por sorpresa en un corte de release.
+    /// </summary>
+    public const string YankOptInVar = "FORMATDISKPRO_ALLOW_YANK";
+
     public static char? FindLetter(string label)
     {
         foreach (var d in DriveInfo.GetDrives())

@@ -214,10 +214,10 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 |---|---|---:|---|
 | **T0** | Crítico / bloqueante — la app puede morir en mitad de una operación | 2 | bajo |
 | **T1** | Alta prioridad — guardas destructivas, barreras a11y, i18n rota, seguridad | 9 | bajo-medio |
-| **T2** | Mejoras sustanciales — a11y, exactitud de medición, cobertura, CI, arquitectura | 12 | medio-alto |
+| **T2** | Mejoras sustanciales — a11y, exactitud de medición, cobertura, CI, arquitectura | 13 | medio-alto |
 | **T3** | Pulido — errores silenciosos, docs contradictorias, consistencia | 11 | bajo |
 | **T4** | Futuro / opcional — fuera del alcance inmediato | 5 | — |
-| | **Total** | **39** | |
+| | **Total** | **40** | |
 
 **Orden recomendado:** T0 → T1-01/02 (guardas destructivas) → T1-03/04 (a11y medible) → T1-05/06/07
 (i18n) → T1-08/09 (updater) → T2 → T3.
@@ -239,6 +239,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** forzar una excepción en un handler `async void` (p. ej. con un punto de
     interrupción condicional o una unidad extraída a mitad de *Verificar capacidad*) deja la app **viva**,
     con una entrada `CRASH:` en `history.log`.
+  - **Verificado sobre hardware el 2026-08-13.** Al desactivar el `catch` de `T0-02` y desmontar la USB a
+    mitad de *Verificar capacidad*, el historial recibe exactamente
+    `2026-08-14 12:03:31⇥CRASH: System.IO.IOException…` y la app sigue viva. La red global funciona.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
@@ -254,6 +257,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     `Win32Exception` llega hasta el `async void`.
   - **Criterio de aceptación:** con la unidad de pruebas desconectada a mitad de cada una de las cuatro
     operaciones, la app muestra el error, escribe la línea de historial y vuelve a estado ocioso.
+  - **Verificado sobre hardware el 2026-08-13 para *Verificar capacidad* y *Benchmark*** (`T2-13`), las dos
+    que escriben en bucle. `CHKDSK` no entra por aquí —sale con código de error y se interpreta como
+    `Failed`, sin excepción— y `REINIT` no se probó por ser destructivo.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna (complementaria de `T0-01`, no sustituible por ella)
 
@@ -533,6 +539,26 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
+- [x] **[T2-13] Ejercitar los `catch` de las operaciones quitando la unidad de verdad**
+  *(añadida y resuelta el 2026-08-13)*
+  - **Área:** QA
+  - **Ubicación:** `tests/FormatDiskPro.UiTests/OperationErrorTests.cs`, `DriveYank.cs`
+  - **Por qué:** `T2-05` dejó bajo test lo que los `catch` de `T0-02` **escriben**, no que lleguen a
+    **ejecutarse**. Un `catch` que nadie ha visto ejecutarse no es una red, es una suposición.
+  - **Qué se hizo:** `DriveYank.ForceDismount` desmonta el volumen a la fuerza a mitad de la operación
+    (`FSCTL_DISMOUNT_VOLUME`), invalidando los handles abiertos de la app — el efecto exacto de quitarle
+    la USB de las manos. Dos pruebas: *Verificar capacidad* y *Benchmark*.
+  - **La aserción que hace que la prueba valga:** `Assert.DoesNotContain("CRASH:", …)`. Sin ella pasaría
+    **igual con los `catch` borrados**, porque la red global de `T0-01` también deja la app viva y también
+    muestra un diálogo: desde fuera las dos rutas son idénticas. Lo único que las distingue es qué línea
+    aparece en el historial. **Verificado por reversión:** con el `catch` de `VERIFY` neutralizado, el
+    historial recibe `CRASH: System.IO.IOException…` y la prueba falla nombrando lo que faltaba.
+  - **`Set-Disk -IsOffline` no sirve** para esto: Windows lo rechaza sobre medios extraíbles
+    (*«Removable media cannot be set to offline»*). Es una operación de discos fijos.
+  - **Opt-in propio** (`FORMATDISKPRO_ALLOW_YANK=1`), separado del destructivo: no borra datos, pero hace
+    desaparecer una unidad del sistema y no debe correr por sorpresa en un corte de release.
+  - **Esfuerzo:** medio · **Depende de:** T0-02, T2-05
+
 - [ ] **[T2-11] `SECURITY.md`, `CONTRIBUTING.md` y plantillas de issue**
   - **Área:** Documentación / DevOps
   - **Ubicación:** `.github/`
@@ -698,8 +724,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T1-08** | La firma Authenticode deja de eximir del SHA-256 mientras el proyecto no firme (era un bypass real, no endurecimiento preventivo). +`WTD_REVOKE_WHOLECHAIN`. +3 pruebas. |
 | 2026-08-13 | **T2-05** | Costura `CapacityVerifier.RunInAsync`: por fin se prueba la detección de unidades falsificadas **sin** una unidad falsificada. +`Core/OperationFailure`. +29 pruebas. |
 | 2026-08-13 | **T3-11** | *(hallada por T2-05)* `History.Log` aplana el texto multilínea: una caída ya no se parte en decenas de entradas fantasma. |
+| 2026-08-13 | **T2-13** | Los `catch` de `T0-02` ejecutados **de verdad**: desmontaje forzado de la USB a mitad de *Verificar capacidad* y *Benchmark*. +2 pruebas de UI (23 → 25). |
 
-**Estado:** 14/39 completadas · **25 abiertas** (T0: 0 · T1: **1** · T2: 11 · T3: 9 · T4: 5).
+**Estado:** 15/40 completadas · **25 abiertas** (T0: 0 · T1: **1** · T2: 11 · T3: 9 · T4: 5).
 Del Tier 1 solo queda `T1-02`, que necesita un Windows no ES/EN para verificarse. `T3-11` se añadió
 **ya resuelta**: la encontró `T2-05` al recorrer el camino de error de punta a punta.
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
@@ -738,9 +765,10 @@ Build Release **0 advertencias / 0 errores**; suite **359/359** (eran 289; +70 p
 > detectar una unidad falsificada—, que hasta hoy solo lo ejercitaba un test de UI de 57 minutos sobre una
 > USB **auténtica**, es decir, sobre el único caso en el que la detección nunca se dispara.
 >
-> **Sigue sin verificarse en ejecución real** que los `catch` de `T0-02` se disparen: lo que hay bajo test
-> es lo que *escriben*, no que lleguen a ejecutarse. Eso solo lo demuestra desconectar la USB a mitad de
-> cada operación.
+> **Ya está verificado** (`T2-13`): desmontando la USB por la fuerza a mitad de *Verificar capacidad* y
+> *Benchmark*, la app sobrevive, avisa, registra y vuelve a estado ocioso. Y la prueba **discrimina**: con
+> el `catch` neutralizado, el historial recibe `CRASH:` en vez de `VERIFY ERROR` y falla. Eso valida a la
+> vez la red global de `T0-01` y el `catch` de `T0-02`, que hasta hoy solo estaban razonados.
 
 <!-- Al completar una tarea: marcar [x] arriba y añadir aquí una fila con la fecha absoluta y el commit. -->
 

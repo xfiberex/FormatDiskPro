@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **359** unitarias · **23** de UI sobre la app real — **23/23 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 6 se omiten) |
+| **Pruebas** | **359** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-13 (sin la USB: 17 pasan / 8 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 14/39 · caminos de error bajo test) |
+| **Última actualización** | 2026-08-13 (v1.16.0 publicada · auditoría 15/40 · los `catch` ejecutados de verdad) |
 
 ---
 
@@ -79,7 +79,7 @@ src/FormatDiskPro/
 └─ Program.cs       Punto de entrada
 
 tests/FormatDiskPro.Tests/    359 pruebas xUnit sobre Core y los helpers de Services
-tests/FormatDiskPro.UiTests/  23 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
+tests/FormatDiskPro.UiTests/  25 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
 FormatDiskPro.slnx            Solución: app + Tests. UiTests NO está incluido, a propósito.
@@ -119,10 +119,10 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 |---|---|
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **359 / 359** (289 + 70 de la auditoría) |
-| UI tests | **23/23** con la USB de pruebas y opt-in destructivo (2026-08-13) · 17+6 omitidos sin ella |
+| UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-13) · 17+8 omitidos sin ella |
 | Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.16.0 |
-| Auditoría | 2026-08-13 — **14/39 completadas**, 25 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **1** · T2: 11 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **15/40 completadas**, 25 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **1** · T2: 11 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -324,6 +324,48 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-13 — `T2-13`: los `catch` ejecutados de verdad, quitando la unidad
+
+`T2-05` dejó bajo test lo que los `catch` de `T0-02` **escriben**; faltaba lo otro: que lleguen a
+**ejecutarse**. `DriveYank.ForceDismount` desmonta el volumen a la fuerza a mitad de la operación e
+invalida los handles abiertos de la app — el efecto exacto de que le quiten la USB de las manos. Dos
+pruebas: *Verificar capacidad* y *Benchmark*.
+
+**Lo que hace que la prueba valga algo es una sola línea:**
+
+```csharp
+Assert.DoesNotContain("CRASH:", added);
+```
+
+Sin ella, la prueba pasaría **igual con los `catch` borrados**: la red global de `T0-01` también deja la
+app viva y también muestra un diálogo, así que desde fuera las dos rutas son indistinguibles. Lo único
+que las separa es qué línea aparece en el historial. Verificado por reversión: con el `catch` de `VERIFY`
+neutralizado, el historial recibe `2026-08-14 12:03:31⇥CRASH: System.IO.IOException…` y la prueba falla
+diciendo qué faltaba. Ese mismo experimento valida **las dos** redes a la vez, que hasta hoy solo estaban
+razonadas.
+
+**`Set-Disk -IsOffline` no sirve para desmontar una USB** — Windows lo rechaza de plano: *«Removable media
+cannot be set to offline»*. Poner un disco offline es una operación de discos fijos. Lo que sí vale es
+`FSCTL_DISMOUNT_VOLUME` sobre el volumen: es lo que hace Windows al "quitar hardware de forma segura" y,
+a diferencia de `FSCTL_LOCK_VOLUME`, **no falla cuando hay archivos abiertos** — los invalida, que es
+justo lo que hace falta aquí. Se remonta solo al primer acceso, sin tocar el cable.
+
+**Trampa aprendida (costó una corrida entera):** una prueba que aborta a mitad deja la app **ocupada**, y
+la siguiente falla con un `DrivePicker` vacío — un síntoma que no se parece en nada a su causa. El
+`finally` ahora devuelve la app a estado ocioso además de remontar la unidad.
+
+**Otra:** no vale esperar a que `StartButton` se rehabilite para dar la app por ociosa. En
+`SetFormEnabled` es `enabled && !_isDriveProtected`, y al desaparecer la USB el selector puede caer en
+`C:`, que está protegida: quedaría deshabilitado con la app perfectamente ociosa. Se miran `DrivePicker`
+y `MnuTools`.
+
+Opt-in propio `FORMATDISKPRO_ALLOW_YANK=1`, separado del destructivo: no borra datos, pero hace
+desaparecer una unidad del sistema.
+
+Suite de UI **25/25** con hardware (era 23). Auditoría **15/40**.
 
 ---
 

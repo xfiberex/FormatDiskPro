@@ -35,6 +35,25 @@ public sealed class TestDriveFactAttribute : FactAttribute
 /// deseado por defecto, no un fallo— y además es lo que permite que <c>release.ps1 -UiTests</c> corra la
 /// suite sin riesgo: un corte de release <b>nunca</b> debe formatear una unidad.
 /// </summary>
+/// <summary>
+/// <c>[Fact]</c> de una prueba que <b>DESMONTA</b> la USB a mitad de una operación para comprobar que la
+/// app sobrevive a perder la unidad (`T0-02`). No borra datos, pero hace desaparecer la unidad del
+/// sistema unos segundos: se salta salvo <c>FORMATDISKPRO_ALLOW_YANK=1</c>, para que ni un corte de
+/// release ni una corrida rutinaria la ejecuten por sorpresa.
+/// </summary>
+public sealed class YankFactAttribute : FactAttribute
+{
+    public YankFactAttribute()
+    {
+        if (Environment.GetEnvironmentVariable(TestDrive.YankOptInVar) != "1")
+            Skip = $"Desmonta la USB de pruebas a mitad de la operación. Define " +
+                   $"{TestDrive.YankOptInVar}=1 antes de 'dotnet test' para ejecutarla.";
+        else if (TestDrive.FindLetter(TestDrive.PrimaryLabel) is null)
+            Skip = $"Requiere la USB de pruebas conectada (partición extraíble etiquetada " +
+                   $"'{TestDrive.PrimaryLabel}').";
+    }
+}
+
 public sealed class DestructiveFactAttribute : FactAttribute
 {
     public DestructiveFactAttribute()
