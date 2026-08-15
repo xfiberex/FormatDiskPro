@@ -194,9 +194,11 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 - **CI con GitHub Actions — descartado (2026-07-12).** Un runner hospedado **no puede** ejecutar los UI tests
   (necesitan sesión elevada y la USB física de pruebas), así que solo duplicaría los unitarios que
   `release.ps1` ya corre antes de cada corte, con menos cobertura. Misma decisión que en WingetUSoft.
-  *(Matizado por la auditoría en `T2-10` y **resuelto el 2026-08-15**: el argumento vale para los UI tests
-  —que siguen fuera de CI—, pero dejaba los **unitarios** sin ejecutar en ningún PR externo. Desde
-  `.github/workflows/tests.yml` hay CI **solo de unitarios**. Lo de los UI tests no se reabre.)*
+  **Reafirmado y ampliado el 2026-08-15: NO habrá CI de ningún tipo, tampoco de solo unitarias.** La
+  auditoría lo propuso (`T2-10`), se llegó a implementar y se revirtió: **el testing de este proyecto es
+  local**. La prueba que vale aquí es la que ejerce la app real, y esa no cabe en un runner; un ✅ verde
+  que solo cubre los unitarios afirma más de lo que prueba. La puerta de calidad es
+  `release.ps1 -UiTests` desde terminal elevada.
 
 ---
 
@@ -560,7 +562,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     falta 2 MB para que exista, pero el respaldo existe justamente para no dejar rastro en el `%AppData%`
     del usuario, y una excepción «que casi nunca pasa» es como se cuelan.
 
-- [x] **[T2-10] CI de solo unitarias en GitHub Actions**
+- [ ] ~~**[T2-10] CI de solo unitarias en GitHub Actions**~~ — ❌ **DESCARTADA (2026-08-15)**
   - **Área:** DevOps
   - **Ubicación:** `.github/` (hoy solo contiene `FUNDING.yml`)
   - **Qué hacer:** la decisión de 2026-07-12 descartó CI porque un runner hospedado no puede correr los UI
@@ -571,17 +573,17 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** un PR con una unitaria rota queda en rojo antes de la revisión.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
-  - **Resuelta el 2026-08-15.** `.github/workflows/tests.yml`: `windows-latest`, SDK 10, `restore` →
-    `build -c Release -warnaserror` → `dotnet test FormatDiskPro.slnx`, con el `.trx` como artefacto. Se
-    excluyen los avisos `NU19xx` (vulnerabilidades de NuGet) de `-warnaserror`: son útiles, pero aparecen
-    por publicaciones de terceros y tumbarían PRs que no tienen nada que ver.
-  - **No reabre la decisión del 2026-07-12:** los UI tests siguen sin correr en CI —necesitan sesión
-    elevada y la USB física— y `FormatDiskPro.UiTests` está fuera de la solución precisamente para que
-    `dotnet test` no los arrastre. Lo que se cubre es el hueco que aquella decisión dejaba: los
-    **unitarios** no se ejecutaban en ningún PR, solo en la máquina del mantenedor durante `release.ps1`.
-  - **Residuo honesto:** los dos comandos del workflow se ejecutaron **localmente** tal cual (build 0/0,
-    388/388), pero el workflow **no se ha visto correr en el runner**: eso solo pasa al empujarlo. Si el
-    runner hospedado tropieza con algo del Windows App SDK, se verá en la primera corrida.
+  - **Descartada el 2026-08-15, por decisión del mantenedor: las pruebas de este proyecto se ejecutan
+    SOLO en local.** Se llegó a implementar (`.github/workflows/tests.yml`, con los comandos verificados
+    en local) y se **revirtió**. No es una tarea aplazada: no se va a hacer.
+  - **El porqué, que además refuerza la decisión del 2026-07-12:** en este proyecto la prueba que vale es
+    la que ejerce la app real, y esa **no cabe en un runner** (sesión elevada + USB física). Un CI que solo
+    corre los unitarios pone un ✅ verde en el repositorio que dice bastante menos de lo que parece —
+    justo el problema que `T2-12` acaba de arreglar en el otro extremo del proceso—. La verificación de
+    verdad la da `release.ps1 -UiTests` desde una terminal elevada, y esa es la puerta que importa.
+  - **Consecuencia asumida:** en un PR externo, los unitarios no se ejecutan hasta que el mantenedor los
+    corre. El proyecto es de un solo mantenedor y el corte no sale sin pasar por `release.ps1`, así que la
+    puerta sigue existiendo — está en local, no en GitHub.
 
 - [x] **[T2-12] Que el corte diga cuánta cobertura de UI llevó realmente**
   - **Área:** DevOps / QA
@@ -802,9 +804,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 | 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
-| 2026-08-15 | **T2-10** | `.github/workflows/tests.yml`: build sin advertencias + unitarias en cada PR. Los UI tests siguen fuera, por diseño. |
+| 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 21/40 completadas · **19 abiertas** (T0: 0 · **T1: 0** · T2: 6 · T3: 9 · T4: 5).
+**Estado:** 20/40 completadas · 1 descartada (`T2-10`) · **19 abiertas** (T0: 0 · **T1: 0** · T2: 6 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió

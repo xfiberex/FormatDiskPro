@@ -16,7 +16,7 @@
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **388** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-14 (sin la USB: 17 pasan / 8 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (auditoría **21/40** · sin publicar todavía: cobertura de UI declarada en el corte, historial rotado, CI de unitarias) |
+| **Última actualización** | 2026-08-15 (auditoría **20/40** · sin publicar todavía: cobertura de UI declarada en el corte, historial rotado · **CI descartada: el testing es local**) |
 
 ---
 
@@ -82,7 +82,6 @@ src/FormatDiskPro/
 tests/FormatDiskPro.Tests/    369 pruebas xUnit sobre Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  25 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
-.github/workflows/tests.yml   CI: build sin advertencias + unitarias en cada PR (UI tests NO, por diseño)
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
 FormatDiskPro.slnx            Solución: app + Tests. UiTests NO está incluido, a propósito.
 ```
@@ -120,11 +119,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **388 / 388** (289 + 99 de la auditoría) · en CI desde el 2026-08-15 |
+| Unitarias | **388 / 388** (289 + 99 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-14) · 17+8 omitidos sin ella, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.17.0 · hay trabajo de auditoría **sin publicar** en `master` |
-| Auditoría | 2026-08-13 — **21/40 completadas**, 19 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 6 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **20/40 completadas** + 1 descartada (`T2-10`, CI), 19 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 6 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -156,6 +155,14 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   un espacio de trabajo: ningún contenido gana con más ancho y el layout de tarjetas ya cabe entero. No portar
   `WindowSizing`/`ContentScroller` de WingetUSoft: allí la ventana lista paquetes en una tabla y lo
   necesitaba; aquí resolvería un problema que no existe.
+- **El testing de este proyecto es LOCAL: no hay CI, ni GitHub Actions, ni workflows — firme (2026-08-15).**
+  La auditoría propuso un CI de solo unitarias (`T2-10`); se implementó, se revirtió y la tarea queda
+  **descartada**. El motivo no es el coste: en esta app la prueba que vale es la que **ejerce el binario
+  real** contra hardware real (elevación + USB de pruebas), y eso **no cabe en un runner hospedado**. Un ✅
+  verde que solo cubre los unitarios afirma más de lo que prueba — exactamente el problema que `T2-12`
+  acaba de corregir en el otro extremo del proceso. La puerta de calidad es
+  **`release.ps1 -UiTests` desde una terminal elevada**, y esa puerta ya existe. Consecuencia asumida: un
+  PR externo no ejecuta nada hasta que el mantenedor lo corre en su máquina.
 - **Protección de unidades:** SOLO se protege el **disco de sistema** (`IsSystemDrive()`). El resto
   —removibles, discos de datos fijos, RAM— **sí** se pueden formatear.
 - **No se firma el instalador** (#13, 2026-06-24): SmartScreen dirá "editor desconocido". La firma sigue
@@ -339,7 +346,7 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 ---
 
-### 2026-08-15 — `T2-09` y `T2-10`: el historial deja de crecer sin fin, y los unitarios corren en cada PR
+### 2026-08-15 — `T2-09`: el historial deja de crecer sin fin (y `T2-10` queda descartada)
 
 **`T2-09` — rotación con dos generaciones.** `history.log` solo crecía y el visor lo interpreta **entero**
 en memoria cada vez que se abre. Con una entrada por operación eso tarda años en notarse; con las trazas
@@ -360,20 +367,18 @@ umbral. Verificado por reversión: sin la rotación fallan dos de las seis prueb
 pero ese respaldo existe justamente para no dejar rastro en el `%AppData%` real, y una excepción «que casi
 nunca pasa» es como se cuelan las cosas.
 
-**`T2-10` — CI de solo unitarias.** `.github/workflows/tests.yml` sobre `windows-latest`: restore →
-`build -c Release -warnaserror` → `dotnet test FormatDiskPro.slnx`, con el `.trx` como artefacto. Se
-excluyen del `-warnaserror` los avisos `NU19xx` (vulnerabilidades de NuGet): son útiles, pero aparecen por
-publicaciones de terceros y tumbarían PRs que no tienen nada que ver.
+**`T2-10` — CI de solo unitarias: implementada y revertida el mismo día.** Se llegó a escribir el workflow
+(`windows-latest`, build sin advertencias + `dotnet test` sobre la solución, con los comandos verificados
+en local) y se **descartó por decisión del mantenedor**: el testing de este proyecto es **local**, sin
+GitHub Actions ni workflows de ningún tipo. Queda como **decisión cerrada** en §4, no como tarea aplazada.
 
-**No reabre la decisión del 2026-07-12.** Los UI tests siguen sin correr en CI —necesitan sesión elevada y
-la USB física—, y `FormatDiskPro.UiTests` está fuera de la solución precisamente para que `dotnet test` no
-los arrastre. Lo que se cubre es el hueco que aquella decisión dejaba abierto sin decirlo: los
-**unitarios** no se ejecutaban en ningún PR, solo en la máquina del mantenedor durante `release.ps1`.
+El argumento que la cierra es el mismo que hace especial a este repositorio: la prueba que vale aquí es la
+que **ejerce el binario real** contra hardware real —elevación y USB de pruebas—, y eso no cabe en un
+runner. Un ✅ verde que solo cubre los unitarios afirma más de lo que prueba, que es literalmente el
+problema que `T2-12` acababa de corregir en el otro extremo del proceso. La puerta de calidad es
+`release.ps1 -UiTests` desde terminal elevada, y ya existe.
 
-**Residuo honesto:** los dos comandos del workflow se ejecutaron localmente tal cual (build 0/0, 388/388),
-pero **el workflow no se ha visto correr en el runner**. Eso solo ocurre al empujarlo.
-
-Build 0/0, **388/388** (375 → +13). Auditoría **21/40** · T2: 6 abiertas.
+Build 0/0, **388/388** (375 → +13). Auditoría **20/40** + 1 descartada · T2: 6 abiertas.
 
 ---
 
