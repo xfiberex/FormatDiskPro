@@ -14,7 +14,7 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **388** unitarias · **27** de UI sobre la app real — 25/25 verificadas con hardware el 2026-08-14; las 2 de accesibilidad (2026-08-15) no necesitan USB |
+| **Pruebas** | **388** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
 | **Última actualización** | 2026-08-15 (auditoría **22/40** · sin publicar: cobertura de UI declarada en el corte, historial rotado, accesibilidad durante las operaciones · **CI descartada: el testing es local**) |
 
@@ -120,7 +120,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 |---|---|
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **388 / 388** (289 + 99 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **27** en total · 25/25 con la USB y los dos opt-in (2026-08-14) · sin USB ni segundo disco: **15 pasan / 12 se omiten**, y **el corte ya dice cuáles** |
+| UI tests | **27** en total · con la USB (`utilidades`, sin opt-in): **24 pasan / 3 se omiten / 0 fallan** (2026-08-15) · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.17.0 · hay trabajo de auditoría **sin publicar** en `master` |
 | Auditoría | 2026-08-13 — **22/40 completadas** + 1 descartada (`T2-10`, CI), 17 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 4 · T3: 9 · T4: 5) |
@@ -380,7 +380,9 @@ necesitan alguna unidad que no sea la de sistema, y en una máquina de un solo d
 error que habla del hardware, no de la app. Ahora hay `NonSystemDriveFact` y se **omiten**, que es la
 regla que este proyecto ya se dio con `TestDriveFact`.
 
-Suite de UI **27** (era 25); en este equipo, sin USB ni segundo disco: 15 pasan / 12 se omiten / 0 fallan.
+Suite de UI **27** (era 25). Sin USB ni segundo disco: 15 pasan / 12 se omiten / 0 fallan. **Con la USB
+`utilidades` conectada (2026-08-15): 24 pasan / 3 se omiten / 0 fallan**, y los 3 omitidos son
+exactamente los opt-in (2 de *yank* + 1 destructivo) que un corte de release nunca debe ejecutar.
 Build 0/0, unitarias 388/388. Auditoría **22/40** · T2: 4 abiertas.
 
 ---
