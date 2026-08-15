@@ -10,13 +10,13 @@
 | | |
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
-| **Versión publicada** | **1.19.0** (2026-08-15) |
+| **Versión publicada** | **1.20.0** (2026-08-15) |
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **398** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (v1.19.0 publicada · auditoría **35/40**, **Tiers 0–3 cerrados** · **CI descartada: el testing es local**) |
+| **Última actualización** | 2026-08-15 (v1.20.0 publicada y verificada · auditoría **35/40**, **Tiers 0–3 cerrados** · **CI descartada: el testing es local**) |
 
 ---
 
@@ -126,7 +126,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Unitarias | **398 / 398** (289 + 109 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **27** en total · con la USB (`utilidades`, sin opt-in): **24 pasan / 3 se omiten / 0 fallan** (2026-08-15) · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.19.0** (2026-08-15) · `master` sin trabajo pendiente de publicar |
+| Publicado | **v1.20.0** (2026-08-15) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **35/40 completadas** + 1 descartada (`T2-10`, CI) · **Tiers 0–3 cerrados**; abiertas solo las 5 del Tier 4 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 
 **Tiers completados**
@@ -322,6 +322,7 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 | Versión | Qué trajo |
 |---|---|
+| **1.20.0** | **Tier 3 cerrado.** Pulido de lo que fallaba en silencio: la exportación CSV del historial informa del error real, la salud ilegible se muestra como «no disponible», el borrado seguro usa RNG criptográfico, las preferencias se normalizan al cargarlas, los iconos decorativos salen del árbol de accesibilidad y un marcador mal escrito en una traducción ya no tumba una pantalla. |
 | **1.19.0** | **Tier 2 cerrado.** *Verificar capacidad* deja de poder leer de la caché del sistema (se acabaron los falsos OK en unidades pequeñas). Cobertura de `Core/` medida (97 %) y exigida en el corte; `MainWindow` repartido (2107 → 753 líneas) sin cambiar comportamiento; `SECURITY.md` y `CONTRIBUTING.md`. |
 | **1.18.0** | Tercera tanda de la auditoría: las operaciones se pueden seguir con un lector de pantalla (región activa + notificación en los hitos), el error de etiqueta se lee desde su campo, el `.sha256` se empareja con su instalador y se lee acotado, `history.log` rota. El corte declara qué cobertura de UI no ejerció. |
 | **1.17.0** | Segunda tanda de la auditoría: el formato completo dejaba colgada la app en un Windows que no fuera ES/EN; barra de progreso del formato en 6 idiomas; presets integrados traducidos; el historial deja de partirse al registrar un error multilínea; la firma Authenticode deja de eximir del SHA-256. Tiers 0 y 1 cerrados (16/40). |
@@ -349,6 +350,21 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-15 — Corte de la **v1.20.0** (Tier 3 completo)
+
+`release.ps1 -Version 1.20.0 -UiTests -NotesFile docs\release-notes-1.20.0.md` desde terminal elevada con
+la USB conectada. Cobertura de `Core/` **97.1 %** (367/378 líneas, mínimo 90 %), **398/398** unitarias y
+**24/27** de UI — los 3 omitidos son los opt-in por variable de entorno, ninguno por falta de hardware,
+y el resumen final lo dice con esas palabras desde el arreglo del corte anterior. Instalador 58.8 MB.
+
+Verificado contra el release ya publicado: el asset `.sha256` se llama exactamente
+`FormatDiskPro-1.20.0-setup.exe.sha256` y ocupa 96 bytes, y el `digest` que GitHub calculó del instalador
+subido (`c547889e…`) coincide con el hash local — o sea, el hash que la app usará para verificar
+corresponde al binario realmente publicado, no solo al que se compiló aquí. El `.csproj` conserva los
+acentos de `<Authors>`/`<Copyright>` tras el bump.
 
 ---
 
