@@ -177,7 +177,14 @@ function Show-UiTestCoverage {
         $Summary.SkippedDetail | ForEach-Object {
             Write-Host "      - $($_.Name): $($_.Reason)" -ForegroundColor DarkGray
         }
-        Warn "Esa es la cobertura que este corte NO ejerció. Con la USB de pruebas ('utilidades') conectada, el conteo baja."
+        # El consejo tiene que corresponder al motivo real: con la USB ya conectada, "conecta la USB"
+        # es ruido y hace dudar de si el resumen se ha enterado de algo.
+        $usbPending = @($Summary.SkippedDetail | Where-Object { $_.Reason -like "*USB de pruebas conectada*" }).Count
+        if ($usbPending -gt 0) {
+            Warn "Esa es la cobertura que este corte NO ejerció. Conecta la USB de pruebas ('utilidades') para recuperar $usbPending de ellos."
+        } else {
+            Warn "Esa es la cobertura que este corte NO ejerció. Todos los omitidos son opt-in (variable de entorno), no falta de hardware: un corte de release no debe ejecutarlos."
+        }
     } else {
         Ok "UI tests: $($Summary.Passed)/$($Summary.Total) — 0 omitidos (cobertura completa sobre la app real)."
     }
