@@ -4,8 +4,8 @@ using FlaUI.Core.Definitions;
 namespace FormatDiskPro.UiTests;
 
 /// <summary>
-/// Cubre los controles de la tarjeta "Configuración de formato"/"Opciones de formato" sin tocar
-/// ninguna unidad real: son cambios puramente de UI (nunca se pulsa Iniciar/Reinicializar aquí).
+/// Cubre los controles de la tarjeta "ConfiguraciÃ³n de formato"/"Opciones de formato" sin tocar
+/// ninguna unidad real: son cambios puramente de UI (nunca se pulsa Iniciar/Reinicializar aquÃ­).
 /// </summary>
 [Collection(AppCollection.Name)]
 public sealed class FormatOptionsUiTests
@@ -17,12 +17,12 @@ public sealed class FormatOptionsUiTests
         Window = fixture.MainWindow;
         // La unidad seleccionada al arrancar (o la que haya dejado otro test) puede ser la de
         // sistema, protegida: SetFormEnabled deshabilita casi todos los controles de esta tarjeta
-        // sobre ella. Estos tests son de UI pura (nunca pulsan Iniciar), así que cualquier otra
+        // sobre ella. Estos tests son de UI pura (nunca pulsan Iniciar), asÃ­ que cualquier otra
         // unidad sirve.
         MainWindowActions.SelectAnyNonSystemDrive(Window);
     }
 
-    [Fact]
+    [NonSystemDriveFact]
     public void VolumeLabelBox_RoundTripsText()
     {
         var box = MainWindowActions.TextBox(Window, "VolumeLabelBox");
@@ -38,7 +38,7 @@ public sealed class FormatOptionsUiTests
         }
     }
 
-    [Fact]
+    [NonSystemDriveFact]
     public void SecureWipeCheck_TogglesWipePassesPicker()
     {
         MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
@@ -52,7 +52,7 @@ public sealed class FormatOptionsUiTests
         Assert.False(picker.IsEnabled);
     }
 
-    [Fact]
+    [NonSystemDriveFact]
     public void CompressCheck_OnlyEnabledForNtfs()
     {
         MainWindowActions.SelectComboText(Window, "FileSystemPicker", "NTFS");
@@ -64,7 +64,7 @@ public sealed class FormatOptionsUiTests
         MainWindowActions.SelectComboText(Window, "FileSystemPicker", "NTFS");
     }
 
-    [Fact]
+    [NonSystemDriveFact]
     public void RestoreButton_ResetsOptionsToDefaults()
     {
         MainWindowActions.SetChecked(Window, "QuickFormatCheck", false);
@@ -76,3 +76,4 @@ public sealed class FormatOptionsUiTests
         Assert.Equal(ToggleState.Off, MainWindowActions.CheckBox(Window, "SecureWipeCheck").ToggleState);
     }
 }
+

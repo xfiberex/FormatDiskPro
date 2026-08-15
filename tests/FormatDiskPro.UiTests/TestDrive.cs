@@ -46,6 +46,29 @@ public static class TestDrive
             $"No se encontró conectada la unidad USB de pruebas (partición extraíble con etiqueta " +
             $"'{label}'). Conéctala antes de correr estas pruebas.");
 
+    /// <summary>
+    /// ¿Hay alguna unidad montada que NO sea la de sistema? Las pruebas de la tarjeta de opciones no
+    /// tocan ninguna unidad, pero necesitan que haya una seleccionable: sobre la de sistema
+    /// (<c>[Protegido] C:</c>) <c>SetFormEnabled</c> deshabilita casi todos esos controles.
+    ///
+    /// <para>Es una precondición de <b>máquina</b>, no de la USB de pruebas: un equipo con un solo disco
+    /// no la cumple. Antes eso salía en <b>rojo</b> —cuatro fallos que no eran fallos— y este proyecto ya
+    /// decidió que precondición ausente se OMITE (ver <see cref="TestDriveFactAttribute"/>).</para>
+    /// </summary>
+    public static bool HasNonSystemDrive()
+    {
+        char system = char.ToUpperInvariant(Path.GetPathRoot(Environment.SystemDirectory)![0]);
+        foreach (var d in DriveInfo.GetDrives())
+        {
+            try
+            {
+                if (d.IsReady && char.ToUpperInvariant(d.Name[0]) != system) return true;
+            }
+            catch { /* unidad retirada entre GetDrives() y la lectura de sus propiedades */ }
+        }
+        return false;
+    }
+
     public static void RequireDestructiveOptIn()
     {
         if (Environment.GetEnvironmentVariable(DestructiveOptInVar) != "1")

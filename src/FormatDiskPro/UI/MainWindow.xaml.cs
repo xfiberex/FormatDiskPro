@@ -2,6 +2,7 @@ using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -110,6 +111,12 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
 
         DrivePicker.ItemsSource = _driveItems;
+
+        // El error de etiqueta aparece DEBAJO del campo, sin relación programática con él: un lector de
+        // pantalla situado en VolumeLabelBox leía "Etiqueta del volumen" y nada más, así que el usuario no
+        // sabía por qué no le dejaban continuar. DescribedBy es una colección y no admite x:Reference en
+        // XAML de WinUI, así que se enlaza aquí, una sola vez.
+        AutomationProperties.GetDescribedBy(VolumeLabelBox).Add(LabelErrorText);
 
         ((FrameworkElement)Content).ActualThemeChanged += OnActualThemeChanged;
 
@@ -847,6 +854,7 @@ public sealed partial class MainWindow : Window
     {
         string fs = FileSystemPicker.SelectedItem?.ToString() ?? "NTFS";
         var result = FormatLogic.ValidateLabel(VolumeLabelBox.Text, fs);
+        string previous = LabelErrorText.Text;
         LabelErrorText.Text = result switch
         {
             FormatLogic.LabelValidation.InvalidChars => L.T("msg.invalidLabel"),
@@ -854,6 +862,27 @@ public sealed partial class MainWindow : Window
             _                                          => "",
         };
         LabelErrorText.Visibility = result == FormatLogic.LabelValidation.Ok ? Visibility.Collapsed : Visibility.Visible;
+
+        // El LiveSetting="Assertive" del XAML solo dice CÓMO leerlo; el evento es lo que dispara la
+        // lectura. Solo al aparecer o cambiar el mensaje: se escribe letra a letra, y repetir el mismo
+        // error en cada pulsación sería insoportable con un lector de pantalla.
+        if (LabelErrorText.Text.Length > 0 && LabelErrorText.Text != previous)
+            RaiseLiveRegionChanged(LabelErrorText);
+    }
+
+    /// <summary>
+    /// Avisa a los lectores de pantalla de que una región activa ha cambiado. Defensivo: la accesibilidad
+    /// no puede tumbar la UI que describe.
+    /// </summary>
+    private static void RaiseLiveRegionChanged(UIElement element)
+    {
+        try
+        {
+            var peer = FrameworkElementAutomationPeer.FromElement(element)
+                    ?? FrameworkElementAutomationPeer.CreatePeerForElement(element);
+            peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        }
+        catch { /* ignorar */ }
     }
 
     private void VolumeLabelBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateLabelHint();
@@ -866,7 +895,7 @@ public sealed partial class MainWindow : Window
         bool useFormatCom = !quickFormat && !compress && fs is "NTFS" or "FAT32" or "FAT";
 
         StatusText.ClearValue(TextBlock.ForegroundProperty);
-        StatusText.Text        = L.T("status.formatting", driveLetter, quickFormat ? L.T("fmt.quick") : L.T("fmt.full"));
+        SetStatusAndAnnounce(L.T("status.formatting", driveLetter, quickFormat ? L.T("fmt.quick") : L.T("fmt.full")));
         FormatProgress.Value   = 0;
         FormatProgress.IsIndeterminate = !useFormatCom;
 
@@ -1070,6 +1099,9 @@ public sealed partial class MainWindow : Window
         BeginOperation();
         FormatProgress.IsIndeterminate = false;
         FormatProgress.Value = 0;
+        // Esta operación no fija un estado inicial: el primer tick de progreso lo hace, y puede tardar.
+        // Se anuncia el inicio sin tocar StatusText, para no pintar un texto que se sobrescribe enseguida.
+        AnnounceStatus(L.T("verify.title"));
 
         var progress = new Progress<(CapacityVerifier.Phase phase, int percent, long bytes)>(p =>
         {
@@ -1267,7 +1299,7 @@ public sealed partial class MainWindow : Window
         FormatProgress.IsIndeterminate = false;
         FormatProgress.Value = 0;
         StatusText.ClearValue(TextBlock.ForegroundProperty);
-        StatusText.Text = repair ? L.T("check.repairing", item.Letter) : L.T("check.scanning", item.Letter);
+        SetStatusAndAnnounce(repair ? L.T("check.repairing", item.Letter) : L.T("check.scanning", item.Letter));
 
         var progress = new Progress<int>(p => FormatProgress.Value = Math.Clamp(p, 0, 100));
 
@@ -1369,7 +1401,7 @@ public sealed partial class MainWindow : Window
         BeginOperation();
         FormatProgress.IsIndeterminate = true;
         StatusText.ClearValue(TextBlock.ForegroundProperty);
-        StatusText.Text = L.T("reinit.stage.clean", item.Letter);
+        SetStatusAndAnnounce(L.T("reinit.stage.clean", item.Letter));
 
         var stage = new Progress<string>(s => StatusText.Text = L.T($"reinit.stage.{s}", item.Letter));
 
@@ -1439,7 +1471,7 @@ public sealed partial class MainWindow : Window
         FormatProgress.IsIndeterminate = false;
         FormatProgress.Value = 0;
         StatusText.ClearValue(TextBlock.ForegroundProperty);
-        StatusText.Text = L.T("bench.preparing", item.Letter);
+        SetStatusAndAnnounce(L.T("bench.preparing", item.Letter));
 
         // Tras terminar, ignora cualquier callback de progreso aún en cola (no debe pisar el estado final).
         bool benchRunning = true;
@@ -2004,6 +2036,47 @@ public sealed partial class MainWindow : Window
 
     // ── Operation lifecycle ───────────────────────────────────────
 
+    /// <summary>
+    /// Anuncia un hito de la operación a los lectores de pantalla (UIA <c>Notification</c>).
+    ///
+    /// <para><b>Por qué hace falta.</b> <c>StatusText</c> y <c>FormatProgress</c> cambian durante
+    /// operaciones que duran minutos u horas, pero **nada mueve el foco**: sin esto, quien usa un lector
+    /// de pantalla no se entera de si el formateo avanza, ha fallado o ha terminado. El
+    /// <c>LiveSetting="Polite"</c> del XAML hace que Narrador pueda leer el texto cuando cambia; la
+    /// notificación es lo que garantiza que los **hitos** se anuncian aunque el usuario esté en otra
+    /// parte de la ventana.</para>
+    ///
+    /// <para><b>Solo en los hitos</b> (inicio, fin, error, cancelación), nunca en cada tick de progreso:
+    /// una notificación por porcentaje convertiría el lector de pantalla en ruido continuo durante una
+    /// hora — que es peor que el silencio de partida. Por eso el progreso se deja al <i>live region</i>,
+    /// que el usuario consulta cuando quiere.</para>
+    ///
+    /// <para><c>MostRecent</c>: si llegan dos hitos seguidos, se lee el último, no la cola entera.</para>
+    /// </summary>
+    /// <param name="text">Texto a anunciar; si es null, se usa el de <c>StatusText</c>.</param>
+    /// <param name="kind">Tipo de hito, para que el lector pueda darle el tono que corresponda.</param>
+    private void AnnounceStatus(string? text = null, AutomationNotificationKind kind = AutomationNotificationKind.Other)
+    {
+        string message = (text ?? StatusText.Text ?? "").Trim();
+        if (message.Length == 0) return;
+
+        try
+        {
+            var peer = FrameworkElementAutomationPeer.FromElement(StatusText)
+                    ?? FrameworkElementAutomationPeer.CreatePeerForElement(StatusText);
+            peer?.RaiseNotificationEvent(
+                kind, AutomationNotificationProcessing.MostRecent, message, "FormatDiskProStatus");
+        }
+        catch { /* accesibilidad: nunca puede tumbar la operación que está describiendo */ }
+    }
+
+    /// <summary>Fija el estado visible y lo anuncia: es el hito de <b>inicio</b> de una operación.</summary>
+    private void SetStatusAndAnnounce(string text)
+    {
+        StatusText.Text = text;
+        AnnounceStatus(text);
+    }
+
     private void BeginOperation()
     {
         _isBusy = true;
@@ -2036,6 +2109,12 @@ public sealed partial class MainWindow : Window
         CloseButton.Content = L.T("btn.close");
         // Barra en rojo (Fluent ShowError) al fallar o cancelar, hasta el próximo BeginOperation.
         FormatProgress.ShowError = _cancelRequested || _lastOperationFailed;
+
+        // Hito de FIN, en un solo sitio: aquí pasan las cinco operaciones, terminen bien, mal o
+        // canceladas. Se anuncia el estado que la operación acaba de dejar en StatusText.
+        AnnounceStatus(kind: FormatProgress.ShowError
+            ? AutomationNotificationKind.ActionAborted
+            : AutomationNotificationKind.ActionCompleted);
 
         // Aviso al terminar operaciones largas: sonido + parpadeo de la barra (solo si el usuario
         // no está mirando la ventana). No aplica a operaciones cortas ni canceladas.

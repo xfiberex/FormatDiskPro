@@ -143,8 +143,13 @@
                         <TextBox x:Name="VolumeLabelBox" MaxLength="32" HorizontalAlignment="Stretch"
                                  Header="Etiqueta del volumen:" Margin="0,2,0,0"
                                  TextChanged="VolumeLabelBox_TextChanged" />
+                        <!-- Assertive: es un error que bloquea la acción que el usuario está intentando,
+                             no información de fondo. El vínculo con VolumeLabelBox (DescribedBy) se hace en
+                             code-behind: en WinUI, AutomationProperties.DescribedBy es una colección y no
+                             admite x:Reference desde XAML. -->
                         <TextBlock x:Name="LabelErrorText" FontSize="12" TextWrapping="Wrap"
                                    Margin="2,-4,0,0" Visibility="Collapsed"
+                                   AutomationProperties.LiveSetting="Assertive"
                                    Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
 
                         <Button x:Name="RestoreButton" Content="Restaurar valores predeterminados"
@@ -208,8 +213,12 @@
                 <ProgressBar x:Name="FormatProgress" />
 
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <!-- Región activa: el estado cambia durante minutos u horas sin que nada mueva el
+                         foco. Polite (no Assertive) porque el progreso no debe interrumpir lo que el
+                         usuario esté leyendo; los HITOS se anuncian aparte, con AnnounceStatus. -->
                     <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextWrapping="NoWrap"
-                               TextTrimming="CharacterEllipsis" FontSize="12.5" />
+                               TextTrimming="CharacterEllipsis" FontSize="12.5"
+                               AutomationProperties.LiveSetting="Polite" />
                     <TextBlock x:Name="ElapsedText" Grid.Column="1" HorizontalAlignment="Right"
                                VerticalAlignment="Center" Opacity="0.55" FontSize="12" />
                 </Grid>

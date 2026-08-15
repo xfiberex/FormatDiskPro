@@ -428,7 +428,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 
 ## 🟡 Tier 2 — Mejoras sustanciales
 
-- [ ] **[T2-01] Anunciar estado y progreso a los lectores de pantalla**
+- [x] **[T2-01] Anunciar estado y progreso a los lectores de pantalla**
   - **Área:** Accesibilidad
   - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml:208-212`
   - **Qué hacer:** `StatusText` y `FormatProgress` cambian durante operaciones de minutos u horas sin
@@ -440,8 +440,22 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     mover el foco.
   - **Esfuerzo:** medio
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `StatusText` es región activa `Polite`, y `MainWindow.AnnounceStatus`
+    emite un `RaiseNotificationEvent` en los **hitos**: inicio de las cinco operaciones y —en un solo
+    sitio, `EndOperation`— fin, error o cancelación, con `ActionCompleted`/`ActionAborted` según cómo
+    haya acabado.
+  - **`Polite` y solo en los hitos, a propósito.** Una notificación por cada tick de porcentaje
+    convertiría el lector de pantalla en ruido continuo durante una hora de formateo, que es *peor* que
+    el silencio de partida. El avance queda en la región activa, que el usuario consulta cuando quiere;
+    lo que se anuncia es lo que no puede perderse.
+  - *Verificar capacidad* no fija estado inicial (lo pone el primer tick de progreso, que puede tardar):
+    se anuncia el inicio **sin tocar** `StatusText`, para no pintar un texto que se sobrescribe enseguida.
+  - **Medido sobre la app real**, no razonado: `AccessibilityTests.StatusText_IsAPoliteLiveRegion` lee el
+    `LiveSetting` por UI Automation. Verificado por reversión: quitando el atributo del XAML **y
+    recompilando**, la prueba falla. *(Sin recompilar no falla — los UI tests lanzan el `.exe` de `bin`,
+    no el XAML del repo. Casi cuela como «verificado».)*
 
-- [ ] **[T2-02] Asociar el error de etiqueta con su campo**
+- [x] **[T2-02] Asociar el error de etiqueta con su campo**
   - **Área:** Accesibilidad
   - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml:143-148`
   - **Qué hacer:** `LabelErrorText` aparece bajo `VolumeLabelBox` sin relación programática: un lector de
@@ -451,6 +465,18 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     del campo.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `LabelErrorText` es región activa `Assertive` (bloquea la acción, no es
+    información de fondo) y `VolumeLabelBox` lo referencia con `DescribedBy`. El vínculo se hace en
+    code-behind: en WinUI `AutomationProperties.DescribedBy` es una **colección** y no admite
+    `x:Reference` desde XAML. El evento `LiveRegionChanged` se emite solo cuando el mensaje **aparece o
+    cambia**: se escribe letra a letra, y repetirlo en cada pulsación sería insoportable.
+  - **Lo que enseñó la prueba al fallar:** un elemento `Collapsed` **no existe en el árbol de UI
+    Automation**. Buscar `LabelErrorText` con la etiqueta válida no devuelve nada — hay que provocar el
+    error primero. Que el vínculo solo exista mientras el mensaje se muestra es lo correcto, pero una
+    prueba escrita sin saberlo habría fallado sin que nada estuviera mal.
+  - **Medido sobre la app real:** `AccessibilityTests.InvalidLabel_ShowsAnAssertiveErrorLinkedToTheField`
+    escribe una etiqueta inválida y comprueba por UIA el `LiveSetting` y que `DescribedBy` apunta de
+    verdad al mensaje.
 
 - [ ] **[T2-03] Releer sin caché en la verificación de capacidad**
   - **Área:** Rendimiento / corrección funcional
@@ -804,9 +830,12 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 | 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
+| 2026-08-15 | **T2-01** | `StatusText` como región activa `Polite` + notificación UIA en los hitos (inicio/fin/error/cancelación), nunca por tick. +1 prueba de UI. |
+| 2026-08-15 | **T2-02** | Error de etiqueta `Assertive` y vinculado al campo con `DescribedBy`. +1 prueba de UI. *(Un `Collapsed` no está en el árbol UIA.)* |
+| 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 20/40 completadas · 1 descartada (`T2-10`) · **19 abiertas** (T0: 0 · **T1: 0** · T2: 6 · T3: 9 · T4: 5).
+**Estado:** 22/40 completadas · 1 descartada (`T2-10`) · **17 abiertas** (T0: 0 · **T1: 0** · T2: 4 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió
@@ -814,7 +843,8 @@ extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con l
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
 (23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo — y se
 **cerró el 2026-08-15**: el corte ya no puede volver a llamar «verde» a una cobertura que no ejerció.
-Build Release **0 advertencias / 0 errores**; suite **388/388** (eran 289; +99 pruebas nuevas).
+Build Release **0 advertencias / 0 errores**; suite **388/388** unitarias (eran 289; +99 nuevas) y **27**
+de UI (eran 23).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que

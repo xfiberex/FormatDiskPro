@@ -27,6 +27,23 @@ public sealed class TestDriveFactAttribute : FactAttribute
 }
 
 /// <summary>
+/// <c>[Fact]</c> que se <b>SALTA</b> si la máquina no tiene ninguna unidad aparte de la de sistema.
+///
+/// Las pruebas de la tarjeta de opciones no tocan ninguna unidad, pero necesitan una seleccionable que no
+/// esté protegida (sobre <c>[Protegido] C:</c> los controles están deshabilitados). En un equipo con un
+/// solo disco eso hacía fallar cuatro pruebas con un error que no habla de la app, sino del hardware de
+/// quien la ejecuta — exactamente lo que <see cref="TestDriveFactAttribute"/> existe para no repetir.
+/// </summary>
+public sealed class NonSystemDriveFactAttribute : FactAttribute
+{
+    public NonSystemDriveFactAttribute()
+    {
+        if (!TestDrive.HasNonSystemDrive())
+            Skip = "Requiere alguna unidad montada que no sea la de sistema (esta máquina solo tiene la protegida).";
+    }
+}
+
+/// <summary>
 /// <c>[Fact]</c> de una prueba que <b>BORRA DATOS REALES</b> en la USB de pruebas. Se salta salvo que se
 /// pida explícitamente con <c>FORMATDISKPRO_ALLOW_DESTRUCTIVE=1</c> <b>y</b> la unidad esté conectada.
 ///

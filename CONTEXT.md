@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **388** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-14 (sin la USB: 17 pasan / 8 se omiten) |
+| **Pruebas** | **388** unitarias · **27** de UI sobre la app real — 25/25 verificadas con hardware el 2026-08-14; las 2 de accesibilidad (2026-08-15) no necesitan USB |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (auditoría **20/40** · sin publicar todavía: cobertura de UI declarada en el corte, historial rotado · **CI descartada: el testing es local**) |
+| **Última actualización** | 2026-08-15 (auditoría **22/40** · sin publicar: cobertura de UI declarada en el corte, historial rotado, accesibilidad durante las operaciones · **CI descartada: el testing es local**) |
 
 ---
 
@@ -120,10 +120,10 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 |---|---|
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **388 / 388** (289 + 99 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-14) · 17+8 omitidos sin ella, y **el corte ya dice cuáles** |
+| UI tests | **27** en total · 25/25 con la USB y los dos opt-in (2026-08-14) · sin USB ni segundo disco: **15 pasan / 12 se omiten**, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.17.0 · hay trabajo de auditoría **sin publicar** en `master` |
-| Auditoría | 2026-08-13 — **20/40 completadas** + 1 descartada (`T2-10`, CI), 19 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 6 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **22/40 completadas** + 1 descartada (`T2-10`, CI), 17 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 4 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -343,6 +343,45 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-15 — `T2-01`/`T2-02`: la app se puede seguir sin verla
+
+Las operaciones de esta app duran minutos u horas y **nada mueve el foco** mientras avanzan: con un lector
+de pantalla no había forma de saber si el formateo progresaba, había fallado o había terminado. Y el error
+de la etiqueta aparecía debajo del campo sin ninguna relación programática con él, así que desde el propio
+cuadro de texto no se podía averiguar por qué no dejaba continuar.
+
+- **`StatusText` es región activa `Polite`** y `MainWindow.AnnounceStatus` emite una notificación UIA en
+  los **hitos**: inicio de las cinco operaciones y —en un solo sitio, `EndOperation`— fin, error o
+  cancelación, con `ActionCompleted`/`ActionAborted` según cómo haya terminado.
+- **`LabelErrorText` es `Assertive`** y `VolumeLabelBox` lo referencia con `DescribedBy`. El vínculo se
+  hace en code-behind: en WinUI esa propiedad es una **colección** y no admite `x:Reference` desde XAML.
+
+> **La decisión que importa aquí es qué NO se anuncia.** Una notificación por cada tick de porcentaje
+> convertiría el lector de pantalla en ruido continuo durante una hora de formateo — peor que el silencio
+> del que se partía. El avance queda en la región activa, que se consulta cuando se quiere; se anuncia
+> solo lo que no puede perderse. Por lo mismo, el error de etiqueta se anuncia al **aparecer o cambiar**,
+> no en cada pulsación de tecla.
+
+**Dos cosas las enseñó la prueba al fallar, no el razonamiento:**
+
+1. **Un elemento `Collapsed` no existe en el árbol de UI Automation.** Buscar `LabelErrorText` con la
+   etiqueta válida no devuelve nada: hay que provocar el error primero. Que el vínculo solo exista
+   mientras el mensaje se muestra es lo correcto, pero una prueba escrita sin saberlo habría fallado sin
+   que nada estuviera mal.
+2. **Los UI tests lanzan el `.exe` de `bin`, no el XAML del repo.** Al verificar por reversión, quitar el
+   `LiveSetting` del XAML **sin recompilar** deja la prueba en verde. Casi cuela como «verificado»: la
+   reversión solo prueba algo si se reconstruye el binario que la prueba va a ejecutar.
+
+**Y un arreglo de la suite que este equipo destapó:** las cuatro pruebas de la tarjeta de opciones
+necesitan alguna unidad que no sea la de sistema, y en una máquina de un solo disco **fallaban** con un
+error que habla del hardware, no de la app. Ahora hay `NonSystemDriveFact` y se **omiten**, que es la
+regla que este proyecto ya se dio con `TestDriveFact`.
+
+Suite de UI **27** (era 25); en este equipo, sin USB ni segundo disco: 15 pasan / 12 se omiten / 0 fallan.
+Build 0/0, unitarias 388/388. Auditoría **22/40** · T2: 4 abiertas.
 
 ---
 
