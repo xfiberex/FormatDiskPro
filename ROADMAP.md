@@ -507,7 +507,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Lo que sigue sin poder medirse:** que un bloque concreto venga del medio y no de la RAM. No hay API
     que lo afirme; lo que hay es el flag, y ahora está probado que se aplica.
 
-- [ ] **[T2-04] Medir la cobertura de pruebas, no solo contarlas**
+- [x] **[T2-04] Medir la cobertura de pruebas, no solo contarlas**
   - **Área:** QA
   - **Ubicación:** `tests/FormatDiskPro.Tests/FormatDiskPro.Tests.csproj:11-15`
   - **Qué hacer:** «289 pruebas» es un recuento, no una cobertura: hoy nadie sabe qué porcentaje de `Core`
@@ -517,6 +517,18 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     falla si `Core/` baja del umbral acordado.
   - **Esfuerzo:** medio
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `coverlet.collector` en el proyecto de pruebas (solo actúa si se pide el
+    recolector: un `dotnet test` normal no cambia) y `release.ps1` mide en la misma pasada, imprime el
+    dato y **aborta el corte** por debajo del umbral. Medida por primera vez: **97.1 % de línea en
+    `Core/`** (367/378).
+  - **Umbral en 90 %, por debajo de lo medido y a propósito.** Un listón pegado al valor actual obliga a
+    escribir pruebas de relleno para que el corte no rompa por un método nuevo; lo que se quiere es un
+    suelo que avise de una **regresión real**. Subirlo debe ser deliberado; que baje, un síntoma.
+  - **Se mide SOLO `Core/`**, que es la capa que puede probarse entera sin hardware: ahí un hueco es una
+    decisión, no una limitación. Medir `Services/` y `UI/` con la misma vara premiaría escribir pruebas
+    fáciles de lo que no importa; su red son los UI tests.
+  - **Verificado que la puerta cierra:** subiendo el umbral a 99 el corte aborta y lista las cinco clases
+    con menos cobertura, para que el mensaje diga qué hacer y no solo que algo va mal.
 
 - [x] **[T2-05] Pruebas de los caminos de error de las operaciones**
   - **Área:** QA
@@ -853,6 +865,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 | 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
+| 2026-08-15 | **T2-04** | Cobertura medida (`coverlet`) y **exigida** en el corte: `Core/` al **97.1 %**, mínimo 90 %. |
 | 2026-08-15 | **T2-11** | `SECURITY.md` (canal privado + lo que no es vulnerabilidad), `CONTRIBUTING.md`, plantillas de issue y de PR. Enlazados desde el README. |
 | 2026-08-15 | **T2-03** | La relectura de *Verificar capacidad* deja de poder servirse de la caché del SO (`FILE_FLAG_NO_BUFFERING` + buffer alineado). +2 pruebas. |
 | 2026-08-15 | **T2-01** | `StatusText` como región activa `Polite` + notificación UIA en los hitos (inicio/fin/error/cancelación), nunca por tick. +1 prueba de UI. |
@@ -860,7 +873,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 24/40 completadas · 1 descartada (`T2-10`) · **15 abiertas** (T0: 0 · **T1: 0** · T2: 2 · T3: 9 · T4: 5).
+**Estado:** 25/40 completadas · 1 descartada (`T2-10`) · **14 abiertas** (T0: 0 · **T1: 0** · T2: 1 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió

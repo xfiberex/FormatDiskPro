@@ -31,7 +31,7 @@
     Ruta a un archivo Markdown con las notas del release. Si se omite, se genera una plantilla.
 
 .PARAMETER SkipTests
-    Omite la ejecución de pruebas (unitarias y de UI).
+    Omite la ejecución de pruebas (unitarias y de UI) — y con ellas, la medición de cobertura.
 
 .PARAMETER UiTests
     Ejecuta también los UI tests (FlaUI/UIA3), que conducen la app REAL. No van en la solución, así que
@@ -76,6 +76,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Mínimo de cobertura de LÍNEA exigido a Core/ (la lógica pura). El 2026-08-15, al medirla por primera
+# vez, estaba en 97.1%: el umbral se pone por debajo a propósito, para que sea un suelo que avise de una
+# regresión real y no un número que obligue a escribir pruebas de relleno para no romper el corte.
+# Subirlo es una decisión deliberada; bajarlo, un síntoma.
+$CoreCoverageThreshold = 90
+
 function Info($m)  { Write-Host "==> $m" -ForegroundColor Cyan }
 function Ok($m)    { Write-Host "[OK] $m" -ForegroundColor Green }
 function Warn($m)  { Write-Host "[!] $m" -ForegroundColor Yellow }
@@ -109,6 +115,57 @@ function Invoke-Git {
         return $LASTEXITCODE
     }
     finally { $ErrorActionPreference = $eap }
+}
+
+<#
+.SYNOPSIS
+    Cobertura de línea de Core/ a partir del informe Cobertura que deja `--collect:"XPlat Code Coverage"`.
+
+.DESCRIPTION
+    "389 pruebas" es un recuento, no una medida: no dice qué parte del código se ejercita. Se mide SOLO
+    Core/ —la lógica pura— a propósito: es la capa que puede probarse entera sin hardware, así que ahí un
+    hueco es una decisión, no una limitación. Services/ y UI/ dependen de discos, procesos y ventanas: su
+    red son los UI tests, y medirlos con la misma vara daría un número que invitaría a escribir pruebas
+    fáciles de lo que no importa.
+
+    Devuelve $null si no encuentra informe (el corte lo trata como error: pedir cobertura y no obtenerla
+    no puede pasar por "correcto").
+#>
+function Get-CoreCoverage {
+    param([Parameter(Mandatory)][string]$CoverageDir)
+
+    $report = Get-ChildItem $CoverageDir -Recurse -Filter "coverage.cobertura.xml" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if (-not $report) { return $null }
+
+    try {
+        $xml = New-Object System.Xml.XmlDocument
+        $xml.Load($report.FullName)
+    } catch { return $null }
+
+    # El informe identifica cada clase por su archivo fuente: es lo que permite separar Core/ del resto.
+    $classes = @($xml.SelectNodes("//class") | Where-Object { $_.filename -match '\\Core\\' })
+    if ($classes.Count -eq 0) { return $null }
+
+    $covered = 0; $total = 0
+    $perClass = foreach ($c in $classes) {
+        $ct = 0; $cc = 0
+        foreach ($l in $c.lines.line) { $ct++; if ([int]$l.hits -gt 0) { $cc++ } }
+        $covered += $cc; $total += $ct
+        [pscustomobject]@{
+            Name    = ($c.name -replace '^FormatDiskPro\.', '')
+            Percent = if ($ct -gt 0) { [math]::Round(100 * $cc / $ct, 1) } else { 100 }
+            Lines   = "$cc/$ct"
+        }
+    }
+
+    [pscustomobject]@{
+        Covered  = $covered
+        Total    = $total
+        Percent  = if ($total -gt 0) { [math]::Round(100 * $covered / $total, 1) } else { 0 }
+        Report   = $report.FullName
+        PerClass = @($perClass | Sort-Object Percent)
+    }
 }
 
 <#
@@ -260,13 +317,32 @@ try {
 
     # ── Pruebas ──────────────────────────────────────────────────────────────
     $uiSummary = $null   # cobertura real de UI de este corte; se repite en el resumen final
+    $coverage  = $null   # cobertura de línea de Core/ (T2-04)
     if ($SkipTests) {
         Warn "Pruebas omitidas (-SkipTests)."
     } else {
-        Info "Ejecutando pruebas unitarias..."
-        & dotnet test $solution --nologo
+        # Se mide la cobertura en la misma pasada (T2-04): un corte no debe poder afirmar "389 pruebas"
+        # sin saber qué parte de la lógica pura tocan.
+        $covDir = Join-Path $env:TEMP "FormatDiskPro_coverage"
+        if (Test-Path $covDir) { Remove-Item $covDir -Recurse -Force -ErrorAction SilentlyContinue }
+
+        Info "Ejecutando pruebas unitarias (con cobertura)..."
+        & dotnet test $solution --nologo --collect:"XPlat Code Coverage" --results-directory $covDir
         if ($LASTEXITCODE -ne 0) { Die "Las pruebas unitarias fallaron. Release abortado." }
         Ok "Pruebas unitarias correctas."
+
+        $coverage = Get-CoreCoverage -CoverageDir $covDir
+        if (-not $coverage) {
+            Die "Se pidió cobertura y no se obtuvo informe. Un corte no puede salir sin saber qué cubre: revisa que coverlet.collector siga referenciado en el proyecto de pruebas."
+        }
+        if ($coverage.Percent -lt $CoreCoverageThreshold) {
+            Warn "Clases de Core/ con menos cobertura:"
+            $coverage.PerClass | Select-Object -First 5 | ForEach-Object {
+                Write-Host "      - $($_.Name): $($_.Percent)% ($($_.Lines))" -ForegroundColor DarkGray
+            }
+            Die "Cobertura de Core/ $($coverage.Percent)% — por debajo del mínimo exigido ($CoreCoverageThreshold%). Release abortado."
+        }
+        Ok "Cobertura de Core/: $($coverage.Percent)% ($($coverage.Covered)/$($coverage.Total) líneas, mínimo $CoreCoverageThreshold%)."
 
         # ── UI tests (opcionales): los únicos que ejercen la app REAL ────────
         # No están en la solución a propósito: si lo estuvieran, el `dotnet test` de arriba los
@@ -357,6 +433,9 @@ try {
         if (-not $SkipTests) {
             $uiNote = if ($UiTests) { "unitarias + UI tests (app real)" } else { "solo unitarias (sin -UiTests)" }
             Write-Host "    Pruebas ya ejecutadas en este dry run: $uiNote" -ForegroundColor DarkGray
+            if ($coverage) {
+                Write-Host "    Cobertura de Core/: $($coverage.Percent)% (mínimo $CoreCoverageThreshold%)" -ForegroundColor DarkGray
+            }
         }
         Show-UiTestCoverage $uiSummary
         if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
@@ -460,6 +539,7 @@ try {
     Write-Host ""
     Ok "Release $tag publicado: https://github.com/xfiberex/FormatDiskPro/releases/tag/$tag"
     # Se repite aquí a propósito: cuando el corte sale bien, este es el único bloque que se lee.
+    if ($coverage) { Ok "Cobertura de Core/: $($coverage.Percent)% ($($coverage.Covered)/$($coverage.Total) líneas)." }
     Show-UiTestCoverage $uiSummary
 }
 finally {

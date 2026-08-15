@@ -19,6 +19,9 @@ Gracias por el interés. Antes de escribir código, dos lecturas que ahorran tie
 ```powershell
 dotnet build -c Release          # 0 advertencias, 0 errores: es el listón
 dotnet test                      # unitarias (Core + helpers de Services)
+
+# Cobertura de Core/ (el corte de versión la exige ≥ 90 %)
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
 **Las pruebas de UI conducen la app real y exigen TERMINAL ELEVADA** — la app es `requireAdministrator` y

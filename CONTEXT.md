@@ -347,6 +347,39 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 ---
 
+### 2026-08-15 — `T2-04` y `T2-11`: cobertura medida y exigida, y los documentos que faltaban
+
+**`T2-04`.** «390 pruebas» era un recuento, no una medida. Ahora `release.ps1` recoge cobertura en la
+misma pasada de las unitarias y **aborta el corte** si `Core/` baja del mínimo. Primera medición:
+**97.1 % de línea** (367/378).
+
+Dos decisiones que explican el número:
+
+- **El umbral es 90 %, deliberadamente por debajo de lo medido.** Un listón pegado al valor actual obliga
+  a escribir pruebas de relleno para que el corte no rompa al añadir un método; lo que se quiere es un
+  suelo que avise de una **regresión real**.
+- **Solo se mide `Core/`.** Es la capa que puede probarse entera sin hardware, así que ahí un hueco es una
+  decisión y no una limitación. Aplicar la misma vara a `Services/` y `UI/` premiaría escribir pruebas
+  fáciles de lo que no importa — su red son los UI tests.
+
+Verificado que la puerta cierra: con el umbral a 99 el corte aborta **y lista las cinco clases con menos
+cobertura**, para que el mensaje diga qué hacer, no solo que algo va mal.
+
+**`T2-11`.** Una herramienta GPLv3 que formatea discos, corre elevada y se auto-actualiza no publicaba
+canal de reporte de vulnerabilidades ni guía de contribución. Ya hay `.github/SECURITY.md`,
+`.github/CONTRIBUTING.md`, plantillas de issue (formularios YAML) y de PR, enlazadas desde el README.
+
+> **`SECURITY.md` dice también lo que NO es una vulnerabilidad** —correr como administrador, el instalador
+> sin firmar, el alcance *en tránsito* del SHA-256—, porque son decisiones documentadas y recibir reportes
+> de ellas gasta el tiempo de todos. El canal es el reporte privado de GitHub: **no se publica ninguna
+> dirección de correo**. `CONTRIBUTING.md` recoge lo que aquí falla si no lo sabes de antemano: terminal
+> elevada, precondiciones que omiten en vez de fallar, los tests que vigilan la i18n y el contraste, y que
+> **no se aceptan PRs con GitHub Actions**.
+
+Auditoría **25/40** · T2: 1 abierta (`T2-08`).
+
+---
+
 ### 2026-08-15 — `T2-03`: la verificación de capacidad ya no puede leer de la caché
 
 *Verificar capacidad* escribía con `WriteThrough` pero **releía con E/S normal**, así que la caché de
