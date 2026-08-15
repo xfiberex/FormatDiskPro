@@ -15,6 +15,9 @@
 > |---|---|---|
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
 > | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Abierta. | `T0-01`–`T4-05` |
+>
+> Al final de la Parte 2 hay además un **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`):
+> ampliaciones de lo ya entregado, **no** parte de la auditoría (que sigue siendo de 40 tareas).
 
 ## 🏁 Estado
 
@@ -26,6 +29,12 @@ producto y **no se van a reabrir**: la app corre **siempre elevada** y su ventan
 rendimiento, accesibilidad, i18n, arquitectura, QA, documentación, DevOps) encontró **37 puntos de mejora**,
 ninguno de ellos una característica nueva. Que la funcionalidad esté cerrada no cierra la calidad: ver
 **[Parte 2](#parte-2--backlog-de-remediación-auditoría-2026-08-13)**.
+
+**Tier 5 — ocurrencias: ABIERTO (2026-08-15).** «Funcionalidad terminada» no significa «sin huecos»: usar
+lo entregado revela dónde una característica se queda a medio camino. El primero, real: *FAT32 pequeña*
+deja el resto del disco **sin asignar**, y recuperarlo obliga a salir a una herramienta de Windows. Esas
+ampliaciones viven en el **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)**, aparte de la
+auditoría y aparte del historial cerrado de la Parte 1.
 
 | Tier | Tema | Versión |
 |---|---|---|
@@ -133,6 +142,10 @@ Capa de **distribución/confianza**: no añade funciones de disco.
 
 > **No es un gestor de particiones** (sigue fuera de alcance): una sola partición, el resto sin asignar.
 >
+> **Ahí está el hueco que abre el [Tier 5](#-tier-5--ocurrencias-para-features-existentes)** (2026-08-15):
+> «el resto sin asignar» deja un pendrive grande con solo 32 GB usables hasta que el usuario abre *Crear y
+> formatear particiones* de Windows — justo la herramienta que esta app existe para no tener que abrir.
+>
 > **Fix de plataforma, hallado con hardware real:** `Clear-Disk` **no siempre deja el disco en RAW**. Afectaba
 > a *toda* Reinicializar unidad, no solo a esta opción.
 
@@ -208,6 +221,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 > ejecutables. **Ninguna añade funcionalidad**: todas corrigen, endurecen o miden lo que ya existe. El
 > informe que las originó no se repite aquí — cada tarea es autocontenida.
 >
+> **Única excepción, y está marcada como tal:** el **Tier 5** del final no viene de la auditoría y sí añade
+> funcionalidad. Va aquí por continuidad de numeración, no porque forme parte de las 40.
+>
 > **Base de la revisión:** v1.15.2 · build 0 advertencias/0 errores · **289/289** unitarias verificadas en
 > ejecución (224 ms) el 2026-08-13.
 
@@ -220,10 +236,16 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T2** | Mejoras sustanciales — a11y, exactitud de medición, cobertura, CI, arquitectura | 13 | medio-alto |
 | **T3** | Pulido — errores silenciosos, docs contradictorias, consistencia | 11 | bajo |
 | **T4** | Futuro / opcional — fuera del alcance inmediato | 5 | — |
-| | **Total** | **40** | |
+| **T5** | **Ocurrencias para features existentes** — ampliaciones nacidas de usar lo ya entregado | 5 | medio-alto |
+| | **Total** | **45** | |
 
 **Orden recomendado:** T0 → T1-01/02 (guardas destructivas) → T1-03/04 (a11y medible) → T1-05/06/07
 (i18n) → T1-08/09 (updater) → T2 → T3.
+
+**El T5 no forma parte de la auditoría** (esa cerró en 40 tareas, y el recuento de progreso sigue siendo
+sobre esas 40): comparte numeración porque nace de lo mismo —mirar lo entregado y ver dónde se queda
+corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace. Su orden interno es
+**T5-01 → T5-02 → T5-03 → T5-05**, y `T5-04` solo si el uso lo pide.
 
 ---
 
@@ -900,6 +922,108 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 
 ---
 
+## 🟣 Tier 5 — Ocurrencias para features existentes
+
+> **Este tier rompe la regla de la Parte 2 a propósito, y por eso va aparte.** Las 40 tareas de la
+> auditoría no añaden funcionalidad: corrigen, endurecen o miden lo que ya existe. Estas **sí** añaden
+> —son ampliaciones—, pero no son ideas nuevas: son **huecos que se ven al usar una característica ya
+> entregada**. Se numeran `T5-xx` como continuación de la auditoría porque nacen del mismo sitio: mirar
+> lo que ya está hecho y encontrar dónde se queda corto.
+>
+> **Origen (2026-08-15, uso real):** tras *Reinicializar unidad → FAT32 pequeña*, el disco queda con la
+> partición pedida y **el resto sin asignar**. Para recuperar ese espacio hay que salir a *Crear y
+> formatear particiones de disco duro* de Windows. La característica `#37` resuelve el caso del flasheo de
+> BIOS y **deja al usuario con un pendrive de 256 GB del que solo puede usar 32**.
+
+**Por qué esto no reabre el «gestor de particiones completo»** (que sigue fuera de alcance): ahí lo vetado
+es **redimensionar, fusionar y mover** — operar sobre particiones **con datos**, que es lo que exige
+recolocar bytes y puede destruirlos. Aquí el disco se está **borrando entero de todos modos** (`Clear-Disk`
+ya lo hace hoy) y solo cambia **cuántas particiones se crean sobre el vacío**. Crear dos en vez de una en
+un disco que ya vas a vaciar no es gestionar particiones; es terminar de crear el layout que la operación
+ya está creando. La línea del alcance no se mueve: **si algún día hay que preservar datos, es que nos
+hemos salido.**
+
+---
+
+- [ ] **[T5-01] El plan de particiones, como dato puro** *(prerrequisito de todo el tier)*
+  - **Área:** Arquitectura / `Core`
+  - **Ubicación:** `src/FormatDiskPro/Core/ReinitPlan.cs`, `src/FormatDiskPro/Services/ReinitDrive.cs`
+  - **Qué hacer:** hoy el layout está **implícito en un `long?`**: `partitionSizeBytes` significa «una
+    partición de este tamaño, o todo el disco si es `null`». Sustituirlo por un plan explícito —una
+    secuencia de particiones, cada una con tamaño (o «el resto»), sistema de archivos y etiqueta— más una
+    función pura que lo **valide contra el tamaño real del disco** antes de tocar nada: que la suma quepa,
+    que ninguna sea de 0, que como máximo una sea «el resto», que cada volumen FAT32 respete el límite de
+    32 GB de Windows, y que el número de particiones sea legal para el estilo elegido (**MBR: 4 primarias
+    como máximo**; GPT: sin problema práctico).
+  - **Por qué primero:** es la única parte de esto que se puede probar **entera sin hardware**, y es donde
+    viven los errores que de verdad duelen — un plan mal calculado se descubre **con el disco ya borrado**.
+    `ReinitDrive` debe recibir un plan **ya validado** y limitarse a ejecutarlo.
+  - **También en plural:** `ParseNewLetter` devuelve **una** letra; con varias particiones hay varias.
+    Pasa a devolver la lista, conservando cuál es la primera (la que la UI selecciona al terminar).
+  - **Criterio de aceptación:** un plan cuya suma excede el disco, o con dos «resto», o con una FAT32 de
+    64 GB, o con 5 particiones en MBR, se **rechaza sin lanzar ningún proceso**. Cubierto por pruebas
+    unitarias, sin USB.
+  - *Esfuerzo: medio · Depende de: ninguna*
+
+- [ ] **[T5-02] Usar el espacio restante en vez de dejarlo sin asignar** *(el hueco real)*
+  - **Área:** Funcionalidad / UI
+  - **Ubicación:** `UI/MainWindow.FormatOptions.cs` (tarjeta de opciones), `Services/ReinitDrive`
+  - **Qué hacer:** al marcar *FAT32 pequeña*, ofrecer **qué hacer con el resto**: dejarlo sin asignar
+    (comportamiento actual, que se conserva porque a veces es lo querido) o **crear una segunda partición
+    con todo el espacio sobrante**, con su sistema de archivos (NTFS/exFAT) y su etiqueta. Una sola
+    partición extra, en la misma operación y bajo la misma confirmación destructiva que ya existe.
+  - **Por qué es el arreglo y no una función nueva:** es el caso `#37` **terminado**. Hoy la opción que
+    resuelve el flasheo de BIOS **inutiliza el resto del pendrive** hasta que el usuario sale a una
+    herramienta de Windows que esta app existe para no tener que abrir.
+  - **Criterio de aceptación:** en la USB de pruebas, *FAT32 pequeña (1 GB) + resto en exFAT* deja el disco
+    **sin espacio sin asignar** y con dos volúmenes montados; el explorador muestra los dos. El camino
+    «dejar sin asignar» sigue produciendo exactamente el resultado de hoy.
+  - *Esfuerzo: medio · Depende de: T5-01*
+
+- [ ] **[T5-03] Qué queda cuando el plan falla a mitad**
+  - **Área:** Robustez
+  - **Ubicación:** `Services/ReinitDrive`, `UI/MainWindow.Operations.cs`
+  - **Qué hacer:** con **una** partición, un fallo es binario: salió o no salió. Con varias hay un estado
+    intermedio real —la 1 creada y formateada, la 2 no— y hoy el mensaje de error no sabría decirlo.
+    Reportar **qué particiones existen y cuáles no** al fallar, y registrarlo en el historial.
+  - **Regla:** **no revertir automáticamente.** El disco ya está borrado; «deshacer» solo puede significar
+    borrar otra vez, y una limpieza automática tras un error es la clase de decisión que un usuario no
+    pidió. Se informa y se deja elegir.
+  - **Criterio de aceptación:** forzando el fallo de la segunda partición, la app queda viva, dice
+    exactamente qué se creó, lo registra, y **no** borra lo que sí funcionó.
+  - *Esfuerzo: bajo-medio · Depende de: T5-01, T5-02*
+
+- [ ] **[T5-04] Varias particiones definidas por el usuario** *(condicionada — leer la nota)*
+  - **Área:** Funcionalidad / UI
+  - **Qué hacer:** permitir **N particiones**, cada una con su tamaño, sistema de archivos y etiqueta, en
+    lugar de las dos de `T5-02`. Tope duro: **4 en MBR** (límite de particiones primarias) y un tope
+    razonable en GPT.
+  - **Riesgo declarado, y es de producto, no técnico:** el motor de `T5-01` ya admite N — lo caro es la
+    **interfaz**. La ventana es de **tamaño fijo (500×900) y es un diálogo de tarea**, decisión firme: una
+    tabla editable de filas variables no cabe ahí sin convertir la pantalla principal en otra cosa. Si se
+    hace, va en un **diálogo aparte** (como *Reinicializar*), nunca en la tarjeta de opciones.
+  - **Recomendación:** **no empezar por aquí.** Entregar `T5-02` primero y ver si el caso de N particiones
+    aparece de verdad en el uso. Dos particiones cubren el escenario que originó esto; N es una hipótesis.
+  - *Esfuerzo: alto · Depende de: T5-02, T5-03*
+
+- [ ] **[T5-05] Cobertura de UI del plan multi-partición**
+  - **Área:** QA
+  - **Ubicación:** `tests/FormatDiskPro.UiTests/DestructiveLifecycleTests.cs`
+  - **Qué hacer:** el ciclo destructivo actual crea **una** partición. Extenderlo al plan de `T5-02` sobre
+    la USB de pruebas, **manteniendo el opt-in** `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` (un corte de release
+    no debe ejecutarlo) y dejando el disco en un estado conocido al terminar.
+  - **Criterio de aceptación:** la prueba comprueba **los dos volúmenes**, no solo que la operación diga
+    que fue bien. Con el tamaño de la segunda partición mal calculado a propósito, falla.
+  - *Esfuerzo: medio · Depende de: T5-02*
+
+> **Nota de plataforma que conviene tener escrita antes de empezar:** Windows solo monta **todas** las
+> particiones de un medio marcado como extraíble desde Windows 10 1703. FormatDiskPro exige 19041 o
+> superior, así que **aquí no es un problema** — pero un pendrive multipartición hecho con esta app puede
+> mostrar **solo la primera** en un equipo más antiguo. Si `T5-02` entra, eso va dicho en la interfaz, no
+> solo en este archivo.
+
+---
+
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
@@ -935,9 +1059,11 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
 **Estado:** 35/40 completadas · 1 descartada (`T2-10`) · **5 abiertas** (T0: 0 · **T1: 0** · **T2: 0** · **T3: 0** · T4: 5).
-**Tiers 0, 1, 2 y 3 cerrados.** Lo único abierto es el **Tier 4**, que por definición está fuera del
-alcance inmediato: `CHANGELOG.md`, inyección de dependencias, firmar el instalador, más capturas y
-renombrar el `Name` interno del formulario.
+**Tiers 0, 1, 2 y 3 cerrados.** De la auditoría solo queda abierto el **Tier 4**, que por definición está
+fuera del alcance inmediato: `CHANGELOG.md`, inyección de dependencias, firmar el instalador, más capturas
+y renombrar el `Name` interno del formulario.
+**Aparte de las 40**, el **Tier 5** (5 tareas, abierto desde el 2026-08-15) recoge ampliaciones de features
+ya entregadas; no cuenta en este progreso porque no es remediación.
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió

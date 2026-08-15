@@ -16,7 +16,7 @@
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **398** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (v1.20.0 publicada y verificada · auditoría **35/40**, **Tiers 0–3 cerrados** · **CI descartada: el testing es local**) |
+| **Última actualización** | 2026-08-15 (v1.20.0 publicada y verificada · auditoría **35/40**, **Tiers 0–3 cerrados** · **Tier 5 «Ocurrencias» abierto** · **CI descartada: el testing es local**) |
 
 ---
 
@@ -128,6 +128,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.20.0** (2026-08-15) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **35/40 completadas** + 1 descartada (`T2-10`, CI) · **Tiers 0–3 cerrados**; abiertas solo las 5 del Tier 4 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
+| Ocurrencias | **Tier 5** abierto (2026-08-15): 5 tareas de ampliación de features ya entregadas, **fuera** del recuento de la auditoría. Primera: el espacio que *FAT32 pequeña* deja sin asignar |
 
 **Tiers completados**
 
@@ -350,6 +351,37 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-15 — **Tier 5 «Ocurrencias para features existentes»** abierto en el ROADMAP
+
+Nace de usar la app, no de auditarla: tras *Reinicializar unidad → FAT32 pequeña*, el disco queda con la
+partición pedida y **el resto sin asignar**, así que un pendrive de 256 GB se queda con 32 usables hasta
+que el usuario abre *Crear y formatear particiones* de Windows — **la herramienta que esta app existe para
+no tener que abrir**. La característica `#37` resolvía el flasheo de BIOS y dejaba a medias el disco.
+
+Cinco tareas (`T5-01`…`T5-05`), **fuera del recuento de la auditoría**: las 40 de la Parte 2 no añaden
+funcionalidad y estas sí. Va documentado como excepción explícita en los dos sitios donde se afirma lo
+contrario, para que el ROADMAP no se contradiga consigo mismo.
+
+Tres decisiones que quedan tomadas antes de escribir código:
+
+- **No reabre el «gestor de particiones completo»**, que sigue fuera de alcance. Lo vetado ahí es
+  **redimensionar, fusionar y mover** — operar sobre particiones **con datos**. Aquí `Clear-Disk` ya borra
+  el disco entero de todos modos y solo cambia **cuántas particiones se crean sobre el vacío**. El criterio
+  para saber si nos hemos salido queda escrito: **si hay que preservar datos, nos salimos.**
+- **El plan de particiones se convierte en dato puro (`T5-01`) antes que nada.** Hoy el layout es un
+  `long?` con dos significados («este tamaño» / «todo el disco»). Es la única parte probable **sin
+  hardware**, y es donde el error duele: un plan mal calculado se descubre **con el disco ya borrado**.
+- **Un fallo a mitad no se revierte solo (`T5-03`).** Con varias particiones existe un estado intermedio
+  real; «deshacer» solo podría significar borrar otra vez, y esa no es una decisión que tomar por el
+  usuario. Se informa de qué se creó y qué no, y se deja elegir.
+
+`T5-04` (N particiones a gusto del usuario) queda **condicionada y desaconsejada como punto de partida**:
+el motor lo admitiría, pero la interfaz no — la ventana es un diálogo de tarea de tamaño fijo por decisión
+firme, y una tabla editable de filas variables no cabe ahí sin convertirla en otra cosa. Dos particiones
+cubren el caso que originó esto; N es una hipótesis. Si entra, va en diálogo aparte.
 
 ---
 
