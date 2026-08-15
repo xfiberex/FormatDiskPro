@@ -54,10 +54,24 @@ public sealed partial class MainWindow
         catch { VolumeLabelBox.Text = ""; }
 
         ApplyProtection();
-        LoadHealthAsync(item);
+
+        // Se consume explícitamente: no se espera (el selector no puede bloquearse mientras PowerShell
+        // consulta el S.M.A.R.T.), pero el descarte deja escrito que es deliberado. Ver LoadHealthAsync.
+        _ = LoadHealthAsync(item);
     }
 
-    private async void LoadHealthAsync(DriveViewModel item)
+    /// <summary>
+    /// Carga la salud S.M.A.R.T. de la unidad seleccionada y la pinta.
+    ///
+    /// <para><c>async Task</c> y no <c>async void</c>: esto <b>no es un manejador de eventos</b>. En un
+    /// <c>async void</c> una excepción no puede capturarse desde quien llama y acaba en la red global de
+    /// <c>App.UnhandledException</c> (`T0-01`) — que existe para lo imprevisto, no como forma habitual de
+    /// enterarse de que algo falló.</para>
+    ///
+    /// <para>La comparación con <c>_healthLetter</c> descarta la respuesta si el usuario ya cambió de
+    /// unidad: la consulta tarda, y sin eso la salud de la unidad anterior pisaría a la nueva.</para>
+    /// </summary>
+    private async Task LoadHealthAsync(DriveViewModel item)
     {
         char letter = item.Letter;
         _healthLetter = letter;
@@ -65,7 +79,21 @@ public sealed partial class MainWindow
         InfoHealthText.Text = L.T("info.health", L.T("info.loading"));
         InfoBusText.Text    = L.T("info.bus", L.T("info.loading"));
 
-        var info = await DiskService.GetHealthAsync(letter);
+        DiskService.HealthInfo? info;
+        try
+        {
+            info = await DiskService.GetHealthAsync(letter);
+        }
+        catch (Exception ex)
+        {
+            // Al dejar de ser `async void`, una excepción aquí ya no llega a la red global: quedaría en
+            // una Task que nadie observa, es decir, en silencio. Se atrapa y se cuenta — la salud pasa a
+            // "no disponible", que es exactamente lo que el usuario necesita saber.
+            if (_healthLetter == letter) RenderHealth(null);
+            History.Log($"HEALTH ERROR {letter}: {ex.Message}");
+            return;
+        }
+
         if (_healthLetter != letter) return;
 
         _lastHealth = info;

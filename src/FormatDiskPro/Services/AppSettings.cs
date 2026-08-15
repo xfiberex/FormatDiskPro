@@ -37,14 +37,15 @@ public sealed class AppSettings
 
     /// <summary>
     /// Número de pasadas del borrado seguro: <c>1</c>, <c>3</c> o <c>7</c> (ver <see cref="SecureWipe.AllowedPasses"/>).
-    /// <c>1</c> basta en discos modernos (NIST 800-88); se valida con <see cref="SecureWipe.NormalizePasses"/> al cargar.
+    /// <c>1</c> basta en discos modernos (NIST 800-88). <see cref="Load"/> lo normaliza con
+    /// <see cref="SecureWipe.NormalizePasses"/>, así que un valor imposible en el archivo nunca llega vivo.
     /// </summary>
     public int SecureWipePasses { get; set; } = 1;
 
     /// <summary>
     /// Tamaño en GB de la partición FAT32 pequeña al reinicializar en discos grandes (ver
-    /// <see cref="ReinitPlan.AllowedSmallFat32SizesGb"/>). <c>32</c> (el máximo) por defecto; se valida
-    /// con <see cref="ReinitPlan.NormalizeSmallFat32SizeGb"/> al cargar.
+    /// <see cref="ReinitPlan.AllowedSmallFat32SizesGb"/>). <c>32</c> (el máximo) por defecto.
+    /// <see cref="Load"/> lo normaliza con <see cref="ReinitPlan.NormalizeSmallFat32SizeGb"/>.
     /// </summary>
     public int SmallFat32SizeGb { get; set; } = 32;
 
@@ -86,6 +87,14 @@ public sealed class AppSettings
             var loaded = JsonSerializer.Deserialize<AppSettings>(json);
             if (loaded is null) return new AppSettings();
             loaded.LoadedFromFile = true;
+
+            // La documentación de estas dos propiedades decía "se valida al cargar" y no era cierto: la
+            // normalización ocurría solo en la UI, al construir sus ComboBox. Un settings.json editado a
+            // mano (o escrito por una versión futura) entraba con un valor imposible —0 pasadas, 7 GB de
+            // partición— y la UI lo silenciaba eligiendo otro, pero el objeto seguía llevándolo. Se
+            // normaliza aquí: es lo que la documentación prometía y el sitio correcto para hacerlo.
+            loaded.SecureWipePasses = SecureWipe.NormalizePasses(loaded.SecureWipePasses);
+            loaded.SmallFat32SizeGb = ReinitPlan.NormalizeSmallFat32SizeGb(loaded.SmallFat32SizeGb);
             return loaded;
         }
         catch

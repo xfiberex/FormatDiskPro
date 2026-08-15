@@ -96,13 +96,21 @@ public static class ReinitDrive
             var reported = new HashSet<string>();
             var reader  = proc.StandardOutput;
             int read;
+            // Se busca sobre el fragmento NUEVO más un solapamiento corto, no sobre el búfer entero: con
+            // `sb.ToString()` dentro del bucle, cada lectura rematerializaba toda la salida acumulada y el
+            // coste crecía O(n²). El solapamiento cubre un marcador partido entre dos lecturas — el motivo
+            // por el que se miraba el texto completo—, que es lo mismo que hace el `carry` de CheckDisk.
+            string carry = "";
+            const int MarkerOverlap = 24;   // "STAGE:partition" son 15 caracteres; 24 deja margen
             while ((read = await reader.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
             {
                 sb.Append(buffer, 0, read);
-                string text = sb.ToString();
+
+                string scan = carry + new string(buffer, 0, read);
                 foreach (string s in stages)
-                    if (text.Contains($"STAGE:{s}") && reported.Add(s))
+                    if (scan.Contains($"STAGE:{s}") && reported.Add(s))
                         stage.Report(s);
+                carry = scan.Length > MarkerOverlap ? scan[^MarkerOverlap..] : scan;
             }
 
             string err = await errTask;

@@ -61,11 +61,26 @@ public static class L
         return key; // defensivo: nunca lanza
     }
 
-    public static string T(string key, params object[] args) => string.Format(T(key), args);
+    /// <summary>
+    /// Traducción con formato. Como <see cref="T(string)"/>, <b>nunca lanza</b>: si una traducción trae un
+    /// marcador mal escrito (<c>{0</c>, <c>{2}</c> cuando solo hay un argumento…), <c>string.Format</c>
+    /// lanzaría <see cref="FormatException"/> y tumbaría la pantalla que solo quería mostrar un texto.
+    ///
+    /// <para>Un error de traducción debe verse como un texto raro, no como una app que se cae: ante un
+    /// fallo de formato se devuelve la plantilla <b>sin formatear</b>, que sigue siendo legible y además
+    /// delata el error. Cinco idiomas por clave es sitio de sobra para una llave descolocada.</para>
+    /// </summary>
+    public static string T(string key, params object[] args)
+    {
+        string template = T(key);
+        try { return string.Format(template, args); }
+        catch (FormatException) { return template; }
+    }
 
     /// <summary>Diccionario de traducciones. Orden de cada arreglo: <c>[Es, En, Pt, Fr, It]</c>.</summary>
     internal static readonly Dictionary<string, string[]> Map = new()
-    {        ["section.drive"]    = ["Unidad", "Drive", "Unidade", "Lecteur", "Unità"],
+    {
+        ["section.drive"]    = ["Unidad", "Drive", "Unidade", "Lecteur", "Unità"],
         ["section.format"]   = ["Configuración de formato", "Format settings", "Configurações de formatação", "Paramètres de formatage", "Impostazioni di formattazione"],
         ["fs.label"]         = ["Sistema de archivos", "File system", "Sistema de arquivos", "Système de fichiers", "File system"],
 
@@ -163,7 +178,8 @@ public static class L
         ["history.export"]       = ["Exportar CSV", "Export CSV", "Exportar CSV", "Exporter CSV", "Esporta CSV"],
         ["history.open"]         = ["Abrir archivo", "Open file", "Abrir arquivo", "Ouvrir le fichier", "Apri file"],
         ["history.clear"]        = ["Vaciar historial", "Clear history", "Limpar histórico", "Effacer l'historique", "Cancella cronologia"],
-        ["history.clearConfirm"] = ["¿Vaciar el historial?", "Clear the history?", "Limpar o histórico?", "Effacer l'historique ?", "Cancellare la cronologia?"],
+        ["history.exportFailed"] = ["No se pudo exportar el CSV", "The CSV could not be exported", "Não foi possível exportar o CSV", "Impossible d'exporter le CSV", "Impossibile esportare il CSV"],
+        ["history.clearConfirm"] =["¿Vaciar el historial?", "Clear the history?", "Limpar o histórico?", "Effacer l'historique ?", "Cancellare la cronologia?"],
         ["history.cat.format"]   = ["Formato", "Format", "Formatação", "Formatage", "Formattazione"],
         ["history.cat.wipe"]     = ["Borrado seguro", "Secure erase", "Apagamento seguro", "Effacement sécurisé", "Cancellazione sicura"],
         ["history.cat.verify"]   = ["Verificación", "Verification", "Verificação", "Vérification", "Verifica"],

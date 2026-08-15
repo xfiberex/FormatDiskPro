@@ -18,7 +18,15 @@
     Ruta a un archivo .pfx para firmar (alternativa a -CertThumbprint).
 
 .PARAMETER CertPassword
-    Contraseña del .pfx (si la tiene).
+    Contraseña del .pfx (si la tiene), como SecureString. También puede darse por la variable de entorno
+    FORMATDISKPRO_CERT_PASSWORD, que es lo cómodo para no teclearla.
+
+    NO es [string] a propósito: como texto plano quedaba en el historial de PowerShell y en la línea de
+    comandos de este proceso, visible para cualquier proceso local.
+
+    AVISO honesto: signtool.exe solo acepta la contraseña por parámetro (/p), así que durante ESA llamada
+    sigue estando en la línea de comandos de signtool. Lo único que elimina esa exposición es importar el
+    .pfx en el almacén de certificados y usar -CertThumbprint, que además es lo recomendado.
 
 .PARAMETER TimestampUrl
     Servidor de sellado de tiempo RFC3161 (por defecto el de DigiCert).
@@ -27,7 +35,8 @@
     .\build-installer.ps1
     .\build-installer.ps1 -Version 1.2.0
     .\build-installer.ps1 -Version 1.2.1 -CertThumbprint A1B2C3...
-    .\build-installer.ps1 -Version 1.2.1 -CertFile cert.pfx -CertPassword ****
+    .\build-installer.ps1 -Version 1.2.1 -CertFile cert.pfx -CertPassword (Read-Host -AsSecureString)
+    $env:FORMATDISKPRO_CERT_PASSWORD = '...'; .\build-installer.ps1 -Version 1.2.1 -CertFile cert.pfx
 #>
 [CmdletBinding()]
 param(
@@ -36,11 +45,28 @@ param(
     [string]$Runtime       = "win-x64",
     [string]$CertThumbprint,
     [string]$CertFile,
-    [string]$CertPassword,
+    [SecureString]$CertPassword,
     [string]$TimestampUrl  = "http://timestamp.digicert.com"
 )
 
 $ErrorActionPreference = "Stop"
+
+# Alternativa cómoda a teclearla: variable de entorno. Se convierte a SecureString en cuanto entra, para
+# que el resto del script no maneje la contraseña en claro.
+if (-not $CertPassword -and $env:FORMATDISKPRO_CERT_PASSWORD) {
+    $CertPassword = ConvertTo-SecureString $env:FORMATDISKPRO_CERT_PASSWORD -AsPlainText -Force
+}
+
+<#
+.SYNOPSIS
+    Descifra una SecureString justo en el momento de usarla, y libera la memoria intermedia.
+#>
+function Get-PlainPassword([SecureString]$secure) {
+    if (-not $secure) { return $null }
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try   { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+}
 
 # --- Firma de código (opcional) --------------------------------------------
 $signEnabled = [bool]($CertThumbprint -or $CertFile)
@@ -82,7 +108,14 @@ function Invoke-Sign([string[]]$files) {
     if (-not $signEnabled) { return }
     $base = @("sign", "/fd", "SHA256", "/tr", $TimestampUrl, "/td", "SHA256")
     if ($CertThumbprint)  { $base += @("/sha1", $CertThumbprint) }
-    elseif ($CertFile)    { $base += @("/f", $CertFile); if ($CertPassword) { $base += @("/p", $CertPassword) } }
+    elseif ($CertFile)    {
+        $base += @("/f", $CertFile)
+        # Se descifra aquí, en el último momento, y no vive fuera de esta función. Lo que no se puede
+        # evitar es que signtool la reciba por /p: es su única forma de aceptarla. Quien quiera cero
+        # exposición debe usar -CertThumbprint con el .pfx importado en el almacén.
+        $plain = Get-PlainPassword $CertPassword
+        if ($plain) { $base += @("/p", $plain) }
+    }
     foreach ($f in $files) {
         if (-not (Test-Path $f)) { continue }
         Write-Host "==> Firmando: $f" -ForegroundColor Cyan

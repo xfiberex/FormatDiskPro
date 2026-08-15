@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace FormatDiskPro;
 
 /// <summary>
@@ -7,9 +9,13 @@ namespace FormatDiskPro;
 /// expone un porcentaje fiable.
 /// </summary>
 /// <remarks>
-/// Limitación en SSD/NVMe con TRIM: sobrescribir el espacio libre (este método y también
+/// <para>Limitación en SSD/NVMe con TRIM: sobrescribir el espacio libre (este método y también
 /// <c>cipher /w</c>) no garantiza el borrado a nivel de celdas porque el controlador puede
-/// remapear bloques; el borrado seguro real en SSD requiere <i>ATA Secure Erase</i>.
+/// remapear bloques; el borrado seguro real en SSD requiere <i>ATA Secure Erase</i>.</para>
+/// <para>La pasada aleatoria usa <see cref="RandomNumberGenerator"/> (criptográfico), no
+/// <see cref="Random"/>. Para <b>destruir</b> lo que había, el origen de la aleatoriedad da igual —lo que
+/// borra es la sobrescritura—, pero «borrado seguro» invita a suponer otra cosa y el coste frente a la
+/// E/S es despreciable: sale más barato cumplir la expectativa que documentar por qué no se cumple.</para>
 /// </remarks>
 public static class SecureWipe
 {
@@ -82,7 +88,6 @@ public static class SecureWipe
             Directory.CreateDirectory(dir);
 
             var buffer = new byte[BlockSize];
-            var rng    = new Random();
 
             for (int pass = 0; pass < passes; pass++)
             {
@@ -104,7 +109,11 @@ public static class SecureWipe
                         {
                             ct.ThrowIfCancellationRequested();
                             int size = (int)Math.Min(BlockSize, fileTarget - fileWritten);
-                            if (random) rng.NextBytes(buffer.AsSpan(0, size));   // patrón aleatorio: regenerar
+                            // RNG criptográfico y no System.Random: para DESTRUIR datos previos daría
+                            // igual el origen de la aleatoriedad —lo que importa es sobrescribir—, pero el
+                            // nombre "borrado seguro" invita a suponer otra cosa, y el coste frente a la
+                            // E/S es despreciable. Que el código y la expectativa coincidan sale gratis.
+                            if (random) RandomNumberGenerator.Fill(buffer.AsSpan(0, size));
                             await fs.WriteAsync(buffer.AsMemory(0, size), ct);
 
                             fileWritten += size;

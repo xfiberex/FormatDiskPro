@@ -70,7 +70,9 @@ param(
     # Firma de código (opcional): se reenvían a build-installer.ps1.
     [string]$CertThumbprint,
     [string]$CertFile,
-    [string]$CertPassword,
+    # SecureString y no [string] (T3-09): en claro quedaba en el historial de PowerShell y en la línea de
+    # comandos del proceso. También se puede dar por FORMATDISKPRO_CERT_PASSWORD; ver build-installer.ps1.
+    [SecureString]$CertPassword,
     [string]$TimestampUrl
 )
 

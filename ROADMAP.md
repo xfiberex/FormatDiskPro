@@ -728,15 +728,19 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 
 ## 🟢 Tier 3 — Pulido y mantenimiento
 
-- [ ] **[T3-01] La exportación CSV no puede fallar en silencio**
+- [x] **[T3-01] La exportación CSV no puede fallar en silencio**
   - **Área:** UX / manejo de errores
   - **Ubicación:** `src/FormatDiskPro/UI/HistoryDialog.xaml.cs:105-112`
   - **Qué hacer:** `catch { }` se traga cualquier fallo de escritura: el usuario elige destino, no ve nada
     y **cree que exportó**. Mantener el «no romper el diálogo», pero informar del fallo.
   - **Criterio de aceptación:** exportar a una ruta sin permiso muestra un mensaje.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `InfoBar` de error **dentro** del propio diálogo (un `ContentDialog` no
+    puede abrir otro), con el motivo real de la excepción, más una línea `EXPORT ERROR` en el historial.
+    Se conserva el «no romper el diálogo» —sigue abierto y utilizable— pero sin callar: el fallo
+    silencioso dejaba al usuario convencido de que tenía su CSV. Nueva clave `history.exportFailed`.
 
-- [ ] **[T3-02] Evitar el `sb.ToString()` por chunk en `ReinitDrive`**
+- [x] **[T3-02] Evitar el `sb.ToString()` por chunk en `ReinitDrive`**
   - **Área:** Rendimiento
   - **Ubicación:** `src/FormatDiskPro/Services/ReinitDrive.cs:99-106`
   - **Qué hacer:** rematerializa el búfer completo en cada lectura (O(n²)). Buscar los marcadores `STAGE:`
@@ -744,16 +748,27 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     `CheckDisk.cs:70-84`.
   - **Criterio de aceptación:** mismo reporte de etapas, sin `ToString()` dentro del bucle.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** Se busca sobre el fragmento nuevo más 24 caracteres de solapamiento
+    (`STAGE:partition` son 15), como el `carry` de `CheckDisk`. El `StringBuilder` sigue acumulando la
+    salida completa —hace falta al final para `ParseNewLetter`—, pero ya no se rematerializa en cada
+    lectura.
 
-- [ ] **[T3-03] `LoadHealthAsync` no es un handler: no debe ser `async void`**
+- [x] **[T3-03] `LoadHealthAsync` no es un handler: no debe ser `async void`**
   - **Área:** Código
   - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml.cs:353`
   - **Qué hacer:** convertir a `async Task` y consumirlo explícitamente desde
     `DrivePicker_SelectionChanged`.
   - **Criterio de aceptación:** no quedan `async void` fuera de handlers de eventos.
   - **Esfuerzo:** bajo · **Depende de:** T0-02
+  - **Resuelta el 2026-08-15.** Es `async Task` y se consume con un descarte explícito (`_ =`): no puede
+    esperarse —el selector no se bloquea mientras PowerShell consulta el S.M.A.R.T.— pero ahora está
+    escrito que es deliberado. Comprobado que **no queda ningún `async void` fuera de un manejador**.
+  - **Con un matiz que la tarea no decía, y que importa:** al dejar de ser `async void`, una excepción ya
+    no llega a la red global de `T0-01` — se quedaría en una `Task` que nadie observa, es decir, en
+    silencio. Se añade un `catch` que pinta la salud como «no disponible» y registra `HEALTH ERROR`.
+    Cambiar dónde se manejan los errores es parte del cambio, no un extra.
 
-- [ ] **[T3-04] Corregir la documentación de validación de `AppSettings`**
+- [x] **[T3-04] Corregir la documentación de validación de `AppSettings`**
   - **Área:** Documentación
   - **Ubicación:** `src/FormatDiskPro/Services/AppSettings.cs:39-49` vs `:79-95`
   - **Qué hacer:** los `<summary>` dicen que `SecureWipePasses` y `SmallFat32SizeGb` «se validan **al
@@ -761,6 +776,10 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     `InitSmallFat32Size`). O normalizar en `Load()` (preferible) o corregir el texto.
   - **Criterio de aceptación:** documentación y comportamiento coinciden.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
+  - **Resuelta el 2026-08-15, por la vía preferible: normalizando en `Load()`.** Corregir el texto habría
+    dejado el hueco abierto — un `settings.json` editado a mano (o escrito por una versión futura) entraba
+    con 0 pasadas o una partición de 7 GB, y la UI lo tapaba eligiendo otra cosa mientras el objeto seguía
+    llevando el valor imposible. +7 pruebas.
 
 - [x] **[T3-05] «No hay colores hardcodeados» ya no es cierto**
   - **Área:** Documentación
@@ -772,7 +791,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** la documentación enumera exactamente las excepciones que quedan.
   - **Esfuerzo:** bajo · **Depende de:** T1-04
 
-- [ ] **[T3-06] `L.T(clave, args)` puede lanzar pese a prometer que no**
+- [x] **[T3-06] `L.T(clave, args)` puede lanzar pese a prometer que no**
   - **Área:** Código
   - **Ubicación:** `src/FormatDiskPro/Localization/Localization.cs:61-64`
   - **Qué hacer:** `T(string)` es defensivo («nunca lanza»), pero la sobrecarga con `params` llama a
@@ -780,24 +799,33 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     Envolver en `try/catch` y devolver la plantilla sin formatear.
   - **Criterio de aceptación:** test con una traducción de placeholder roto que no lanza.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `try/catch (FormatException)` que devuelve la plantilla **sin formatear**:
+    sigue siendo legible y además delata el error. Un fallo de traducción debe verse como un texto raro,
+    no como una app que se cae. Verificado por reversión: con el `string.Format` directo, la prueba nueva
+    falla con `FormatException`.
 
-- [ ] **[T3-07] Formato de la apertura de `L.Map`**
+- [x] **[T3-07] Formato de la apertura de `L.Map`**
   - **Área:** Estilo
   - **Ubicación:** `src/FormatDiskPro/Localization/Localization.cs:67-68`
   - **Qué hacer:** la primera entrada va pegada a la llave (`new()\n{        ["section.drive"]`), lo que
     descoloca el diccionario respecto al resto del archivo.
   - **Criterio de aceptación:** la primera clave se alinea con las demás.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** La llave de apertura va en su línea y `section.drive` se alinea con el
+    resto del diccionario.
 
-- [ ] **[T3-08] Sacar los iconos decorativos del árbol de automatización**
+- [x] **[T3-08] Sacar los iconos decorativos del árbol de automatización**
   - **Área:** Accesibilidad
   - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml:79,102,131,160`
   - **Qué hacer:** los `FontIcon` de encabezado son puramente decorativos y hoy los recorre el lector de
     pantalla. Marcarlos `AutomationProperties.AccessibilityView="Raw"`.
   - **Criterio de aceptación:** el recorrido con Narrador no lee glifos sin significado.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `AccessibilityView="Raw"` **en el estilo** `SectionIconStyle`, no en cada
+    icono: así lo hereda cualquier icono de sección que se añada después: la corrección se queda puesta
+    sola. El glifo del botón *Actualizar* se marca aparte (el botón ya tiene nombre accesible propio).
 
-- [ ] **[T3-09] No pasar la contraseña del certificado por línea de comandos**
+- [x] **[T3-09] No pasar la contraseña del certificado por línea de comandos**
   - **Área:** Seguridad / DevOps
   - **Ubicación:** `src/FormatDiskPro/installer/build-installer.ps1:39` y `:85`
   - **Qué hacer:** `-CertPassword` es `[string]` y se pasa a `signtool` como `/p <valor>`: queda visible en
@@ -806,8 +834,16 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** firmar no expone la contraseña en la línea de comandos.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
   - **Nota:** hoy no se firma (`#13`); aplica solo a quien use el flujo opcional.
+  - **Resuelta el 2026-08-15, con un límite que conviene decir en voz alta.** `-CertPassword` pasa a
+    `[SecureString]` en `build-installer.ps1` **y** en `release.ps1`, con alternativa por la variable
+    `FORMATDISKPRO_CERT_PASSWORD`, y solo se descifra en el momento de construir los argumentos.
+  - **Lo que esto NO arregla:** `signtool.exe` únicamente acepta la contraseña por `/p`, así que durante
+    esa llamada sigue estando en **su** línea de comandos. Lo que se elimina es la exposición en el
+    historial de PowerShell y en la línea de comandos de nuestros scripts. La única vía sin exposición
+    alguna es importar el `.pfx` en el almacén y usar `-CertThumbprint`; queda documentado en la ayuda del
+    script para quien algún día firme.
 
-- [ ] **[T3-10] Documentar (o cambiar) el RNG del borrado seguro**
+- [x] **[T3-10] Documentar (o cambiar) el RNG del borrado seguro**
   - **Área:** Seguridad / documentación
   - **Ubicación:** `src/FormatDiskPro/Services/SecureWipe.cs:85`
   - **Qué hacer:** la pasada «aleatoria» usa `System.Random`, un PRNG no criptográfico. Para **destruir**
@@ -816,6 +852,11 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     `<remarks>`, que ya es honesto sobre la limitación de TRIM.
   - **Criterio de aceptación:** código y documentación coinciden sobre qué garantiza la pasada aleatoria.
   - **Esfuerzo:** bajo · **Depende de:** ninguna
+  - **Resuelta el 2026-08-15 cambiando el código, no el texto:** `RandomNumberGenerator.Fill` en vez de
+    `System.Random`. Para **destruir** lo anterior el origen de la aleatoriedad da igual —lo que borra es
+    la sobrescritura—, pero el coste frente a la E/S es despreciable y sale más barato cumplir la
+    expectativa que documentar por qué no se cumple. El `<remarks>` sigue siendo honesto sobre lo que de
+    verdad limita esto: TRIM y el remapeo de celdas en SSD.
 
 - [x] **[T3-11] El historial se corrompe al registrar texto multilínea** *(añadida y resuelta el 2026-08-13)*
   - **Área:** Código / robustez
@@ -883,6 +924,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 | 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
+| 2026-08-15 | **T3 (9)** | Pulido completo: CSV que ya no falla en silencio, `ReinitDrive` sin O(n²), `LoadHealthAsync` con su error propio, `AppSettings.Load` normaliza de verdad, `L.T` no lanza, iconos decorativos fuera del árbol UIA, contraseña de firma como `SecureString`, RNG criptográfico en el borrado. **Tier 3 cerrado.** +9 pruebas. |
 | 2026-08-15 | **T2-08** | `Services/FormatProcess` + `UI/DeviceChangeWatcher` extraídos; el resto en `partial class`. `MainWindow.xaml.cs` 2107 → **753** líneas. **T2 cerrado.** |
 | 2026-08-15 | **T2-04** | Cobertura medida (`coverlet`) y **exigida** en el corte: `Core/` al **97.1 %**, mínimo 90 %. |
 | 2026-08-15 | **T2-11** | `SECURITY.md` (canal privado + lo que no es vulnerabilidad), `CONTRIBUTING.md`, plantillas de issue y de PR. Enlazados desde el README. |
@@ -892,8 +934,10 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 26/40 completadas · 1 descartada (`T2-10`) · **13 abiertas** (T0: 0 · **T1: 0** · **T2: 0** · T3: 9 · T4: 5).
-**Tiers 0, 1 y 2 cerrados.**
+**Estado:** 35/40 completadas · 1 descartada (`T2-10`) · **5 abiertas** (T0: 0 · **T1: 0** · **T2: 0** · **T3: 0** · T4: 5).
+**Tiers 0, 1, 2 y 3 cerrados.** Lo único abierto es el **Tier 4**, que por definición está fuera del
+alcance inmediato: `CHANGELOG.md`, inyección de dependencias, firmar el instalador, más capturas y
+renombrar el `Name` interno del formulario.
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió

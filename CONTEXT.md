@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **388** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
+| **Pruebas** | **398** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (v1.18.0 publicada · auditoría **26/40**, **Tiers 0–2 cerrados** · **CI descartada: el testing es local**) |
+| **Última actualización** | 2026-08-15 (v1.19.0 publicada · auditoría **35/40**, **Tiers 0–3 cerrados** · **CI descartada: el testing es local**) |
 
 ---
 
@@ -123,11 +123,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **388 / 388** (289 + 99 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **398 / 398** (289 + 109 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **27** en total · con la USB (`utilidades`, sin opt-in): **24 pasan / 3 se omiten / 0 fallan** (2026-08-15) · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.19.0** (2026-08-15) · `master` sin trabajo pendiente de publicar |
-| Auditoría | 2026-08-13 — **26/40 completadas** + 1 descartada (`T2-10`, CI), 13 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 · **Tiers 0, 1 y 2 cerrados** (T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **35/40 completadas** + 1 descartada (`T2-10`, CI) · **Tiers 0–3 cerrados**; abiertas solo las 5 del Tier 4 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 
 **Tiers completados**
 
@@ -349,6 +349,45 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-15 — Tier 3 completo: nueve arreglos de pulido, tres con matiz
+
+Ninguno cambia lo que la app hace; varios cambian lo que la app **cuenta** cuando algo va mal.
+
+- **`T3-01` — la exportación CSV ya no falla en silencio.** Un `catch { }` se tragaba cualquier error de
+  escritura: el usuario elegía destino, no veía nada y se quedaba **creyendo que había exportado**. Ahora
+  el diálogo muestra un `InfoBar` con el motivo real y se registra `EXPORT ERROR`. Va dentro del propio
+  diálogo porque WinUI no permite abrir un `ContentDialog` sobre otro.
+- **`T3-03` — `LoadHealthAsync` pasa a `async Task`** con descarte explícito. **El matiz que la tarea no
+  decía:** al dejar de ser `async void`, una excepción ya no llega a la red global de `T0-01` — se
+  quedaría en una `Task` que nadie observa, o sea, en silencio. Se añade un `catch` que pinta «no
+  disponible» y registra `HEALTH ERROR`. Cambiar el tipo de retorno **es** cambiar dónde se manejan los
+  errores; no verlo habría convertido un arreglo en una regresión callada.
+- **`T3-04` — `AppSettings.Load` normaliza de verdad.** La documentación decía «se valida al cargar» y no
+  era cierto: lo hacía la UI al construir sus ComboBox. Se arregla por la vía preferible —normalizar en
+  `Load()`—, no reescribiendo el texto: así un `settings.json` con 0 pasadas deja de entrar vivo.
+- **`T3-06` — `L.T(clave, args)` ya no lanza.** Un marcador mal escrito en una traducción tumbaba la
+  pantalla que solo quería mostrar un texto; ahora devuelve la plantilla sin formatear, que además delata
+  el fallo. Verificado por reversión.
+- **`T3-08` — iconos decorativos fuera del árbol de automatización**, puesto **en el estilo** y no en cada
+  icono: cualquier icono de sección futuro lo hereda, así que la corrección se queda puesta sola.
+- **`T3-10` — el borrado seguro usa RNG criptográfico.** Para destruir datos da igual el origen de la
+  aleatoriedad, pero «borrado seguro» invita a suponer otra cosa y el coste frente a la E/S es
+  despreciable: sale más barato cumplir la expectativa que documentar por qué no se cumple.
+- **`T3-02`** (sin `ToString()` por chunk en `ReinitDrive`, con solapamiento como el `carry` de
+  `CheckDisk`), **`T3-07`** (formato del diccionario) y **`T3-09`**, abajo.
+
+> **`T3-09` merece decirse entero.** La contraseña del certificado pasa a `SecureString` en los dos
+> scripts, con alternativa por variable de entorno, y solo se descifra al construir los argumentos. **Lo
+> que no arregla:** `signtool.exe` solo la acepta por `/p`, así que durante esa llamada sigue en **su**
+> línea de comandos. Se elimina la exposición en el historial de PowerShell y en nuestros scripts, no la
+> de signtool. La única vía sin exposición es el `.pfx` en el almacén con `-CertThumbprint`, y así queda
+> documentado para el día que se firme.
+
+Build 0/0, **398/398** unitarias (+9) y UI **24/27** con la USB. Auditoría **35/40** + 1 descartada:
+**Tiers 0–3 cerrados**, solo queda el Tier 4 (fuera del alcance inmediato por definición).
 
 ---
 

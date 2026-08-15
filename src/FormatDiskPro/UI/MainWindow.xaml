@@ -99,7 +99,10 @@
                                 <Button.KeyboardAccelerators>
                                     <KeyboardAccelerator Key="F5" />
                                 </Button.KeyboardAccelerators>
-                                <FontIcon Glyph="&#xE72C;" FontSize="16" />
+                                <!-- El botón ya tiene nombre accesible (AutomationProperties.SetName con
+                                     tip.refresh): su glifo no aporta nada al lector de pantalla. -->
+                                <FontIcon Glyph="&#xE72C;" FontSize="16"
+                                          AutomationProperties.AccessibilityView="Raw" />
                                 <ToolTipService.ToolTip>
                                     <ToolTip x:Name="RefreshTooltip" Content="Actualizar lista" />
                                 </ToolTipService.ToolTip>

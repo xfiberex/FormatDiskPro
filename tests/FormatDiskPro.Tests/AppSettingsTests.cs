@@ -115,4 +115,36 @@ public sealed class AppSettingsTests : IDisposable
         new AppSettings { SecureWipePasses = 7 }.Save(_path);
         Assert.Equal(7, AppSettings.Load(_path).SecureWipePasses);
     }
+
+    /// <summary>
+    /// La documentación decía que estos dos valores «se validan al cargar» y no era cierto: la
+    /// normalización solo ocurría en la UI, al construir sus ComboBox, así que un <c>settings.json</c>
+    /// editado a mano entraba en el objeto con un valor imposible. Ahora <see cref="AppSettings.Load"/> lo
+    /// hace de verdad — el documento y el comportamiento ya coinciden.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]      // menos de una pasada no es una pasada
+    [InlineData(-3)]
+    [InlineData(2)]      // solo se admiten 1, 3 y 7
+    [InlineData(99)]
+    public void Load_InvalidSecureWipePasses_IsNormalized(int stored)
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(_path, $$"""{"SecureWipePasses": {{stored}}}""");
+
+        Assert.Equal(1, AppSettings.Load(_path).SecureWipePasses);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(7)]      // no está entre los tamaños ofrecidos
+    [InlineData(64)]     // por encima del máximo que Windows admite en FAT32
+    public void Load_InvalidSmallFat32Size_IsNormalized(int stored)
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(_path, $$"""{"SmallFat32SizeGb": {{stored}}}""");
+
+        int loaded = AppSettings.Load(_path).SmallFat32SizeGb;
+        Assert.Contains(loaded, ReinitPlan.AllowedSmallFat32SizesGb);
+    }
 }

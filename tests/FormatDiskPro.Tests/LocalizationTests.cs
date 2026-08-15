@@ -21,6 +21,28 @@ public sealed class LocalizationTests
     public void T_WithArguments_FormatsPlaceholders()
         => Assert.Contains("G", L.T("success.body", 'G', "NTFS"));
 
+    /// <summary>
+    /// La sobrecarga con argumentos promete lo mismo que <c>T(string)</c>: <b>nunca lanza</b>. Antes
+    /// llamaba directamente a <c>string.Format</c>, así que un marcador mal escrito en cualquiera de las
+    /// cinco traducciones —o una llamada con menos argumentos de los que la plantilla espera— tumbaba la
+    /// pantalla que solo quería mostrar un texto. Un error de traducción debe verse como un texto raro,
+    /// no como una app que se cae.
+    /// </summary>
+    [Fact]
+    public void T_WithBadPlaceholder_ReturnsTemplateInsteadOfThrowing()
+    {
+        // "success.body" espera dos argumentos; se le pasa uno.
+        string result = L.T("success.body", 'G');
+
+        Assert.False(string.IsNullOrWhiteSpace(result));
+        Assert.Equal(L.T("success.body"), result);   // la plantilla sin formatear, que delata el fallo
+    }
+
+    /// <summary>Una clave inexistente con argumentos tampoco lanza: devuelve la clave.</summary>
+    [Fact]
+    public void T_UnknownKeyWithArguments_ReturnsKey()
+        => Assert.Equal("clave.inexistente", L.T("clave.inexistente", 1, 2, 3));
+
     [Fact]
     public void EveryEntry_HasFiveNonEmptyTranslations()
     {

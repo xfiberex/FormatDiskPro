@@ -102,13 +102,22 @@ public sealed partial class HistoryDialog : ContentDialog
         picker.FileTypeChoices.Add("CSV", new List<string> { ".csv" });
         WinRT.Interop.InitializeWithWindow.Initialize(picker, _hwnd);
 
+        ExportErrorBar.IsOpen = false;
         try
         {
             var file = await picker.PickSaveFileAsync();
             if (file is null) return;
             await FileIO.WriteTextAsync(file, HistoryEntry.ToCsv(FilteredEntries()));
         }
-        catch { /* exportar nunca debe romper el diálogo */ }
+        catch (Exception ex)
+        {
+            // Se mantiene el "no romper el diálogo" —el historial sigue abierto y utilizable— pero SIN
+            // callar: un fallo silencioso aquí deja al usuario convencido de que tiene su CSV.
+            ExportErrorBar.Title   = L.T("history.exportFailed");
+            ExportErrorBar.Message = ex.Message;
+            ExportErrorBar.IsOpen  = true;
+            History.Log($"EXPORT ERROR: {ex.Message}");
+        }
     }
 
     private HistoryRow ToRow(HistoryEntry e)
