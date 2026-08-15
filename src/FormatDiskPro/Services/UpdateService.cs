@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace FormatDiskPro;
@@ -12,8 +13,9 @@ namespace FormatDiskPro;
 /// </summary>
 /// <param name="ChecksumUrl">
 /// URL del asset <c>*.sha256</c> con el que se verifica el instalador antes de ejecutarlo
-/// (ver <c>UpdateService.VerifyInstallerAsync</c>). Vacía si el release no lo publica: los releases
-/// anteriores a la v1.15.0 no lo llevan.
+/// (ver <c>UpdateService.VerifyInstallerAsync</c>). Vacía si el release no publica el checksum
+/// <b>del instalador elegido</b>: los releases anteriores a la v1.15.0 no lo llevan, y un
+/// <c>.sha256</c> que no le corresponda no cuenta (ver <c>UpdateService.ParseRelease</c>).
 /// </param>
 public sealed record ReleaseInfo(
     string TagName,
@@ -68,38 +70,71 @@ public static class UpdateService
         return ParseRelease(doc.RootElement);
     }
 
-    /// <summary>Convierte el JSON de un release de GitHub en un <see cref="ReleaseInfo"/>.</summary>
-    private static ReleaseInfo ParseRelease(JsonElement root)
+    /// <summary>
+    /// Convierte el JSON de un release de GitHub en un <see cref="ReleaseInfo"/>.
+    ///
+    /// <para><b>El checksum se empareja por nombre con el instalador elegido</b>, no se toma «el
+    /// <c>.sha256</c> que haya». Antes se guardaba el último asset terminado en <c>.sha256</c> que
+    /// apareciera en el JSON: con más de un asset —un instalador ARM64, un portable, un adjunto de un
+    /// colaborador— el emparejamiento era arbitrario, y verificar un instalador contra el hash de otro
+    /// archivo solo puede terminar de una forma: rechazando la actualización real. Se busca exactamente
+    /// <c>&lt;nombre-del-exe&gt;.sha256</c>, que es lo que genera <c>build-installer.ps1</c> y sube
+    /// <c>release.ps1</c>.</para>
+    ///
+    /// <para>Si no aparece, <c>ChecksumUrl</c> queda vacía y la actualización se rechaza por no
+    /// verificable — que es el fallo seguro: nunca ejecutar sin comprobar.</para>
+    /// </summary>
+    internal static ReleaseInfo ParseRelease(JsonElement root)
     {
         string tag   = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
         string notes = root.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
         string html  = root.TryGetProperty("html_url", out var h) ? h.GetString() ?? AppInfo.ReleasesPageUrl : AppInfo.ReleasesPageUrl;
 
-        // Elegir el asset instalador: preferir el .exe que contenga "setup".
-        // El checksum (*.sha256) no compite con él: no termina en .exe, así que el bucle lo ignora.
         string? url = null, name = null;
         string checksumUrl = "";
         long size = 0;
         if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
         {
+            // Los checksums se recogen con su nombre para poder buscar después el del instalador elegido;
+            // el instalador es el primer .exe que contenga "setup", o el primer .exe si ninguno lo hace.
+            // (Una lista y no un diccionario de cadena a cadena: son tres assets, y esa forma la reserva
+            // el proyecto para las tablas de texto localizable — ver LocalizationCoverageTests.)
+            var checksums = new List<(string Name, string Url)>();
             JsonElement? best = null;
+            bool bestIsSetup = false;
+
             foreach (var a in assets.EnumerateArray())
             {
                 string an = a.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
                 if (an.EndsWith(".sha256", StringComparison.OrdinalIgnoreCase))
                 {
-                    checksumUrl = a.TryGetProperty("browser_download_url", out var cu) ? cu.GetString() ?? "" : "";
+                    string cu = a.TryGetProperty("browser_download_url", out var c) ? c.GetString() ?? "" : "";
+                    if (cu.Length > 0) checksums.Add((an, cu));
                     continue;
                 }
                 if (!an.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
-                if (best is null || an.Contains("setup", StringComparison.OrdinalIgnoreCase))
+
+                bool isSetup = an.Contains("setup", StringComparison.OrdinalIgnoreCase);
+                if (best is null || (isSetup && !bestIsSetup))
+                {
                     best = a;
+                    bestIsSetup = isSetup;
+                }
             }
+
             if (best is { } asset)
             {
                 name = asset.TryGetProperty("name", out var n) ? n.GetString() : null;
                 url  = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
                 size = asset.TryGetProperty("size", out var s) && s.TryGetInt64(out long sv) ? sv : 0;
+
+                if (!string.IsNullOrEmpty(name))
+                {
+                    string expected = name + ".sha256";
+                    checksumUrl = checksums
+                        .FirstOrDefault(c => string.Equals(c.Name, expected, StringComparison.OrdinalIgnoreCase))
+                        .Url ?? "";
+                }
             }
         }
 
@@ -272,7 +307,7 @@ public static class UpdateService
         if (string.IsNullOrWhiteSpace(checksumUrl))
             throw new InvalidOperationException(L.T("update.unverifiable"));
 
-        string published = await Http.GetStringAsync(checksumUrl, ct);
+        string published = await DownloadChecksumTextAsync(checksumUrl, ct);
 
         // Admite tanto "<hash>" a secas como el formato de sha256sum: "<hash> *FormatDiskPro-X.Y.Z-setup.exe".
         string expected = published.Trim().Split((char[])[' ', '\t', '\r', '\n'], 2)[0];
@@ -280,6 +315,52 @@ public static class UpdateService
 
         if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(L.T("update.checksumMismatch"));
+    }
+
+    /// <summary>
+    /// Tamaño máximo que se acepta de un asset <c>.sha256</c>. Su contenido real son 64 caracteres de hash
+    /// más, como mucho, el nombre del archivo: <c>build-installer.ps1</c> escribe
+    /// <c>"&lt;hash&gt; *FormatDiskPro-X.Y.Z-setup.exe"</c>, unos 110 bytes. 512 deja margen de sobra para
+    /// un nombre más largo o un salto de línea, y sigue estando lejos de cualquier cosa que merezca
+    /// materializarse en memoria.
+    /// </summary>
+    private const int MaxChecksumBytes = 512;
+
+    /// <summary>
+    /// Descarga el texto del asset <c>.sha256</c> con un <b>tope de tamaño</b>.
+    ///
+    /// <para>Antes era un <c>GetStringAsync</c>, que lee la respuesta entera en memoria sin límite: la URL
+    /// sale del JSON del release, así que basta que apunte a otra cosa —por error o por manipulación— para
+    /// que la app se trague un archivo arbitrario buscando en él un hash de 64 caracteres. No es un agujero
+    /// de ejecución (lo que se hace con el texto es comparar), pero no hay ninguna razón para leer más de
+    /// lo que un checksum puede ocupar.</para>
+    ///
+    /// <para>Se comprueban las dos cosas: la longitud declarada en la cabecera, cuando viene, y lo que
+    /// realmente llega — un servidor puede mentir en <c>Content-Length</c> o no enviarlo.</para>
+    /// </summary>
+    private static async Task<string> DownloadChecksumTextAsync(string checksumUrl, CancellationToken ct)
+    {
+        using var resp = await Http.GetAsync(checksumUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+        resp.EnsureSuccessStatusCode();
+
+        if (resp.Content.Headers.ContentLength is > MaxChecksumBytes)
+            throw new InvalidOperationException(L.T("update.checksumUnreadable"));
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+
+        // Un byte más que el tope: si el hueco extra se llena, la respuesta se pasó de largo.
+        var buffer = new byte[MaxChecksumBytes + 1];
+        int read = 0, n;
+        while (read < buffer.Length &&
+               (n = await stream.ReadAsync(buffer.AsMemory(read, buffer.Length - read), ct)) > 0)
+        {
+            read += n;
+        }
+
+        if (read > MaxChecksumBytes)
+            throw new InvalidOperationException(L.T("update.checksumUnreadable"));
+
+        return Encoding.UTF8.GetString(buffer, 0, read);
     }
 
     /// <summary>SHA-256 del archivo, en hexadecimal y mayúsculas (el mismo formato que <c>Get-FileHash</c>).</summary>

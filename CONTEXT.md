@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **369** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-14 (sin la USB: 17 pasan / 8 se omiten) |
+| **Pruebas** | **375** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-14 (sin la USB: 17 pasan / 8 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-14 (v1.17.0 publicada · auditoría 16/40 · **Tiers 0 y 1 cerrados**) |
+| **Última actualización** | 2026-08-15 (auditoría **19/40** · sin publicar todavía: el corte informa de la cobertura de UI que llevó de verdad) |
 
 ---
 
@@ -118,11 +118,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **369 / 369** (289 + 80 de la auditoría) |
-| UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-14) · 17+8 omitidos sin ella |
-| Instalador | Verificado por SHA-256 y probado **end-to-end** (limpia + in-place) |
-| Publicado | v1.17.0 |
-| Auditoría | 2026-08-13 — **16/40 completadas**, 24 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 11 · T3: 9 · T4: 5) |
+| Unitarias | **375 / 375** (289 + 86 de la auditoría) |
+| UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-14) · 17+8 omitidos sin ella, y **el corte ya dice cuáles** |
+| Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
+| Publicado | v1.17.0 · hay trabajo de auditoría **sin publicar** en `master` |
+| Auditoría | 2026-08-13 — **19/40 completadas**, 21 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 8 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -175,6 +175,15 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
     ejecutando como administrador al otro lado. Queda tras `UpdateService.SignsItsInstallers` (`false`).
     **El día que haya certificado hay que poner el flag *y* fijar el publicador esperado**: lo primero sin
     lo segundo reabre el agujero, y hay un test tripwire que falla si se hace a medias.
+  - **El `.sha256` se empareja por NOMBRE con el instalador elegido** (`T2-06`, 2026-08-15): se busca
+    exactamente `<nombre-del-exe>.sha256`. Antes se usaba el último asset terminado en `.sha256` que
+    apareciera en el JSON, así que bastaba con que el release llevara otro archivo con checksum —un
+    portable, un adjunto— para verificar el instalador contra el hash de otra cosa y rechazar la
+    actualización buena. Si el hash del instalador elegido no está, `ChecksumUrl` queda vacía y la
+    actualización se rechaza: **el fallo seguro es no ejecutar**.
+  - **El checksum se lee con tope de 512 bytes** (`T2-07`, 2026-08-15), comprobando el `Content-Length`
+    declarado **y** lo que realmente llega. La URL sale del JSON del release: no puede decidir cuánta
+    memoria se materializa. Motivo propio para el usuario: `update.checksumUnreadable`.
   - **Todo release debe subir su `.sha256`** o la auto-actualización lo rechazará. `build-installer.ps1` lo
     genera (**después** de firmar, si se firma: firmar cambia el binario) y `release.ps1` lo sube como segundo
     asset y **aborta si falta**.
@@ -325,6 +334,55 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-15 — `T2-12`, `T2-06`, `T2-07`: que el corte no pueda mentir, y el hash correcto
+
+Tres tareas del Tier 2, todas en el mismo punto del proyecto: **lo que se verifica antes de ejecutar como
+administrador**, y **lo que un corte de release afirma haber probado**.
+
+**`T2-12` — el corte ya dice qué cobertura NO llevó.** `release.ps1` pide el logger `trx` y lo lee: la
+salida de consola de `dotnet test` no lista los tests omitidos ni su motivo, el `.trx` sí. El resumen sale
+**dos veces** —al terminar las pruebas y en el bloque final, que es el único que se mira cuando todo ha
+ido bien— con el nombre de cada omitido y el motivo que declara su propio atributo:
+
+```
+[!] UI tests: 17/25 — 8 OMITIDOS por precondición ausente:
+      - …CheckDisk_ScanOnly_CompletesForTestDrive: Requiere la USB de pruebas conectada (…'utilidades').
+      - …Benchmark_DriveDisappears_…: Define FORMATDISKPRO_ALLOW_YANK=1 antes de 'dotnet test'…
+```
+
+Omitir en vez de fallar **sigue siendo lo correcto** —un corte no debe caer por falta de hardware—; lo que
+faltaba era el rastro. Sin él, los cortes de la v1.15.2 y la v1.16.0 salieron «en verde» con
+`CheckDisk_ScanOnly_CompletesForTestDrive` roto y omitido. Verificado sobre un `.trx` **real** (la corrida
+no elevada produce los 8 omitidos), no sobre uno inventado.
+
+> **Y la trampa de PS 5.1 volvió a aparecer, en otro archivo.** El `.trx` se lee con `XmlDocument.Load`,
+> no con `[xml](Get-Content -Raw)`: eso último lee con la página de códigos ANSI y destroza los acentos de
+> los motivos, que están en español. Es exactamente el fallo del `.csproj` (`#45`) en otro sitio.
+
+**`T2-06` — el hash que se comprueba es el del instalador que se va a ejecutar.** `ParseRelease` se
+quedaba con el **último** asset terminado en `.sha256`; ahora busca `<nombre-del-exe>.sha256`. Si no está,
+`ChecksumUrl` queda vacía y la actualización se rechaza por no verificable. El síntoma del defecto no era
+un agujero sino lo contrario —una actualización legítima rechazada siempre, porque el hash de otro archivo
+nunca coincide—, pero la corrección es la misma. Verificado por reversión: con la lógica vieja, dos de las
+cinco pruebas nuevas fallan.
+
+**`T2-07` — leer un checksum no puede costar memoria arbitraria.** `GetStringAsync` leía la respuesta
+entera; ahora hay un tope de 512 bytes (un hash en hex ocupa 64, y `build-installer.ps1` escribe unos 110
+con el nombre). Se comprueban las dos cosas, la cabecera `Content-Length` y el flujo real, porque un
+servidor puede mentir en la primera o no enviarla. **Lo que hace discriminante a la prueba** es que el hash
+servido es el **correcto** —va al principio, seguido de 64 KB de relleno—: lo que rechaza la respuesta es
+su tamaño, no la comparación. Con `GetStringAsync`, pasaba.
+
+**Detalle que dice algo del proyecto:** el barrido de `T1-07` **paró este cambio dos veces**. La primera,
+por un `Dictionary<string,string>` legítimo (nombre de asset → URL, sin texto de usuario); la segunda, por
+mencionarlo en un **comentario**. Se resolvió sin abrir excepciones en la red: una lista de tuplas, que
+para tres assets es igual de buena. Un barrido que se pasa de celoso se corrige cambiando el código, no
+debilitando la red.
+
+Build 0/0, **375/375** (369 → +6). Auditoría **19/40** · T2: 8 abiertas.
 
 ---
 

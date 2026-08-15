@@ -493,7 +493,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     También se extrajo `Core/OperationFailure.LogLine` desde `MainWindow.ReportOperationErrorAsync`.
     **Encontró un defecto real:** ver `T3-11`.
 
-- [ ] **[T2-06] Emparejar el `.sha256` con el instalador que verifica**
+- [x] **[T2-06] Emparejar el `.sha256` con el instalador que verifica**
   - **Área:** Seguridad
   - **Ubicación:** `src/FormatDiskPro/Services/UpdateService.cs:83-104`
   - **Qué hacer:** `ParseRelease` se queda con el **último** asset que termina en `.sha256`, sin comprobar
@@ -502,8 +502,15 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** test con un release de varios assets que comprueba el emparejamiento.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** El emparejamiento es ahora por nombre exacto (sin distinguir mayúsculas), y
+    si no aparece el hash **del instalador elegido**, `ChecksumUrl` queda vacía y la actualización se
+    rechaza por no verificable — el fallo seguro. `ParseRelease` pasa a `internal` para poder probarla con
+    JSON real. **Verificado por reversión:** con la lógica vieja («el último `.sha256` que aparezca»), dos
+    de las cinco pruebas nuevas fallan. *(El síntoma no habría sido un agujero de seguridad sino una
+    actualización que se rechaza siempre a sí misma: comparar el instalador contra el hash de otro archivo
+    nunca coincide.)*
 
-- [ ] **[T2-07] Acotar el tamaño de la descarga del checksum**
+- [x] **[T2-07] Acotar el tamaño de la descarga del checksum**
   - **Área:** Seguridad
   - **Ubicación:** `src/FormatDiskPro/Services/UpdateService.cs:236`
   - **Qué hacer:** `Http.GetStringAsync(checksumUrl, ct)` lee la respuesta entera en memoria sin límite.
@@ -511,6 +518,12 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** una respuesta desmedida se rechaza en vez de materializarse.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `DownloadChecksumTextAsync` con tope de **512 bytes**, comprobando las dos
+    cosas: el `Content-Length` declarado y lo que realmente llega (un servidor puede mentir en la cabecera
+    o no enviarla). Nueva clave `update.checksumUnreadable` en los 5 idiomas: el motivo del rechazo es
+    distinto del de un hash que no coincide, y el usuario lee ese texto. **La prueba discrimina porque el
+    hash servido es el correcto** —va al principio del cuerpo, seguido de 64 KB de relleno—: lo que rechaza
+    la respuesta es su tamaño, no la comparación. Verificado por reversión: con `GetStringAsync`, pasa.
 
 - [ ] **[T2-08] Adelgazar `MainWindow.xaml.cs` (2 070 líneas)**
   - **Área:** Arquitectura
@@ -545,7 +558,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T2-12] Que el corte diga cuánta cobertura de UI llevó realmente**
+- [x] **[T2-12] Que el corte diga cuánta cobertura de UI llevó realmente**
   - **Área:** DevOps / QA
   - **Ubicación:** `release.ps1:220-223`
   - **Qué hacer:** el 2026-08-13, al conectar por fin la USB de pruebas, apareció que
@@ -560,6 +573,18 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     qué; con la USB conectada lo dice también, con el conteo a cero.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `release.ps1` pide ahora el **logger `trx`** y lo lee
+    (`Get-TestRunSummary` + `Show-UiTestCoverage`): la salida de consola de `dotnet test` **no lista** los
+    tests omitidos ni su motivo, el `.trx` sí. El resumen se imprime **dos veces** —al terminar las
+    pruebas y en el bloque final del corte, que es el único que se lee cuando todo ha ido bien— y nombra
+    cada test omitido **con el motivo que declara su atributo** («Requiere la USB de pruebas conectada…»,
+    «Define FORMATDISKPRO_ALLOW_YANK=1…»). Sin `-UiTests` o con `-SkipTests` lo dice también, en vez de
+    callar.
+  - **Verificado sobre un `.trx` real**, no sobre uno inventado: la corrida no elevada de la suite produce
+    los **8 omitidos** y el resumen los lista con sus motivos, acentos incluidos. *(El `.trx` se lee con
+    `XmlDocument.Load` y no con `[xml](Get-Content -Raw)`: en PS 5.1 eso último lee con la página de
+    códigos ANSI y destroza los motivos, que están en español. Es la misma trampa del `.csproj` del `#45`,
+    en otro archivo.)*
 
 - [x] **[T2-13] Ejercitar los `catch` de las operaciones quitando la unidad de verdad**
   *(añadida y resuelta el 2026-08-14)*
@@ -748,15 +773,19 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-13 | **T3-11** | *(hallada por T2-05)* `History.Log` aplana el texto multilínea: una caída ya no se parte en decenas de entradas fantasma. |
 | 2026-08-14 | **T2-13** | Los `catch` de `T0-02` ejecutados **de verdad**: desmontaje forzado de la USB a mitad de *Verificar capacidad* y *Benchmark*. +2 pruebas de UI (23 → 25). |
 | 2026-08-14 | **T1-02** | `format.com /Y` (cuelgue reproducido y arreglado) + `ExtractPercent` en 6 idiomas. **Tier 1 cerrado.** +10 pruebas. |
+| 2026-08-15 | **T2-12** | `release.ps1` lee el `.trx` y dice cuántos UI tests se omitieron **y por qué**, al terminar y en el resumen final. |
+| 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
+| 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 
-**Estado:** 16/40 completadas · **24 abiertas** (T0: 0 · **T1: 0** · T2: 11 · T3: 9 · T4: 5).
+**Estado:** 19/40 completadas · **21 abiertas** (T0: 0 · **T1: 0** · T2: 8 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió
 **ya resuelta**: la encontró `T2-05` al recorrer el camino de error de punta a punta.
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
-(23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo.
-Build Release **0 advertencias / 0 errores**; suite **369/369** (eran 289; +80 pruebas nuevas).
+(23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo — y se
+**cerró el 2026-08-15**: el corte ya no puede volver a llamar «verde» a una cobertura que no ejerció.
+Build Release **0 advertencias / 0 errores**; suite **375/375** (eran 289; +86 pruebas nuevas).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -55,6 +56,85 @@ public sealed class UpdateServiceTests
 
         Assert.StartsWith(Path.GetFullPath(dir) + Path.DirectorySeparatorChar, combined, StringComparison.OrdinalIgnoreCase);
     }
+
+    // ── ParseRelease: el checksum que se usa es el DEL instalador elegido ──────────────────
+
+    private static ReleaseInfo Parse(string releaseJson)
+    {
+        using var doc = JsonDocument.Parse(releaseJson);
+        return UpdateService.ParseRelease(doc.RootElement);
+    }
+
+    /// <summary>JSON de un release de GitHub con los assets indicados (solo los campos que se leen).</summary>
+    private static string ReleaseJson(params string[] assetNames)
+    {
+        string assets = string.Join(",", assetNames.Select(n =>
+            $$"""{"name":"{{n}}","browser_download_url":"https://example.invalid/{{n}}","size":123}"""));
+        return $$"""
+            {"tag_name":"v9.9.9","body":"notas","html_url":"https://example.invalid/r","assets":[{{assets}}]}
+            """;
+    }
+
+    /// <summary>
+    /// Con varios assets, el <c>.sha256</c> se empareja <b>por nombre</b> con el instalador elegido. Antes se
+    /// guardaba el último que apareciera en el JSON, así que bastaba con que el release llevara otro archivo
+    /// con checksum para acabar verificando el instalador contra el hash de otra cosa.
+    /// </summary>
+    [Fact]
+    public void ParseRelease_MultipleChecksums_PairsTheOneOfTheChosenInstaller()
+    {
+        var info = Parse(ReleaseJson(
+            "FormatDiskPro-9.9.9-portable.exe",
+            "FormatDiskPro-9.9.9-portable.exe.sha256",
+            "FormatDiskPro-9.9.9-setup.exe",
+            "FormatDiskPro-9.9.9-setup.exe.sha256"));
+
+        Assert.Equal("FormatDiskPro-9.9.9-setup.exe", info.AssetName);
+        Assert.Equal("https://example.invalid/FormatDiskPro-9.9.9-setup.exe.sha256", info.ChecksumUrl);
+    }
+
+    /// <summary>El orden en el JSON no decide nada: el instalador manda, venga donde venga su hash.</summary>
+    [Fact]
+    public void ParseRelease_ChecksumBeforeItsInstaller_IsStillPaired()
+    {
+        var info = Parse(ReleaseJson(
+            "FormatDiskPro-9.9.9-setup.exe.sha256",
+            "FormatDiskPro-9.9.9-setup.exe",
+            "otro.exe.sha256"));
+
+        Assert.Equal("https://example.invalid/FormatDiskPro-9.9.9-setup.exe.sha256", info.ChecksumUrl);
+    }
+
+    /// <summary>
+    /// Un checksum que NO es el del instalador elegido no vale como verificación: mejor rechazar la
+    /// actualización por no verificable que compararla con el hash de otro archivo (que nunca coincidiría).
+    /// </summary>
+    [Fact]
+    public void ParseRelease_ChecksumOfAnotherAsset_LeavesTheReleaseUnverifiable()
+    {
+        var info = Parse(ReleaseJson(
+            "FormatDiskPro-9.9.9-setup.exe",
+            "FormatDiskPro-9.9.9-portable.exe.sha256"));
+
+        Assert.Equal("FormatDiskPro-9.9.9-setup.exe", info.AssetName);
+        Assert.Equal("", info.ChecksumUrl);
+    }
+
+    /// <summary>El caso normal —lo que sube <c>release.ps1</c>: el instalador y su hash— sigue emparejando.</summary>
+    [Fact]
+    public void ParseRelease_InstallerAndItsChecksum_IsTheHappyPath()
+    {
+        var info = Parse(ReleaseJson("FormatDiskPro-9.9.9-setup.exe", "FormatDiskPro-9.9.9-setup.exe.sha256"));
+
+        Assert.Equal("v9.9.9", info.TagName);
+        Assert.Equal("https://example.invalid/FormatDiskPro-9.9.9-setup.exe", info.AssetUrl);
+        Assert.Equal("https://example.invalid/FormatDiskPro-9.9.9-setup.exe.sha256", info.ChecksumUrl);
+    }
+
+    /// <summary>Los releases anteriores a la v1.15.0 no publican hash: quedan sin verificación posible.</summary>
+    [Fact]
+    public void ParseRelease_NoChecksumAsset_LeavesTheReleaseUnverifiable()
+        => Assert.Equal("", Parse(ReleaseJson("FormatDiskPro-9.9.9-setup.exe")).ChecksumUrl);
 
     // ── Verificación por SHA-256 ──────────────────────────────────────────────────────────
 
@@ -196,6 +276,41 @@ public sealed class UpdateServiceTests
 
             // Un instalador que no se pudo verificar no puede quedarse en disco esperando a que alguien
             // lo ejecute como administrador.
+            Assert.False(File.Exists(destination));
+        }
+        finally
+        {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
+    /// <summary>
+    /// El asset <c>.sha256</c> se lee con un tope de tamaño: la URL sale del JSON del release, así que no
+    /// puede decidir cuánta memoria se materializa. Lo que hace discriminante a esta prueba es que el hash
+    /// servido <b>es el correcto</b> —está al principio del cuerpo— y aun así se rechaza: lo que falla es el
+    /// tamaño de la respuesta, no la comparación. Con el <c>GetStringAsync</c> anterior esto pasaba.
+    /// </summary>
+    [Fact]
+    public async Task DownloadAsync_OversizedChecksumResponse_IsRejectedBeforeComparing()
+    {
+        byte[] installer = [1, 2, 3, 4];
+        string hash = Convert.ToHexString(SHA256.HashData(installer));
+
+        // Hash válido + relleno hasta muy por encima del tope de lectura.
+        byte[] bloated = Encoding.UTF8.GetBytes(hash + new string(' ', 64 * 1024));
+
+        using var server = new LocalHttpServer(new Dictionary<string, byte[]>
+        {
+            ["/setup.exe"] = installer,
+            ["/setup.exe.sha256"] = bloated
+        });
+
+        string destination = ScratchInstallerPath();
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                UpdateService.DownloadAsync(Release(server), null, CancellationToken.None, destination));
+
             Assert.False(File.Exists(destination));
         }
         finally

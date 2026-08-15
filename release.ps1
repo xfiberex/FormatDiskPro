@@ -41,6 +41,10 @@
     conectada (no fallan), y el que borra datos de verdad se omite salvo FORMATDISKPRO_ALLOW_DESTRUCTIVE=1
     — que este script RECHAZA: un corte de release nunca debe formatear una unidad.
 
+    Al terminar —y otra vez en el resumen final— el script dice cuántos UI tests se OMITIERON y por qué,
+    leyéndolo del .trx de la corrida: "omitido" y "correcto" se distinguen mal en la salida de dotnet test,
+    y por eso los cortes de la v1.15.2 y la v1.16.0 salieron en verde con un test roto que estaba omitido.
+
     Sin este flag, el script avisa de que el release sale sin haber ejercido la app real.
 
 .PARAMETER AllowDirty
@@ -105,6 +109,78 @@ function Invoke-Git {
         return $LASTEXITCODE
     }
     finally { $ErrorActionPreference = $eap }
+}
+
+<#
+.SYNOPSIS
+    Lee el .trx de una corrida de pruebas y devuelve cuántas pasaron y cuáles se OMITIERON (y por qué).
+
+.DESCRIPTION
+    Los tests de UI que necesitan una precondición ausente —la USB de pruebas, el opt-in destructivo— se
+    OMITEN en vez de fallar (ver TestDriveFactAttribute). Ese diseño es el correcto: un corte de release no
+    debe caer por falta de hardware. Pero en el resumen de `dotnet test` "omitido" y "correcto" se
+    distinguen mal, y eso ya costó caro: el 2026-08-13, al conectar por fin la USB, apareció que
+    CheckDisk_ScanOnly_CompletesForTestDrive llevaba ROTO desde la v1.15.2 — y los cortes de la v1.15.2 y
+    la v1.16.0 habían salido "en verde" con él omitido.
+
+    Omitir sigue siendo lo correcto; lo que faltaba era dejar rastro de qué cobertura se sacrificó. Por eso
+    se pide el logger trx: la salida de consola no lista los tests omitidos ni su motivo, el .trx sí.
+
+    Se usa $xml.Load (no [xml](Get-Content -Raw)): en PS 5.1, Get-Content sin -Encoding lee con la página de
+    códigos ANSI y destroza los acentos de los motivos de omisión, que están en español. Load respeta la
+    declaración del XML.
+#>
+function Get-TestRunSummary {
+    param([Parameter(Mandatory)][string]$TrxPath)
+
+    if (-not (Test-Path $TrxPath)) { return $null }
+    try {
+        $xml = New-Object System.Xml.XmlDocument
+        $xml.Load($TrxPath)
+    } catch { return $null }
+
+    $results = @($xml.TestRun.Results.UnitTestResult)
+    if ($results.Count -eq 0) { return $null }
+
+    $skipped = @($results | Where-Object { $_.outcome -eq 'NotExecuted' })
+    [pscustomobject]@{
+        Total   = $results.Count
+        Passed  = @($results | Where-Object { $_.outcome -eq 'Passed' }).Count
+        Skipped = $skipped.Count
+        SkippedDetail = @($skipped | ForEach-Object {
+            $reason = $_.Output.ErrorInfo.Message
+            [pscustomobject]@{
+                Name   = $_.testName
+                Reason = if ($reason) { ($reason -replace '\s+', ' ').Trim() } else { "sin motivo declarado" }
+            }
+        })
+    }
+}
+
+<#
+.SYNOPSIS
+    Imprime qué cobertura de UI llevó realmente este corte. Se muestra dos veces: al terminar las pruebas y
+    en el resumen final, que es donde se mira cuando ya todo ha salido bien.
+#>
+function Show-UiTestCoverage {
+    param($Summary)
+
+    if (-not $Summary) {
+        if ($SkipTests)   { Warn "UI tests: NO ejecutados (-SkipTests). Este corte no ha ejercido la app real."; return }
+        if (-not $UiTests) { Warn "UI tests: NO ejecutados (sin -UiTests). Este corte no ha ejercido la app real."; return }
+        Warn "UI tests: ejecutados y correctos, pero no se pudo leer el informe (.trx): se desconoce cuántos se omitieron."
+        return
+    }
+
+    if ($Summary.Skipped -gt 0) {
+        Warn "UI tests: $($Summary.Passed)/$($Summary.Total) — $($Summary.Skipped) OMITIDOS por precondición ausente:"
+        $Summary.SkippedDetail | ForEach-Object {
+            Write-Host "      - $($_.Name): $($_.Reason)" -ForegroundColor DarkGray
+        }
+        Warn "Esa es la cobertura que este corte NO ejerció. Con la USB de pruebas ('utilidades') conectada, el conteo baja."
+    } else {
+        Ok "UI tests: $($Summary.Passed)/$($Summary.Total) — 0 omitidos (cobertura completa sobre la app real)."
+    }
 }
 
 # ── Rutas ──────────────────────────────────────────────────────────────────
@@ -176,6 +252,7 @@ try {
     }
 
     # ── Pruebas ──────────────────────────────────────────────────────────────
+    $uiSummary = $null   # cobertura real de UI de este corte; se repite en el resumen final
     if ($SkipTests) {
         Warn "Pruebas omitidas (-SkipTests)."
     } else {
@@ -217,10 +294,21 @@ try {
                 Warn "USB de pruebas ('utilidades') NO conectada: sus tests se OMITIRÁN (no fallarán). El resto sí ejerce la app real."
             }
 
+            # El .trx es lo que permite decir CUÁNTOS se omitieron y por qué (ver Get-TestRunSummary): la
+            # salida de consola no lo lista, y sin eso un corte no deja rastro de la cobertura que sacrificó.
+            $trxDir  = Join-Path $env:TEMP "FormatDiskPro_uitests"
+            $trxName = "uitests-$Version.trx"
+            $trxPath = Join-Path $trxDir $trxName
+            if (Test-Path $trxPath) { Remove-Item $trxPath -Force -ErrorAction SilentlyContinue }
+
             Info "Ejecutando UI tests (conducen la app real; se abrirán ventanas)..."
-            & dotnet test $uiTestProject --filter "Category!=Slow" --nologo
+            & dotnet test $uiTestProject --filter "Category!=Slow" --nologo `
+                --logger "trx;LogFileName=$trxName" --results-directory $trxDir
             if ($LASTEXITCODE -ne 0) { Die "Los UI tests fallaron. Release abortado." }
             Ok "UI tests correctos."
+
+            $uiSummary = Get-TestRunSummary -TrxPath $trxPath
+            Show-UiTestCoverage $uiSummary
         } else {
             Warn "UI tests NO ejecutados (sin -UiTests): este release sale sin haber ejercido la app real. Recomendado: .\release.ps1 -Version $Version -UiTests (desde una terminal elevada)."
         }
@@ -263,6 +351,7 @@ try {
             $uiNote = if ($UiTests) { "unitarias + UI tests (app real)" } else { "solo unitarias (sin -UiTests)" }
             Write-Host "    Pruebas ya ejecutadas en este dry run: $uiNote" -ForegroundColor DarkGray
         }
+        Show-UiTestCoverage $uiSummary
         if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
         Ok "Dry run completado."
         return
@@ -363,6 +452,8 @@ try {
     if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
     Write-Host ""
     Ok "Release $tag publicado: https://github.com/xfiberex/FormatDiskPro/releases/tag/$tag"
+    # Se repite aquí a propósito: cuando el corte sale bien, este es el único bloque que se lee.
+    Show-UiTestCoverage $uiSummary
 }
 finally {
     Pop-Location
