@@ -16,7 +16,7 @@
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **388** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (**v1.18.0 publicada** · auditoría **22/40** · **CI descartada: el testing es local**) |
+| **Última actualización** | 2026-08-15 (v1.18.0 publicada · auditoría **26/40**, **Tiers 0–2 cerrados** · **CI descartada: el testing es local**) |
 
 ---
 
@@ -62,10 +62,14 @@ src/FormatDiskPro/
 │  ├─ AppSettings.cs       Preferencias (%AppData%\FormatDiskPro\settings.json)
 │  ├─ Notifier.cs          Aviso al terminar (sonido + parpadeo de barra de tareas, Win32)
 │  ├─ TaskbarProgress.cs   Progreso en el icono de la barra de tareas (ITaskbarList3)
+│  ├─ FormatProcess.cs     Lanza Format-Volume (PowerShell) y format.com, con progreso real
 │  ├─ UpdateService.cs     GitHub Releases: consulta, descarga, VERIFICACIÓN (firma/SHA-256), instalación
 │  └─ History.cs           Auditoría (%AppData%\FormatDiskPro\history.log, rotado a history.1.log)
 ├─ UI/              WinUI 3 (Windows App SDK)
-│  ├─ MainWindow          Ventana principal y orquestación
+│  ├─ MainWindow          Ventana principal, repartida en partial class por asunto (ninguna >800 líneas):
+│  │                      .xaml.cs (ciclo de vida, unidades, formato) · .DriveInfo · .FormatOptions
+│  │                      .Operations (menú Herramientas) · .HelpAndUpdates · .Preferences
+│  ├─ DeviceChangeWatcher Subclassing Win32 de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ConfirmDialog       Confirmación reforzada (escribir la letra de la unidad)
 │  ├─ HealthDialog        Detalle S.M.A.R.T. (colores por umbral + texto de estado)
 │  ├─ HistoryDialog       Visor de historial (búsqueda, filtros, exportar CSV)
@@ -123,7 +127,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | UI tests | **27** en total · con la USB (`utilidades`, sin opt-in): **24 pasan / 3 se omiten / 0 fallan** (2026-08-15) · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.18.0** (2026-08-15) · `master` sin trabajo pendiente de publicar |
-| Auditoría | 2026-08-13 — **22/40 completadas** + 1 descartada (`T2-10`, CI), 17 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 4 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **26/40 completadas** + 1 descartada (`T2-10`, CI), 13 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 · **Tiers 0, 1 y 2 cerrados** (T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -344,6 +348,40 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-15 — `T2-08`: `MainWindow` de 2.107 a 753 líneas (Tier 2 cerrado)
+
+Dos extracciones **reales**, las que pedía la tarea, y luego una partición del resto:
+
+1. **`Services/FormatProcess`** — `RunFormatVolumeAsync`/`RunFormatComAsync` salen de la ventana y se
+   ponen junto a sus hermanos (`CheckDisk`, `ReinitDrive`, `SecureWipe`). Lanzar procesos y leer su salida
+   no era responsabilidad de la UI, y era el único flujo de formateo sin un sitio propio donde mirarlo. El
+   proceso en marcha se entrega por *callback* en vez de guardarse en el servicio —quien llama es quien lo
+   cancela— y el progreso va por `IProgress<int>`, así que el servicio no toca ni la barra ni el estado.
+2. **`UI/DeviceChangeWatcher`** — los cuatro `DllImport`, el delegado que hay que mantener vivo para que
+   no lo recoja el GC y el *debounce* del `WM_DEVICECHANGE`, en su propia clase `IDisposable`.
+3. **El resto, en `partial class` por asunto**: `.DriveInfo`, `.FormatOptions`, `.Operations`,
+   `.HelpAndUpdates`, `.Preferences`.
+
+**Resultado:** `MainWindow.xaml.cs` **2 107 → 753** líneas; el mayor de `UI/` es ahora
+`MainWindow.Operations.cs` (509). Ninguno pasa de 800.
+
+> **Lo que este cambio NO es.** Partir un archivo en `partial` no reduce el acoplamiento: sigue siendo la
+> misma clase con el mismo estado compartido. Arregla exactamente lo que la tarea decía —encontrar algo
+> en 2.000 líneas— y nada más. El rediseño de verdad (inyección de dependencias, `Services` no estáticos)
+> es `T4-02`, y sigue abierto **a propósito**.
+
+Verificado como toca para un refactor que promete no cambiar comportamiento: build 0/0, 389/389
+unitarias y la suite de UI **24/27 con la USB conectada** — el mismo resultado, tras cada paso.
+
+> **Trampa de PS 5.1, otra vez y en un sitio nuevo:** el script auxiliar del reparto se guardó **sin BOM**
+> y PowerShell lo leyó con la página de códigos ANSI, rompiendo el parser en la primera tilde. Es la misma
+> historia del `.csproj` (`#45`) y del `.trx` (`T2-12`). **Regla, ya sin excepciones: todo archivo de texto
+> con acentos que vaya a leer PS 5.1 necesita BOM.**
+
+Con esto **el Tier 2 queda cerrado**: auditoría 26/40 + 1 descartada, quedan T3 (9) y T4 (5).
 
 ---
 

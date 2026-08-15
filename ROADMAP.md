@@ -579,7 +579,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     hash servido es el correcto** —va al principio del cuerpo, seguido de 64 KB de relleno—: lo que rechaza
     la respuesta es su tamaño, no la comparación. Verificado por reversión: con `GetStringAsync`, pasa.
 
-- [ ] **[T2-08] Adelgazar `MainWindow.xaml.cs` (2 070 líneas)**
+- [x] **[T2-08] Adelgazar `MainWindow.xaml.cs` (2 070 líneas)**
   - **Área:** Arquitectura
   - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml.cs`
   - **Qué hacer:** concentra orquestación, lanzamiento de procesos (`RunFormatComAsync`,
@@ -590,6 +590,24 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     tests siguen en verde.
   - **Esfuerzo:** alto
   - **Depende de:** T0-02 (para no mover código y cambiar su manejo de errores a la vez)
+  - **Resuelta el 2026-08-15.** Dos extracciones **reales** —las que pedía la tarea— y luego una partición
+    del resto:
+    1. **`Services/FormatProcess`**: `RunFormatVolumeAsync`/`RunFormatComAsync` salen de la ventana y se
+       ponen junto a sus hermanos (`CheckDisk`, `ReinitDrive`, `SecureWipe`). El proceso en marcha se
+       entrega por *callback* en vez de guardarse en el servicio, y el progreso va por `IProgress<int>`:
+       así el servicio no toca ni la barra ni el estado de la ventana.
+    2. **`UI/DeviceChangeWatcher`**: los cuatro `DllImport`, el delegado que hay que mantener vivo y el
+       *debounce* del `WM_DEVICECHANGE`, en su propia clase `IDisposable`.
+    3. **El resto, repartido en `partial class`** por asunto: `.DriveInfo`, `.FormatOptions`,
+       `.Operations`, `.HelpAndUpdates`, `.Preferences`.
+  - **Resultado:** `MainWindow.xaml.cs` **2 107 → 753 líneas**; el mayor de `UI/` es ahora
+    `MainWindow.Operations.cs` (509). Ninguno supera 800.
+  - **Honestidad sobre el punto 3:** partir un archivo en `partial` **no reduce el acoplamiento** — sigue
+    siendo la misma clase con el mismo estado compartido. Lo que arregla es lo que la tarea decía:
+    encontrar algo en 2.000 líneas. El rediseño de verdad (inyección de dependencias, `Services` no
+    estáticos) es `T4-02`, y sigue abierto.
+  - **Sin cambiar comportamiento, y comprobado como toca:** build 0/0, **389/389** unitarias y la suite de
+    UI **24/27 con la USB conectada** — exactamente el mismo resultado que antes de tocar nada.
 
 - [x] **[T2-09] Rotar `history.log`**
   - **Área:** Código
@@ -865,6 +883,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 | 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
+| 2026-08-15 | **T2-08** | `Services/FormatProcess` + `UI/DeviceChangeWatcher` extraídos; el resto en `partial class`. `MainWindow.xaml.cs` 2107 → **753** líneas. **T2 cerrado.** |
 | 2026-08-15 | **T2-04** | Cobertura medida (`coverlet`) y **exigida** en el corte: `Core/` al **97.1 %**, mínimo 90 %. |
 | 2026-08-15 | **T2-11** | `SECURITY.md` (canal privado + lo que no es vulnerabilidad), `CONTRIBUTING.md`, plantillas de issue y de PR. Enlazados desde el README. |
 | 2026-08-15 | **T2-03** | La relectura de *Verificar capacidad* deja de poder servirse de la caché del SO (`FILE_FLAG_NO_BUFFERING` + buffer alineado). +2 pruebas. |
@@ -873,7 +892,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 25/40 completadas · 1 descartada (`T2-10`) · **14 abiertas** (T0: 0 · **T1: 0** · T2: 1 · T3: 9 · T4: 5).
+**Estado:** 26/40 completadas · 1 descartada (`T2-10`) · **13 abiertas** (T0: 0 · **T1: 0** · **T2: 0** · T3: 9 · T4: 5).
+**Tiers 0, 1 y 2 cerrados.**
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió
