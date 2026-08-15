@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **375** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-14 (sin la USB: 17 pasan / 8 se omiten) |
+| **Pruebas** | **388** unitarias · **25** de UI sobre la app real — **25/25 verificadas con hardware** el 2026-08-14 (sin la USB: 17 pasan / 8 se omiten) |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (auditoría **19/40** · sin publicar todavía: el corte informa de la cobertura de UI que llevó de verdad) |
+| **Última actualización** | 2026-08-15 (auditoría **21/40** · sin publicar todavía: cobertura de UI declarada en el corte, historial rotado, CI de unitarias) |
 
 ---
 
@@ -50,6 +50,7 @@ src/FormatDiskPro/
 │  ├─ UpdateChecker.cs    Comparación de versiones (IsNewer)
 │  ├─ DriveLetter.cs      Comparación de letras de unidad invariante de cultura (guarda del disco de sistema)
 │  ├─ OperationFailure.cs Línea de historial de una operación fallida (camino de error de T0-02)
+│  ├─ HistoryRotation.cs  Política de rotación del historial (umbral y nombre de la generación anterior)
 │  └─ AppInfo.cs          Versión, coordenadas del repo, enlace de donación
 ├─ Services/        Efectos colaterales (procesos / disco / red)
 │  ├─ DiskService.cs       S.M.A.R.T., nº de disco, protección de escritura, expulsión (PowerShell)
@@ -62,7 +63,7 @@ src/FormatDiskPro/
 │  ├─ Notifier.cs          Aviso al terminar (sonido + parpadeo de barra de tareas, Win32)
 │  ├─ TaskbarProgress.cs   Progreso en el icono de la barra de tareas (ITaskbarList3)
 │  ├─ UpdateService.cs     GitHub Releases: consulta, descarga, VERIFICACIÓN (firma/SHA-256), instalación
-│  └─ History.cs           Auditoría (%AppData%\FormatDiskPro\history.log)
+│  └─ History.cs           Auditoría (%AppData%\FormatDiskPro\history.log, rotado a history.1.log)
 ├─ UI/              WinUI 3 (Windows App SDK)
 │  ├─ MainWindow          Ventana principal y orquestación
 │  ├─ ConfirmDialog       Confirmación reforzada (escribir la letra de la unidad)
@@ -81,6 +82,7 @@ src/FormatDiskPro/
 tests/FormatDiskPro.Tests/    369 pruebas xUnit sobre Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  25 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
+.github/workflows/tests.yml   CI: build sin advertencias + unitarias en cada PR (UI tests NO, por diseño)
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
 FormatDiskPro.slnx            Solución: app + Tests. UiTests NO está incluido, a propósito.
 ```
@@ -118,11 +120,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **375 / 375** (289 + 86 de la auditoría) |
+| Unitarias | **388 / 388** (289 + 99 de la auditoría) · en CI desde el 2026-08-15 |
 | UI tests | **25/25** con la USB de pruebas y los dos opt-in (2026-08-14) · 17+8 omitidos sin ella, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | v1.17.0 · hay trabajo de auditoría **sin publicar** en `master` |
-| Auditoría | 2026-08-13 — **19/40 completadas**, 21 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 8 · T3: 9 · T4: 5) |
+| Auditoría | 2026-08-13 — **21/40 completadas**, 19 abiertas en [`ROADMAP.md`](ROADMAP.md) Parte 2 (T0: **0** · T1: **0** · T2: 6 · T3: 9 · T4: 5) |
 
 **Tiers completados**
 
@@ -334,6 +336,44 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-15 — `T2-09` y `T2-10`: el historial deja de crecer sin fin, y los unitarios corren en cada PR
+
+**`T2-09` — rotación con dos generaciones.** `history.log` solo crecía y el visor lo interpreta **entero**
+en memoria cada vez que se abre. Con una entrada por operación eso tarda años en notarse; con las trazas
+de pila completas que registra `T0-01` desde agosto, no tanto. Ahora rota a los 2 MB: la política vive
+pura en `Core/HistoryRotation` y el movimiento de archivos en `History`.
+
+Lo que decide si esto es una mejora o un regalo envenenado no es el umbral, es qué ve el usuario después:
+
+> El visor lee **las dos** generaciones, la vieja primero. Rotando solo el archivo activo, la entrada que
+> provoca la rotación dejaría a alguien mirando un historial casi vacío justo después de una operación —
+> y en un registro de auditoría eso no se lee como «ha rotado», se lee como **«he perdido mis datos»**.
+
+Por lo mismo, *Borrar el historial* se lleva también `history.1.log`: si no, limpiar dejaría 2 MB a la
+vista. Y se rota **antes** de escribir, no después, para que el archivo activo nunca quede por encima del
+umbral. Verificado por reversión: sin la rotación fallan dos de las seis pruebas del comportamiento.
+
+`SettingsBackup` (UI tests) respalda ahora también `history.1.log`. Hacen falta 2 MB para que aparezca,
+pero ese respaldo existe justamente para no dejar rastro en el `%AppData%` real, y una excepción «que casi
+nunca pasa» es como se cuelan las cosas.
+
+**`T2-10` — CI de solo unitarias.** `.github/workflows/tests.yml` sobre `windows-latest`: restore →
+`build -c Release -warnaserror` → `dotnet test FormatDiskPro.slnx`, con el `.trx` como artefacto. Se
+excluyen del `-warnaserror` los avisos `NU19xx` (vulnerabilidades de NuGet): son útiles, pero aparecen por
+publicaciones de terceros y tumbarían PRs que no tienen nada que ver.
+
+**No reabre la decisión del 2026-07-12.** Los UI tests siguen sin correr en CI —necesitan sesión elevada y
+la USB física—, y `FormatDiskPro.UiTests` está fuera de la solución precisamente para que `dotnet test` no
+los arrastre. Lo que se cubre es el hueco que aquella decisión dejaba abierto sin decirlo: los
+**unitarios** no se ejecutaban en ningún PR, solo en la máquina del mantenedor durante `release.ps1`.
+
+**Residuo honesto:** los dos comandos del workflow se ejecutaron localmente tal cual (build 0/0, 388/388),
+pero **el workflow no se ha visto correr en el runner**. Eso solo ocurre al empujarlo.
+
+Build 0/0, **388/388** (375 → +13). Auditoría **21/40** · T2: 6 abiertas.
 
 ---
 

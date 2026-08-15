@@ -194,8 +194,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 - **CI con GitHub Actions — descartado (2026-07-12).** Un runner hospedado **no puede** ejecutar los UI tests
   (necesitan sesión elevada y la USB física de pruebas), así que solo duplicaría los unitarios que
   `release.ps1` ya corre antes de cada corte, con menos cobertura. Misma decisión que en WingetUSoft.
-  *(Matizado por la auditoría en `T2-10`: el argumento vale para los UI tests, pero deja los **unitarios**
-  sin ejecutar en ningún PR externo. Se propone CI **solo de unitarios**, sin reabrir lo de los UI tests.)*
+  *(Matizado por la auditoría en `T2-10` y **resuelto el 2026-08-15**: el argumento vale para los UI tests
+  —que siguen fuera de CI—, pero dejaba los **unitarios** sin ejecutar en ningún PR externo. Desde
+  `.github/workflows/tests.yml` hay CI **solo de unitarios**. Lo de los UI tests no se reabre.)*
 
 ---
 
@@ -537,7 +538,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Esfuerzo:** alto
   - **Depende de:** T0-02 (para no mover código y cambiar su manejo de errores a la vez)
 
-- [ ] **[T2-09] Rotar `history.log`**
+- [x] **[T2-09] Rotar `history.log`**
   - **Área:** Código
   - **Ubicación:** `src/FormatDiskPro/Services/History.cs:21-30`
   - **Qué hacer:** el historial solo crece; `HistoryDialog` lo parsea entero en memoria en cada apertura
@@ -545,8 +546,21 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** superado el umbral se rota y el visor sigue mostrando lo reciente.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** Política pura en `Core/HistoryRotation` (umbral 2 MB, nombre de la
+    generación anterior) y el movimiento de archivos en `History`. **Dos generaciones y se acabó**
+    (`history.log` + `history.1.log`): el disco queda acotado a ~4 MB.
+  - **El detalle que decide si esto es una mejora o un regalo envenenado:** el visor lee **las dos**
+    generaciones, la vieja primero. Rotando solo el archivo activo, la entrada que provoca la rotación
+    dejaría al usuario mirando un historial casi vacío justo después de una operación — y en un registro de
+    auditoría eso se lee como *«se han perdido mis datos»*. Por lo mismo, *Borrar el historial* se lleva
+    también la generación rotada: si no, limpiar dejaría 2 MB a la vista.
+  - Se rota **antes** de escribir, no después, para que el archivo activo nunca quede por encima del
+    umbral. Verificado por reversión: sin la rotación fallan dos de las seis pruebas nuevas.
+  - **Efecto colateral en los UI tests:** `SettingsBackup` respalda ahora también `history.1.log`. Hacen
+    falta 2 MB para que exista, pero el respaldo existe justamente para no dejar rastro en el `%AppData%`
+    del usuario, y una excepción «que casi nunca pasa» es como se cuelan.
 
-- [ ] **[T2-10] CI de solo unitarias en GitHub Actions**
+- [x] **[T2-10] CI de solo unitarias en GitHub Actions**
   - **Área:** DevOps
   - **Ubicación:** `.github/` (hoy solo contiene `FUNDING.yml`)
   - **Qué hacer:** la decisión de 2026-07-12 descartó CI porque un runner hospedado no puede correr los UI
@@ -557,6 +571,17 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   - **Criterio de aceptación:** un PR con una unitaria rota queda en rojo antes de la revisión.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `.github/workflows/tests.yml`: `windows-latest`, SDK 10, `restore` →
+    `build -c Release -warnaserror` → `dotnet test FormatDiskPro.slnx`, con el `.trx` como artefacto. Se
+    excluyen los avisos `NU19xx` (vulnerabilidades de NuGet) de `-warnaserror`: son útiles, pero aparecen
+    por publicaciones de terceros y tumbarían PRs que no tienen nada que ver.
+  - **No reabre la decisión del 2026-07-12:** los UI tests siguen sin correr en CI —necesitan sesión
+    elevada y la USB física— y `FormatDiskPro.UiTests` está fuera de la solución precisamente para que
+    `dotnet test` no los arrastre. Lo que se cubre es el hueco que aquella decisión dejaba: los
+    **unitarios** no se ejecutaban en ningún PR, solo en la máquina del mantenedor durante `release.ps1`.
+  - **Residuo honesto:** los dos comandos del workflow se ejecutaron **localmente** tal cual (build 0/0,
+    388/388), pero el workflow **no se ha visto correr en el runner**: eso solo pasa al empujarlo. Si el
+    runner hospedado tropieza con algo del Windows App SDK, se verá en la primera corrida.
 
 - [x] **[T2-12] Que el corte diga cuánta cobertura de UI llevó realmente**
   - **Área:** DevOps / QA
@@ -776,8 +801,10 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-12** | `release.ps1` lee el `.trx` y dice cuántos UI tests se omitieron **y por qué**, al terminar y en el resumen final. |
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
+| 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
+| 2026-08-15 | **T2-10** | `.github/workflows/tests.yml`: build sin advertencias + unitarias en cada PR. Los UI tests siguen fuera, por diseño. |
 
-**Estado:** 19/40 completadas · **21 abiertas** (T0: 0 · **T1: 0** · T2: 8 · T3: 9 · T4: 5).
+**Estado:** 21/40 completadas · **19 abiertas** (T0: 0 · **T1: 0** · T2: 6 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió
@@ -785,7 +812,7 @@ extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con l
 `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
 (23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo — y se
 **cerró el 2026-08-15**: el corte ya no puede volver a llamar «verde» a una cobertura que no ejerció.
-Build Release **0 advertencias / 0 errores**; suite **375/375** (eran 289; +86 pruebas nuevas).
+Build Release **0 advertencias / 0 errores**; suite **388/388** (eran 289; +99 pruebas nuevas).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que
