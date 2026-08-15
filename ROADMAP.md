@@ -478,7 +478,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     escribe una etiqueta inválida y comprueba por UIA el `LiveSetting` y que `DescribedBy` apunta de
     verdad al mensaje.
 
-- [ ] **[T2-03] Releer sin caché en la verificación de capacidad**
+- [x] **[T2-03] Releer sin caché en la verificación de capacidad**
   - **Área:** Rendimiento / corrección funcional
   - **Ubicación:** `src/FormatDiskPro/Services/CapacityVerifier.cs:48-49` y `:78-79`
   - **Qué hacer:** la escritura usa `FileOptions.WriteThrough` pero la **relectura** usa E/S normal
@@ -491,8 +491,21 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     lecturas físicas (perfmon / Resource Monitor) se aproxima al volumen escrito.
   - **Esfuerzo:** medio
   - **Depende de:** ninguna
-  - **Nota:** *pendiente de verificación* — razonado sobre el código, no medido. En unidades grandes el
-    conjunto excede la caché y la detección sigue funcionando; el riesgo se concentra en volúmenes chicos.
+  - **Resuelta el 2026-08-15.** La relectura usa `FILE_FLAG_NO_BUFFERING` + `RandomAccess.ReadAsync` con
+    buffer alineado (mismo patrón que `BenchmarkRunner.AllocAligned`). El objetivo se **redondea a la
+    baja** al sector: así todos los tamaños de archivo —y por tanto todos los bloques, incluido el último
+    de cada uno— quedan alineados, que es lo que exige la E/S sin caché. Se sacrifican <4 KB del margen de
+    seguridad de 64 MB.
+  - **Ya no es «razonado sobre el código»: el flag está demostrado activo.** Sustituyendo el buffer
+    alineado por uno desplazado un byte, las pruebas fallan con `IOException: El parámetro no es
+    correcto` — el error que Windows devuelve a la E/S **sin caché** ante un buffer desalineado. Con la
+    caché de por medio, esa desalineación sería irrelevante y las pruebas pasarían: es precisamente lo que
+    distingue una ruta de la otra.
+  - **Probado también sobre la USB real** (`CapacityVerifierDriveTests`, 64 MB en `D:`, 7 s): un disco
+    fijo y un medio extraíble no tienen por qué anunciar la misma geometría, y este modo no degrada
+    —falla— si no cuadra. La prueba se **omite** salvo que se defina `FORMATDISKPRO_VERIFY_DRIVE=<letra>`.
+  - **Lo que sigue sin poder medirse:** que un bloque concreto venga del medio y no de la RAM. No hay API
+    que lo afirme; lo que hay es el flag, y ahora está probado que se aplica.
 
 - [ ] **[T2-04] Medir la cobertura de pruebas, no solo contarlas**
   - **Área:** QA
@@ -830,12 +843,13 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 | 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
+| 2026-08-15 | **T2-03** | La relectura de *Verificar capacidad* deja de poder servirse de la caché del SO (`FILE_FLAG_NO_BUFFERING` + buffer alineado). +2 pruebas. |
 | 2026-08-15 | **T2-01** | `StatusText` como región activa `Polite` + notificación UIA en los hitos (inicio/fin/error/cancelación), nunca por tick. +1 prueba de UI. |
 | 2026-08-15 | **T2-02** | Error de etiqueta `Assertive` y vinculado al campo con `DescribedBy`. +1 prueba de UI. *(Un `Collapsed` no está en el árbol UIA.)* |
 | 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 22/40 completadas · 1 descartada (`T2-10`) · **17 abiertas** (T0: 0 · **T1: 0** · T2: 4 · T3: 9 · T4: 5).
+**Estado:** 23/40 completadas · 1 descartada (`T2-10`) · **16 abiertas** (T0: 0 · **T1: 0** · T2: 3 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió

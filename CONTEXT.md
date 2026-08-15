@@ -347,6 +347,34 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 ---
 
+### 2026-08-15 — `T2-03`: la verificación de capacidad ya no puede leer de la caché
+
+*Verificar capacidad* escribía con `WriteThrough` pero **releía con E/S normal**, así que la caché de
+archivos de Windows podía servir los bloques desde RAM — justo lo que la prueba existe para descartar. En
+una USB falsa **pequeña** (menor que la RAM libre) eso podía dar un **falso OK**: el peor resultado
+posible aquí, decirle a alguien que su unidad es auténtica cuando no lo es.
+
+La relectura usa ahora `FILE_FLAG_NO_BUFFERING` con `RandomAccess.ReadAsync` y buffer alineado (el mismo
+patrón que ya tenía `BenchmarkRunner`). El objetivo se redondea a la baja al sector, y con eso todos los
+tamaños de archivo —y todos los bloques, incluido el último— quedan alineados, que es lo que ese modo
+exige. Se sacrifican menos de 4 KB del margen de seguridad de 64 MB.
+
+> **Cómo se demuestra que el flag está realmente activo**, que era la parte que la tarea dejaba como
+> «razonado, no medido»: sustituyendo el buffer alineado por uno desplazado **un byte**, las pruebas
+> fallan con `IOException: El parámetro no es correcto` — el error que Windows devuelve a la E/S sin
+> caché ante un buffer desalineado. **Con la caché de por medio esa desalineación sería irrelevante y las
+> pruebas pasarían.** Ese contraste es la prueba: no hay API que diga «este bloque vino del medio», pero
+> sí una que solo se comporta así cuando no hay caché.
+
+Probado además sobre la **USB real** (64 MB en `D:`, 7 s): un disco fijo y un medio extraíble no tienen
+por qué anunciar la misma geometría, y este modo no degrada —falla— si no cuadra. Esa prueba se **omite**
+salvo que se defina `FORMATDISKPRO_VERIFY_DRIVE=<letra>`, para que las unitarias sigan corriendo en
+cualquier máquina.
+
+Build 0/0, **390/390** (389 + la de unidad real). Auditoría **23/40** · T2: 3 abiertas.
+
+---
+
 ### 2026-08-15 — Corte de la **v1.18.0**, y la verificación del actualizador comprobada en producción
 
 Corte con `release.ps1 -Version 1.18.0 -UiTests` desde terminal elevada y con la USB conectada: 388/388

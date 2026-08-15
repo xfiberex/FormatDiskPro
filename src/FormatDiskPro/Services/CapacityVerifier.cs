@@ -1,14 +1,29 @@
+using System.Runtime.InteropServices;
+
 namespace FormatDiskPro;
 
 /// <summary>
 /// Verifica la capacidad real de una unidad escribiendo un patrón determinista en el
 /// espacio libre y releyéndolo. Detecta unidades falsificadas (que mienten sobre su tamaño).
 /// </summary>
+/// <remarks>
+/// <para><b>La relectura NO pasa por la caché de archivos de Windows</b> (<c>FILE_FLAG_NO_BUFFERING</c>,
+/// igual que <see cref="BenchmarkRunner"/>). Es el punto entero de la prueba: si el sistema puede servir
+/// los bloques desde RAM, se estaría verificando la caché en vez del medio. Con E/S normal, una USB falsa
+/// **pequeña** —menor que la RAM libre— podía releerse íntegra desde caché y dar un **falso OK**, que es
+/// el peor resultado posible aquí: decirle a alguien que su unidad es auténtica cuando no lo es.</para>
+/// <para>La E/S sin caché exige que <b>buffer, desplazamiento y longitud</b> estén alineados al sector; de
+/// ahí <see cref="Alignment"/>, el buffer fijado con <see cref="GCHandle"/> y el redondeo del objetivo.</para>
+/// </remarks>
 public static class CapacityVerifier
 {
     private const int  BlockSize    = 8 * 1024 * 1024;          // 8 MB: unidad del patrón anti-aliasing
     private const long MaxFileSize  = 1L * 1024 * 1024 * 1024;  // 1 GB por archivo (seguro incluso en FAT32)
     private const long SafetyMargin = 64L * 1024 * 1024;        // dejar 64 MB libres
+    private const int  Alignment    = 4096;                     // alineación de sector exigida por la E/S sin caché
+
+    // FILE_FLAG_NO_BUFFERING no está expuesto en FileOptions; el valor es el de la API Win32.
+    private const FileOptions NoBuffering = (FileOptions)0x2000_0000;
 
     public sealed record VerifyResult(bool Ok, long WrittenBytes, string FailureDetail);
 
@@ -52,6 +67,14 @@ public static class CapacityVerifier
         var files = new List<(string Path, int StartBlock, long Length)>();
         long totalWritten = 0;
 
+        // Redondeo a la baja al tamaño de sector: la relectura sin caché exige longitudes y
+        // desplazamientos alineados, y con esto TODOS los tamaños de archivo (y por tanto todos los
+        // bloques, incluido el último de cada uno) lo están. Se sacrifican menos de 4 KB del margen de
+        // seguridad de 64 MB.
+        target -= target % Alignment;
+
+        var readPin = default(GCHandle);
+
         try
         {
             Directory.CreateDirectory(dir);
@@ -91,16 +114,16 @@ public static class CapacityVerifier
 
             if (afterWriteAsync is not null) await afterWriteAsync();
 
-            // ── Fase de lectura/verificación ──────────────────────
-            var readBuf  = new byte[BlockSize];
+            // ── Fase de lectura/verificación (SIN caché del sistema) ──
+            Memory<byte> readBuf = AllocAligned(BlockSize, out _, out readPin);
             var expected = new byte[BlockSize];
             long verified = 0;
             foreach (var f in files)
             {
                 ct.ThrowIfCancellationRequested();
 
-                await using var fs = new FileStream(f.Path, FileMode.Open, FileAccess.Read,
-                                 FileShare.None, 1 << 20, FileOptions.SequentialScan);
+                using var handle = File.OpenHandle(f.Path, FileMode.Open, FileAccess.Read,
+                                 FileShare.None, NoBuffering | FileOptions.Asynchronous);
                 long fileRead = 0;
                 int blk = f.StartBlock;
                 while (fileRead < f.Length)
@@ -109,15 +132,22 @@ public static class CapacityVerifier
                     int size = (int)Math.Min(BlockSize, f.Length - fileRead);
                     FillPattern(expected, blk, size);
 
-                    int total = 0, read;
-                    while (total < size &&
-                           (read = await fs.ReadAsync(readBuf.AsMemory(total, size - total), ct)) > 0)
+                    // Sin caché, una lectura parcial solo se puede reanudar desde un desplazamiento
+                    // alineado: si llegara una que no lo está (no debería), se trata como lectura corta
+                    // en vez de reintentar con una petición que la API rechazaría.
+                    int total = 0;
+                    while (total < size && total % Alignment == 0)
+                    {
+                        int read = await RandomAccess.ReadAsync(
+                            handle, readBuf.Slice(total, size - total), fileRead + total, ct);
+                        if (read == 0) break;
                         total += read;
+                    }
 
                     if (total != size)
                         return new VerifyResult(false, verified, $"short-read@{blk}");
 
-                    if (!readBuf.AsSpan(0, size).SequenceEqual(expected.AsSpan(0, size)))
+                    if (!readBuf.Span[..size].SequenceEqual(expected.AsSpan(0, size)))
                         return new VerifyResult(false, verified, $"mismatch@{blk}");
 
                     verified += size;
@@ -136,8 +166,23 @@ public static class CapacityVerifier
         }
         finally
         {
+            if (readPin.IsAllocated) readPin.Free();
             try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { }
         }
+    }
+
+    /// <summary>
+    /// Reserva un buffer alineado al sector, requisito de la E/S sin caché. Se pide de más y se toma el
+    /// sub-rango alineado del array fijado; el <see cref="GCHandle"/> debe liberarlo quien llama (aquí, el
+    /// <c>finally</c>). Mismo patrón que <c>BenchmarkRunner.AllocAligned</c>.
+    /// </summary>
+    private static Memory<byte> AllocAligned(int size, out byte[] raw, out GCHandle pin)
+    {
+        raw = new byte[size + Alignment];
+        pin = GCHandle.Alloc(raw, GCHandleType.Pinned);
+        long addr = pin.AddrOfPinnedObject().ToInt64();
+        int pad = (int)((Alignment - (addr & (Alignment - 1))) & (Alignment - 1));
+        return raw.AsMemory(pad, size);
     }
 
     /// <summary>

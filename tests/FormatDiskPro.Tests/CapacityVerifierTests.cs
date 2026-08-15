@@ -35,6 +35,28 @@ public sealed class CapacityVerifierTests
     }
 
     /// <summary>
+    /// La relectura va <b>sin caché del sistema</b> (`T2-03`), y eso impone alineación de sector en
+    /// buffer, desplazamiento y longitud. El espacio libre de una unidad real no es múltiplo de nada, así
+    /// que el objetivo se redondea a la baja: aquí se pide un tamaño deliberadamente feo y se exige que
+    /// funcione igual y que lo escrito quede alineado.
+    ///
+    /// <para>Nótese que el resto de pruebas de esta clase <b>también</b> ejercitan esa ruta: si la
+    /// alineación estuviera mal, Windows rechazaría la lectura con un error de parámetro en vez de
+    /// devolver datos.</para>
+    /// </summary>
+    [Fact]
+    public async Task RunInAsync_UnalignedTarget_IsRoundedDownAndStillVerifies()
+    {
+        string dir = ScratchDir();
+
+        var result = await CapacityVerifier.RunInAsync(dir, Block + 1234, Ignore, CancellationToken.None);
+
+        Assert.True(result.Ok, $"Debería verificar igual, pero devolvió '{result.FailureDetail}'.");
+        Assert.Equal(0, result.WrittenBytes % 4096);
+        Assert.Equal(Block, result.WrittenBytes);   // 1234 < 4096: el redondeo se come el resto
+    }
+
+    /// <summary>
     /// El caso que justifica la función entera: un bloque que al releerse no contiene lo que se escribió.
     /// Se corrompe **un solo byte** dentro del bloque 1, y se exige que el fallo lo señale por su índice
     /// —no basta con que falle, tiene que decir dónde—.
