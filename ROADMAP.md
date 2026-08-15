@@ -672,7 +672,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     desaparecer una unidad del sistema y no debe correr por sorpresa en un corte de release.
   - **Esfuerzo:** medio · **Depende de:** T0-02, T2-05
 
-- [ ] **[T2-11] `SECURITY.md`, `CONTRIBUTING.md` y plantillas de issue**
+- [x] **[T2-11] `SECURITY.md`, `CONTRIBUTING.md` y plantillas de issue**
   - **Área:** Documentación / DevOps
   - **Ubicación:** `.github/`
   - **Qué hacer:** una herramienta GPLv3 que formatea discos, corre elevada y se auto-actualiza no publica
@@ -683,6 +683,16 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     abrir un issue.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Resuelta el 2026-08-15.** `.github/SECURITY.md`, `.github/CONTRIBUTING.md`, dos plantillas de issue
+    (formularios YAML: error y sugerencia), `config.yml` con el enlace al reporte privado y
+    `PULL_REQUEST_TEMPLATE.md`. El README enlaza los tres. YAML validado.
+  - **`SECURITY.md` dice también lo que NO es una vulnerabilidad** —correr como administrador, el
+    instalador sin firmar, el alcance honesto del SHA-256— para no recibir reportes de decisiones ya
+    documentadas, y deja claro qué **sí** interesa. El canal es el reporte privado de GitHub: no se
+    publica ninguna dirección de correo.
+  - **`CONTRIBUTING.md` recoge lo que aquí falla si no lo sabes:** terminal elevada para los UI tests, las
+    precondiciones que omiten en vez de fallar, los tests que vigilan la i18n y el contraste, y que **no
+    se aceptan PRs con GitHub Actions** — el testing de este proyecto es local (`T2-10`).
 
 ---
 
@@ -843,13 +853,14 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | 2026-08-15 | **T2-06** | El `.sha256` se empareja por nombre con el instalador elegido; si no está el suyo, la actualización se rechaza. +5 pruebas. |
 | 2026-08-15 | **T2-07** | Tope de 512 bytes al leer el checksum (cabecera **y** flujo real). Nueva clave `update.checksumUnreadable`. +1 prueba. |
 | 2026-08-15 | **T2-09** | `Core/HistoryRotation` + rotación a `history.1.log` a los 2 MB. El visor lee las dos generaciones; *Borrar* se lleva ambas. +13 pruebas. |
+| 2026-08-15 | **T2-11** | `SECURITY.md` (canal privado + lo que no es vulnerabilidad), `CONTRIBUTING.md`, plantillas de issue y de PR. Enlazados desde el README. |
 | 2026-08-15 | **T2-03** | La relectura de *Verificar capacidad* deja de poder servirse de la caché del SO (`FILE_FLAG_NO_BUFFERING` + buffer alineado). +2 pruebas. |
 | 2026-08-15 | **T2-01** | `StatusText` como región activa `Polite` + notificación UIA en los hitos (inicio/fin/error/cancelación), nunca por tick. +1 prueba de UI. |
 | 2026-08-15 | **T2-02** | Error de etiqueta `Assertive` y vinculado al campo con `DescribedBy`. +1 prueba de UI. *(Un `Collapsed` no está en el árbol UIA.)* |
 | 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 23/40 completadas · 1 descartada (`T2-10`) · **16 abiertas** (T0: 0 · **T1: 0** · T2: 3 · T3: 9 · T4: 5).
+**Estado:** 24/40 completadas · 1 descartada (`T2-10`) · **15 abiertas** (T0: 0 · **T1: 0** · T2: 2 · T3: 9 · T4: 5).
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
 `T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió

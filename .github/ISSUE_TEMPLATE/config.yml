@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Reportar una vulnerabilidad (privado)
+    url: https://github.com/xfiberex/FormatDiskPro/security/advisories/new
+    about: No publiques fallos de seguridad como issue. Este canal es privado hasta que haya arreglo.
+  - name: Cómo contribuir
+    url: https://github.com/xfiberex/FormatDiskPro/blob/master/.github/CONTRIBUTING.md
+    about: Compilar, ejecutar las pruebas (terminal elevada) y qué se espera de un PR.

@@ -296,6 +296,15 @@ también se pueden consultar dentro de la app en *Ayuda → Licencia* y *Ayuda �
 > ⚠️ **Aviso de uso:** FormatDiskPro formatea y borra unidades de forma **irreversible**. Comprueba siempre la
 > unidad seleccionada antes de iniciar; el autor no se hace responsable de pérdidas de datos.
 
+## Contribuir y reportar
+
+- **Errores y sugerencias:** por los [issues](https://github.com/xfiberex/FormatDiskPro/issues), con las
+  plantillas que piden lo que hace falta para reproducirlos (versión, unidad, pasos).
+- **Vulnerabilidades:** **no** las publiques como issue — sigue [SECURITY.md](.github/SECURITY.md), que
+  usa el reporte privado de GitHub.
+- **Código:** [CONTRIBUTING.md](.github/CONTRIBUTING.md) explica cómo compilar, cómo correr las pruebas
+  (las de UI exigen **terminal elevada**) y qué se espera de un PR.
+
 ## Apoyar el proyecto
 
 FormatDiskPro es gratuito y de código abierto. Si te resulta útil, puedes **apoyar su desarrollo con una

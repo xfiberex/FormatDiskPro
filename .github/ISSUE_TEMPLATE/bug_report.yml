@@ -1,0 +1,91 @@
+name: Informe de error
+description: Algo no funciona como debería
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportarlo. **Si es un problema de seguridad, no lo publiques aquí**: sigue
+        [SECURITY.md](https://github.com/xfiberex/FormatDiskPro/blob/master/.github/SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión de FormatDiskPro
+      description: La ves en *Ayuda → Acerca de*.
+      placeholder: "1.18.0"
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Versión de Windows
+      placeholder: "Windows 11 Pro 24H2 (10.0.26100)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operation
+    attributes:
+      label: ¿En qué operación ocurre?
+      options:
+        - Formatear
+        - Verificar capacidad real
+        - Comprobar disco (chkdsk)
+        - Reinicializar unidad
+        - Benchmark
+        - Borrado seguro
+        - S.M.A.R.T. / salud
+        - Historial
+        - Actualización de la app
+        - Otra / al arrancar
+    validations:
+      required: true
+
+  - type: textarea
+    id: drive
+    attributes:
+      label: Sobre qué unidad
+      description: Tipo (USB / disco fijo / SD), tamaño, sistema de archivos y, si lo sabes, marca y modelo.
+      placeholder: "USB Kingston DataTraveler 32 GB, exFAT, extraíble"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Qué pasó y qué esperabas que pasara
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Seleccionar la unidad D:
+        2. Elegir exFAT y desmarcar "Formato rápido"
+        3. Pulsar Iniciar
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: history
+    attributes:
+      label: Líneas del historial (opcional)
+      description: >
+        De `%AppData%\FormatDiskPro\history.log`. Pega solo las del momento del fallo — y revísalas antes:
+        contienen letras y etiquetas de unidad.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Antes de enviar
+      options:
+        - label: Estoy en la última versión publicada (o he comprobado que el fallo sigue ahí).
+          required: true
+        - label: He mirado si ya hay un issue abierto con lo mismo.
+          required: true

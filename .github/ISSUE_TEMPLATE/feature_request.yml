@@ -1,0 +1,41 @@
+name: Sugerencia
+description: Proponer una mejora dentro del alcance del proyecto
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        FormatDiskPro sirve para **formatear, diagnosticar y gestionar unidades en Windows**. Hay cosas
+        que están fuera **a propósito** (creador de USB booteable desde ISO, gestor de particiones
+        completo, clonado de discos, ventana redimensionable, CI): mira las secciones *Deliberadamente
+        fuera de alcance* y *Decisiones cerradas* de
+        [ROADMAP.md](https://github.com/xfiberex/FormatDiskPro/blob/master/ROADMAP.md) antes de escribir.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qué problema real te resolvería
+      description: El problema, no la solución. Qué intentabas hacer y con qué te chocaste.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Qué propones
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Cómo lo resuelves hoy (opcional)
+      description: Otra herramienta, un rodeo dentro de la app, `diskpart`…
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Antes de enviar
+      options:
+        - label: He comprobado que no está en la lista de cosas deliberadamente fuera de alcance.
+          required: true
