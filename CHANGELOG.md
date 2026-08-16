@@ -15,6 +15,16 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+Nada todavía.
+
+---
+
+## [1.21.0] — 2026-08-16
+
+**Cierre de la auditoría del 2026-08-13** (39/40 completadas, 2 descartadas). Es un corte de
+**mantenimiento**: no cambia nada de lo que la app hace ni de lo que el usuario ve — lo que cambia es
+que sus fallos ahora se pueden probar, y que el repositorio cuenta lo que hace.
+
 ### Añadido
 
 - **Inyección de dependencias en `Services`** (`T4-02`): los servicios dejan de ser clases `static` y se
@@ -328,7 +338,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.20.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.21.0...HEAD
+[1.21.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.21.0
 [1.20.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.20.0
 [1.19.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.19.0
 [1.18.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.18.0
