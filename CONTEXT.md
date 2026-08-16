@@ -131,12 +131,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **509 / 509** (433 + 20 del arreglo de *FAT32 pequeña* + 40 de `T5-01` + 16 de `T5-02`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **521 / 521** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **28** en total (el «27» anterior era un dato mal anotado; `--list-tests` da 28) · con la USB (`utilidades`, sin opt-in): **25 pasan / 3 se omiten / 0 fallan** (2026-08-16, 59 min) · las 3 omitidas son las de opt-in: 2 de `ALLOW_YANK` + 1 de `ALLOW_DESTRUCTIVE` · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.21.0** (2026-08-16) · `master` con **un arreglo sin publicar** (*FAT32 pequeña* en unidades < 32 GB) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
-| Ocurrencias | **Tier 5** (2026-08-15) — **lo único abierto del repo**. Hechas: **`T5-01`, `T5-02`, `T5-05`** (2026-08-16). Abierta: **`T5-03`** (informar del fallo parcial). `T5-04` (N particiones) **cerrado por decisión**: el alcance acordado es de dos particiones |
+| Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz. **0 tareas abiertas en el repo**; falta el corte de la 1.22.0 |
 
 **Tiers completados**
 
@@ -388,6 +388,48 @@ rechaza `'` (el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-16 — `T5-03`: qué queda cuando el plan falla a mitad (y el Tier 5 se cierra)
+
+**El fallo estaba en el sitio menos evidente: dónde se imprimían los marcadores.** Iban todos agrupados al
+final del script. Con `ErrorActionPreference='Stop'`, un fallo en la segunda partición abortaba **antes de
+emitir el de la primera**, así que «no se creó nada» y «la primera salió bien y la segunda no» producían
+exactamente la misma salida: cero letras. Ninguna cantidad de código en la UI podía distinguirlas.
+
+Ahora cada partición emite lo suyo **en cuanto lo alcanza**, y son **dos** marcadores porque son dos estados:
+
+- `PART:i:` — creada, existe en la tabla de particiones.
+- `LETTER:i:X` — además formateada y utilizable.
+
+Una partición cuyo `Format-Volume` falla se queda **entre las dos cifras**, y decir «no se creó ninguna»
+sería falso. De ahí `ReinitResult.PartitionsCreated` junto a `Letters`.
+
+**Decisiones:**
+
+- **No se revierte.** El disco ya está borrado: «deshacer» solo podría significar borrarlo otra vez, y esa
+  no es una decisión que el usuario haya pedido. Hay una prueba que lo exige de la única forma que no admite
+  interpretación — que **no se lance un segundo proceso** tras el fallo.
+- El aviso dice explícitamente que **el disco ya estaba borrado cuando falló**. Un «no se pudo
+  reinicializar» a secas deja creer que no pasó nada, que es lo contrario de la verdad.
+- El mensaje detallado solo aparece con planes de **más de una** partición: con una, el fallo es binario y
+  el mensaje de siempre ya lo cuenta.
+
+**El camino de fallo parcial NO está verificado sobre hardware**, y no es un descuido: forzar que
+`Format-Volume` falle en la segunda partición de un USB real no es reproducible a voluntad. Se cubre con
+`FakeProcessRunner`, que es exactamente para lo que existe la costura de `T4-02`.
+
+**El fallo de proceso de esta sesión, que sí enseñó algo.** La primera ejecución en hardware falló, pero
+**la app se comportó bien**: el `settings.json` del usuario tenía `CreateSecondPartition: true` de haber
+probado la función, y la app recordó esa preferencia. La equivocada era la prueba, que daba por supuesto el
+valor de fábrica de un ajuste **persistido** — es decir, pasaba o fallaba según lo que hubiera hecho antes
+el usuario de esa máquina. Los pasos 2 y 3 fijan ahora su estado explícitamente. De rebote, ese fallo
+confirmó `T5-02` por una vía que nadie había planeado: creó las dos particiones con NTFS en el resto.
+
+**Con esto el Tier 5 queda cerrado**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas, `T5-04` (N
+particiones) **descartada** por decisión de producto — el motor admite N, lo que se limitó es la interfaz.
+**521/521 unitarias** (+12).
 
 ---
 

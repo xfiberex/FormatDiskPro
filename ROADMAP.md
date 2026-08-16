@@ -32,11 +32,12 @@ cierra la calidad: ver **[Parte 2](#parte-2--backlog-de-remediación-auditoría-
 quedan** dependen de algo ajeno al código: un certificado de firma (`T4-03`) y una tanda de capturas
 regeneradas (`T4-04`).
 
-**Tier 5 — ocurrencias: ABIERTO (2026-08-15).** «Funcionalidad terminada» no significa «sin huecos»: usar
-lo entregado revela dónde una característica se queda a medio camino. El primero, real: *FAT32 pequeña*
-deja el resto del disco **sin asignar**, y recuperarlo obliga a salir a una herramienta de Windows. Esas
-ampliaciones viven en el **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)**, aparte de la
-auditoría y aparte del historial cerrado de la Parte 1.
+**Tier 5 — ocurrencias: CERRADO (2026-08-16).** «Funcionalidad terminada» no significa «sin huecos»: usar
+lo entregado revela dónde una característica se queda a medio camino. El hueco era real: *FAT32 pequeña*
+dejaba el resto del disco **sin asignar**, y recuperarlo obligaba a salir a una herramienta de Windows.
+**4 completadas** (`T5-01`, `T5-02`, `T5-03`, `T5-05`) y **1 descartada** por decisión de producto
+(`T5-04`, N particiones). Viven en el **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)**, aparte
+de la auditoría y aparte del historial cerrado de la Parte 1.
 
 | Tier | Tema | Versión |
 |---|---|---|
@@ -1090,7 +1091,7 @@ hemos salido.**
     «dejar sin asignar» sigue produciendo exactamente el resultado de hoy.
   - *Esfuerzo: medio · Depende de: T5-01*
 
-- [ ] **[T5-03] Qué queda cuando el plan falla a mitad**
+- [x] **[T5-03] Qué queda cuando el plan falla a mitad** — **hecho (2026-08-16)**
   - **Área:** Robustez
   - **Ubicación:** `Services/ReinitDrive`, `UI/MainWindow.Operations.cs`
   - **Qué hacer:** con **una** partición, un fallo es binario: salió o no salió. Con varias hay un estado
@@ -1103,18 +1104,24 @@ hemos salido.**
     exactamente qué se creó, lo registra, y **no** borra lo que sí funcionó.
   - *Esfuerzo: bajo-medio · Depende de: T5-01, T5-02*
 
-- [ ] **[T5-04] Varias particiones definidas por el usuario** *(condicionada — leer la nota)*
-  - **Área:** Funcionalidad / UI
-  - **Qué hacer:** permitir **N particiones**, cada una con su tamaño, sistema de archivos y etiqueta, en
-    lugar de las dos de `T5-02`. Tope duro: **4 en MBR** (límite de particiones primarias) y un tope
-    razonable en GPT.
-  - **Riesgo declarado, y es de producto, no técnico:** el motor de `T5-01` ya admite N — lo caro es la
-    **interfaz**. La ventana es de **tamaño fijo (500×900) y es un diálogo de tarea**, decisión firme: una
-    tabla editable de filas variables no cabe ahí sin convertir la pantalla principal en otra cosa. Si se
-    hace, va en un **diálogo aparte** (como *Reinicializar*), nunca en la tarjeta de opciones.
-  - **Recomendación:** **no empezar por aquí.** Entregar `T5-02` primero y ver si el caso de N particiones
-    aparece de verdad en el uso. Dos particiones cubren el escenario que originó esto; N es una hipótesis.
-  - *Esfuerzo: alto · Depende de: T5-02, T5-03*
+- [x] ~~**[T5-04] Varias particiones definidas por el usuario**~~ — ❌ **DESCARTADA (2026-08-16)**
+  - **Qué era:** permitir **N particiones**, cada una con su tamaño, sistema de archivos y etiqueta, en
+    lugar de las dos de `T5-02`. Tope duro: 4 en MBR, un tope razonable en GPT.
+  - **Por qué se cierra, decidido con el usuario tras entregar `T5-02`:**
+    1. **La ventana es de 500×900 y de tamaño fijo**, decisión firme del proyecto. Una tabla editable de
+       filas variables no cabe ahí, así que N obligaría a un **diálogo aparte** — y eso deja de ser
+       «terminar la operación que ya estás haciendo» para convertirse en otra pantalla del producto.
+    2. **MBR solo admite 4 primarias**, y `ReinitPlan.StyleFor` elige MBR en todo disco de menos de 2 TB
+       —es decir, en cualquier memoria USB— porque es lo que hace que el pendrive lo lea el BIOS de una
+       placa base, un televisor o la radio de un coche. Así que «N» en la práctica es «3 o 4»: poco
+       recorrido frente a lo que cuesta.
+    3. **El caso que originó el tier lo cubren dos.** FAT32 para flashear + el resto aprovechable resuelve
+       el pendrive de 256 GB del que solo se podían usar 32.
+    4. Cada partición extra es otra forma de fallar a mitad, con el disco ya borrado.
+  - **Lo que NO se pierde:** el motor y el validador de `T5-01` **admiten N desde el primer día**
+    (`PartitionPlan` es una lista, y `Validate` ya comprueba el tope de 4 en MBR). Lo que se limitó es la
+    **interfaz**. Si algún día el uso real pide más de dos, esto se reabre sin rehacer `Core/`.
+  - *Estado: cerrada por decisión de producto, no por falta de tiempo.*
 
 - [x] **[T5-05] Cobertura de UI del plan multi-partición** — **hecho (2026-08-16)**, junto a `T5-02`
   - **Área:** QA
@@ -1174,6 +1181,8 @@ hemos salido.**
 | 2026-08-16 | **T5-01** | `Core/PartitionPlan.cs`: el layout deja de ser un `long?` y pasa a ser un plan validable (13 motivos tipados, con índice de la partición culpable). `ParseNewLetters` en plural con índice de partición. `ReinitDrive` ejecuta N particiones y revalida el plan antes de `Clear-Disk`. La UI sigue mandando **una** partición: sin cambio de comportamiento. +40 pruebas (453 → 493). |
 | 2026-08-16 | **T5-02** | El sobrante deja de morir sin asignar: fila *«El resto del disco»* en la tarjeta de opciones (dejarlo sin asignar —por defecto— o crear una segunda partición en exFAT/NTFS con su etiqueta). La FAT32 va **siempre primera**, y la UI dice por qué (`opt.restNote`). +16 pruebas (493 → 509). |
 | 2026-08-16 | **T5-05** | `FullLifecycle` extendido con un cuarto paso: FAT32 de 1 GB + resto en exFAT. Comprueba el **disco físico** (número de particiones y espacio sin asignar), no el diálogo de éxito — que diría lo mismo si la segunda partición no se creara. Verificado: 2 particiones, **0 MB sin asignar**. |
+| 2026-08-16 | **T5-03** | Los marcadores del script se emiten **según se alcanzan**, no agrupados al final: con `ErrorActionPreference='Stop'`, un fallo en la segunda partición abortaba antes de imprimir el de la primera, y «no se creó nada» era indistinguible de «la primera salió bien». Dos marcadores, `PART:` (creada) y `LETTER:` (creada **y** formateada), porque son dos estados distintos. **No se revierte** — hay una prueba que exige que no se lance ningún proceso de limpieza. +12 pruebas (509 → 521). |
+| 2026-08-16 | ~~**T5-04**~~ | ❌ **Descartada.** N particiones no cabe en una ventana de tamaño fijo sin convertirse en otra pantalla, MBR limita a 4 de todos modos y el caso real lo cubren dos. El motor sigue admitiendo N: lo limitado es la interfaz. Ver *Tier 5*. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
 **Estado: AUDITORÍA CERRADA (2026-08-16).** 39/40 completadas · 2 descartadas (`T2-10` CI, `T4-03` firma)
@@ -1183,8 +1192,9 @@ Las dos descartadas no son deuda aparcada: **son decisiones tomadas**, y viven e
 *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)* con su porqué. `T2-10` (CI) se llegó a
 implementar y se revirtió; `T4-03` (firmar) contradecía la decisión `#13` desde el día en que se escribió.
 
-Lo único abierto del repositorio es el **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)**, que
-**no** forma parte de la auditoría: añade funcionalidad, que es justo lo que ninguna tarea `T0`–`T4` hace.
+El **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)** también quedó **cerrado el 2026-08-16**
+(4 completadas + `T5-04` descartada). **No** formaba parte de la auditoría: añade funcionalidad, que es
+justo lo que ninguna tarea `T0`–`T4` hace.
 **Aparte de las 40**, el **Tier 5** (5 tareas, abierto desde el 2026-08-15) recoge ampliaciones de features
 ya entregadas; no cuenta en este progreso porque no es remediación.
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows

@@ -79,6 +79,33 @@ public sealed class ReinitPlanTests
         Assert.Empty(ReinitPlan.ParseNewLetters("STAGE:clean\nSTAGE:format"));
     }
 
+    // ── Particiones creadas (`T5-03`) ─────────────────────────────
+
+    /// <summary>
+    /// «Creada» y «utilizable» son dos cifras distintas: una partición cuyo formato falla existe en la
+    /// tabla pero no se puede usar. La diferencia es justo lo que hay que contarle al usuario cuando la
+    /// operación se rompe con el disco ya borrado.
+    /// </summary>
+    [Fact]
+    public void CountCreatedPartitions_CountsPartitionsThatFormattingNeverReached()
+    {
+        const string output = "PART:0:1\nLETTER:0:H\nPART:1:2\n";
+
+        Assert.Equal(2, ReinitPlan.CountCreatedPartitions(output));
+        Assert.Equal(['H'], ReinitPlan.ParseNewLetters(output));
+    }
+
+    [Theory]
+    [InlineData(null, 0)]
+    [InlineData("", 0)]
+    [InlineData("STAGE:clean\n", 0)]
+    [InlineData("PART:0:1\n", 1)]
+    [InlineData("PART:0:1\nPART:1:2\nPART:2:3\n", 3)]
+    [InlineData("PART:0:1\nPART:0:1\n", 1)]        // repetida: cuenta una vez
+    [InlineData("PART:x:1\n", 0)]                  // índice ilegible: no cuenta
+    public void CountCreatedPartitions_ReadsTheMarkers(string? output, int expected)
+        => Assert.Equal(expected, ReinitPlan.CountCreatedPartitions(output));
+
     [Theory]
     [InlineData(1, 1)]
     [InlineData(2, 2)]

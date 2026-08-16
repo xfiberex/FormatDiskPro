@@ -129,6 +129,11 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
 
             // ── 2) Reinicializar unidad (normal, NTFS) ──
             MainWindowActions.SelectComboText(Window, "FileSystemPicker", "NTFS");
+            // Este paso espera UNA partición de disco entero, así que la opción de FAT32 pequeña tiene que
+            // estar desmarcada de forma explícita: los [Fact] de esta clase comparten instancia de la app y
+            // xUnit no garantiza su orden, así que heredarla marcada convertiría este paso en otra cosa.
+            if (Window.FindFirstDescendant(cf => cf.ByAutomationId("SmallFat32Check")) is not null)
+                MainWindowActions.SetChecked(Window, "SmallFat32Check", false);
             MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuReinit");
             var confirmReinit = DialogHelper.WaitForDialog(fixture);
             DialogHelper.WaitForChild(confirmReinit, "InputBox").AsTextBox().Text = letter.ToString();
@@ -161,6 +166,11 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
             MainWindowActions.WaitUntilEnabled(Window, "SmallFat32Check");
             MainWindowActions.SetChecked(Window, "SmallFat32Check", true);
             MainWindowActions.SelectComboText(Window, "SmallFat32SizePicker", "1 GB");
+            // «Dejarlo sin asignar» se fija EXPLÍCITAMENTE, aunque sea el valor por defecto de fábrica:
+            // es una preferencia PERSISTIDA, así que en la máquina de alguien que haya usado la app puede
+            // valer lo contrario. Dar por supuesto el valor por defecto hacía que este paso creara dos
+            // particiones y el aserto fallara — y el culpable no era la app, que recordó bien la elección.
+            MainWindowActions.SelectComboIndex(Window, "RestPicker", 0);
             MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuReinit");
             var confirmSmall = DialogHelper.WaitForDialog(fixture);
             DialogHelper.WaitForChild(confirmSmall, "InputBox").AsTextBox().Text = currentLetter.ToString();

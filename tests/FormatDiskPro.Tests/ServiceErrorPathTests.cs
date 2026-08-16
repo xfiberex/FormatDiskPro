@@ -416,17 +416,98 @@ public sealed class ServiceErrorPathTests
     [Fact]
     public async Task Reinit_TwoPartitionPlan_OnlyOneLetterComesBack_IsAFailure()
     {
-        var reinit = new ReinitDrive(FakeProcessRunner.Returning("LETTER:0:H\n", exitCode: 0));
+        var reinit = new ReinitDrive(FakeProcessRunner.Returning("PART:0:1\nLETTER:0:H\n", exitCode: 0));
 
-        var plan = new PartitionPlan(DiskPartitionStyle.Mbr, [
-            new PartitionSpec(new PartitionSize.Exact(1024L * 1024 * 1024), "FAT32", "BIOS"),
-            new PartitionSpec(new PartitionSize.Remainder(), "exFAT", "DATOS"),
-        ]);
-
-        var r = await reinit.RunAsync('G', plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Equal(['H'], r.Letters);   // se conserva lo que SÍ se creó: lo necesita `T5-03`
+    }
+
+    private static PartitionPlan TwoPartitionPlan() => new(DiskPartitionStyle.Mbr, [
+        new PartitionSpec(new PartitionSize.Exact(1024L * 1024 * 1024), "FAT32", "BIOS"),
+        new PartitionSpec(new PartitionSize.Remainder(), "exFAT", "DATOS"),
+    ]);
+
+    // ── Fallo a mitad del plan (`T5-03`) ──────────────────────────
+
+    /// <summary>
+    /// El estado intermedio real: la partición 1 creada y formateada, la 2 <b>creada pero sin formatear</b>.
+    /// Son dos cifras distintas y las dos hacen falta — decir «no se creó ninguna» sería falso, y decir
+    /// «se crearon dos» ocultaría que una no se puede usar.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_SecondPartitionFailsToFormat_ReportsCreatedAndUsableSeparately()
+    {
+        var reinit = new ReinitDrive(FakeProcessRunner.Returning(
+            "STAGE:partition\nPART:0:1\nSTAGE:format\nLETTER:0:H\nPART:1:2\n",
+            exitCode: 1, stderr: "Format-Volume : El parámetro no es correcto."));
+
+        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Equal(2, r.PartitionsCreated);   // las dos existen en la tabla de particiones
+        Assert.Equal(['H'], r.Letters);         // pero solo una es utilizable
+        Assert.Contains("no es correcto", r.Detail, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Falla <c>Clear-Disk</c> antes de crear nada: cero y cero. Con los marcadores agrupados al final del
+    /// script —como estaban antes de `T5-03`— esta salida era indistinguible de la anterior, porque en
+    /// ambas se emitían cero letras.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_FailsBeforeCreatingAnything_ReportsNothingCreated()
+    {
+        var reinit = new ReinitDrive(FakeProcessRunner.Returning(
+            "STAGE:clean\n", exitCode: 1, stderr: "Clear-Disk : Access is denied."));
+
+        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Equal(0, r.PartitionsCreated);
+        Assert.Empty(r.Letters);
+    }
+
+    /// <summary>
+    /// <b>No se revierte nada al fallar.</b> El disco ya está borrado, así que «deshacer» solo podría
+    /// significar borrarlo otra vez — una decisión que el usuario no pidió. Se comprueba de la única forma
+    /// que no admite interpretación: <b>no se lanza un segundo proceso</b>.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_WhenItFailsHalfway_NeverLaunchesACleanupProcess()
+    {
+        var runner = FakeProcessRunner.Returning(
+            "PART:0:1\nLETTER:0:H\nPART:1:2\n", exitCode: 1, stderr: "Format-Volume : fallo");
+        var reinit = new ReinitDrive(runner);
+
+        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Single(runner.Started);   // uno solo: el de la operación. Ninguna limpieza automática.
+    }
+
+    /// <summary>
+    /// Los marcadores se emiten <b>según se alcanzan</b>, no agrupados al final. Es lo que hace observable
+    /// el fallo parcial: con los ecos al final, un fallo en la segunda partición abortaba el script antes
+    /// de imprimir el de la primera.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_EmitsEachPartitionMarkerBeforeMovingOnToTheNext()
+    {
+        var runner = FakeProcessRunner.Returning("PART:0:1\nLETTER:0:H\nPART:1:2\nLETTER:1:I\n", exitCode: 0);
+        var reinit = new ReinitDrive(runner);
+
+        await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        string script = DecodeScript(Assert.Single(runner.Started));
+        int firstLetter  = script.IndexOf("'LETTER:0:", StringComparison.Ordinal);
+        int secondCreate = script.IndexOf("$p1 = New-Partition", StringComparison.Ordinal);
+
+        Assert.True(firstLetter >= 0 && secondCreate >= 0, "El script no tiene la forma esperada.");
+        Assert.True(firstLetter < secondCreate,
+            "La letra de la primera partición debe emitirse ANTES de crear la segunda; si no, un fallo en " +
+            "la segunda se lleva por delante el informe de la primera.");
     }
 
     // ── FormatProcess ─────────────────────────────────────────────

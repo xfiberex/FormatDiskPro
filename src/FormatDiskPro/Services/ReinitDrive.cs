@@ -52,8 +52,16 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
         // Cada partición se crea y se formatea antes de pasar a la siguiente, y guarda su objeto en $p<i>
         // para poder releer su letra por número de partición al final. Releerlas por "la primera que tenga
         // letra" —lo que hacía la versión de una sola partición— deja de valer en cuanto hay dos.
-        var body    = new StringBuilder();
-        var letterEcho = new StringBuilder();
+        // Cada partición emite sus dos marcadores EN CUANTO los alcanza, no al final del script (`T5-03`).
+        // Con `ErrorActionPreference='Stop'`, agrupar los ecos al final significaba que un fallo en la
+        // segunda partición abortaba antes de emitir ninguno: la app no podía distinguir "no se creó nada"
+        // de "la primera salió bien y la segunda no", que es justo lo que hay que poder contar cuando el
+        // disco ya está borrado.
+        //
+        // Son dos marcadores y no uno porque son dos estados distintos: `PART:i:` significa creada (existe
+        // en la tabla de particiones) y `LETTER:i:X` significa además formateada y utilizable. Una partición
+        // creada cuyo formato falla se queda entre los dos, y decir "no se creó ninguna" sería falso.
+        var body = new StringBuilder();
         for (int i = 0; i < plan.Partitions.Count; i++)
         {
             PartitionSpec p = plan.Partitions[i];
@@ -62,12 +70,13 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
 
             if (i == 0) body.Append("'STAGE:partition';");
             body.Append($"$p{i} = New-Partition -DiskNumber $d.Number {size} -AssignDriveLetter;");
+            body.Append($"'PART:{i}:' + $p{i}.PartitionNumber;");
             if (i == 0) body.Append("'STAGE:format';");
             body.Append($"Format-Volume -Partition $p{i} -FileSystem {p.FileSystem} -NewFileSystemLabel '{safeLabel}' -Confirm:$false | Out-Null;");
 
             // Se re-consulta por número de partición: el objeto recién creado puede no reflejar la letra
             // todavía, y Windows las asigna en el orden que quiere.
-            letterEcho.Append($"'LETTER:{i}:' + (Get-Partition -DiskNumber $d.Number -PartitionNumber $p{i}.PartitionNumber).DriveLetter;");
+            body.Append($"'LETTER:{i}:' + (Get-Partition -DiskNumber $d.Number -PartitionNumber $p{i}.PartitionNumber).DriveLetter;");
         }
 
         string script =
@@ -82,8 +91,7 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
             // ya esté vacío y listo para particionar; se tolera ese error concreto y se continúa con el
             // estilo que el disco ya tenga (cualquier otro error sí se propaga).
             $"try {{ $d = Initialize-Disk -Number $d.Number -PartitionStyle {styleName} -PassThru -ErrorAction Stop }} catch {{ if ($_.Exception.Message -notmatch 'already been initialized') {{ throw }} }};" +
-            body.ToString() +
-            letterEcho.ToString();
+            body.ToString();
 
         byte[] bytes   = Encoding.Unicode.GetBytes(script);
         string encoded = Convert.ToBase64String(bytes);
@@ -131,12 +139,20 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
 
             string output = sb.ToString();
             IReadOnlyList<char> letters = ReinitPlan.ParseNewLetters(output);
+            int created = ReinitPlan.CountCreatedPartitions(output);
 
             // Se exige una letra POR partición: con un plan de dos, que solo la primera se creara y
             // formateara es exactamente el fallo parcial que no debe darse por bueno.
             bool ok = proc.ExitCode == 0 && letters.Count == plan.Partitions.Count;
             string detail = ok ? "" : (string.IsNullOrWhiteSpace(err) ? $"exit={proc.ExitCode}" : err.Trim());
-            return new ReinitResult(ok, letters.Count > 0 ? letters[0] : null, detail) { Letters = letters };
+
+            // No se limpia nada al fallar (`T5-03`): el disco ya está borrado, así que "deshacer" solo
+            // podría significar borrarlo otra vez. Se informa de lo que quedó y decide el usuario.
+            return new ReinitResult(ok, letters.Count > 0 ? letters[0] : null, detail)
+            {
+                Letters           = letters,
+                PartitionsCreated = created,
+            };
         }
         catch (Exception ex)
         {

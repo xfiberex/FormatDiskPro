@@ -29,6 +29,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   BIOS de placas base) solo leen la primera — y es la que interesa que vean.
 - FAT32 y FAT **no se ofrecen** para la segunda partición: el sobrante de un pendrive grande supera sus
   límites (32 GB y 2 GB), así que ofrecerlos sería ofrecer un fallo que llegaría con el disco ya borrado.
+- **Si la operación se rompe a mitad, ahora dice qué quedó en el disco** (`T5-03`). Con dos particiones
+  existe un estado intermedio real —la primera creada y formateada, la segunda no— y hasta ahora el mensaje
+  de error no sabía distinguirlo de «no se hizo nada». El aviso cuenta cuántas particiones se crearon,
+  cuáles quedaron utilizables, y deja claro que el disco **ya estaba borrado** cuando falló. Queda también
+  en el historial.
+- **No se revierte nada automáticamente**, y es deliberado: el disco ya está borrado, así que «deshacer»
+  solo podría significar borrarlo otra vez — y esa no es una decisión que nadie haya pedido. Se informa y
+  decides tú.
 
 - **El plan de particiones, como dato puro** (`T5-01`, prerrequisito del resto del Tier 5). El layout que
   *Reinicializar unidad* crea estaba implícito en un `long?` («una partición de este tamaño, o todo el disco

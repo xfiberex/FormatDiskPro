@@ -443,10 +443,25 @@ public sealed partial class MainWindow
             {
                 FormatProgress.Value = 0;
                 _lastOperationFailed = true;
-                _services.History.Log($"REINIT FAIL {item.Letter}: {r.Detail}");
+
+                // `T5-03`: con varias particiones el fallo deja un estado INTERMEDIO real —la 1 creada y
+                // formateada, la 2 no— y decir solo "no se pudo" sería ocultarlo. Se cuenta lo que quedó.
+                // No se revierte: el disco ya está borrado, así que "deshacer" solo podría ser borrar otra
+                // vez, y esa no es una decisión que el usuario haya pedido.
+                int planned = plan.Partitions.Count;
+                string usable = r.Letters.Count > 0
+                    ? string.Join(", ", r.Letters.Select(c => $"{c}:"))
+                    : L.T("reinit.noneUsable");
+
+                _services.History.Log(
+                    $"REINIT FAIL {item.Letter}: creadas={r.PartitionsCreated}/{planned} utilizables={usable} — {r.Detail}");
+
                 StatusText.Foreground = new SolidColorBrush(ProtectedColor());
                 StatusText.Text = L.T("reinit.failed");
-                await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.failed"));
+                await ShowInfoAsync(L.T("reinit.title"),
+                    planned > 1
+                        ? L.T("reinit.failedPartial", r.PartitionsCreated, planned, usable)
+                        : L.T("reinit.failed"));
             }
         }
         catch (OperationCanceledException)

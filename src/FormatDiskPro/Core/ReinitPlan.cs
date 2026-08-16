@@ -19,6 +19,13 @@ public sealed record ReinitResult(bool Ok, char? NewLetter, string Detail)
     /// creó algo y falló después.</para>
     /// </summary>
     public IReadOnlyList<char> Letters { get; init; } = [];
+
+    /// <summary>
+    /// Cuántas particiones llegaron a crearse, formateadas o no. Con <see cref="Letters"/> forma el informe
+    /// del fallo parcial (`T5-03`): si se crearon 2 y solo una tiene letra, la segunda existe pero quedó
+    /// sin formatear — y decirle al usuario que no se creó nada sería falso.
+    /// </summary>
+    public int PartitionsCreated { get; init; }
 }
 
 /// <summary>
@@ -167,5 +174,34 @@ public static class ReinitPlan
     {
         IReadOnlyList<char> letters = ParseNewLetters(output);
         return letters.Count > 0 ? letters[0] : null;
+    }
+
+    /// <summary>
+    /// Cuántas particiones llegaron a <b>crearse</b>, según los marcadores <c>PART:&lt;índice&gt;:</c> que
+    /// el script emite justo después de cada <c>New-Partition</c>. Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// Es un dato distinto del de <see cref="ParseNewLetters"/>, que cuenta las que además quedaron
+    /// <b>formateadas y utilizables</b>. Una partición cuyo <c>Format-Volume</c> falla se queda entre las
+    /// dos cifras, y esa diferencia es exactamente lo que hay que poder contarle al usuario cuando la
+    /// operación se rompe con el disco ya borrado (`T5-03`).
+    /// </remarks>
+    /// <param name="output">Salida combinada del proceso de PowerShell.</param>
+    public static int CountCreatedPartitions(string? output)
+    {
+        if (string.IsNullOrEmpty(output)) return 0;
+
+        var seen = new HashSet<int>();
+        foreach (string raw in output.Split('\n'))
+        {
+            string line = raw.Trim();
+            const string marker = "PART:";
+            if (!line.StartsWith(marker, StringComparison.OrdinalIgnoreCase)) continue;
+
+            string rest = line[marker.Length..];
+            int colon = rest.IndexOf(':');
+            if (colon > 0 && int.TryParse(rest[..colon], out int index)) seen.Add(index);
+        }
+        return seen.Count;
     }
 }
