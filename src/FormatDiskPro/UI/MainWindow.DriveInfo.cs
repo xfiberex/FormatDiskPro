@@ -30,10 +30,15 @@ public sealed partial class MainWindow
 
     private void DrivePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // El tamaño del disco anterior no vale para la unidad nueva: se descarta ANTES de repintar las
+        // opciones, para que UpdateSmallFat32Option no ofrezca tamaños del disco que ya no está.
+        _selectedDiskSizeBytes = null;
+
         if (DrivePicker.SelectedItem is not DriveViewModel item)
         {
             _isDriveProtected = false;
             _lastHealth = null;
+            _diskSizeLetter = '\0';
             ClearInfo();
             SmallFat32Check.Visibility     = Visibility.Collapsed;
             SmallFat32Check.IsChecked      = false;
@@ -43,6 +48,8 @@ public sealed partial class MainWindow
         }
 
         _isDriveProtected = item.IsProtected;
+        _diskSizeLetter   = item.Letter;   // se fija aquí, no dentro de la Task, para que la guarda de
+                                           // obsolescencia funcione aunque el usuario cambie de unidad ya
         if (_settings.LastDriveLetter != item.Letter.ToString())
         {
             _settings.LastDriveLetter = item.Letter.ToString();
@@ -55,9 +62,45 @@ public sealed partial class MainWindow
 
         ApplyProtection();
 
-        // Se consume explícitamente: no se espera (el selector no puede bloquearse mientras PowerShell
+        // Se consumen explícitamente: no se esperan (el selector no puede bloquearse mientras PowerShell
         // consulta el S.M.A.R.T.), pero el descarte deja escrito que es deliberado. Ver LoadHealthAsync.
+        // Van en paralelo y no encadenadas: son dos consultas independientes y una no debe esperar a la otra.
         _ = LoadHealthAsync(item);
+        _ = LoadDiskSizeAsync(item);
+    }
+
+    /// <summary>
+    /// Carga el tamaño del disco físico de la unidad seleccionada y con él ajusta los tamaños que ofrece la
+    /// partición FAT32 pequeña.
+    ///
+    /// <para>Va aparte de <see cref="LoadHealthAsync"/> porque el dato que hace falta es el del DISCO:
+    /// <see cref="DriveInfo.TotalSize"/> mide el volumen, y usarlo como tope dejaría la función en un
+    /// trinquete que solo baja — crear una partición de 2 GB en un pendrive de 16 impediría volver a 8.</para>
+    ///
+    /// <para>Si la consulta falla (unidad RAW, disco desconectado a mitad) no se toca nada: se conserva el
+    /// tope provisional del volumen, que siempre es menor o igual. Se ofrece de menos, nunca de más.</para>
+    /// </summary>
+    private async Task LoadDiskSizeAsync(DriveViewModel item)
+    {
+        char letter = item.Letter;
+
+        long? size;
+        try
+        {
+            size = await _services.Disk.GetDiskSizeAsync(letter);
+        }
+        catch (Exception ex)
+        {
+            // Igual que en LoadHealthAsync: al no ser `async void`, la excepción moriría en una Task que
+            // nadie observa. Se cuenta en el historial y la opción se queda con el tope conservador.
+            _services.History.Log($"DISKSIZE ERROR {letter}: {ex.Message}");
+            return;
+        }
+
+        if (_diskSizeLetter != letter || size is null) return;
+
+        _selectedDiskSizeBytes = size;
+        RefreshSmallFat32Option();
     }
 
     /// <summary>

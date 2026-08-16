@@ -326,15 +326,35 @@ public sealed partial class MainWindow
         // Configuración de formato tomada del formulario. La opción de FAT32 pequeña fuerza el FS y el
         // tamaño de partición, ignorando el selector — debe resolverse ANTES de validar la etiqueta (FAT32
         // limita a 11 caracteres, no los 32 del FS que estuviera elegido en el picker).
-        bool smallFat32 = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsChecked == true;
+        int smallFat32Gb = SelectedSmallFat32SizeGb();
+        bool smallFat32 = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsChecked == true
+                       && smallFat32Gb > 0;
         string fs = smallFat32 ? "FAT32" : (FileSystemPicker.SelectedItem?.ToString() ?? "NTFS");
-        long? partitionSizeBytes = smallFat32 ? ReinitPlan.SmallFat32PartitionBytes(SelectedSmallFat32SizeGb()) : null;
+        long? partitionSizeBytes = smallFat32 ? ReinitPlan.SmallFat32PartitionBytes(smallFat32Gb) : null;
         string label = VolumeLabelBox.Text.Trim();
         if (!await ValidateLabelAsync(label, fs, focusOnError: false))
             return;
 
+        // El selector ya solo ofrece tamaños que caben, pero eso se decidió al seleccionar la unidad y el
+        // disco puede haber cambiado desde entonces. Se vuelve a comprobar contra el disco real: pasarse
+        // hace fallar New-Partition cuando el disco YA está borrado, que es el peor momento posible.
+        if (partitionSizeBytes is long wanted)
+        {
+            long? diskSize = await _services.Disk.GetDiskSizeAsync(item.Letter);
+            if (diskSize is long available && wanted + ReinitPlan.PartitionReserveBytes > available)
+            {
+                await ShowInfoAsync(L.T("reinit.title"),
+                    L.T("reinit.sizeTooBig", FormatLogic.FormatBytes(wanted), FormatLogic.FormatBytes(available)));
+                return;
+            }
+        }
+
+        // El estilo depende del tamaño del DISCO (el límite de 2 TB es de MBR, no del volumen). Se prefiere
+        // el dato real; Info.TotalSize es la reserva si la consulta no llegó, y al ser menor o igual solo
+        // puede errar hacia MBR — el estilo compatible, que es la elección conservadora.
         DiskPartitionStyle style;
-        try { style = ReinitPlan.StyleFor(item.Info.TotalSize); } catch { style = DiskPartitionStyle.Mbr; }
+        try { style = ReinitPlan.StyleFor(_selectedDiskSizeBytes ?? item.Info.TotalSize); }
+        catch { style = DiskPartitionStyle.Mbr; }
 
         // Confirmación reforzada: escribir la letra de la unidad (reutiliza ConfirmDialog).
         string summary = smallFat32

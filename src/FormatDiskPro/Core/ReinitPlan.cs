@@ -26,6 +26,50 @@ public static class ReinitPlan
         => Array.IndexOf(AllowedSmallFat32SizesGb, gb) >= 0 ? gb : 32;
 
     /// <summary>
+    /// Margen que se reserva en el disco por encima de la partición pedida: 16 MiB. <c>New-Partition</c>
+    /// alinea el inicio de la partición (típicamente a 1 MiB) y GPT guarda una copia de la tabla al final
+    /// del disco, así que el espacio realmente disponible es algo menor que el tamaño del disco. Sin este
+    /// margen, un tamaño que "cabe" por los pelos haría fallar <c>New-Partition</c> — y a esas alturas el
+    /// disco ya está borrado.
+    /// </summary>
+    public const long PartitionReserveBytes = 16L * 1024 * 1024;
+
+    /// <summary>
+    /// Tamaños de <see cref="AllowedSmallFat32SizesGb"/> que caben de verdad en un disco de
+    /// <paramref name="diskSizeBytes"/>, contando <see cref="PartitionReserveBytes"/>. Vacío si el disco es
+    /// desconocido (<c>0</c>) o no da ni para el menor de ellos. Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// El tamaño que se pasa debe ser el del <b>disco físico</b>, no el del volumen: la reinicialización
+    /// borra el disco entero, así que la partición nueva puede ser mayor que la que hay ahora. Usar
+    /// <see cref="DriveInfo.TotalSize"/> deja el tope clavado en la partición actual y convierte la función
+    /// en un trinquete que solo baja (crear una de 2 GB en un disco de 16 impediría volver a 8).
+    /// </remarks>
+    /// <param name="diskSizeBytes">Tamaño total del disco físico en bytes.</param>
+    public static int[] SmallFat32SizesFor(long diskSizeBytes)
+        => diskSizeBytes <= 0
+            ? []
+            : [.. AllowedSmallFat32SizesGb.Where(gb => SmallFat32PartitionBytes(gb) + PartitionReserveBytes <= diskSizeBytes)];
+
+    /// <summary>
+    /// Tamaño a preseleccionar entre los <paramref name="availableGb"/> disponibles: el
+    /// <paramref name="preferredGb"/> del usuario si está entre ellos y, si no, el mayor que quepa.
+    /// <c>null</c> si no hay ninguno. Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// Caer al mayor disponible (y no al menor) mantiene el comportamiento de antes en discos grandes,
+    /// donde el máximo era el valor por defecto. Quien llama <b>no</b> debe persistir el resultado: la
+    /// preferencia guardada es la del usuario, y sustituirla porque hoy hay un pendrive pequeño conectado
+    /// la perdería para el siguiente disco.
+    /// </remarks>
+    /// <param name="preferredGb">Tamaño preferido (el persistido en ajustes).</param>
+    /// <param name="availableGb">Tamaños disponibles, en orden ascendente.</param>
+    public static int? PickSmallFat32Size(int preferredGb, IReadOnlyList<int> availableGb)
+        => availableGb.Count == 0 ? null
+         : availableGb.Contains(preferredGb) ? preferredGb
+         : availableGb[^1];
+
+    /// <summary>
     /// Tamaño real solicitado a <c>New-Partition -Size</c> para "FAT32 pequeña", a partir del tamaño
     /// elegido en GB. En el tramo máximo (32 GB, el límite real de Windows) se resta un margen de 4 MiB
     /// frente a <see cref="FormatLogic.Fat32MaxBytes"/>, para que el redondeo/alineación de la partición no

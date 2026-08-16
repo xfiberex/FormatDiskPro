@@ -81,6 +81,51 @@ public sealed class ServiceErrorPathTests
         Assert.Equal(expected, await disk.IsDiskReadOnlyAsync('G'));
     }
 
+    /// <summary>
+    /// El tamaño del disco es el tope de la partición FAT32 pequeña. Si la consulta no devuelve algo
+    /// utilizable tiene que quedarse en <c>null</c>: la UI cae entonces al tamaño del volumen, que siempre
+    /// es menor o igual. Un número inventado —o uno leído con la coma decimal del idioma del sistema—
+    /// ofrecería tamaños que no caben y <c>New-Partition</c> fallaría con el disco ya borrado.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("Get-Disk : No se encontró el disco")]
+    [InlineData("0")]                        // un disco de 0 bytes no es un tamaño, es un fallo
+    [InlineData("-1")]
+    [InlineData("15.500.000.000")]           // separador de miles: no es un long
+    [InlineData("1,5E+10")]                  // notación científica con coma decimal
+    public async Task GetDiskSize_UnparseableOutput_IsNullSoTheCeilingStaysConservative(string output)
+    {
+        var disk = new DiskService(FakeProcessRunner.Returning(output));
+
+        Assert.Null(await disk.GetDiskSizeAsync('G'));
+    }
+
+    [Fact]
+    public async Task GetDiskSize_ReadsTheByteCount()
+    {
+        var disk = new DiskService(FakeProcessRunner.Returning("15500000000\r\n"));
+
+        Assert.Equal(15_500_000_000L, await disk.GetDiskSizeAsync('G'));
+    }
+
+    [Fact]
+    public async Task GetDiskSize_PowerShellDoesNotStart_IsNullInsteadOfThrowing()
+    {
+        var disk = new DiskService(FakeProcessRunner.Throwing(new Win32Exception(2, "No se encuentra el archivo")));
+
+        Assert.Null(await disk.GetDiskSizeAsync('G'));
+    }
+
+    [Fact]
+    public async Task GetDiskSize_NonLetter_NeverLaunchesAProcess()
+    {
+        var disk = new DiskService(FakeProcessRunner.Forbidden());
+
+        Assert.Null(await disk.GetDiskSizeAsync('1'));
+    }
+
     [Fact]
     public async Task ClearReadOnly_NonZeroExitCode_ReportsFailure()
     {

@@ -85,4 +85,61 @@ public sealed class ReinitPlanTests
         Assert.True(bytes < FormatLogic.Fat32MaxBytes);
         Assert.Equal(FormatLogic.Fat32MaxBytes - 4L * 1024 * 1024, bytes);
     }
+
+    // ── Tamaños que caben en el disco ─────────────────────────────
+
+    private const long Gib = 1024L * 1024 * 1024;
+
+    /// <summary>
+    /// Un pendrive de 16 GB nominales son ~14,9 GiB reales: el motivo de que esta función exista. Antes el
+    /// selector ofrecía siempre 1/2/4/8/16/32 GB, así que elegir 16 pedía una partición que no cabe — y
+    /// <c>New-Partition</c> habría fallado con el disco ya borrado.
+    /// </summary>
+    [Fact]
+    public void SmallFat32SizesFor_SixteenGbStick_ExcludesSizesThatDoNotFit()
+        => Assert.Equal([1, 2, 4, 8], ReinitPlan.SmallFat32SizesFor(15_500_000_000L));   // ~14,4 GiB
+
+    [Fact]
+    public void SmallFat32SizesFor_LargeDisk_OffersEverySize()
+        => Assert.Equal(ReinitPlan.AllowedSmallFat32SizesGb, ReinitPlan.SmallFat32SizesFor(64 * Gib));
+
+    /// <summary>Esta es la razón de ser del margen: sin él, un tamaño que cabe al byte se ofrecería y la
+    /// alineación de la partición lo haría fallar.</summary>
+    [Fact]
+    public void SmallFat32SizesFor_DiskExactlyTheRequestedSize_DoesNotOfferIt()
+    {
+        Assert.DoesNotContain(8, ReinitPlan.SmallFat32SizesFor(8 * Gib));
+        Assert.Contains(8, ReinitPlan.SmallFat32SizesFor(8 * Gib + ReinitPlan.PartitionReserveBytes));
+    }
+
+    [Theory]
+    [InlineData(0)]                          // disco desconocido: la consulta no llegó o falló
+    [InlineData(-1)]
+    [InlineData(512L * 1024 * 1024)]         // 512 MiB: no cabe ni el menor de los tamaños
+    public void SmallFat32SizesFor_TooSmallOrUnknown_IsEmpty(long diskBytes)
+        => Assert.Empty(ReinitPlan.SmallFat32SizesFor(diskBytes));
+
+    [Fact]
+    public void SmallFat32SizesFor_IsAscendingSubsetOfTheAllowedSizes()
+    {
+        int[] sizes = ReinitPlan.SmallFat32SizesFor(20 * Gib);
+        Assert.All(sizes, gb => Assert.Contains(gb, ReinitPlan.AllowedSmallFat32SizesGb));
+        Assert.Equal(sizes.Order(), sizes);
+    }
+
+    // ── Preselección ──────────────────────────────────────────────
+
+    [Fact]
+    public void PickSmallFat32Size_PreferredIsAvailable_KeepsIt()
+        => Assert.Equal(4, ReinitPlan.PickSmallFat32Size(4, [1, 2, 4, 8]));
+
+    /// <summary>Cae al mayor que quepa, no al menor: en discos grandes el máximo era el valor por defecto
+    /// y ese comportamiento no debe cambiar.</summary>
+    [Fact]
+    public void PickSmallFat32Size_PreferredDoesNotFit_FallsBackToTheLargestAvailable()
+        => Assert.Equal(8, ReinitPlan.PickSmallFat32Size(32, [1, 2, 4, 8]));
+
+    [Fact]
+    public void PickSmallFat32Size_NothingAvailable_IsNull()
+        => Assert.Null(ReinitPlan.PickSmallFat32Size(32, []));
 }

@@ -15,7 +15,26 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
-Nada todavía.
+### Corregido
+
+- **La partición FAT32 pequeña se ocultaba en unidades de menos de 32 GB.** La opción se pensó como rodeo
+  al límite de Windows (no crea volúmenes FAT32 mayores de 32 GB) y por eso solo aparecía en unidades
+  extraíbles de ese tamaño o más. Pero lo que hace por debajo —crear una partición de N GB y dejar el resto
+  del disco sin asignar— sirve igual en un pendrive de 16 GB, donde era imposible llegar a ella. Ahora
+  aparece en **cualquier unidad extraíble** donde quepa al menos el menor de los tamaños.
+- **El selector de tamaños no comprobaba si el tamaño cabía.** Ofrecía siempre 1/2/4/8/16/32 GB. En un
+  pendrive de 16 GB nominales (~14,9 GiB reales) elegir 16 o 32 habría hecho fallar `New-Partition`
+  **con el disco ya borrado**. Ahora se filtra por el tamaño real del disco físico, con un margen de 16 MiB
+  para la alineación de la partición y los metadatos de la tabla.
+- **El tope se medía sobre el volumen, no sobre el disco.** `DriveInfo.TotalSize` mide la partición actual,
+  así que usar la función una vez (16 GB → partición de 2 GB) dejaba el tope clavado en 2 GB y la convertía
+  en un trinquete que solo bajaba. Se consulta el tamaño del disco físico (`DiskService.GetDiskSizeAsync`,
+  en paralelo con el S.M.A.R.T. al seleccionar unidad); mientras llega se usa el del volumen, que siempre es
+  menor o igual — se ofrece de menos, nunca de más.
+- **El estilo de partición (MBR/GPT) se elegía con el tamaño del volumen.** El límite de 2 TB es de MBR y se
+  aplica al disco; ahora `ReinitPlan.StyleFor` recibe el dato del disco.
+- **Segunda comprobación antes de borrar.** El tamaño elegido se vuelve a validar contra el disco real justo
+  antes de `Clear-Disk`: el selector se pobló al seleccionar la unidad y el disco puede haber cambiado.
 
 ---
 

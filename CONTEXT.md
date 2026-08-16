@@ -131,10 +131,10 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **433 / 433** (289 + 144 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **27** en total · con la USB (`utilidades`, sin opt-in): **24 pasan / 3 se omiten / 0 fallan** (2026-08-15) · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
+| Unitarias | **453 / 453** (433 + 20 del arreglo de *FAT32 pequeña*) · se ejecutan **en local**, nunca en CI (ver §4) |
+| UI tests | **28** en total (el «27» anterior era un dato mal anotado; `--list-tests` da 28) · con la USB (`utilidades`, sin opt-in): **25 pasan / 3 se omiten / 0 fallan** (2026-08-16, 59 min) · las 3 omitidas son las de opt-in: 2 de `ALLOW_YANK` + 1 de `ALLOW_DESTRUCTIVE` · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.21.0** (2026-08-16) · `master` sin trabajo pendiente de publicar |
+| Publicado | **v1.21.0** (2026-08-16) · `master` con **un arreglo sin publicar** (*FAT32 pequeña* en unidades < 32 GB) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5** abierto (2026-08-15) — **lo único abierto del repo**: 5 ampliaciones de features ya entregadas, **fuera** del recuento de la auditoría. Primera: el espacio que *FAT32 pequeña* deja sin asignar |
 
@@ -378,6 +378,76 @@ rechaza `'` (el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-16 — *FAT32 pequeña*: la función estaba escondida justo donde más falta hacía
+
+Reportado probando la app con un pendrive: **en unidades de menos de 32 GB la sección no aparecía**. Una
+sola condición en `MainWindow.FormatOptions.cs`:
+
+```csharp
+bool qualifies = type == DriveType.Removable && bytes >= FormatLogic.Fat32MaxBytes;
+```
+
+**Por qué estaba así, y por qué estaba mal.** La función (#37, Tier 7) se concibió como *rodeo al límite de
+Windows*: como no deja crear volúmenes FAT32 de más de 32 GB, en un USB grande se recorta la partición para
+que FAT32 sea legal. Con esa lectura, ocultarla en discos menores tenía sentido — allí FAT32 ya está en el
+selector. Lo que la condición no vio es que el **mecanismo** que hay debajo (`New-Partition -Size N` y dejar
+el resto sin asignar) es útil por sí mismo, independientemente de FAT32. Es el fallo clásico de codificar
+la *motivación* de una función como su *precondición*.
+
+**Tres cosas más salieron al tirar del hilo**, todas de la misma raíz:
+
+1. **El selector no comprobaba si el tamaño cabía.** Ofrecía siempre 1/2/4/8/16/32 GB, fijos en el XAML. Un
+   pendrive de "16 GB" son ~14,9 GiB reales: elegir 16 pedía una partición imposible y `New-Partition`
+   habría fallado **con el disco ya borrado**. No se notaba solo porque el `≥ 32 GB` lo tapaba — el bug
+   llevaba ahí desde la 1.14.0, latente detrás de la condición equivocada.
+2. **El tope se medía sobre el volumen.** `DriveInfo.TotalSize` es la partición actual, no el disco. Como
+   `Clear-Disk` borra el disco entero, el tope correcto es el del disco. Con el del volumen, usar la
+   función una vez (16 GB → partición de 2 GB) dejaba el tope en 2 GB: un **trinquete que solo baja**. Es
+   exactamente el problema que la revisión del `T5-01` había anticipado, aquí ya en producción.
+3. **`StyleFor` recibía también el tamaño del volumen.** El límite de 2 TB es de MBR y se aplica al disco.
+
+**Qué se hizo.** `Core`: `SmallFat32SizesFor(diskSizeBytes)` filtra los tamaños que caben —con
+`PartitionReserveBytes` (16 MiB) de margen para la alineación de la partición y la copia de la tabla GPT al
+final del disco— y `PickSmallFat32Size` elige la preselección. `Services`: `DiskService.GetDiskSizeAsync`,
+hermano de `GetDiskNumberAsync`. `UI`: la sección aparece en cualquier extraíble donde quepa el menor de los
+tamaños, el selector se pobla por código, y `LoadDiskSizeAsync` corre **en paralelo** con `LoadHealthAsync`
+al seleccionar unidad.
+
+**Decisiones que merecen quedar escritas:**
+
+- **Mientras la consulta del disco está en vuelo se usa el tamaño del volumen**, que siempre es menor o
+  igual. Se ofrece de menos, nunca de más: el error posible es una opción que falta un instante, no una que
+  destruye un disco. Lo mismo si la consulta falla (unidad RAW): no se toca nada.
+- **`SelectedSmallFat32SizeGb()` devuelve `0` y no `32`** cuando no hay selección válida. Con la lista fija
+  del XAML caer al máximo era inocuo; con una lista que depende del disco, pediría una partición que no cabe.
+- **La preselección programática no se persiste** (`_repopulatingSizes`). Si hoy hay conectado un pendrive
+  de 8 GB, guardar «8» borraría la preferencia de 32 GB del usuario para el siguiente disco.
+- **Se revalida el tamaño contra el disco justo antes de `Clear-Disk`.** El selector se pobló al seleccionar
+  la unidad; entre eso y pulsar el botón el disco puede haber cambiado. Pasarse de tamaño falla en el peor
+  momento posible: con el disco ya borrado.
+- **El sistema de archivos sigue forzado a FAT32** (decisión explícita del usuario, 2026-08-16). Que la
+  partición pequeña use el sistema de archivos del selector es más útil y más coherente, pero es un paso
+  hacia el `T5` y arrastra renombrar la opción en los cinco idiomas. Queda anotado, no hecho.
+
+Nueva clave `opt.smallFat32HintSmall` (×5 idiomas): en discos que no llegan a 32 GB, hablar del límite de
+Windows no explica nada — lo que aporta la opción allí es dejar espacio sin asignar. Y `reinit.sizeTooBig`
+para la revalidación. **453/453 unitarias** (+20).
+
+**Verificado sobre hardware real** (2026-08-16, USB `utilidades`, disco 6, 29,3 GiB — justo por debajo del
+umbral antiguo, así que antes la sección no aparecía):
+
+- Suite de UI sin opt-in: **25 pasan / 3 se omiten / 0 fallan** de 28 (59 min).
+- `FullLifecycle_FormatThenReinit_OnDedicatedTestUsb` con `ALLOW_DESTRUCTIVE=1`: **3/3** (1 min 5 s).
+  Este paso 3 **se omitía siempre** hasta ahora: la USB no llegaba a 32 GB y la casilla nunca era visible.
+- Estado final del disco comprobado con `Get-Partition`, no solo por el verde de la prueba: partición 1 de
+  **1 GB en FAT32** (`XINT13`) sobre MBR, y **28,3 GB sin asignar**. El estilo MBR es el correcto para 29,3 GiB.
+
+Ese estado final es además la demostración del arreglo del tope: el volumen queda en 0,996 GB pero el disco
+sigue teniendo 29,3 GiB, así que el selector debe seguir ofreciendo hasta 16 GB. Con el tope medido sobre el
+volumen —lo que hacía antes— la sección habría desaparecido por completo.
 
 ---
 

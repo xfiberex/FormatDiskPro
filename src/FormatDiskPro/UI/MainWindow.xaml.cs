@@ -72,6 +72,14 @@ public sealed partial class MainWindow : Window
     private DispatcherTimer _elapsedTimer = null!;
     private readonly ObservableCollection<DriveViewModel> _driveItems = new();
     private readonly List<long> _allocBytes = new();
+    // Tamaño del DISCO físico de la unidad seleccionada, cuando se ha podido consultar (ver
+    // LoadDiskSizeAsync). Es el tope de la partición FAT32 pequeña: Info.TotalSize mide el volumen.
+    private long? _selectedDiskSizeBytes;
+    private char _diskSizeLetter;
+    // Tamaños ofrecidos ahora mismo en SmallFat32SizePicker, en el mismo orden que sus items.
+    private readonly List<int> _smallFat32Sizes = new();
+    private long _smallFat32Ceiling;
+    private bool _repopulatingSizes;
     private bool _firstActivated = true;
     // Evita persistir preferencias por los eventos que disparan los controles durante la construcción.
     private bool _uiReady;
@@ -140,7 +148,6 @@ public sealed partial class MainWindow : Window
         ApplyThemeMode(_settings.Theme, save: false);
         MnuNotify.IsChecked = _settings.NotifyOnFinish;
         InitWipePasses();
-        InitSmallFat32Size();
         ApplyLanguage();
         LoadDrives();
         HookDeviceNotifications();

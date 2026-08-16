@@ -146,11 +146,15 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
             finalLetter = currentLetter;
             output.WriteLine($"Reinicializar (normal) completado. Letra actual: {currentLetter}:");
 
-            // ── 3) Reinicializar con FAT32 pequeña, si la unidad cualifica (removable ≥ 32 GB) ──
+            // ── 3) Reinicializar con FAT32 pequeña, si la unidad cualifica ──
+            // Cualifica cualquier extraíble donde quepa el menor de los tamaños ofrecidos (1 GB + margen);
+            // antes hacía falta que llegara a 32 GB, y con la USB de pruebas este paso se omitía siempre.
+            // Se elige "1 GB" precisamente porque es el único tamaño que está en el selector en TODA unidad
+            // que cualifique: los demás dependen del disco.
             var smallFat32Check = Window.FindFirstDescendant(cf => cf.ByAutomationId("SmallFat32Check"));
             if (smallFat32Check is null)
             {
-                output.WriteLine("SmallFat32Check no visible (la unidad de pruebas es menor de 32 GB): se omite el paso 3.");
+                output.WriteLine("SmallFat32Check no visible (la unidad de pruebas no llega a 1 GB): se omite el paso 3.");
                 return;
             }
 

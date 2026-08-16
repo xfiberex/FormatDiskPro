@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace FormatDiskPro;
@@ -19,6 +20,9 @@ public interface IDiskService
 
     /// <summary>Número de disco físico de la unidad; <c>null</c> si no se puede determinar.</summary>
     Task<int?> GetDiskNumberAsync(char letter);
+
+    /// <summary>Tamaño en bytes del disco físico de la unidad; <c>null</c> si no se puede determinar.</summary>
+    Task<long?> GetDiskSizeAsync(char letter);
 
     /// <summary>Quita la protección de escritura del disco físico. <c>true</c> si lo logra.</summary>
     Task<bool> ClearReadOnlyAsync(char letter);
@@ -105,6 +109,26 @@ public sealed class DiskService(IProcessRunner runner) : IDiskService
 
         string output = (await RunCapturedAsync(script)).Trim();
         return int.TryParse(output, out int number) ? number : null;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Es el tope de la partición FAT32 pequeña. Va aparte de <see cref="GetHealthAsync"/> a propósito:
+    /// lo que hace falta es el tamaño del DISCO, y <see cref="DriveInfo.TotalSize"/> mide el volumen —ver
+    /// <see cref="ReinitPlan.SmallFat32SizesFor"/>.
+    /// </remarks>
+    public async Task<long?> GetDiskSizeAsync(char letter)
+    {
+        if (!char.IsLetter(letter)) return null;
+
+        string script =
+            "$ErrorActionPreference='Stop';" +
+            $"(Get-Partition -DriveLetter {letter} | Get-Disk).Size";
+
+        string output = (await RunCapturedAsync(script)).Trim();
+        return long.TryParse(output, NumberStyles.Integer, CultureInfo.InvariantCulture, out long size) && size > 0
+            ? size
+            : null;
     }
 
     public async Task<bool> ClearReadOnlyAsync(char letter)

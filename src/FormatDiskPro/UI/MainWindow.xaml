@@ -190,15 +190,10 @@
                                     Margin="30,0,0,0" VerticalAlignment="Center" Opacity="0.5" Visibility="Collapsed">
                             <TextBlock x:Name="SmallFat32SizeLbl" Text="Tamaño:" VerticalAlignment="Center"
                                        Style="{StaticResource HintTextStyle}" />
+                            <!-- Sin items fijos: se pueblan por código con los tamaños que caben de verdad
+                                 en el disco físico seleccionado (ver PopulateSmallFat32Sizes). -->
                             <ComboBox x:Name="SmallFat32SizePicker" MinWidth="80" IsEnabled="False"
-                                      SelectionChanged="SmallFat32SizePicker_SelectionChanged">
-                                <ComboBoxItem Content="1 GB" />
-                                <ComboBoxItem Content="2 GB" />
-                                <ComboBoxItem Content="4 GB" />
-                                <ComboBoxItem Content="8 GB" />
-                                <ComboBoxItem Content="16 GB" />
-                                <ComboBoxItem Content="32 GB" />
-                            </ComboBox>
+                                      SelectionChanged="SmallFat32SizePicker_SelectionChanged" />
                         </StackPanel>
                         <TextBlock x:Name="SmallFat32HintText" Style="{StaticResource HintTextStyle}" TextWrapping="Wrap"
                                    Margin="30,-2,0,0" Visibility="Collapsed" />
