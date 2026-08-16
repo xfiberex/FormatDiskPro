@@ -16,7 +16,7 @@
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **433** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-16 (**AUDITORÍA CERRADA 39/40 + 2 descartadas** · Services inyectables · `CHANGELOG.md` · README con 12 capturas · **Tier 5 «Ocurrencias»: lo único abierto**) |
+| **Última actualización** | 2026-08-16 (**v1.21.0 publicada y verificada** · **AUDITORÍA CERRADA 39/40 + 2 descartadas** · Services inyectables · `CHANGELOG.md` · README con 12 capturas · **Tier 5 «Ocurrencias»: lo único abierto**) |
 
 ---
 
@@ -378,6 +378,29 @@ rechaza `'` (el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-16 — Corte de la **v1.21.0** (auditoría cerrada)
+
+`release.ps1 -Version 1.21.0 -UiTests -NotesFile docselease-notes-1.21.0.md` desde terminal elevada y
+con la USB conectada, precedido de un `-DryRun` completo — el primer corte que pasa por la **puerta del
+`CHANGELOG`** de `T4-01`, y convenía verla funcionar antes de tocar git. Cobertura de `Core/` **97.4 %**
+(368/378, mínimo 90), **433/433** unitarias y **24/27** de UI, con los 3 omitidos siendo exactamente los
+opt-in. Instalador 58.8 MB.
+
+Verificado contra el release ya publicado, como en los cortes anteriores: el `digest` que **GitHub**
+calculó del instalador subido (`25fb7d78…`) coincide con el hash local y con el contenido del asset, que
+se llama exactamente `FormatDiskPro-1.21.0-setup.exe.sha256` —el nombre que busca el emparejamiento de
+`T2-06`— y ocupa **96 bytes**, holgadamente bajo el tope de 512 de `T2-07`. El `.csproj` conserva los
+acentos de `<Authors>`/`<Copyright>` tras el bump y mantiene su BOM (`#45`), y el `.exe` publicado los
+muestra bien.
+
+> **Es un corte de mantenimiento, y las notas lo dicen por delante.** La app se comporta *exactamente*
+> igual que la 1.20.0: sin funciones nuevas, sin cambios de interfaz, sin correcciones de algo que
+> estuviera fallando al usuario. Prometer otra cosa en un release que solo mueve tripas gasta la
+> atención de quien lo lea la próxima vez, y esa atención es lo que hace que se lean los avisos que sí
+> importan. Hay precedente en el proyecto (la v1.14.1 fue mantenimiento de pruebas).
 
 ---
 
