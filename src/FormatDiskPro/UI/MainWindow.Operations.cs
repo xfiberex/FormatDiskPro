@@ -335,30 +335,72 @@ public sealed partial class MainWindow
         if (!await ValidateLabelAsync(label, fs, focusOnError: false))
             return;
 
-        // El selector ya solo ofrece tamaños que caben, pero eso se decidió al seleccionar la unidad y el
-        // disco puede haber cambiado desde entonces. Se vuelve a comprobar contra el disco real: pasarse
-        // hace fallar New-Partition cuando el disco YA está borrado, que es el peor momento posible.
-        if (partitionSizeBytes is long wanted)
+        // El sobrante solo puede aprovecharse cuando hay sobrante: sin partición FAT32 pequeña, la única
+        // partición ya ocupa el disco entero.
+        bool second       = smallFat32 && CreateSecondPartitionRequested();
+        string restFs     = SelectedRestFileSystem();
+        string restLabel  = RestLabelBox.Text.Trim();
+        if (second && !await ValidateLabelAsync(restLabel, restFs, focusOnError: false))
+            return;
+
+        // Se relee el disco aquí, y no se reutiliza _selectedDiskSizeBytes: ese dato se tomó al seleccionar
+        // la unidad y entre eso y pulsar el botón el disco puede haber cambiado. Es la última consulta
+        // antes de Clear-Disk, así que conviene que sea la fresca. 0 = no se pudo determinar (unidad RAW,
+        // el caso para el que Reinicializar existe): el plan de disco entero no lo necesita.
+        long diskSizeBytes = await _services.Disk.GetDiskSizeAsync(item.Letter) ?? 0;
+
+        // El selector ya solo ofrece tamaños que caben, pero eso se decidió al seleccionar la unidad.
+        // Pasarse hace fallar New-Partition cuando el disco YA está borrado, que es el peor momento posible.
+        if (partitionSizeBytes is long wanted && diskSizeBytes > 0
+            && wanted + ReinitPlan.PartitionReserveBytes > diskSizeBytes)
         {
-            long? diskSize = await _services.Disk.GetDiskSizeAsync(item.Letter);
-            if (diskSize is long available && wanted + ReinitPlan.PartitionReserveBytes > available)
-            {
-                await ShowInfoAsync(L.T("reinit.title"),
-                    L.T("reinit.sizeTooBig", FormatLogic.FormatBytes(wanted), FormatLogic.FormatBytes(available)));
-                return;
-            }
+            await ShowInfoAsync(L.T("reinit.title"),
+                L.T("reinit.sizeTooBig", FormatLogic.FormatBytes(wanted), FormatLogic.FormatBytes(diskSizeBytes)));
+            return;
         }
 
         // El estilo depende del tamaño del DISCO (el límite de 2 TB es de MBR, no del volumen). Se prefiere
         // el dato real; Info.TotalSize es la reserva si la consulta no llegó, y al ser menor o igual solo
         // puede errar hacia MBR — el estilo compatible, que es la elección conservadora.
         DiskPartitionStyle style;
-        try { style = ReinitPlan.StyleFor(_selectedDiskSizeBytes ?? item.Info.TotalSize); }
+        try { style = ReinitPlan.StyleFor(diskSizeBytes > 0 ? diskSizeBytes : item.Info.TotalSize); }
         catch { style = DiskPartitionStyle.Mbr; }
+
+        // El plan. La FAT32 va SIEMPRE la primera: los equipos anteriores a Windows 10 1703 y muchos
+        // aparatos empotrados solo leen la primera partición de un medio extraíble, y la FAT32 es
+        // justamente la que interesa que vean (`opt.restNote` lo dice también en la interfaz).
+        PartitionPlan plan;
+        if (partitionSizeBytes is long sizeBytes)
+        {
+            var parts = new List<PartitionSpec> { new(new PartitionSize.Exact(sizeBytes), fs, label) };
+            if (second) parts.Add(new PartitionSpec(new PartitionSize.Remainder(), restFs, restLabel));
+            plan = new PartitionPlan(style, parts);
+        }
+        else
+        {
+            plan = PartitionPlan.WholeDisk(style, fs, label);
+        }
+
+        PlanValidation planCheck = plan.Validate(diskSizeBytes);
+        if (!planCheck.Ok)
+        {
+            _services.History.Log($"REINIT REJECTED {item.Letter}: {planCheck.Problem} (partición {planCheck.PartitionIndex})");
+            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.invalidPlan"));
+            return;
+        }
+
+        // Tamaño real del sobrante, solo para poder decirlo en la confirmación y al terminar. Se toma del
+        // mismo cálculo que validó el plan, no de una cuenta aparte que pudiera discrepar.
+        string restSize = second
+            ? FormatLogic.FormatBytes(plan.EffectiveSizes(diskSizeBytes)[1])
+            : "";
 
         // Confirmación reforzada: escribir la letra de la unidad (reutiliza ConfirmDialog).
         string summary = smallFat32
-            ? L.T("reinit.summaryFat32Small", item.Letter, FormatLogic.FormatBytes(partitionSizeBytes!.Value))
+            ? (second
+                ? L.T("reinit.summaryTwoPartitions", item.Letter,
+                      FormatLogic.FormatBytes(partitionSizeBytes!.Value), restFs, restSize)
+                : L.T("reinit.summaryFat32Small", item.Letter, FormatLogic.FormatBytes(partitionSizeBytes!.Value)))
             : L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
         var confirm = new ConfirmDialog(item.Letter, summary) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
@@ -372,7 +414,7 @@ public sealed partial class MainWindow
 
         try
         {
-            var r = await _services.Reinit.RunAsync(item.Letter, style, fs, label, partitionSizeBytes, stage, _cts!.Token);
+            var r = await _services.Reinit.RunAsync(item.Letter, plan, diskSizeBytes, stage, _cts!.Token);
             FormatProgress.IsIndeterminate = false;
 
             if (_cancelRequested || r.Detail == "cancelled")
@@ -385,12 +427,15 @@ public sealed partial class MainWindow
             if (r.Ok && r.NewLetter is char newLetter)
             {
                 FormatProgress.Value = 100;
-                _services.History.Log($"REINIT {item.Letter}: -> {newLetter}: fs={fs} style={style.ToPowerShell()}{(smallFat32 ? $" small-fat32={partitionSizeBytes}" : "")}");
+                _services.History.Log($"REINIT {item.Letter}: -> {string.Join(",", r.Letters)}: fs={fs} style={style.ToPowerShell()}{(smallFat32 ? $" small-fat32={partitionSizeBytes}" : "")}{(second ? $" rest={restFs}" : "")}");
                 _pendingInitialLetter = newLetter;
                 DrivePicker.SelectedIndex = -1;   // fuerza que LoadDrives use la nueva letra
                 LoadDrives();
                 string doneBody = smallFat32
-                    ? L.T("reinit.doneBodyFat32Small", newLetter, FormatLogic.FormatBytes(partitionSizeBytes!.Value))
+                    ? (second && r.Letters.Count > 1
+                        ? L.T("reinit.doneBodyTwoPartitions", newLetter,
+                              FormatLogic.FormatBytes(partitionSizeBytes!.Value), r.Letters[1], restSize)
+                        : L.T("reinit.doneBodyFat32Small", newLetter, FormatLogic.FormatBytes(partitionSizeBytes!.Value)))
                     : L.T("reinit.doneBody", newLetter);
                 await ShowInfoAsync(L.T("reinit.doneTitle"), doneBody);
             }

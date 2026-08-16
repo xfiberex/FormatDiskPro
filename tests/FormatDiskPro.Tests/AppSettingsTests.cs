@@ -147,4 +147,38 @@ public sealed class AppSettingsTests : IDisposable
         int loaded = AppSettings.Load(_path).SmallFat32SizeGb;
         Assert.Contains(loaded, ReinitPlan.AllowedSmallFat32SizesGb);
     }
+
+    /// <summary>Un sistema de archivos imposible para el sobrante (FAT32 en un disco grande reventaría al
+    /// formatear, con el disco ya borrado) no puede sobrevivir a la carga.</summary>
+    [Theory]
+    [InlineData("FAT32")]
+    [InlineData("ReFS")]
+    [InlineData("ext4")]
+    public void Load_InvalidSecondPartitionFileSystem_IsNormalized(string stored)
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(_path, $$"""{"SecondPartitionFileSystem": "{{stored}}"}""");
+
+        Assert.Equal("exFAT", AppSettings.Load(_path).SecondPartitionFileSystem);
+    }
+
+    [Fact]
+    public void Load_ValidSecondPartitionFileSystem_IsKept()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(_path, """{"SecondPartitionFileSystem": "NTFS"}""");
+
+        Assert.Equal("NTFS", AppSettings.Load(_path).SecondPartitionFileSystem);
+    }
+
+    /// <summary>Por defecto el sobrante se sigue dejando sin asignar: `T5-02` amplía lo que se puede
+    /// hacer, no cambia lo que ocurre si no tocas nada.</summary>
+    [Fact]
+    public void Defaults_LeaveTheRestUnallocated()
+    {
+        var fresh = new AppSettings();
+
+        Assert.False(fresh.CreateSecondPartition);
+        Assert.Equal("exFAT", fresh.SecondPartitionFileSystem);
+    }
 }

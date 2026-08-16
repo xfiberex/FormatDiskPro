@@ -131,12 +131,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **453 / 453** (433 + 20 del arreglo de *FAT32 pequeña*) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **509 / 509** (433 + 20 del arreglo de *FAT32 pequeña* + 40 de `T5-01` + 16 de `T5-02`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **28** en total (el «27» anterior era un dato mal anotado; `--list-tests` da 28) · con la USB (`utilidades`, sin opt-in): **25 pasan / 3 se omiten / 0 fallan** (2026-08-16, 59 min) · las 3 omitidas son las de opt-in: 2 de `ALLOW_YANK` + 1 de `ALLOW_DESTRUCTIVE` · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.21.0** (2026-08-16) · `master` con **un arreglo sin publicar** (*FAT32 pequeña* en unidades < 32 GB) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
-| Ocurrencias | **Tier 5** abierto (2026-08-15) — **lo único abierto del repo**: 5 ampliaciones de features ya entregadas, **fuera** del recuento de la auditoría. Primera: el espacio que *FAT32 pequeña* deja sin asignar |
+| Ocurrencias | **Tier 5** (2026-08-15) — **lo único abierto del repo**. Hechas: **`T5-01`, `T5-02`, `T5-05`** (2026-08-16). Abierta: **`T5-03`** (informar del fallo parcial). `T5-04` (N particiones) **cerrado por decisión**: el alcance acordado es de dos particiones |
 
 **Tiers completados**
 
@@ -249,6 +249,16 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 - **Workaround del PRI:** `dotnet publish` de una app WinUI 3 *unpackaged* **no copia el `.pri` propio** de la
   app; sin él, WinUI no resuelve el XAML y la app **crashea al iniciar** (fue el bug de la 1.2.0). El target
   `CopyAppPriToPublish` del `.csproj` lo copia a mano. No quitarlo.
+
+- **`FormatDiskPro.slnx` NO incluye `tests/FormatDiskPro.UiTests`, y eso es deliberado.** `release.ps1`
+  hace `dotnet test $solution --collect:"XPlat Code Coverage"`; meter ahí las pruebas de UI las ejecutaría
+  dentro del paso de cobertura de cada corte, que es justo lo que no debe pasar (necesitan hardware,
+  terminal elevada y opt-in). **Consecuencia, y es una trampa real:** `dotnet build FormatDiskPro.slnx`
+  **no compila las pruebas de UI**, así que un error de compilación en ellas no aparece. Combinado con
+  `dotnet test --no-build`, se ejecuta la **DLL vieja** y el resultado sale en verde sin haber probado lo
+  nuevo — ocurrió el 2026-08-16 con `T5-05`. Al tocar ese proyecto: `dotnet build
+  tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj` **explícitamente**, o `dotnet test` sobre su
+  `.csproj` **sin** `--no-build`.
 
 ### Trampas de PowerShell 5.1 (las tres nacieron de un fallo real)
 
@@ -378,6 +388,102 @@ rechaza `'` (el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-16 — `T5-02` y `T5-05`: el sobrante deja de morir sin asignar
+
+El hueco que abrió el Tier 5, cerrado. Al crear una FAT32 pequeña, la tarjeta ofrece qué hacer con el resto:
+dejarlo sin asignar (por defecto, sin cambio para quien no toque nada) o **una segunda partición** que lo
+ocupe entero. Sin diálogo nuevo: dos filas más en la tarjeta, la misma operación y la misma confirmación.
+
+**Alcance acordado con el usuario (2026-08-16): dos particiones, no N.** `T5-04` sigue cerrado. Las razones,
+por si se reabre: la ventana es de 500×900 y de tamaño fijo, así que una tabla de filas variables obliga a
+un diálogo aparte; MBR solo admite 4 primarias y MBR es lo que se elige en todo USB de menos de 2 TB, así
+que «N» en la práctica es «3 o 4»; y el caso que originó el tier lo cubren dos. El **motor admite N desde
+`T5-01`** — lo que se limitó es la interfaz.
+
+**Decisiones:**
+
+- **La FAT32 va siempre primera**, y no es cosmético: los equipos anteriores a Windows 10 1703 y muchos
+  aparatos empotrados solo leen la primera partición de un medio extraíble, y la FAT32 es justo la que
+  interesa que vean. La nota de plataforma vive en la **interfaz** (`opt.restNote`), no solo aquí.
+- **FAT32 y FAT no se ofrecen para el sobrante**: el resto de un pendrive grande supera sus límites (32 GB
+  y 2 GB), así que ofrecerlos sería ofrecer un fallo con el disco ya borrado. ReFS tampoco, por no ser un
+  sistema para medios extraíbles. Quedan exFAT (primero) y NTFS.
+- **`RestPicker` se selecciona por índice en las pruebas**, no por texto: sus ítems están traducidos a cinco
+  idiomas y buscarlos por su cadena ataría la prueba al idioma activo.
+
+**`T5-05` comprueba el disco físico, no el diálogo.** Si la segunda partición no se creara, el diálogo de
+éxito diría exactamente lo mismo. `AssertDiskLayout` cuenta particiones y mide el espacio libre.
+
+**Verificado sobre hardware** (USB de pruebas, 29,3 GiB): 2 particiones y **0 MB sin asignar** — partición 1
+en `G:` de 1 GB en FAT32, partición 2 en `I:` de 28,296 GB en exFAT. Windows asignó **G e I, no G y H**: la
+confirmación en vivo de por qué `T5-01` tuvo que emitir `LETTER:<índice>:`. Sin el índice, la app habría
+tomado la partición de 28 GB por la FAT32.
+
+**El fallo de la sesión, que merece quedar escrito.** La primera ejecución de `T5-05` salió **en verde sin
+haber probado nada**: `dotnet build FormatDiskPro.slnx` no compila el proyecto de pruebas de UI (no está en
+la solución, a propósito — ver §4), así que con `--no-build` se ejecutó la DLL anterior. El código nuevo ni
+siquiera compilaba. Lo destapó comprobar el disco en vez de fiarse del verde, que es la misma disciplina que
+la propia prueba aplica.
+
+**509/509 unitarias** (+16).
+
+---
+
+### 2026-08-16 — `T5-01`: el layout deja de ser un `long?`
+
+Primera tarea del Tier 5, y la única que se puede probar entera sin hardware. **No cambia nada de lo que la
+app hace**: la UI sigue mandando una sola partición.
+
+**El problema.** El layout vivía en `long? partitionSizeBytes`: «una partición de este tamaño, o todo el
+disco si es `null`». Con una partición se sostenía. Ese tipo no distingue «el resto» de «todavía no lo sé»,
+y el significado estaba en un comentario en vez de en el tipo.
+
+**Qué hay ahora.** `Core/PartitionPlan.cs`: `PartitionSize` (jerarquía cerrada `Exact` | `Remainder`),
+`PartitionSpec`, `PartitionPlan` y `Validate(diskSizeBytes)` → `PlanValidation(PlanProblem, PartitionIndex)`.
+Trece motivos, **valores y no cadenas** —se traducen en la UI y se comparan en una prueba— y con el índice
+de la partición culpable para que `T5-02`/`T5-04` puedan señalar la fila.
+
+**Decisiones que merecen quedar escritas:**
+
+- **«El resto» se delega a `-UseMaximumSize` al ejecutar, pero se calcula al validar.** Parece
+  contradictorio y no lo es: calcular los bytes para crearlos es pedir un error de alineación, pero para
+  saber si un FAT32 cabe en 32 GB hay que conocer su tamaño, y el de «el resto» solo se sabe con el del
+  disco. De ahí `EffectiveSizes`. Pedir el resto de un pendrive de 256 GB en FAT32 se rechaza **antes** de
+  borrar nada.
+- **Un tamaño de disco desconocido no invalida un plan que no lo necesita.** La primera versión rechazaba
+  todo plan sin tamaño, y eso habría roto *Reinicializar* en unidades **RAW** — justo el caso para el que la
+  función existe, y donde `Get-Disk` puede no devolver nada. Una sola partición «el resto» no necesita el
+  dato; cualquier otra cosa sí.
+- **Las reglas de «el resto» se miran sobre el plan entero, no partición a partición.** Dentro del bucle, un
+  plan con dos «resto» se rechazaba por «no es la última»: cierto, pero no es el problema. El motivo acaba
+  en un mensaje al usuario y conviene que sea el que explica. Lo destaparon dos pruebas.
+- **`ReinitDrive` revalida** aunque la UI ya lo haya hecho. Es la última línea antes de `Clear-Disk`.
+- **`ReinitResult.Letters` va aparte de `NewLetter`** y no lo sustituye: son dos preguntas distintas. La UI
+  necesita saber **cuál seleccionar**; `T5-03` necesitará saber **qué llegó a crearse**. Con una lista vacía
+  y `Ok` en falso no se distinguiría «no se creó nada» de «se creó algo y falló después».
+- **Se exige una letra por partición** para dar la operación por buena. Con un plan de dos, que solo salga
+  la primera es exactamente el fallo parcial que no debe pasar por éxito.
+- **`MinPartitionBytes` = 64 MiB.** Queda por encima del volumen más pequeño que Windows formatea con
+  cualquiera de los sistemas admitidos (FAT32 necesita ~33 MiB). Sin ese suelo, «el resto» cuando apenas
+  queda nada pasaría la validación y reventaría en `Format-Volume`, otra vez con el disco borrado.
+- **El margen se reserva por partición**, no una vez por disco: cada una alinea su inicio. Es generoso a
+  propósito — quedarse corto es fallar con el disco borrado; pasarse son unos MiB sin usar.
+
+**493/493 unitarias** (+40) · `Core/` al **97,8 %** (445/455) · build 0/0.
+
+**Verificado sobre hardware** (USB `utilidades`, disco 6): `DestructiveLifecycleTests` **3/3**, y el disco
+queda **idéntico** al resultado anterior a `T5-01` — partición de 1 GB en FAT32 sobre MBR y 28,3 GB sin
+asignar—, que es justo lo que se buscaba de un refactor. Confirma las tres cosas que las unitarias no
+alcanzan: el camino `-Size` del bucle nuevo, que `LETTER:0:` se emite y se parsea (si no, `Ok` sería falso
+al exigirse una letra por partición), y que releer por `-PartitionNumber $p<i>.PartitionNumber` funciona en
+un USB real. Esa relectura sustituyó a «la primera partición que tenga letra», que deja de valer con dos, y
+era el único cambio del script sin red.
+
+> **Las pruebas de UI no dejan rastro en el historial**: `SettingsBackup` restaura `history.log` al
+> terminar. Buscar ahí lo que hizo la suite no sirve — el estado del disco sí.
 
 ---
 

@@ -242,6 +242,9 @@ public sealed class ServiceErrorPathTests
 
     // ── ReinitDrive (el destructivo) ──────────────────────────────
 
+    /// <summary>Disco de referencia para los planes de estas pruebas: 64 GiB, holgado para cualquiera.</summary>
+    private const long Disk64Gb = 64L * 1024 * 1024 * 1024;
+
     /// <summary>
     /// El fallo que <b>solo</b> se podía ver con el disco ya borrado: <c>Clear-Disk</c> o
     /// <c>Format-Volume</c> revientan a mitad. Tiene que salir como fallo con el motivo real, no como
@@ -254,8 +257,8 @@ public sealed class ServiceErrorPathTests
             "STAGE:clean\nSTAGE:init\n", exitCode: 1, stderr: "Clear-Disk : Access is denied.");
         var reinit = new ReinitDrive(runner);
 
-        var r = await reinit.RunAsync('G', DiskPartitionStyle.Gpt, "NTFS", "", null,
-            new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Null(r.NewLetter);
@@ -272,11 +275,12 @@ public sealed class ServiceErrorPathTests
         var reinit = new ReinitDrive(FakeProcessRunner.Returning(
             "STAGE:clean\nSTAGE:init\nSTAGE:partition\nSTAGE:format\nLETTER:\n", exitCode: 0));
 
-        var r = await reinit.RunAsync('G', DiskPartitionStyle.Gpt, "NTFS", "", null,
-            new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Null(r.NewLetter);
+        Assert.Empty(r.Letters);
     }
 
     /// <summary>
@@ -293,8 +297,8 @@ public sealed class ServiceErrorPathTests
             "STAGE:clean\nSTAGE:init\nSTAGE:partition\nSTAGE:format\nLETTER:H\n",
             exitCode: 0, chunkSize: 6));
 
-        var r = await reinit.RunAsync('G', DiskPartitionStyle.Gpt, "exFAT", "DATOS", null,
-            new SyncProgress<string>(stages.Add), CancellationToken.None);
+        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "exFAT", "DATOS"),
+            Disk64Gb, new SyncProgress<string>(stages.Add), CancellationToken.None);
 
         Assert.True(r.Ok);
         Assert.Equal('H', r.NewLetter);
@@ -307,27 +311,37 @@ public sealed class ServiceErrorPathTests
     {
         var reinit = new ReinitDrive(FakeProcessRunner.Throwing(new Win32Exception(2, "No se encuentra powershell.exe")));
 
-        var r = await reinit.RunAsync('G', DiskPartitionStyle.Mbr, "NTFS", "", null,
-            new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Mbr, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Contains("powershell.exe", r.Detail, StringComparison.Ordinal);
     }
 
-    /// <summary>Las guardas de entrada se resuelven antes de lanzar nada: no se toca el disco.</summary>
+    /// <summary>
+    /// Las guardas de entrada se resuelven antes de lanzar nada: no se toca el disco.
+    ///
+    /// <para>Desde <c>T5-01</c> el grueso de esas guardas vive en <see cref="PartitionPlan.Validate"/> y se
+    /// prueba sin servicio de por medio; aquí lo que se comprueba es que <see cref="ReinitDrive"/>
+    /// <b>revalide</b> en vez de fiarse de quien llama. Es la última línea antes de <c>Clear-Disk</c>.</para>
+    /// </summary>
     [Theory]
-    [InlineData('1',  "NTFS",   null)]
-    [InlineData('G',  "NT;FS",  null)]
-    [InlineData('G',  "NTFS",   0L)]
-    [InlineData('G',  "NTFS",   -1L)]
+    [InlineData('1',  "NTFS",   null)]    // letra que no es letra
+    [InlineData('G',  "NT;FS",  null)]    // sistema de archivos inventado
+    [InlineData('G',  "NTFS",   0L)]      // tamaño cero
+    [InlineData('G',  "NTFS",   -1L)]     // tamaño negativo
+    [InlineData('G',  "FAT32",  Disk64Gb)]  // FAT32 de 64 GB: Windows no lo formatearía
     public async Task Reinit_InvalidRequest_IsRejectedBeforeLaunchingAnything(
         char letter, string fs, long? sizeBytes)
     {
         var runner = FakeProcessRunner.Forbidden();
         var reinit = new ReinitDrive(runner);
 
-        var r = await reinit.RunAsync(letter, DiskPartitionStyle.Gpt, fs, "", sizeBytes,
-            new Progress<string>(), CancellationToken.None);
+        PartitionPlan plan = sizeBytes is long bytes
+            ? new PartitionPlan(DiskPartitionStyle.Gpt, [new PartitionSpec(new PartitionSize.Exact(bytes), fs, "")])
+            : PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, fs, "");
+
+        var r = await reinit.RunAsync(letter, plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Empty(runner.Started);
@@ -343,8 +357,10 @@ public sealed class ServiceErrorPathTests
         var runner = FakeProcessRunner.Returning("LETTER:H", exitCode: 0);
         var reinit = new ReinitDrive(runner);
 
-        await reinit.RunAsync('G', DiskPartitionStyle.Mbr, "FAT32", "BIOS", 2_147_483_648L,
-            new Progress<string>(), CancellationToken.None);
+        var plan = new PartitionPlan(DiskPartitionStyle.Mbr,
+            [new PartitionSpec(new PartitionSize.Exact(2_147_483_648L), "FAT32", "BIOS")]);
+
+        await reinit.RunAsync('G', plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         string script = DecodeScript(Assert.Single(runner.Started));
         Assert.Contains("-Size 2147483648", script, StringComparison.Ordinal);
@@ -358,10 +374,59 @@ public sealed class ServiceErrorPathTests
         var runner = FakeProcessRunner.Returning("LETTER:H", exitCode: 0);
         var reinit = new ReinitDrive(runner);
 
-        await reinit.RunAsync('G', DiskPartitionStyle.Gpt, "NTFS", "D'ANGELO", null,
-            new Progress<string>(), CancellationToken.None);
+        await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", "D'ANGELO"),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.Contains("'D''ANGELO'", DecodeScript(Assert.Single(runner.Started)), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Un plan de dos particiones produce las dos: tamaño exacto la primera, <c>-UseMaximumSize</c> la
+    /// segunda, cada una con su sistema de archivos y su etiqueta. Es el motor de <c>T5-02</c>, ejercitado
+    /// aquí <b>sin tocar ningún disco</b> — que es exactamente para lo que el plan se separó del ejecutor.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_TwoPartitionPlan_CreatesBothAndDelegatesTheRemainderToWindows()
+    {
+        var runner = FakeProcessRunner.Returning("LETTER:0:H\nLETTER:1:I\n", exitCode: 0);
+        var reinit = new ReinitDrive(runner);
+
+        var plan = new PartitionPlan(DiskPartitionStyle.Mbr, [
+            new PartitionSpec(new PartitionSize.Exact(1024L * 1024 * 1024), "FAT32", "BIOS"),
+            new PartitionSpec(new PartitionSize.Remainder(), "exFAT", "DATOS"),
+        ]);
+
+        var r = await reinit.RunAsync('G', plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        string script = DecodeScript(Assert.Single(runner.Started));
+        Assert.Contains("-Size 1073741824", script, StringComparison.Ordinal);
+        Assert.Contains("-UseMaximumSize", script, StringComparison.Ordinal);
+        Assert.Contains("-FileSystem FAT32 -NewFileSystemLabel 'BIOS'", script, StringComparison.Ordinal);
+        Assert.Contains("-FileSystem exFAT -NewFileSystemLabel 'DATOS'", script, StringComparison.Ordinal);
+
+        Assert.True(r.Ok);
+        Assert.Equal(['H', 'I'], r.Letters);
+        Assert.Equal('H', r.NewLetter);   // la primera partición es la que la UI selecciona
+    }
+
+    /// <summary>
+    /// La primera partición se crea y la segunda no: código 0 y una sola letra. Darlo por bueno dejaría al
+    /// usuario creyendo que tiene dos volúmenes cuando solo tiene uno, con el disco ya borrado.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_TwoPartitionPlan_OnlyOneLetterComesBack_IsAFailure()
+    {
+        var reinit = new ReinitDrive(FakeProcessRunner.Returning("LETTER:0:H\n", exitCode: 0));
+
+        var plan = new PartitionPlan(DiskPartitionStyle.Mbr, [
+            new PartitionSpec(new PartitionSize.Exact(1024L * 1024 * 1024), "FAT32", "BIOS"),
+            new PartitionSpec(new PartitionSize.Remainder(), "exFAT", "DATOS"),
+        ]);
+
+        var r = await reinit.RunAsync('G', plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Equal(['H'], r.Letters);   // se conserva lo que SÍ se creó: lo necesita `T5-03`
     }
 
     // ── FormatProcess ─────────────────────────────────────────────

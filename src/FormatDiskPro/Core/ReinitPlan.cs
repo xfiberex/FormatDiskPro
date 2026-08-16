@@ -4,7 +4,22 @@ namespace FormatDiskPro;
 public enum DiskPartitionStyle { Mbr, Gpt }
 
 /// <summary>Resultado de reinicializar una unidad: éxito, nueva letra asignada y detalle.</summary>
-public sealed record ReinitResult(bool Ok, char? NewLetter, string Detail);
+/// <param name="Ok">La operación terminó dejando el disco utilizable.</param>
+/// <param name="NewLetter">Letra de la <b>primera</b> partición creada, que es la que la UI selecciona.</param>
+/// <param name="Detail">Motivo del fallo, o cadena vacía si fue bien.</param>
+public sealed record ReinitResult(bool Ok, char? NewLetter, string Detail)
+{
+    /// <summary>
+    /// Letras asignadas, una por partición creada y en orden de partición. Con un plan de una sola
+    /// partición contiene lo mismo que <see cref="NewLetter"/>.
+    ///
+    /// <para>Va aparte y no sustituye a <see cref="NewLetter"/> porque son dos preguntas distintas: la UI
+    /// necesita saber <b>cuál seleccionar</b>, y el informe de un fallo parcial necesita saber <b>qué llegó
+    /// a crearse</b>. Con una lista vacía y <c>Ok</c> en falso no se sabría si no se creó nada o si se
+    /// creó algo y falló después.</para>
+    /// </summary>
+    public IReadOnlyList<char> Letters { get; init; } = [];
+}
 
 /// <summary>
 /// Lógica pura y testeable para la reinicialización de unidades (limpiar el disco y recrear una
@@ -97,13 +112,25 @@ public static class ReinitPlan
         => style == DiskPartitionStyle.Gpt ? "GPT" : "MBR";
 
     /// <summary>
-    /// Extrae la letra de unidad emitida por el script de reinicialización en una línea
-    /// <c>LETTER:X</c>. Devuelve <c>null</c> si no aparece o no es una letra válida. Lógica pura.
+    /// Extrae las letras emitidas por el script de reinicialización, una por partición creada, y las
+    /// devuelve <b>en orden de partición</b>. Lógica pura.
     /// </summary>
+    /// <remarks>
+    /// <para>El script emite <c>LETTER:&lt;índice&gt;:&lt;X&gt;</c>. El índice no es decorativo:
+    /// <b>Windows asigna las letras en el orden que le parece</b>, así que el orden de las líneas no dice
+    /// cuál es la primera partición. Sin el índice, un plan de dos particiones podría devolver la letra del
+    /// «resto» como si fuera la de la FAT32 — y esa es justo la que la UI selecciona al terminar.</para>
+    ///
+    /// <para>También se acepta el formato antiguo <c>LETTER:X</c>, sin índice, al que se le asigna su orden
+    /// de aparición: no cuesta nada y evita que una salida mixta se pierda entera.</para>
+    /// </remarks>
     /// <param name="output">Salida combinada del proceso de PowerShell.</param>
-    public static char? ParseNewLetter(string? output)
+    public static IReadOnlyList<char> ParseNewLetters(string? output)
     {
-        if (string.IsNullOrEmpty(output)) return null;
+        if (string.IsNullOrEmpty(output)) return [];
+
+        var found = new List<(int Index, char Letter)>();
+        int implicitIndex = 0;
 
         foreach (string raw in output.Split('\n'))
         {
@@ -112,9 +139,33 @@ public static class ReinitPlan
             if (!line.StartsWith(marker, StringComparison.OrdinalIgnoreCase)) continue;
 
             string rest = line[marker.Length..].Trim();
-            if (rest.Length >= 1 && char.IsLetter(rest[0]))
-                return char.ToUpperInvariant(rest[0]);
+
+            int index = implicitIndex;
+            int colon = rest.IndexOf(':');
+            if (colon > 0 && int.TryParse(rest[..colon], out int parsed))
+            {
+                index = parsed;
+                rest  = rest[(colon + 1)..].Trim();
+            }
+
+            if (rest.Length == 0 || !char.IsLetter(rest[0])) continue;
+
+            implicitIndex = index + 1;
+            // Una partición emite su letra una sola vez; si algo la repitiera, manda la primera.
+            if (!found.Any(f => f.Index == index)) found.Add((index, char.ToUpperInvariant(rest[0])));
         }
-        return null;
+
+        return [.. found.OrderBy(f => f.Index).Select(f => f.Letter)];
+    }
+
+    /// <summary>
+    /// Letra de la <b>primera</b> partición creada, o <c>null</c> si no se pudo determinar ninguna. Es la
+    /// que la UI selecciona al terminar. Atajo sobre <see cref="ParseNewLetters"/>.
+    /// </summary>
+    /// <param name="output">Salida combinada del proceso de PowerShell.</param>
+    public static char? ParseNewLetter(string? output)
+    {
+        IReadOnlyList<char> letters = ParseNewLetters(output);
+        return letters.Count > 0 ? letters[0] : null;
     }
 }

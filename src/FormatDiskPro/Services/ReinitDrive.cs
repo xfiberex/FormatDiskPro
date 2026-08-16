@@ -2,13 +2,12 @@
 
 namespace FormatDiskPro;
 
-/// <summary>Reinicializa una unidad extraíble: limpia el disco físico y recrea su partición.</summary>
+/// <summary>Reinicializa una unidad extraíble: limpia el disco físico y crea sobre él un plan de particiones.</summary>
 public interface IReinitDrive
 {
     /// <inheritdoc cref="ReinitDrive.RunAsync"/>
     Task<ReinitResult> RunAsync(
-        char letter, DiskPartitionStyle style, string fileSystem, string label, long? partitionSizeBytes,
-        IProgress<string> stage, CancellationToken ct);
+        char letter, PartitionPlan plan, long diskSizeBytes, IProgress<string> stage, CancellationToken ct);
 }
 
 /// <summary>
@@ -25,38 +24,51 @@ public interface IReinitDrive
 public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
 {
     /// <summary>
-    /// Limpia y recrea la partición de la unidad <paramref name="letter"/>, formateándola con
-    /// <paramref name="fileSystem"/> y <paramref name="label"/>. Reporta la etapa en curso
-    /// (<c>clean</c>/<c>init</c>/<c>partition</c>/<c>format</c>) y devuelve la nueva letra asignada.
+    /// Limpia el disco de la unidad <paramref name="letter"/> y crea sobre él las particiones de
+    /// <paramref name="plan"/>, formateando cada una. Reporta la etapa en curso
+    /// (<c>clean</c>/<c>init</c>/<c>partition</c>/<c>format</c>) y devuelve las letras asignadas.
     /// </summary>
+    /// <remarks>
+    /// El plan se <b>revalida aquí</b> (<see cref="PartitionPlan.Validate"/>) aunque la UI ya lo haya
+    /// hecho. No es desconfianza gratuita: este método es la última línea antes de <c>Clear-Disk</c>, y un
+    /// plan inválido que llegue hasta aquí se descubriría con el disco ya borrado.
+    /// </remarks>
     /// <param name="letter">Letra de la unidad a reinicializar.</param>
-    /// <param name="style">Estilo de partición (MBR o GPT).</param>
-    /// <param name="fileSystem">Sistema de archivos destino (NTFS, exFAT, FAT32, FAT, ReFS).</param>
-    /// <param name="label">Etiqueta de volumen (puede ser vacía).</param>
-    /// <param name="partitionSizeBytes">Tamaño exacto de la partición a crear (<c>New-Partition -Size</c>);
-    /// <c>null</c> usa todo el disco (<c>-UseMaximumSize</c>, comportamiento por defecto). Un valor deja el
-    /// resto del disco sin asignar (p. ej. "FAT32 pequeña" en discos grandes).</param>
+    /// <param name="plan">Plan de particiones, ya validado por quien llama.</param>
+    /// <param name="diskSizeBytes">Tamaño del disco físico, para revalidar el plan.</param>
     /// <param name="stage">Etapa en curso, como token sin traducir.</param>
     /// <param name="ct">Token de cancelación (mata el proceso al cancelar).</param>
-    /// <returns>Resultado con éxito, nueva letra y detalle de error si lo hubo.</returns>
+    /// <returns>Resultado con éxito, letras asignadas y detalle de error si lo hubo.</returns>
     public async Task<ReinitResult> RunAsync(
-        char letter, DiskPartitionStyle style, string fileSystem, string label, long? partitionSizeBytes,
-        IProgress<string> stage, CancellationToken ct)
+        char letter, PartitionPlan plan, long diskSizeBytes, IProgress<string> stage, CancellationToken ct)
     {
         if (!char.IsLetter(letter)) return new ReinitResult(false, null, "invalid-letter");
 
-        // El sistema de archivos procede de un selector cerrado; validamos por si acaso (solo letras/dígitos).
-        if (string.IsNullOrEmpty(fileSystem) || !fileSystem.All(char.IsLetterOrDigit))
-            return new ReinitResult(false, null, "invalid-fs");
+        PlanValidation check = plan.Validate(diskSizeBytes);
+        if (!check.Ok) return new ReinitResult(false, null, $"invalid-plan:{check.Problem}:{check.PartitionIndex}");
 
-        if (partitionSizeBytes is long sz0 && sz0 <= 0) return new ReinitResult(false, null, "invalid-size");
+        string styleName = plan.Style.ToPowerShell();
 
-        string safeLabel = label.Replace("'", "''");   // literal de PowerShell con comillas simples
-        string styleName = style.ToPowerShell();
+        // Cada partición se crea y se formatea antes de pasar a la siguiente, y guarda su objeto en $p<i>
+        // para poder releer su letra por número de partición al final. Releerlas por "la primera que tenga
+        // letra" —lo que hacía la versión de una sola partición— deja de valer en cuanto hay dos.
+        var body    = new StringBuilder();
+        var letterEcho = new StringBuilder();
+        for (int i = 0; i < plan.Partitions.Count; i++)
+        {
+            PartitionSpec p = plan.Partitions[i];
+            string safeLabel = p.Label.Replace("'", "''");   // literal de PowerShell con comillas simples
+            string size = p.Size is PartitionSize.Exact e ? $"-Size {e.Bytes}" : "-UseMaximumSize";
 
-        string partitionCmd = partitionSizeBytes is long sizeBytes
-            ? $"$p = New-Partition -DiskNumber $d.Number -Size {sizeBytes} -AssignDriveLetter;"
-            : "$p = New-Partition -DiskNumber $d.Number -UseMaximumSize -AssignDriveLetter;";
+            if (i == 0) body.Append("'STAGE:partition';");
+            body.Append($"$p{i} = New-Partition -DiskNumber $d.Number {size} -AssignDriveLetter;");
+            if (i == 0) body.Append("'STAGE:format';");
+            body.Append($"Format-Volume -Partition $p{i} -FileSystem {p.FileSystem} -NewFileSystemLabel '{safeLabel}' -Confirm:$false | Out-Null;");
+
+            // Se re-consulta por número de partición: el objeto recién creado puede no reflejar la letra
+            // todavía, y Windows las asigna en el orden que quiere.
+            letterEcho.Append($"'LETTER:{i}:' + (Get-Partition -DiskNumber $d.Number -PartitionNumber $p{i}.PartitionNumber).DriveLetter;");
+        }
 
         string script =
             "$ErrorActionPreference='Stop';" +
@@ -70,13 +82,8 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
             // ya esté vacío y listo para particionar; se tolera ese error concreto y se continúa con el
             // estilo que el disco ya tenga (cualquier otro error sí se propaga).
             $"try {{ $d = Initialize-Disk -Number $d.Number -PartitionStyle {styleName} -PassThru -ErrorAction Stop }} catch {{ if ($_.Exception.Message -notmatch 'already been initialized') {{ throw }} }};" +
-            "'STAGE:partition';" +
-            partitionCmd +
-            "'STAGE:format';" +
-            $"Format-Volume -Partition $p -FileSystem {fileSystem} -NewFileSystemLabel '{safeLabel}' -Confirm:$false | Out-Null;" +
-            // Re-consultamos la letra asignada (el objeto recién creado puede no reflejarla aún).
-            "$l = (Get-Partition -DiskNumber $d.Number | Where-Object { $_.DriveLetter } | Select-Object -First 1).DriveLetter;" +
-            "'LETTER:' + $l";
+            body.ToString() +
+            letterEcho.ToString();
 
         byte[] bytes   = Encoding.Unicode.GetBytes(script);
         string encoded = Convert.ToBase64String(bytes);
@@ -123,10 +130,13 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
                 return new ReinitResult(false, null, "cancelled");
 
             string output = sb.ToString();
-            char? newLetter = ReinitPlan.ParseNewLetter(output);
-            bool ok = proc.ExitCode == 0 && newLetter is not null;
+            IReadOnlyList<char> letters = ReinitPlan.ParseNewLetters(output);
+
+            // Se exige una letra POR partición: con un plan de dos, que solo la primera se creara y
+            // formateara es exactamente el fallo parcial que no debe darse por bueno.
+            bool ok = proc.ExitCode == 0 && letters.Count == plan.Partitions.Count;
             string detail = ok ? "" : (string.IsNullOrWhiteSpace(err) ? $"exit={proc.ExitCode}" : err.Trim());
-            return new ReinitResult(ok, newLetter, detail);
+            return new ReinitResult(ok, letters.Count > 0 ? letters[0] : null, detail) { Letters = letters };
         }
         catch (Exception ex)
         {

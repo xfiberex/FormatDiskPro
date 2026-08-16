@@ -751,8 +751,10 @@ public sealed partial class MainWindow : Window
         SecureWipeCheck.IsEnabled   = canFormat;
         CompressCheck.IsEnabled     = canFormat && FileSystemPicker.SelectedItem?.ToString() == "NTFS";
         SmallFat32Check.IsEnabled   = canFormat;
+        RestFsPicker.IsEnabled      = canFormat;
+        RestLabelBox.IsEnabled      = canFormat;
         UpdateWipePassesEnabled();
-        UpdateSmallFat32SizeEnabled();
+        UpdateSmallFat32SizeEnabled();   // gobierna también RestPicker (ver UpdateSmallFat32SizeEnabled)
     }
 
     private long GetSelectedAllocBytes() =>

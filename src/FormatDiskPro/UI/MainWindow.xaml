@@ -195,6 +195,27 @@
                             <ComboBox x:Name="SmallFat32SizePicker" MinWidth="80" IsEnabled="False"
                                       SelectionChanged="SmallFat32SizePicker_SelectionChanged" />
                         </StackPanel>
+                        <!-- T5-02: el sobrante deja de morir sin asignar. Misma operación y misma
+                             confirmación destructiva; lo único que cambia es cuántas particiones se crean. -->
+                        <StackPanel x:Name="RestPanel" Orientation="Horizontal" Spacing="8"
+                                    Margin="30,0,0,0" VerticalAlignment="Center" Opacity="0.5" Visibility="Collapsed">
+                            <TextBlock x:Name="RestLbl" Text="El resto del disco:" VerticalAlignment="Center"
+                                       Style="{StaticResource HintTextStyle}" />
+                            <ComboBox x:Name="RestPicker" MinWidth="190" IsEnabled="False"
+                                      SelectionChanged="RestPicker_SelectionChanged" />
+                        </StackPanel>
+                        <StackPanel x:Name="RestDetailPanel" Orientation="Horizontal" Spacing="6"
+                                    Margin="30,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock x:Name="RestFsLbl" Text="Formato:" VerticalAlignment="Center"
+                                       Style="{StaticResource HintTextStyle}" />
+                            <ComboBox x:Name="RestFsPicker" MinWidth="86"
+                                      SelectionChanged="RestFsPicker_SelectionChanged" />
+                            <TextBlock x:Name="RestLabelLbl" Text="Etiqueta:" VerticalAlignment="Center"
+                                       Style="{StaticResource HintTextStyle}" />
+                            <TextBox x:Name="RestLabelBox" MinWidth="104" MaxLength="32" />
+                        </StackPanel>
+                        <TextBlock x:Name="RestNoteText" Style="{StaticResource HintTextStyle}" TextWrapping="Wrap"
+                                   Margin="30,2,0,0" Visibility="Collapsed" />
                         <TextBlock x:Name="SmallFat32HintText" Style="{StaticResource HintTextStyle}" TextWrapping="Wrap"
                                    Margin="30,-2,0,0" Visibility="Collapsed" />
                         <HyperlinkButton x:Name="SmallFat32GoButton" Padding="0" Margin="30,-4,0,0"

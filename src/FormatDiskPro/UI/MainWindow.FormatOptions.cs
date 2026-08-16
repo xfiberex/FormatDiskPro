@@ -138,6 +138,7 @@ public sealed partial class MainWindow
         bool qualifies = sizes.Length > 0;
         SmallFat32Check.Visibility     = qualifies ? Visibility.Visible : Visibility.Collapsed;
         SmallFat32SizePanel.Visibility = qualifies ? Visibility.Visible : Visibility.Collapsed;
+        RestPanel.Visibility           = qualifies ? Visibility.Visible : Visibility.Collapsed;
         if (!qualifies) SmallFat32Check.IsChecked = false;
         PopulateSmallFat32Sizes(sizes, ceiling);
         UpdateSmallFat32SizeEnabled();
@@ -210,6 +211,74 @@ public sealed partial class MainWindow
         SmallFat32SizePicker.IsEnabled = on;
         SmallFat32SizePanel.Opacity    = on ? 1.0 : 0.5;
         SmallFat32GoButton.IsEnabled   = on;
+        RestPicker.IsEnabled           = on;
+        RestPanel.Opacity              = on ? 1.0 : 0.5;
+        UpdateRestOption();
+    }
+
+    // ── Reinicializar: qué hacer con el espacio sobrante (`T5-02`) ──
+
+    /// <summary>¿Se pidió una segunda partición con el espacio que sobra?</summary>
+    /// <remarks>Se pregunta por el índice y no por el texto: el texto está traducido a cinco idiomas.</remarks>
+    private bool CreateSecondPartitionRequested()
+        => RestPanel.Visibility == Visibility.Visible && RestPicker.IsEnabled && RestPicker.SelectedIndex == 1;
+
+    /// <summary>Sistema de archivos elegido para la segunda partición, normalizado al conjunto permitido.</summary>
+    private string SelectedRestFileSystem()
+        => PartitionPlan.NormalizeSecondPartitionFileSystem(RestFsPicker.SelectedItem?.ToString());
+
+    /// <summary>Rellena los dos selectores del sobrante desde las preferencias persistidas. Se llama al
+    /// aplicar el idioma, porque el primero de ellos lleva texto traducido.</summary>
+    private void InitRestPickers()
+    {
+        _repopulatingSizes = true;   // reutiliza la guarda: esta selección tampoco es del usuario
+        try
+        {
+            RestPicker.Items.Clear();
+            RestPicker.Items.Add(L.T("opt.restUnallocated"));
+            RestPicker.Items.Add(L.T("opt.restSecond"));
+            RestPicker.SelectedIndex = _settings.CreateSecondPartition ? 1 : 0;
+
+            RestFsPicker.Items.Clear();
+            foreach (string fs in PartitionPlan.SecondPartitionFileSystems) RestFsPicker.Items.Add(fs);
+            int idx = Array.IndexOf(PartitionPlan.SecondPartitionFileSystems, _settings.SecondPartitionFileSystem);
+            RestFsPicker.SelectedIndex = idx >= 0 ? idx : 0;
+        }
+        finally { _repopulatingSizes = false; }
+
+        UpdateRestOption();
+    }
+
+    private void RestPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_uiReady && !_repopulatingSizes)
+        {
+            _settings.CreateSecondPartition = RestPicker.SelectedIndex == 1;
+            _settings.Save();
+        }
+        UpdateRestOption();
+    }
+
+    private void RestFsPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_uiReady || _repopulatingSizes) return;
+        _settings.SecondPartitionFileSystem = SelectedRestFileSystem();
+        _settings.Save();
+        // El máximo de la etiqueta depende del FS: exFAT admite 11 caracteres y NTFS 32.
+        UpdateRestOption();
+    }
+
+    /// <summary>Muestra el formato y la etiqueta del sobrante solo cuando se pidió la segunda partición, y
+    /// ajusta el máximo de la etiqueta al sistema de archivos elegido.</summary>
+    private void UpdateRestOption()
+    {
+        bool second = CreateSecondPartitionRequested();
+        RestDetailPanel.Visibility = second ? Visibility.Visible : Visibility.Collapsed;
+        RestNoteText.Visibility    = second ? Visibility.Visible : Visibility.Collapsed;
+        if (!second) return;
+
+        RestNoteText.Text     = L.T("opt.restNote");
+        RestLabelBox.MaxLength = FormatLogic.MaxLabelLength(SelectedRestFileSystem());
     }
 
     private void SmallFat32SizePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -251,6 +320,8 @@ public sealed partial class MainWindow
         CompressCheck.IsChecked    = false;
         SecureWipeCheck.IsChecked  = false;
         SmallFat32Check.IsChecked  = false;
+        RestPicker.SelectedIndex   = 0;   // "dejarlo sin asignar": el valor por defecto de la opción
+        RestLabelBox.Text          = "";
         UpdateSmallFat32Hint();
     }
 

@@ -47,6 +47,38 @@ public sealed class ReinitPlanTests
     public void ParseNewLetter_WhenAbsentOrInvalid_IsNull(string? output)
         => Assert.Null(ReinitPlan.ParseNewLetter(output));
 
+    // ── Letras en plural (`T5-01`) ────────────────────────────────
+
+    /// <summary>
+    /// El índice del marcador no es decorativo: <b>Windows asigna las letras en el orden que quiere</b>, y
+    /// la UI necesita saber cuál es la de la PRIMERA partición, que es la que selecciona al terminar.
+    /// Aquí las líneas llegan al revés y aun así la primera partición es la que dice el índice.
+    /// </summary>
+    [Fact]
+    public void ParseNewLetters_OrdersByPartitionIndexAndNotByLineOrder()
+    {
+        IReadOnlyList<char> letters = ReinitPlan.ParseNewLetters("LETTER:1:I\nLETTER:0:H\n");
+
+        Assert.Equal(['H', 'I'], letters);
+        Assert.Equal('H', ReinitPlan.ParseNewLetter("LETTER:1:I\nLETTER:0:H\n"));
+    }
+
+    [Fact]
+    public void ParseNewLetters_IgnoresLinesWithoutAUsableLetter()
+        => Assert.Equal(['H'], ReinitPlan.ParseNewLetters("LETTER:0:H\nLETTER:1:\nLETTER:2:9\n"));
+
+    /// <summary>El formato antiguo sin índice sigue leyéndose, por orden de aparición.</summary>
+    [Fact]
+    public void ParseNewLetters_AcceptsTheOldMarkerWithoutAnIndex()
+        => Assert.Equal(['H', 'I'], ReinitPlan.ParseNewLetters("LETTER:H\nLETTER:I\n"));
+
+    [Fact]
+    public void ParseNewLetters_WhenNothingIsEmitted_IsEmpty()
+    {
+        Assert.Empty(ReinitPlan.ParseNewLetters(null));
+        Assert.Empty(ReinitPlan.ParseNewLetters("STAGE:clean\nSTAGE:format"));
+    }
+
     [Theory]
     [InlineData(1, 1)]
     [InlineData(2, 2)]

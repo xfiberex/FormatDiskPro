@@ -1055,7 +1055,7 @@ hemos salido.**
 
 ---
 
-- [ ] **[T5-01] El plan de particiones, como dato puro** *(prerrequisito de todo el tier)*
+- [x] **[T5-01] El plan de particiones, como dato puro** *(prerrequisito de todo el tier)* — **hecho (2026-08-16)**
   - **Área:** Arquitectura / `Core`
   - **Ubicación:** `src/FormatDiskPro/Core/ReinitPlan.cs`, `src/FormatDiskPro/Services/ReinitDrive.cs`
   - **Qué hacer:** hoy el layout está **implícito en un `long?`**: `partitionSizeBytes` significa «una
@@ -1075,7 +1075,7 @@ hemos salido.**
     unitarias, sin USB.
   - *Esfuerzo: medio · Depende de: ninguna*
 
-- [ ] **[T5-02] Usar el espacio restante en vez de dejarlo sin asignar** *(el hueco real)*
+- [x] **[T5-02] Usar el espacio restante en vez de dejarlo sin asignar** *(el hueco real)* — **hecho (2026-08-16)**
   - **Área:** Funcionalidad / UI
   - **Ubicación:** `UI/MainWindow.FormatOptions.cs` (tarjeta de opciones), `Services/ReinitDrive`
   - **Qué hacer:** al marcar *FAT32 pequeña*, ofrecer **qué hacer con el resto**: dejarlo sin asignar
@@ -1116,7 +1116,7 @@ hemos salido.**
     aparece de verdad en el uso. Dos particiones cubren el escenario que originó esto; N es una hipótesis.
   - *Esfuerzo: alto · Depende de: T5-02, T5-03*
 
-- [ ] **[T5-05] Cobertura de UI del plan multi-partición**
+- [x] **[T5-05] Cobertura de UI del plan multi-partición** — **hecho (2026-08-16)**, junto a `T5-02`
   - **Área:** QA
   - **Ubicación:** `tests/FormatDiskPro.UiTests/DestructiveLifecycleTests.cs`
   - **Qué hacer:** el ciclo destructivo actual crea **una** partición. Extenderlo al plan de `T5-02` sobre
@@ -1171,6 +1171,9 @@ hemos salido.**
 | 2026-08-16 | **T4-02** | Inyección de dependencias: 11 servicios con interfaz + raíz de composición `AppServices` + costura `IProcessRunner`. Los caminos de error se prueban sin hardware. +35 pruebas (398 → 433). |
 | 2026-08-16 | **T4-01** | `CHANGELOG.md` (Keep a Changelog) con las 28 versiones, fechas tomadas de los tags de git. `release.ps1` aborta si falta la sección de la versión a publicar. |
 | 2026-08-16 | **T4-05** | `SetFormEnabled` → `SetControlsEnabled` y fuera el comentario «same as MainForm»: últimos rastros de Windows Forms. |
+| 2026-08-16 | **T5-01** | `Core/PartitionPlan.cs`: el layout deja de ser un `long?` y pasa a ser un plan validable (13 motivos tipados, con índice de la partición culpable). `ParseNewLetters` en plural con índice de partición. `ReinitDrive` ejecuta N particiones y revalida el plan antes de `Clear-Disk`. La UI sigue mandando **una** partición: sin cambio de comportamiento. +40 pruebas (453 → 493). |
+| 2026-08-16 | **T5-02** | El sobrante deja de morir sin asignar: fila *«El resto del disco»* en la tarjeta de opciones (dejarlo sin asignar —por defecto— o crear una segunda partición en exFAT/NTFS con su etiqueta). La FAT32 va **siempre primera**, y la UI dice por qué (`opt.restNote`). +16 pruebas (493 → 509). |
+| 2026-08-16 | **T5-05** | `FullLifecycle` extendido con un cuarto paso: FAT32 de 1 GB + resto en exFAT. Comprueba el **disco físico** (número de particiones y espacio sin asignar), no el diálogo de éxito — que diría lo mismo si la segunda partición no se creara. Verificado: 2 particiones, **0 MB sin asignar**. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
 **Estado: AUDITORÍA CERRADA (2026-08-16).** 39/40 completadas · 2 descartadas (`T2-10` CI, `T4-03` firma)

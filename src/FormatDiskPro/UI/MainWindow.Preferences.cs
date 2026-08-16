@@ -178,6 +178,12 @@ public sealed partial class MainWindow
         SmallFat32Check.Content     = L.T("opt.smallFat32");
         SmallFat32SizeLbl.Text      = L.T("opt.smallFat32Size");
         SmallFat32GoButton.Content  = L.T("opt.smallFat32Go");
+        RestLbl.Text                = L.T("opt.rest");
+        RestFsLbl.Text              = L.T("opt.restFs");
+        RestLabelLbl.Text           = L.T("opt.restLabel");
+        // Los items de RestPicker son texto traducido: hay que repoblarlos al cambiar de idioma, no solo
+        // al construir. La preferencia persistida manda, así que la selección sobrevive al cambio.
+        InitRestPickers();
         UpdateSmallFat32Hint();
         RestoreButton.Content    = L.T("btn.restore");
         StartButton.Content      = L.T("btn.start");
@@ -188,6 +194,9 @@ public sealed partial class MainWindow
         AutomationProperties.SetName(RefreshButton, L.T("tip.refresh"));
         AutomationProperties.SetName(WipePassesPicker, L.T("opt.passes"));
         AutomationProperties.SetName(SmallFat32SizePicker, L.T("opt.smallFat32Size"));
+        AutomationProperties.SetName(RestPicker,   L.T("opt.rest"));
+        AutomationProperties.SetName(RestFsPicker, L.T("opt.restFs"));
+        AutomationProperties.SetName(RestLabelBox, L.T("opt.restLabel"));
         AutomationProperties.SetName(CapacityBar, L.T("info.used"));
         ToolTipService.SetToolTip(CapacityBar, L.T("info.used"));
         UpdateLabelHint();   // refresca el hint visible (si lo hay) al cambiar de idioma

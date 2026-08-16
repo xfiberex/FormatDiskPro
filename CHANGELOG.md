@@ -15,6 +15,36 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Añadido
+
+- **El espacio sobrante ya no se queda muerto** (`T5-02`). Al crear una partición FAT32 pequeña, la
+  tarjeta de opciones ofrece ahora qué hacer con el resto del disco: **dejarlo sin asignar** (lo de
+  siempre, y sigue siendo el valor por defecto) o **crear una segunda partición** que lo ocupe entero, con
+  su sistema de archivos (exFAT o NTFS) y su etiqueta. Todo en la misma operación y bajo la misma
+  confirmación destructiva. Hasta ahora, la opción que resuelve el flasheo de una BIOS dejaba un pendrive
+  de 256 GB del que solo se podían usar 32 hasta salir a una herramienta de Windows — que es justo lo que
+  esta aplicación existe para no tener que abrir.
+- La **partición FAT32 se crea siempre primera**, y la interfaz explica por qué: Windows 10 (1703) y
+  posteriores muestran las dos, pero equipos más antiguos y muchos aparatos (televisores, radios de coche,
+  BIOS de placas base) solo leen la primera — y es la que interesa que vean.
+- FAT32 y FAT **no se ofrecen** para la segunda partición: el sobrante de un pendrive grande supera sus
+  límites (32 GB y 2 GB), así que ofrecerlos sería ofrecer un fallo que llegaría con el disco ya borrado.
+
+- **El plan de particiones, como dato puro** (`T5-01`, prerrequisito del resto del Tier 5). El layout que
+  *Reinicializar unidad* crea estaba implícito en un `long?` («una partición de este tamaño, o todo el disco
+  si es nulo»). Ahora es un `PartitionPlan` explícito —una secuencia de particiones, cada una con tamaño (o
+  «el resto»), sistema de archivos y etiqueta— con una función pura que lo valida contra el tamaño real del
+  disco **antes de tocar nada**: que la suma quepa con su margen de alineación, que ninguna sea de cero, que
+  como mucho una sea «el resto» y vaya al final, que cada volumen FAT32 respete el límite de 32 GB de
+  Windows, que las etiquetas valgan para su sistema de archivos, y que el número de particiones sea legal
+  para el estilo (**MBR: 4 primarias**). Trece motivos de rechazo, cada uno un valor y no un texto, con el
+  índice de la partición culpable.
+- `ReinitDrive` **ejecuta N particiones** y revalida el plan justo antes de `Clear-Disk`. La interfaz sigue
+  enviando **una sola**, así que la aplicación se comporta exactamente igual que antes; lo que falta para
+  aprovechar el espacio sobrante (`T5-02`) es la interfaz, no el motor.
+- Las letras se leen en plural (`LETTER:<índice>:<X>`): Windows las asigna en el orden que quiere, así que
+  sin el índice la app no podría saber cuál es la partición que debe seleccionar al terminar.
+
 ### Corregido
 
 - **La partición FAT32 pequeña se ocultaba en unidades de menos de 32 GB.** La opción se pensó como rodeo

@@ -159,6 +159,11 @@ public static class MainWindowActions
     public static void SelectComboText(Window window, string automationId, string text) =>
         Require(window, automationId).AsComboBox().Select(text);
 
+    /// <summary>Selecciona por posición. Necesario cuando los ítems son texto <b>traducido</b> (p. ej.
+    /// <c>RestPicker</c>): buscarlos por su cadena ataría la prueba al idioma activo.</summary>
+    public static void SelectComboIndex(Window window, string automationId, int index) =>
+        Require(window, automationId).AsComboBox().Select(index);
+
     public static CheckBox CheckBox(Window window, string automationId) => Require(window, automationId).AsCheckBox();
 
     public static void SetChecked(Window window, string automationId, bool value)

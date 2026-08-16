@@ -50,6 +50,20 @@ public sealed class AppSettings
     public int SmallFat32SizeGb { get; set; } = 32;
 
     /// <summary>
+    /// Qué hacer con el espacio que sobra al crear una partición FAT32 pequeña: <c>false</c> lo deja sin
+    /// asignar (el comportamiento de siempre, que sigue siendo el valor por defecto) y <c>true</c> crea una
+    /// segunda partición con todo el sobrante.
+    /// </summary>
+    public bool CreateSecondPartition { get; set; }
+
+    /// <summary>
+    /// Sistema de archivos de esa segunda partición, uno de
+    /// <see cref="PartitionPlan.SecondPartitionFileSystems"/>. <see cref="Load"/> lo normaliza con
+    /// <see cref="PartitionPlan.NormalizeSecondPartitionFileSystem"/>.
+    /// </summary>
+    public string SecondPartitionFileSystem { get; set; } = "exFAT";
+
+    /// <summary>
     /// Indica si la configuración se cargó desde un archivo existente (la app ya se había usado),
     /// en contraste con los valores por defecto de una instalación nueva. No se serializa; permite
     /// distinguir una <b>actualización</b> (mostrar novedades) de una <b>instalación nueva</b> aun
@@ -95,6 +109,8 @@ public sealed class AppSettings
             // normaliza aquí: es lo que la documentación prometía y el sitio correcto para hacerlo.
             loaded.SecureWipePasses = SecureWipe.NormalizePasses(loaded.SecureWipePasses);
             loaded.SmallFat32SizeGb = ReinitPlan.NormalizeSmallFat32SizeGb(loaded.SmallFat32SizeGb);
+            loaded.SecondPartitionFileSystem =
+                PartitionPlan.NormalizeSecondPartitionFileSystem(loaded.SecondPartitionFileSystem);
             return loaded;
         }
         catch
