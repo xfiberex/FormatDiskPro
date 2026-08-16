@@ -10,13 +10,13 @@
 | | |
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
-| **Versión publicada** | **1.21.0** (2026-08-16) |
-| **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
+| **Versión publicada** | **1.22.0** (2026-08-16) |
+| **Estado** | 🏁 **SIN TAREAS ABIERTAS.** Producto (Tiers 1–9), auditoría de calidad y Tier 5 «Ocurrencias»: los tres cerrados |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **433** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-16 (**v1.21.0 publicada y verificada** · **AUDITORÍA CERRADA 39/40 + 2 descartadas** · Services inyectables · `CHANGELOG.md` · README con 12 capturas · **Tier 5 «Ocurrencias»: lo único abierto**) |
+| **Pruebas** | **521** unitarias (`Core/` al 97,9 %) · **28** de UI sobre la app real — **25 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-16 |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — todo cerrado · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | 2026-08-16 (**v1.22.0 publicada y verificada** · **Tier 5 cerrado**: plan de particiones como dato puro, el sobrante aprovechable en una segunda partición, informe del fallo parcial · `T5-04` descartada) |
 
 ---
 
@@ -39,7 +39,8 @@ src/FormatDiskPro/
 │  ├─ SmartInfo.cs        Modelo + parseo del detalle S.M.A.R.T. + umbrales de severidad (SmartLevel)
 │  ├─ SeverityPalette.cs  INVENTARIO de colores semánticos por tema — contraste WCAG medido sobre All()
 │  ├─ HistoryEntry.cs     Parseo del historial + filtro + exportación CSV (anti CSV injection)
-│  ├─ ReinitPlan.cs       Estilo MBR/GPT por tamaño, partición FAT32 pequeña, parseo de la nueva letra
+│  ├─ ReinitPlan.cs       Estilo MBR/GPT por tamaño, tamaños de FAT32 pequeña que caben, parseo de letras
+│  ├─ PartitionPlan.cs    EL LAYOUT COMO DATO: particiones + validación tipada ANTES de borrar nada (T5-01)
 │  ├─ Benchmark.cs        Tamaño de prueba, velocidad, IOPS, mediana
 │  ├─ SecureWipe.cs*      Patrón y nº de pasadas del borrado seguro (*la parte pura)
 │  ├─ Presets.cs          Presets integrados (nombre traducido vía NameKey) + validación de los del usuario
@@ -58,7 +59,7 @@ src/FormatDiskPro/
 │  ├─ DiskService.cs       S.M.A.R.T., nº de disco, protección de escritura, expulsión (PowerShell)
 │  ├─ SecureWipe.cs        Sobrescritor propio del espacio libre, con progreso
 │  ├─ CheckDisk.cs         chkdsk (comprobar / reparar) con streaming de progreso
-│  ├─ ReinitDrive.cs       Reinicializar disco extraíble: clean + partición + formato
+│  ├─ ReinitDrive.cs       Reinicializar disco extraíble: clean + ejecutar un PartitionPlan ya validado
 │  ├─ BenchmarkRunner.cs   Motor de E/S sin caché (FILE_FLAG_NO_BUFFERING), no destructivo
 │  ├─ CapacityVerifier.cs  Verificación de capacidad real
 │  ├─ AppSettings.cs       Preferencias (%AppData%\FormatDiskPro\settings.json)
@@ -85,8 +86,8 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    433 pruebas xUnit sobre Core y los Services (con IProcessRunner falso)
-tests/FormatDiskPro.UiTests/  25 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
+tests/FormatDiskPro.Tests/    521 pruebas xUnit sobre Core y los Services (con IProcessRunner falso)
+tests/FormatDiskPro.UiTests/  28 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 CHANGELOG.md                  Qué cambió en cada versión (Keep a Changelog); el corte exige su sección
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
@@ -136,21 +137,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.22.0** (2026-08-16) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
-| Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz. **0 tareas abiertas en el repo**; falta el corte de la 1.22.0 |
+| Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
+| Tareas abiertas | **Ninguna.** Producto, auditoría y Tier 5: los tres cerrados |
 
-**Tiers completados**
-
-| Tier | Tema | Versión |
-|---|---|---|
-| 1 | Quick wins (persistencia, ETA, borrado seguro, historial) | 1.4.0 |
-| 2 | Diagnóstico y gestión (S.M.A.R.T., chkdsk, protección de escritura, reinicializar, benchmark) | 1.5.0–1.7.0 |
-| 3 | Presets, 5 idiomas, aviso al terminar (**#13 winget/firma descartado**) | 1.8.0 |
-| 4 | Refinado de lo existente (#14–#22) | 1.10.0 / 1.11.0 |
-| 5 | Confianza y legal: GPLv3, avisos, privacidad, donaciones (#23–#27) | 1.12.0 |
-| 6 | Pulido UX/UI (#28–#36) | 1.13.0 |
-| 7 | Partición FAT32 pequeña al reinicializar (#37) | 1.14.0 |
-| 8 | **Seguridad**: verificación del instalador, anti CSV injection, contraste WCAG AA (#38–#40, #44) | 1.15.0 |
-| 9 | **Infraestructura**: UI tests en el release, instalador probado, build reproducible (#41, #42, #45) | 1.15.1 |
+> **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
+> quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
+> auditoría de calidad y el Tier 5 de ocurrencias, cada uno con la versión en la que entró.
 
 ## 4. Decisiones y convenciones clave
 
@@ -324,22 +316,18 @@ commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su 
 > **Y aborta si [`CHANGELOG.md`](CHANGELOG.md) no tiene la sección de la versión** que se va a publicar
 > (`T4-01`): mueve antes lo que haya bajo *Sin publicar* a `## [X.Y.Z] — fecha` y añade su enlace abajo.
 
-## 6. Estado del proyecto: TERMINADO (2026-07-13)
+## 6. Qué queda fuera, y por qué
 
-**Tiers 1–9 completados. No hay trabajo pendiente.** La hoja de ruta está cerrada: lo que queda fuera está
-**deliberadamente** fuera. Las dos ideas mayores que restaban —elevación `asInvoker` y ventana
-redimensionable— se **descartaron**: ambas revertían una decisión de diseño correcta para lo que este producto
-es (ver §4).
+**No hay tareas abiertas** (el estado vivo está en §3; esta sección es solo el alcance). Los tres frentes
+del proyecto están cerrados: producto (Tiers 1–9, 2026-07-13), auditoría de calidad (2026-08-16) y Tier 5
+«Ocurrencias» (2026-08-16).
 
-**Lo único a vigilar en el próximo corte** (no es trabajo, es una comprobación): la verificación del instalador
-(#38) **aún no se ha ejercido en producción**. Solo actúa al actualizar **desde** una versión ≥ 1.15.0, y los
-clientes ≤ 1.14.1 llegaron a la 1.15.0 con el código viejo, que no verificaba nada. El primer uso real es
-**1.15.0 → 1.15.1**.
-
-Del pulido opcional que listaba esta sección ya no queda casi nada: las **capturas** pasaron de 3 a 12
-(`T4-04`) y el «renombrar el `Name` interno del form» resultó ser `SetFormEnabled` y un comentario, no una
-propiedad `Name` (`T4-05`). Sigue abierto, y sigue siendo menor por diseño: la validación de etiqueta no
-rechaza `'` (el escape lo cubre).
+Lo que falta, falta **a propósito**. Las decisiones y su porqué viven en §4 y en *Decisiones cerradas* del
+[`ROADMAP.md`](ROADMAP.md); en resumen: la app corre **siempre elevada** (`asInvoker` descartado), la
+ventana es de **tamaño fijo**, no se **firma** el instalador (`#13`/`T4-03` — de ahí que el `.sha256` sea
+obligatorio), no hay **CI** (`T2-10`: las pruebas son locales) y *Reinicializar* **no es un gestor de
+particiones** (`T5-04`: crea layouts sobre un disco que se está borrando entero; nunca redimensiona, fusiona
+ni mueve datos).
 
 ## 7. Cómo mantener este documento
 

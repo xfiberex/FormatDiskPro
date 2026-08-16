@@ -14,23 +14,25 @@
 > | Parte | Qué es | IDs |
 > |---|---|---|
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
-> | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Abierta. | `T0-01`–`T4-05` |
+> | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
 >
 > Al final de la Parte 2 hay además un **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`):
 > ampliaciones de lo ya entregado, **no** parte de la auditoría (que sigue siendo de 40 tareas).
 
 ## 🏁 Estado
 
+> **Este archivo ya no tiene nada abierto. Es un registro, no una lista de tareas.** Lo que queda fuera
+> está fuera a propósito, y su porqué está en *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
+
 **Parte 1 — funcionalidad: TERMINADA (2026-07-13).** Tiers 1–9 completados; no hay características
 pendientes. Lo que queda fuera está **deliberadamente** fuera — incluidas las dos decisiones que definen el
 producto y **no se van a reabrir**: la app corre **siempre elevada** y su ventana es de **tamaño fijo**.
 
-**Parte 2 — calidad: ABIERTA (2026-08-13), 38/40 al 2026-08-16.** Una auditoría técnica transversal
-(código, seguridad, rendimiento, accesibilidad, i18n, arquitectura, QA, documentación, DevOps) encontró
-**37 puntos de mejora**, ninguno de ellos una característica nueva. Que la funcionalidad esté cerrada no
-cierra la calidad: ver **[Parte 2](#parte-2--backlog-de-remediación-auditoría-2026-08-13)**. Las **dos que
-quedan** dependen de algo ajeno al código: un certificado de firma (`T4-03`) y una tanda de capturas
-regeneradas (`T4-04`).
+**Parte 2 — calidad: CERRADA (2026-08-16).** Una auditoría técnica transversal (código, seguridad,
+rendimiento, accesibilidad, i18n, arquitectura, QA, documentación, DevOps) encontró **37 puntos de mejora**
+—luego 40—, ninguno de ellos una característica nueva. **39 completadas y 2 descartadas**: `T2-10` (CI, se
+implementó y se revirtió: las pruebas de este proyecto son locales) y `T4-03` (firmar, contradecía la
+decisión `#13`). Ver **[Parte 2](#parte-2--backlog-de-remediación-auditoría-2026-08-13)**.
 
 **Tier 5 — ocurrencias: CERRADO (2026-08-16).** «Funcionalidad terminada» no significa «sin huecos»: usar
 lo entregado revela dónde una característica se queda a medio camino. El hueco era real: *FAT32 pequeña*
@@ -999,7 +1001,7 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
     en el backlog.
 
 - [x] **[T4-04] Más capturas en el README** — eran 3; el modo galería de `tools/capture-screenshots.ps1`
-  ya producía 12 en claro y oscuro. *(Estaba listado como pulido opcional en `CONTEXT.md` §6.)*
+  ya producía 12 en claro y oscuro. *(Estaba listado como pulido opcional en la §6 de `CONTEXT.md`, sección que se reescribió al cerrarse todo.)*
   *Área: Documentación · Esfuerzo: bajo · Depende de: ninguna*
   - **Resuelta el 2026-08-16.** El README pasa de **3 a 12** capturas: ventana principal, S.M.A.R.T.,
     chkdsk, reinicializar, confirmación destructiva e historial, **cada una en los dos temas**. Se
@@ -1024,7 +1026,7 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
     S.M.A.R.T. que hacen interesante esa pantalla. El README lo dice en vez de disimularlo.
 
 - [x] **[T4-05] Renombrar el `Name` interno del formulario** — resto de la migración desde Windows Forms.
-  *(Estaba listado como pulido opcional en `CONTEXT.md` §6.)*
+  *(Estaba listado como pulido opcional en la §6 de `CONTEXT.md`, sección que se reescribió al cerrarse todo.)*
   *Área: Limpieza · Esfuerzo: bajo · Depende de: ninguna*
   - **Resuelta el 2026-08-16.** Quedaban exactamente dos rastros, y ninguno era una propiedad `Name`:
     el método **`SetFormEnabled`** (ahora `SetControlsEnabled`, que además describe lo que hace: habilita
@@ -1192,20 +1194,20 @@ Las dos descartadas no son deuda aparcada: **son decisiones tomadas**, y viven e
 *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)* con su porqué. `T2-10` (CI) se llegó a
 implementar y se revirtió; `T4-03` (firmar) contradecía la decisión `#13` desde el día en que se escribió.
 
-El **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)** también quedó **cerrado el 2026-08-16**
-(4 completadas + `T5-04` descartada). **No** formaba parte de la auditoría: añade funcionalidad, que es
-justo lo que ninguna tarea `T0`–`T4` hace.
-**Aparte de las 40**, el **Tier 5** (5 tareas, abierto desde el 2026-08-15) recoge ampliaciones de features
-ya entregadas; no cuenta en este progreso porque no es remediación.
+El **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)** —ampliaciones de features ya entregadas,
+**aparte de las 40** porque añade funcionalidad y no remediación— quedó **cerrado el 2026-08-16**:
+4 completadas y `T5-04` descartada.
+
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows
 extranjero para verificarse» acabaron reproducidos aquí (`T0-01`/`T0-02` con la USB desmontada a la fuerza,
-`T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió
-**ya resuelta**: la encontró `T2-05` al recorrer el camino de error de punta a punta.
-`T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite de UI completa sobre hardware real
-(23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes publicados sin notarlo — y se
-**cerró el 2026-08-15**: el corte ya no puede volver a llamar «verde» a una cobertura que no ejerció.
-Build Release **0 advertencias / 0 errores**; suite **388/388** unitarias (eran 289; +99 nuevas) y **27**
-de UI (eran 23).
+`T1-02` con un VHD y sin escribir en stdin). `T3-11` se añadió **ya resuelta**: la encontró `T2-05` al
+recorrer el camino de error de punta a punta. `T2-12` se añadió el 2026-08-13 al ejecutar por fin la suite
+de UI completa sobre hardware real (23/23 en verde), que destapó un test roto desde la v1.15.2 y dos cortes
+publicados sin notarlo — y se **cerró el 2026-08-15**: el corte ya no puede volver a llamar «verde» a una
+cobertura que no ejerció.
+
+Al cerrar el Tier 5 (v1.22.0): build Release **0 advertencias / 0 errores**, **521/521** unitarias
+(eran 289 antes de la auditoría) y **28** de UI (eran 23).
 
 > **`T1-04` cierra el patrón que la auditoría encontró tres veces.** El barrido ya no recorre una función
 > concreta sino el **inventario** `SeverityPalette.All()`: añadir un color semántico es lo mismo que
