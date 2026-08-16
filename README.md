@@ -82,7 +82,7 @@ filtros por categoría y resultado, y exportación a CSV.
 - **Validación de etiqueta de volumen** antes de la operación destructiva
 - **Revalidación de disponibilidad** de la unidad al iniciar (detecta USBs extraídos)
 - **Detección de protección de escritura**: si la unidad está en *solo lectura*, lo detecta al pulsar Iniciar y ofrece quitar la protección antes de formatear (evita el fallo críptico); también disponible como herramienta manual
-- **Reinicializar unidad**: para USB con particiones raras o RAW, limpia el disco y recrea una única partición primaria formateada y usable. **Solo unidades extraíbles**, con guardas reforzadas (bloqueo del disco de sistema, verificación de que el disco físico no es el de Windows y confirmación escribiendo la letra); en cualquier unidad extraíble permite opcionalmente crear solo una pequeña partición FAT32 y dejar el resto sin asignar (por ejemplo, para actualizar el BIOS/UEFI de una placa base, ya que Windows nunca permite un volumen FAT32 mayor de 32 GB). El selector ofrece 1/2/4/8/16/32 GB, **filtrado a los que caben de verdad en el disco físico**
+- **Reinicializar unidad**: para USB con particiones raras o RAW, limpia el disco y recrea una única partición primaria formateada y usable. **Solo unidades extraíbles**, con guardas reforzadas (bloqueo del disco de sistema, verificación de que el disco físico no es el de Windows y confirmación escribiendo la letra); en cualquier unidad extraíble permite opcionalmente crear solo una pequeña partición FAT32 y dejar el resto sin asignar (por ejemplo, para actualizar el BIOS/UEFI de una placa base, ya que Windows nunca permite un volumen FAT32 mayor de 32 GB). El selector ofrece 1/2/4/8/16/32 GB, **filtrado a los que caben de verdad en el disco físico**. El resto puede **dejarse sin asignar** (por defecto) o **aprovecharse en una segunda partición** con su propio sistema de archivos (exFAT o NTFS) y etiqueta, sin salir de la aplicación; la FAT32 se crea siempre primera, porque los equipos anteriores a Windows 10 1703 y muchos aparatos (televisores, radios de coche, BIOS) solo leen la primera partición de un medio extraíble. Si la operación falla a mitad, informa de qué particiones llegaron a crearse y cuáles quedaron utilizables, y **no revierte nada** (el disco ya está borrado: deshacer solo podría ser borrarlo otra vez)
 
 ### Diagnóstico
 - **Panel de información**: tamaño, espacio libre, FS actual y tipo, con una **barra de ocupación** cuyo color indica lo llena que está la unidad (neutro con espacio de sobra, **ámbar** al llenarse ≥80 % y **rojo** casi llena ≥90 %), no el color de acento del sistema
@@ -272,8 +272,9 @@ Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los hel
 | FAT32 | USB ≤ 32 GB, consolas | 4 GB |
 | FAT | Unidades < 2 GB | 2 GB |
 
-> En cualquier unidad extraíble, *Reinicializar unidad* permite crear solo una pequeña partición FAT32
-> (1/2/4/8/16/32 GB, elegible) dejando el resto sin asignar — ver arriba.
+> En cualquier unidad extraíble, *Reinicializar unidad* permite crear una pequeña partición FAT32
+> (1/2/4/8/16/32 GB, elegible) y, con el resto del disco, **dejarlo sin asignar o crear una segunda
+> partición** en exFAT/NTFS — ver arriba.
 
 ## Arquitectura
 

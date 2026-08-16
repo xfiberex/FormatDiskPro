@@ -15,6 +15,18 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+Nada todavía.
+
+---
+
+## [1.22.0] — 2026-08-16
+
+**El Tier 5 completo.** *Reinicializar unidad → FAT32 pequeña* dejaba el resto del disco sin asignar, y
+recuperarlo obligaba a salir a *Crear y formatear particiones* de Windows — la herramienta que esta
+aplicación existe para no tener que abrir. Ya no: el sobrante se puede aprovechar en la misma operación.
+Y de camino, la propia opción aparece por fin en las unidades pequeñas, donde llevaba escondida desde
+la 1.14.0.
+
 ### Añadido
 
 - **El espacio sobrante ya no se queda muerto** (`T5-02`). Al crear una partición FAT32 pequeña, la
@@ -396,6 +408,7 @@ cambian lo que la app **cuenta** cuando algo va mal.
 ---
 
 [Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.21.0...HEAD
+[1.22.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.22.0
 [1.21.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.21.0
 [1.20.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.20.0
 [1.19.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.19.0
