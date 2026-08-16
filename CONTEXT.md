@@ -132,9 +132,9 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 |---|---|
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **521 / 521** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03`) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **28** en total (el «27» anterior era un dato mal anotado; `--list-tests` da 28) · con la USB (`utilidades`, sin opt-in): **25 pasan / 3 se omiten / 0 fallan** (2026-08-16, 59 min) · las 3 omitidas son las de opt-in: 2 de `ALLOW_YANK` + 1 de `ALLOW_DESTRUCTIVE` · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
+| UI tests | **28** en total (el «27» anterior era un dato mal anotado; `--list-tests` da 28) · con la USB (`utilidades`, sin opt-in): **25 pasan / 3 se omiten / 0 fallan** (2026-08-16) · **el corte ejecuta 27**: `release.ps1` filtra `Category!=Slow` · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.21.0** (2026-08-16) · `master` con **un arreglo sin publicar** (*FAT32 pequeña* en unidades < 32 GB) |
+| Publicado | **v1.22.0** (2026-08-16) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz. **0 tareas abiertas en el repo**; falta el corte de la 1.22.0 |
 
@@ -359,6 +359,7 @@ rechaza `'` (el escape lo cubre).
 
 | Versión | Qué trajo |
 |---|---|
+| **1.22.0** | **Tier 5 completo.** El espacio sobrante de *FAT32 pequeña* deja de morir sin asignar: se puede crear una segunda partición (exFAT/NTFS) en la misma operación, con la FAT32 siempre primera. La opción aparece por fin en unidades de menos de 32 GB, donde llevaba escondida desde la 1.14.0 — y con ella se arreglaron un selector que ofrecía tamaños que no caben y un tope medido sobre el volumen en vez del disco. El fallo a mitad ya informa de qué particiones quedaron, sin revertir nada. +88 pruebas (433 → 521). |
 | **1.21.0** | **Auditoría cerrada.** Corte de **mantenimiento**: la app se comporta igual que la 1.20.0. `Services` inyectables con raíz de composición y costura `IProcessRunner` (+35 pruebas de caminos de error, ninguna toca un disco), `CHANGELOG.md` con puerta en el corte, README con 12 capturas, y fuera el último resto de Windows Forms. `T4-03` (firmar) descartada: contradecía `#13`. |
 | **1.20.0** | **Tier 3 cerrado.** Pulido de lo que fallaba en silencio: la exportación CSV del historial informa del error real, la salud ilegible se muestra como «no disponible», el borrado seguro usa RNG criptográfico, las preferencias se normalizan al cargarlas, los iconos decorativos salen del árbol de accesibilidad y un marcador mal escrito en una traducción ya no tumba una pantalla. |
 | **1.19.0** | **Tier 2 cerrado.** *Verificar capacidad* deja de poder leer de la caché del sistema (se acabaron los falsos OK en unidades pequeñas). Cobertura de `Core/` medida (97 %) y exigida en el corte; `MainWindow` repartido (2107 → 753 líneas) sin cambiar comportamiento; `SECURITY.md` y `CONTRIBUTING.md`. |
@@ -388,6 +389,34 @@ rechaza `'` (el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-16 — Corte de la **v1.22.0** (Tier 5 completo)
+
+`release.ps1 -Version 1.22.0 -UiTests -NotesFile docs\release-notes-1.22.0.md` desde terminal elevada, tras
+un `-DryRun` previo.
+
+**El dry run hizo su trabajo**: abortó porque `docs/release-notes-1.22.0.md` estaba sin rastrear. Es la
+guarda de archivos nuevos, y avisó **antes** de tocar nada — que es exactamente para lo que está.
+
+**Puertas superadas:** CHANGELOG con su sección · **521/521** unitarias · `Core/` al **97,9 %**
+(463/473, mínimo 90) · UI **24/27** con 3 omitidas, todas de opt-in.
+
+**Verificado contra el release real, no contra lo que dijo el script:**
+
+- Hash local, contenido del `.sha256` y **el digest que GitHub calculó sobre el asset subido** coinciden:
+  `3000c3de…0f17`.
+- Asset del checksum con el nombre exacto `FormatDiskPro-1.22.0-setup.exe.sha256`, **96 bytes** (bajo el
+  tope de 512 que impone `T2-07`).
+- `.csproj` tras el bump: **BOM UTF-8 presente** y acentos intactos (`Ricky Angel Jiménez Bueno`) — la
+  corrupción acumulativa de `Get-Content -Raw` no volvió.
+- Metadatos del `.exe`: `1.22.0`, empresa y copyright correctos.
+- Instalador de 58,8 MB (61 684 481 bytes).
+
+**Dato que se corrige aquí:** el corte ejecuta **27** de las 28 pruebas de UI, no las 28. `release.ps1`
+pasa `--filter "Category!=Slow"`. No es un fallo, pero la cifra del corte y la de una corrida manual no son
+comparables, y conviene no confundirlas.
 
 ---
 
