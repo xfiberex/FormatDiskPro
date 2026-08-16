@@ -11,13 +11,58 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 
 ## Capturas
 
-| Tema claro | Tema oscuro | Salud del disco (S.M.A.R.T.) |
-|:---:|:---:|:---:|
-| ![Ventana principal en tema claro](docs/screenshots/main-light.png) | ![Ventana principal en tema oscuro](docs/screenshots/main-dark.png) | ![Diálogo de salud S.M.A.R.T.](docs/screenshots/health-dark.png) |
+Cada pantalla, en los **dos temas**. El tema sigue al de Windows en tiempo real (o se fuerza a
+claro/oscuro desde *Configuración*), y el color de acento es el que tengas puesto en el sistema — en
+estas capturas, rojo.
 
-> El tema sigue al de Windows en tiempo real (o se fuerza a claro/oscuro), y el color de acento es el
-> que tengas configurado en el sistema. El diálogo S.M.A.R.T. **colorea cada métrica por rango**
-> (verde / ámbar / rojo) y añade su estado en texto, para no depender solo del color.
+### Ventana principal
+
+| Claro | Oscuro |
+|:---:|:---:|
+| ![Ventana principal en tema claro](docs/screenshots/main-light.png) | ![Ventana principal en tema oscuro](docs/screenshots/main-dark.png) |
+
+Tarjetas de **unidad**, **configuración de formato** y **opciones**, con la barra de capacidad
+usado/libre y la salud coloreada. La descripción bajo el selector cambia con el sistema de archivos.
+
+### Salud del disco (S.M.A.R.T.)
+
+| Claro | Oscuro |
+|:---:|:---:|
+| ![Salud S.M.A.R.T. en tema claro](docs/screenshots/health-light.png) | ![Salud S.M.A.R.T. en tema oscuro](docs/screenshots/health-dark.png) |
+
+**Colorea cada métrica por rango** (verde / ámbar / rojo) y añade su estado **en texto**, para no
+depender solo del color. Los contadores que la unidad no expone salen como *No disponible* en vez de
+como un cero engañoso — es lo habitual en USB.
+
+### Comprobar errores (chkdsk) · Reinicializar unidad
+
+| Comprobar errores | Reinicializar unidad |
+|:---:|:---:|
+| ![Diálogo de chkdsk en tema claro](docs/screenshots/checkdisk-light.png) | ![Diálogo de reinicializar en tema oscuro](docs/screenshots/reinit-dark.png) |
+| ![Diálogo de chkdsk en tema oscuro](docs/screenshots/checkdisk-dark.png) | ![Diálogo de reinicializar en tema claro](docs/screenshots/reinit-light.png) |
+
+*Solo comprobar* es de solo lectura; *Comprobar y reparar* usa `/f` y queda **bloqueado en el disco de
+sistema**. *Reinicializar unidad* solo se ofrece en **extraíbles**, y avisa de que borra el disco físico
+entero, no solo la partición seleccionada.
+
+### Confirmación destructiva · Historial
+
+| Confirmar formato | Historial de operaciones |
+|:---:|:---:|
+| ![Diálogo de confirmación en tema claro](docs/screenshots/confirm-light.png) | ![Historial en tema claro](docs/screenshots/history-light.png) |
+| ![Diálogo de confirmación en tema oscuro](docs/screenshots/confirm-dark.png) | ![Historial en tema oscuro](docs/screenshots/history-dark.png) |
+
+Antes de destruir nada hay que **escribir la letra de la unidad**: fricción deliberada, y el botón
+*Iniciar* no se habilita hasta entonces. Todo lo que hace la app queda en el **historial**, con búsqueda,
+filtros por categoría y resultado, y exportación a CSV.
+
+> Las capturas de *Reinicializar* y *chkdsk* se tomaron sobre la **USB de pruebas** y el resto sobre un
+> **SSD interno**: reinicializar solo existe en unidades extraíbles, y un USB no expone los contadores
+> S.M.A.R.T. que hacen interesante esa pantalla.
+>
+> Se generan conduciendo la app real por UI Automation con
+> [`tools/capture-screenshots.ps1`](tools/capture-screenshots.ps1), sobre el **publish self-contained**
+> que se distribuye. No se editan a mano.
 
 ## Características
 
@@ -163,7 +208,13 @@ Automation (fija tema, idioma y unidad, abre el diálogo S.M.A.R.T. y fotografí
 
 El **modo galería** (`-Gallery`) fotografía cada diálogo y estado clave (Confirmar, Historial, Presets,
 chkdsk, Reinicializar, S.M.A.R.T., Acerca de…) en claro **y** oscuro para revisar la UX/UI de un vistazo;
-guarda en `docs/screenshots/gallery/` (ignorada por git) sin tocar las capturas del README.
+guarda en `docs/screenshots/gallery/` (ignorada por git) sin tocar las capturas del README. **De ahí salen
+las 12 del README**: se revisan en la galería y se copian a `docs/screenshots/` las que valen.
+
+> **Dos avisos que cuestan una tanda de capturas si no los sabes.** *Reinicializar unidad* exige pasar
+> `-Drive <USB>`: sobre un disco fijo la toma sale con el mensaje de «solo unidades extraíbles», que es
+> la guarda y no la característica. Y conviene fotografiar el **publish self-contained**
+> (`-Exe <publish>\FormatDiskPro.exe`), no el `dotnet build` — ver *Decisiones* en `CONTEXT.md`.
 
 Requiere **terminal elevada** (la app es `requireAdministrator`) y una sesión de escritorio sin nada
 encima de la ventana. Respalda y restaura tu `settings.json` real, así que no altera tu configuración.

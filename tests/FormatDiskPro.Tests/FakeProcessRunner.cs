@@ -47,6 +47,23 @@ internal sealed class FakeProcessRunner(Func<ProcessSpec, IProcessHandle> factor
             $"No debía lanzarse ningún proceso, y se intentó lanzar '{spec.FileName}'."));
 }
 
+/// <summary>
+/// <see cref="IProgress{T}"/> que entrega <b>en el acto</b>, en el hilo que llama a <c>Report</c>.
+///
+/// <para><b>Por qué no vale <see cref="Progress{T}"/> aquí.</b> El de la BCL <i>postea</i> cada reporte al
+/// contexto de sincronización capturado —o al pool si no hay ninguno, que es el caso en una prueba—, así
+/// que las llamadas llegan <b>después</b> de que el método bajo prueba haya vuelto. Una aserción sobre lo
+/// recogido compite con ellas: pasa aislada y falla al correr la suite entera, que es la peor forma de
+/// fallar. Y acumularlas en un <see cref="List{T}"/> desde varios hilos del pool tampoco es seguro.</para>
+///
+/// <para>En la app real esa asincronía es lo correcto —WinUI las ordena por el contexto de la UI y la
+/// ventana las lee después—, así que lo que hay que cambiar es la prueba, no el servicio.</para>
+/// </summary>
+internal sealed class SyncProgress<T>(Action<T> onReport) : IProgress<T>
+{
+    public void Report(T value) => onReport(value);
+}
+
 /// <summary>Proceso simulado: salida fija, código de salida fijo y registro de si se lo mató.</summary>
 internal sealed class FakeProcessHandle(string stdout, string stderr, int exitCode, int chunkSize = int.MaxValue)
     : IProcessHandle

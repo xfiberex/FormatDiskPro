@@ -386,10 +386,16 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
                 [void](Find-ByAutomationId $w 'SearchBox' 20); Start-Sleep -Milliseconds 800 } }
         @{ Name = 'checkdisk'; Setup = { param($w,$h)
                 Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
-                Invoke-Element (Find-ByAutomationId $w 'MnuCheck'); Start-Sleep -Milliseconds 1200 } }
+                Invoke-Element (Find-ByAutomationId $w 'MnuCheck')
+                [void](Find-ByAutomationId $w 'CheckScanButton' 20); Start-Sleep -Milliseconds 800 } }
+        # Reinicializar NO abre su confirmacion de inmediato: sobre una unidad extraible valida consulta
+        # antes el numero de disco fisico del objetivo Y el de Windows (dos llamadas a PowerShell) para
+        # la guarda de "no es el disco del sistema". Con una espera fija de 1,2 s la foto salia con la
+        # ventana principal y sin dialogo; se espera al InputBox de ConfirmDialog, como el resto de tomas.
         @{ Name = 'reinit';    Setup = { param($w,$h)
                 Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
-                Invoke-Element (Find-ByAutomationId $w 'MnuReinit'); Start-Sleep -Milliseconds 1200 } }
+                Invoke-Element (Find-ByAutomationId $w 'MnuReinit')
+                [void](Find-ByAutomationId $w 'InputBox' 30); Start-Sleep -Milliseconds 800 } }
         @{ Name = 'presets';   Setup = { param($w,$h)
                 Expand-Element (Find-ByAutomationId $w 'MnuConfig'); Start-Sleep -Milliseconds 500
                 Expand-Element (Find-ByAutomationId $w 'MnuPresets'); Start-Sleep -Milliseconds 500
@@ -411,8 +417,10 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
                 Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
                 Invoke-Element (Find-ByAutomationId $w 'MnuAbout')
                 [void](Find-ByAutomationId $w 'VersionText' 15); Start-Sleep -Milliseconds 800 } }
+        # Igual que reinit: Iniciar comprueba antes la proteccion de escritura del disco por PowerShell.
         @{ Name = 'confirm';   Setup = { param($w,$h)
-                Invoke-Element (Find-ByAutomationId $w 'StartButton'); Start-Sleep -Milliseconds 1200 } }
+                Invoke-Element (Find-ByAutomationId $w 'StartButton')
+                [void](Find-ByAutomationId $w 'InputBox' 30); Start-Sleep -Milliseconds 800 } }
     )
 
     if ($Only) {

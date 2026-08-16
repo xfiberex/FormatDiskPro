@@ -23,12 +23,33 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   **caminos de error sin hardware**: un `chkdsk` que devuelve 2, un `Clear-Disk` que falla a mitad, un
   `powershell.exe` que ni arranca. **+35 pruebas** (398 → 433), ninguna de ellas tocando un disco.
 - **Este `CHANGELOG.md`** (`T4-01`): hasta ahora el registro vivía repartido entre `CONTEXT.md` y las
-  notas de GitHub Releases.
+  notas de GitHub Releases. `release.ps1` **aborta** si falta la sección de la versión que se publica.
 
 ### Cambiado
 
+- **El README pasa de 3 a 12 capturas** (`T4-04`): ventana principal, S.M.A.R.T., chkdsk, reinicializar,
+  confirmación destructiva e historial, cada una en tema claro **y** oscuro. Regeneradas sobre el publish
+  self-contained; las anteriores eran de la v1.15.2.
 - `MainWindow.SetFormEnabled` pasa a llamarse `SetControlsEnabled` (`T4-05`): último resto de nomenclatura
   de Windows Forms, migrado a WinUI 3 en la v1.2.0.
+
+### Corregido
+
+- `tools/capture-screenshots.ps1`: tres tomas de la galería (`reinit`, `confirm`, `checkdisk`) esperaban
+  por **tiempo** en vez de por elemento, así que sobre una unidad extraíble válida fotografiaban la
+  ventana principal **sin el diálogo** — *Reinicializar* hace antes dos consultas a PowerShell para la
+  guarda del disco de sistema. Ahora esperan al control que deben retratar.
+- **Dos de las pruebas nuevas eran intermitentes** y se arreglaron antes de que llegaran a molestar:
+  recogían los reportes de `IProgress<T>` con `Progress<T>`, que los **entrega de forma asíncrona**, así
+  que la aserción competía con ellos (pasaban aisladas, fallaban en la suite completa). Ahora usan un
+  `IProgress<T>` síncrono. El servicio no cambia: en la app esa asincronía es la correcta.
+
+### Retirado
+
+- **`T4-03` «firmar el instalador», descartada.** Contradecía la decisión `#13` (no se firma), que es la
+  razón de existir de la verificación por SHA-256. El pipeline **ya admite** firmar; lo que falta es un
+  certificado, que es una compra y no una tarea de ingeniería. Con esto la auditoría del 2026-08-13 queda
+  **cerrada**: 39/40 completadas y 2 descartadas.
 
 ---
 

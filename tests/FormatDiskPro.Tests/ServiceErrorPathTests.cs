@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Text;
 using Xunit;
 
@@ -249,7 +249,7 @@ public sealed class ServiceErrorPathTests
             exitCode: 0, chunkSize: 6));
 
         var r = await reinit.RunAsync('G', DiskPartitionStyle.Gpt, "exFAT", "DATOS", null,
-            new Progress<string>(stages.Add), CancellationToken.None);
+            new SyncProgress<string>(stages.Add), CancellationToken.None);
 
         Assert.True(r.Ok);
         Assert.Equal('H', r.NewLetter);
@@ -339,7 +339,7 @@ public sealed class ServiceErrorPathTests
             exitCode: 0, chunkSize: 7));
 
         var (code, _) = await format.RunComAsync(
-            'G', "NTFS", 4096, "", new Progress<int>(percents.Add), p => handed = p, CancellationToken.None);
+            'G', "NTFS", 4096, "", new SyncProgress<int>(percents.Add), p => handed = p, CancellationToken.None);
 
         Assert.Equal(0, code);
         Assert.NotNull(handed);

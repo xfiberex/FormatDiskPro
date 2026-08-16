@@ -206,6 +206,19 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   seguirá mostrando "editor desconocido". La firma sigue disponible como **opción** del pipeline, no como
   objetivo. El **#38 no lo contradice**: verifica el hash, no exige firmar — de hecho es *más* necesario
   precisamente **porque** no hay firma.
+- **`T4-03` «firmar el instalador» — descartada (2026-08-16), y con ella se cierra la auditoría.** Es la
+  misma decisión que `#13`, que la auditoría reabrió sin querer al listarla como tarea pendiente. Tenerla
+  en el backlog **afirmaba algo falso**: que el proyecto debía firmar y aún no lo había hecho. Lo cierto es
+  que decidió no firmar, y **construyó la verificación por SHA-256 precisamente por eso**.
+  - **No queda trabajo escondido detrás.** El pipeline ya admite firmar (`-CertThumbprint` / `-CertFile` /
+    `-CertPassword` / `-TimestampUrl` en `build-installer.ps1` y `release.ps1`), el `.sha256` se genera
+    **después** de firmar porque firmar cambia el binario, y la ruta Authenticode quedó endurecida en
+    `T1-08` (`WTD_REVOKE_WHOLECHAIN` + `WTD_CACHE_ONLY_URL_RETRIEVAL`). Falta un certificado, que es una
+    **compra**, no ingeniería — y por eso no pertenece a un backlog técnico.
+  - **El día que haya certificado, el trabajo no es «firmar»:** es poner `UpdateService.SignsItsInstallers`
+    en `true` **y** fijar el publicador esperado. Lo primero sin lo segundo reabre el agujero que `T1-08`
+    cerró. Esa condición **ya la vigila un test tripwire** que falla si se hace a medias, así que está
+    mejor custodiada por el build que por una casilla sin marcar.
 - **CI con GitHub Actions — descartado (2026-07-12).** Un runner hospedado **no puede** ejecutar los UI tests
   (necesitan sesión elevada y la USB física de pruebas), así que solo duplicaría los unitarios que
   `release.ps1` ya corre antes de cada corte, con menos cobertura. Misma decisión que en WingetUSoft.
@@ -954,14 +967,60 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
   - **Lo que esto NO es.** No cambia comportamiento: las 398 pruebas anteriores siguen en verde tal cual,
     y el build sigue en 0/0. Tampoco elimina el acoplamiento de `MainWindow`, que sigue siendo una clase
     grande con estado compartido (eso lo dijo ya `T2-08`). Lo que hace es que **fallar sea observable**.
+  - **Corregido el 2026-08-16, y merece quedar escrito: dos de las pruebas nuevas eran intermitentes.**
+    Recogían los reportes de `IProgress<T>` con un `Progress<T>` de la BCL, que **no entrega en el acto**:
+    postea cada reporte al contexto de sincronización o, si no hay ninguno —el caso en una prueba—, al
+    pool. La aserción competía con las entregas, así que **pasaban aisladas y fallaban al correr la suite
+    entera**, que es la peor forma de fallar: parece un fallo del código bajo prueba. Además, acumular en
+    un `List<T>` desde varios hilos del pool no es seguro. Se sustituye por un `IProgress<T>` síncrono
+    (`SyncProgress<T>`). **El servicio no cambia**: en la app esa asincronía es la correcta, porque WinUI
+    ordena los reportes por el contexto de la UI. Confirmado con **6 pasadas seguidas** de la suite
+    completa, 433/433 cada una.
 
-- [ ] **[T4-03] Firmar el instalador** — reabriría la decisión `#13`, cerrada el 2026-06-24. Solo tiene
-  sentido si aparece presupuesto para un certificado; haría a `T1-08` relevante en producción.
+- [x] ~~**[T4-03] Firmar el instalador**~~ — ❌ **DESCARTADA (2026-08-16).** Ver
+  *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
   *Área: Seguridad · Esfuerzo: alto · Depende de: ninguna*
+  - **No se descarta por coste, sino porque no era una tarea.** Entró en la auditoría como pendiente y
+    en realidad **contradecía una decisión ya cerrada** (`#13`, 2026-06-24, reafirmada al resolver
+    `T1-08`): este proyecto se distribuye por GitHub Releases sin firmar, y por eso existe la
+    verificación por **SHA-256**. Tenerla abierta insinuaba que el proyecto «debía» firmar y aún no lo
+    había hecho, cuando lo cierto es lo contrario.
+  - **Nada queda sin hacer.** El pipeline **ya admite firmar**: `build-installer.ps1` y `release.ps1`
+    aceptan `-CertThumbprint`/`-CertFile`/`-CertPassword`/`-TimestampUrl`, el `.sha256` se genera
+    **después** de firmar (firmar cambia el binario) y `UpdateService` tiene lista la ruta Authenticode
+    con `WTD_REVOKE_WHOLECHAIN` (`T1-08`). Lo único que falta es un certificado, que no es trabajo de
+    ingeniería sino una compra.
+  - **Y si algún día se compra, el trabajo no es «firmar».** Es poner
+    `UpdateService.SignsItsInstallers` en `true` **y** fijar el publicador esperado, las dos cosas: lo
+    primero sin lo segundo reabre el agujero que `T1-08` cerró —una firma válida de *cualquiera*
+    saltándose el hash, con el instalador ejecutándose como administrador—. Hay un **test tripwire** que
+    falla si se hace a medias, así que esa condición ya está vigilada por el build y no necesita vivir
+    en el backlog.
 
-- [ ] **[T4-04] Más capturas en el README** — hoy 3; el modo galería de `tools/capture-screenshots.ps1` ya
-  produce 12 en claro y oscuro. *(Ya listado como pulido opcional en `CONTEXT.md` §6.)*
+- [x] **[T4-04] Más capturas en el README** — eran 3; el modo galería de `tools/capture-screenshots.ps1`
+  ya producía 12 en claro y oscuro. *(Estaba listado como pulido opcional en `CONTEXT.md` §6.)*
   *Área: Documentación · Esfuerzo: bajo · Depende de: ninguna*
+  - **Resuelta el 2026-08-16.** El README pasa de **3 a 12** capturas: ventana principal, S.M.A.R.T.,
+    chkdsk, reinicializar, confirmación destructiva e historial, **cada una en los dos temas**. Se
+    regeneraron todas —las anteriores eran de la v1.15.2— fotografiando el **publish self-contained**,
+    que es lo que se distribuye.
+  - **La galería sigue siendo un artefacto de revisión y sigue ignorada por git.** Lo que se versiona es
+    el subconjunto elegido, copiado a `docs/screenshots/`. 415 KB en total: un README con 12 PNG no
+    tiene por qué pesar.
+  - **Encontró un defecto real en la herramienta, y ese es el valor que no estaba en la tarea.** Tres
+    tomas (`reinit`, `confirm`, `checkdisk`) esperaban con un `Start-Sleep` fijo de 1,2 s en vez de
+    esperar a un elemento, como sí hace el resto —y como decía el comentario que las encabeza—. Sobre
+    una unidad **extraíble válida**, *Reinicializar* consulta antes el número de disco físico del
+    objetivo y el de Windows (dos llamadas a PowerShell) para la guarda de «no es el disco del
+    sistema»: la foto salía con la ventana principal **y sin diálogo**. Ahora esperan al `InputBox` de
+    `ConfirmDialog` y al `CheckScanButton`.
+  - **Y una trampa que solo se ve mirando las fotos:** capturar *Reinicializar* sin `-Drive <USB>` no
+    falla — produce una imagen del mensaje «solo unidades extraíbles». Es la **guarda**, no la
+    característica, y habría acabado en el README como si lo fuera. Queda avisado en el README junto al
+    comando.
+  - **De ahí que las 12 no salgan todas de la misma unidad:** *Reinicializar* y *chkdsk* van sobre la
+    USB de pruebas, y el resto sobre un SSD interno, porque un USB **no expone** los contadores
+    S.M.A.R.T. que hacen interesante esa pantalla. El README lo dice en vez de disimularlo.
 
 - [x] **[T4-05] Renombrar el `Name` interno del formulario** — resto de la migración desde Windows Forms.
   *(Estaba listado como pulido opcional en `CONTEXT.md` §6.)*
@@ -1107,15 +1166,22 @@ hemos salido.**
 | 2026-08-15 | **T2-01** | `StatusText` como región activa `Polite` + notificación UIA en los hitos (inicio/fin/error/cancelación), nunca por tick. +1 prueba de UI. |
 | 2026-08-15 | **T2-02** | Error de etiqueta `Assertive` y vinculado al campo con `DescribedBy`. +1 prueba de UI. *(Un `Collapsed` no está en el árbol UIA.)* |
 | 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
+| 2026-08-16 | ~~**T4-03**~~ | ❌ **Descartada.** Contradecía la decisión `#13` (no se firma) desde que se escribió. El pipeline ya admite firmar; lo que falta es un certificado, que es una compra y no una tarea. Ver *Decisiones cerradas*. |
+| 2026-08-16 | **T4-04** | README de 3 a 12 capturas (6 pantallas × 2 temas), regeneradas sobre el publish. Arreglados 3 disparos del script que esperaban por tiempo en vez de por elemento. |
 | 2026-08-16 | **T4-02** | Inyección de dependencias: 11 servicios con interfaz + raíz de composición `AppServices` + costura `IProcessRunner`. Los caminos de error se prueban sin hardware. +35 pruebas (398 → 433). |
 | 2026-08-16 | **T4-01** | `CHANGELOG.md` (Keep a Changelog) con las 28 versiones, fechas tomadas de los tags de git. `release.ps1` aborta si falta la sección de la versión a publicar. |
 | 2026-08-16 | **T4-05** | `SetFormEnabled` → `SetControlsEnabled` y fuera el comentario «same as MainForm»: últimos rastros de Windows Forms. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 38/40 completadas · 1 descartada (`T2-10`) · **2 abiertas** (T0: 0 · **T1: 0** · **T2: 0** · **T3: 0** · T4: 2).
-**Tiers 0, 1, 2 y 3 cerrados.** Del **Tier 4** quedan solo las dos que dependen de algo ajeno al código:
-**`T4-03`** (firmar el instalador) necesita presupuesto para un certificado y reabriría la decisión `#13`,
-y **`T4-04`** (más capturas) espera una tanda regenerada con `tools/capture-screenshots.ps1`.
+**Estado: AUDITORÍA CERRADA (2026-08-16).** 39/40 completadas · 2 descartadas (`T2-10` CI, `T4-03` firma)
+· **0 abiertas** (T0: 0 · T1: 0 · T2: 0 · T3: 0 · **T4: 0**).
+
+Las dos descartadas no son deuda aparcada: **son decisiones tomadas**, y viven en
+*[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)* con su porqué. `T2-10` (CI) se llegó a
+implementar y se revirtió; `T4-03` (firmar) contradecía la decisión `#13` desde el día en que se escribió.
+
+Lo único abierto del repositorio es el **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)**, que
+**no** forma parte de la auditoría: añade funcionalidad, que es justo lo que ninguna tarea `T0`–`T4` hace.
 **Aparte de las 40**, el **Tier 5** (5 tareas, abierto desde el 2026-08-15) recoge ampliaciones de features
 ya entregadas; no cuenta en este progreso porque no es remediación.
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows

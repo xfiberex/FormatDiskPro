@@ -16,7 +16,7 @@
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **433** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-16 (auditoría **38/40**: `T4-01`/`T4-02`/`T4-05` cerradas · **Services inyectables** · `CHANGELOG.md` · **Tier 5 «Ocurrencias» abierto** · **CI descartada: el testing es local**) |
+| **Última actualización** | 2026-08-16 (**AUDITORÍA CERRADA 39/40 + 2 descartadas** · Services inyectables · `CHANGELOG.md` · README con 12 capturas · **Tier 5 «Ocurrencias»: lo único abierto**) |
 
 ---
 
@@ -135,8 +135,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | UI tests | **27** en total · con la USB (`utilidades`, sin opt-in): **24 pasan / 3 se omiten / 0 fallan** (2026-08-15) · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.20.0** (2026-08-15) · `master` con `T4-01`/`T4-02`/`T4-05` **sin publicar** (ver *Sin publicar* en [`CHANGELOG.md`](CHANGELOG.md)) |
-| Auditoría | 2026-08-13 — **38/40 completadas** + 1 descartada (`T2-10`, CI) · **Tiers 0–3 cerrados**; del Tier 4 quedan `T4-03` (certificado) y `T4-04` (capturas) ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
-| Ocurrencias | **Tier 5** abierto (2026-08-15): 5 tareas de ampliación de features ya entregadas, **fuera** del recuento de la auditoría. Primera: el espacio que *FAT32 pequeña* deja sin asignar |
+| Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
+| Ocurrencias | **Tier 5** abierto (2026-08-15) — **lo único abierto del repo**: 5 ampliaciones de features ya entregadas, **fuera** del recuento de la auditoría. Primera: el espacio que *FAT32 pequeña* deja sin asignar |
 
 **Tiers completados**
 
@@ -178,8 +178,17 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   PR externo no ejecuta nada hasta que el mantenedor lo corre en su máquina.
 - **Protección de unidades:** SOLO se protege el **disco de sistema** (`IsSystemDrive()`). El resto
   —removibles, discos de datos fijos, RAM— **sí** se pueden formatear.
-- **No se firma el instalador** (#13, 2026-06-24): SmartScreen dirá "editor desconocido". La firma sigue
-  disponible como **opción** del pipeline. Es lo que hace **necesaria** la verificación por SHA-256.
+- **No se firma el instalador** (#13, 2026-06-24; **reafirmado el 2026-08-16 al descartar `T4-03`**):
+  SmartScreen dirá "editor desconocido". La firma sigue disponible como **opción** del pipeline
+  (`-CertThumbprint`/`-CertFile`/`-CertPassword`/`-TimestampUrl`). Es lo que hace **necesaria** la
+  verificación por SHA-256.
+  La auditoría había reabierto esto sin querer, listando «firmar el instalador» como tarea pendiente:
+  eso **afirmaba que el proyecto debía firmar y aún no lo había hecho**, cuando lo cierto es que decidió
+  no firmar y construyó la verificación por hash justamente por eso. Lo que falta es un **certificado**,
+  que es una compra y no ingeniería, así que no pertenece a un backlog técnico.
+  **El día que lo haya, el trabajo no es «firmar»**: es poner `UpdateService.SignsItsInstallers` en `true`
+  **y** fijar el publicador esperado — lo primero sin lo segundo reabre el agujero de `T1-08`—, y esa
+  condición ya la vigila un test tripwire que falla si se hace a medias.
 
 ### Seguridad
 
@@ -317,9 +326,10 @@ es (ver §4).
 clientes ≤ 1.14.1 llegaron a la 1.15.0 con el código viejo, que no verificaba nada. El primer uso real es
 **1.15.0 → 1.15.1**.
 
-Pulido opcional, sin impacto: más capturas (hoy 3) y que la validación de etiqueta no rechace `'` (menor,
-por diseño: el escape lo cubre). Lo de «renombrar el `Name` interno del form» quedó hecho en `T4-05`
-(2026-08-16): eran `SetFormEnabled` y un comentario, no una propiedad `Name`.
+Del pulido opcional que listaba esta sección ya no queda casi nada: las **capturas** pasaron de 3 a 12
+(`T4-04`) y el «renombrar el `Name` interno del form» resultó ser `SetFormEnabled` y un comentario, no una
+propiedad `Name` (`T4-05`). Sigue abierto, y sigue siendo menor por diseño: la validación de etiqueta no
+rechaza `'` (el escape lo cubre).
 
 ## 7. Cómo mantener este documento
 
@@ -339,7 +349,7 @@ por diseño: el escape lo cubre). Lo de «renombrar el `Name` interno del form»
 
 | Versión | Qué trajo |
 |---|---|
-| *(sin publicar)* | `T4-01`/`T4-02`/`T4-05`: `CHANGELOG.md` con puerta en el corte, `Services` inyectables con raíz de composición y costura `IProcessRunner` (+35 pruebas de caminos de error, ninguna toca un disco), y fuera el último resto de Windows Forms. |
+| *(sin publicar)* | **Auditoría cerrada.** `CHANGELOG.md` con puerta en el corte, `Services` inyectables con raíz de composición y costura `IProcessRunner` (+35 pruebas de caminos de error, ninguna toca un disco), README con 12 capturas, y fuera el último resto de Windows Forms. `T4-03` (firmar) descartada: contradecía `#13`. |
 | **1.20.0** | **Tier 3 cerrado.** Pulido de lo que fallaba en silencio: la exportación CSV del historial informa del error real, la salud ilegible se muestra como «no disponible», el borrado seguro usa RNG criptográfico, las preferencias se normalizan al cargarlas, los iconos decorativos salen del árbol de accesibilidad y un marcador mal escrito en una traducción ya no tumba una pantalla. |
 | **1.19.0** | **Tier 2 cerrado.** *Verificar capacidad* deja de poder leer de la caché del sistema (se acabaron los falsos OK en unidades pequeñas). Cobertura de `Core/` medida (97 %) y exigida en el corte; `MainWindow` repartido (2107 → 753 líneas) sin cambiar comportamiento; `SECURITY.md` y `CONTRIBUTING.md`. |
 | **1.18.0** | Tercera tanda de la auditoría: las operaciones se pueden seguir con un lector de pantalla (región activa + notificación en los hitos), el error de etiqueta se lee desde su campo, el `.sha256` se empareja con su instalador y se lee acotado, `history.log` rota. El corte declara qué cobertura de UI no ejerció. |
@@ -368,6 +378,47 @@ por diseño: el escape lo cubre). Lo de «renombrar el `Name` interno del form»
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-16 — `T4-04` y `T4-03`: la auditoría queda cerrada
+
+Con estas dos, la Parte 2 del ROADMAP se cierra: **39/40 completadas y 2 descartadas**, 0 abiertas. Lo
+único que queda vivo en el repositorio es el Tier 5, que no es remediación sino ampliación.
+
+**`T4-03` — descartada, y el motivo no es el dinero.** Es que **nunca fue una tarea**: «firmar el
+instalador» contradice la decisión `#13` (2026-06-24), que ya había decidido *no* firmar y que es la razón
+de existir de la verificación por SHA-256. Tenerla abierta en el backlog afirmaba algo falso —que el
+proyecto debía firmar y aún no lo había hecho— cuando lo cierto es lo contrario.
+
+> **Y no esconde trabajo pendiente.** El pipeline ya admite firmar, el `.sha256` se genera *después* de
+> firmar (firmar cambia el binario) y la ruta Authenticode quedó endurecida en `T1-08`. Falta un
+> certificado, que es una **compra**. El día que aparezca, lo que hay que hacer no es «firmar»: es poner
+> `SignsItsInstallers` en `true` **y** fijar el publicador esperado, y esa condición ya la vigila un test
+> tripwire que falla si se hace a medias. Está mejor custodiada por el build que por una casilla.
+
+**`T4-04` — el README pasa de 3 a 12 capturas**, seis pantallas en los dos temas: principal, S.M.A.R.T.,
+chkdsk, reinicializar, confirmación destructiva e historial. Se regeneraron todas (las anteriores eran de
+la v1.15.2) fotografiando el **publish self-contained**, que es lo que se distribuye. La galería completa
+sigue siendo un artefacto de revisión y sigue ignorada por git; lo que se versiona son las 12 elegidas.
+
+> **La tarea decía «copiar capturas» y lo que apareció fue un defecto en la herramienta.** Tres tomas
+> —`reinit`, `confirm`, `checkdisk`— esperaban con un `Start-Sleep` fijo de 1,2 s en lugar de esperar a un
+> elemento, pese a que el comentario que las encabeza afirma que todas «esperan a un elemento estable».
+> Sobre una unidad **extraíble válida**, *Reinicializar* consulta antes el número de disco físico del
+> objetivo y el de Windows —dos llamadas a PowerShell— para la guarda de «no es el disco del sistema»: la
+> foto salía con la ventana principal **y sin ningún diálogo**. Ahora esperan al `InputBox` de
+> `ConfirmDialog` y al `CheckScanButton`.
+
+**La trampa que solo se ve mirando las fotos, no ejecutando el script:** capturar *Reinicializar* sin
+`-Drive <USB>` **no falla** — produce una imagen impecable del mensaje «solo unidades extraíbles». Eso es
+la **guarda**, no la característica, y habría acabado en el README anunciando lo que la app *no* hace. Es
+la misma lección que `T2-12` en otro sitio: un proceso que termina en verde no está diciendo que el
+resultado sea bueno. Queda avisado en el README, junto al comando.
+
+Por eso las 12 no salen todas de la misma unidad: *Reinicializar* y *chkdsk* van sobre la USB de pruebas y
+el resto sobre un SSD interno, porque **un USB no expone los contadores S.M.A.R.T.** que hacen interesante
+esa pantalla. El README lo explica en vez de disimularlo.
 
 ---
 
