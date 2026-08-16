@@ -1,7 +1,15 @@
-using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 
 namespace FormatDiskPro;
+
+/// <summary>Reinicializa una unidad extraíble: limpia el disco físico y recrea su partición.</summary>
+public interface IReinitDrive
+{
+    /// <inheritdoc cref="ReinitDrive.RunAsync"/>
+    Task<ReinitResult> RunAsync(
+        char letter, DiskPartitionStyle style, string fileSystem, string label, long? partitionSizeBytes,
+        IProgress<string> stage, CancellationToken ct);
+}
 
 /// <summary>
 /// Reinicializa una unidad extraíble: limpia el disco físico y recrea una única partición primaria
@@ -14,7 +22,7 @@ namespace FormatDiskPro;
 /// disco, no solo la unidad seleccionada. La capa de UI aplica las guardas (solo extraíbles, no el disco
 /// del sistema, y disco físico distinto al de Windows) antes de invocar este servicio.
 /// </remarks>
-public static class ReinitDrive
+public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
 {
     /// <summary>
     /// Limpia y recrea la partición de la unidad <paramref name="letter"/>, formateándola con
@@ -31,7 +39,7 @@ public static class ReinitDrive
     /// <param name="stage">Etapa en curso, como token sin traducir.</param>
     /// <param name="ct">Token de cancelación (mata el proceso al cancelar).</param>
     /// <returns>Resultado con éxito, nueva letra y detalle de error si lo hubo.</returns>
-    public static async Task<ReinitResult> RunAsync(
+    public async Task<ReinitResult> RunAsync(
         char letter, DiskPartitionStyle style, string fileSystem, string label, long? partitionSizeBytes,
         IProgress<string> stage, CancellationToken ct)
     {
@@ -73,20 +81,15 @@ public static class ReinitDrive
         byte[] bytes   = Encoding.Unicode.GetBytes(script);
         string encoded = Convert.ToBase64String(bytes);
 
-        var psi = new ProcessStartInfo
+        var spec = new ProcessSpec
         {
-            FileName               = "powershell.exe",
-            Arguments              = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
-            UseShellExecute        = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            CreateNoWindow         = true,
+            FileName  = "powershell.exe",
+            Arguments = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
         };
 
         try
         {
-            using var proc = new Process { StartInfo = psi };
-            proc.Start();
+            using var proc = runner.Start(spec);
             using var reg = ct.Register(() => { try { proc.Kill(entireProcessTree: true); } catch { } });
 
             var errTask = proc.StandardError.ReadToEndAsync(CancellationToken.None);

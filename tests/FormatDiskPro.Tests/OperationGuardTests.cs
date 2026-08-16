@@ -1,4 +1,4 @@
-using FormatDiskPro;
+﻿using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -17,7 +17,7 @@ public sealed class OperationGuardTests
     [Fact]
     public async Task Benchmark_MissingDrive_ReturnsNullWithoutThrowing()
     {
-        var result = await BenchmarkRunner.RunAsync(
+        var result = await new BenchmarkRunner().RunAsync(
             Missing, new Progress<(BenchPhase, int)>(), CancellationToken.None);
 
         Assert.Null(result);
@@ -32,7 +32,7 @@ public sealed class OperationGuardTests
     [InlineData('\\')]
     [InlineData(' ')]
     public async Task Benchmark_NonLetter_IsRejectedBeforeTouchingTheDisk(char notALetter)
-        => Assert.Null(await BenchmarkRunner.RunAsync(
+        => Assert.Null(await new BenchmarkRunner().RunAsync(
             notALetter, new Progress<(BenchPhase, int)>(), CancellationToken.None));
 
     [Theory]
@@ -41,8 +41,15 @@ public sealed class OperationGuardTests
     [InlineData(' ')]
     public async Task CheckDisk_NonLetter_ReturnsFailureCodeWithoutLaunchingChkdsk(char notALetter)
     {
-        var (code, output) = await CheckDisk.RunAsync(
+        // El runner prohibido convierte el nombre de la prueba en una afirmación comprobada: si la
+        // guarda dejara pasar la letra, arrancar chkdsk.exe haría fallar la prueba en vez de pasar
+        // desapercibido. Antes solo se podía deducir del código de salida.
+        var runner = FakeProcessRunner.Forbidden();
+
+        var (code, output) = await new CheckDisk(runner).RunAsync(
             notALetter, repair: false, new Progress<int>(), CancellationToken.None);
+
+        Assert.Empty(runner.Started);
 
         Assert.Equal(-1, code);
         Assert.Equal("", output);

@@ -244,7 +244,7 @@ public sealed class UpdateServiceTests
         string destination = ScratchInstallerPath();
         try
         {
-            string path = await UpdateService.DownloadAsync(
+            string path = await new UpdateService().DownloadAsync(
                 Release(server), progress: null, CancellationToken.None, destination);
 
             Assert.Equal(destination, path);
@@ -272,7 +272,7 @@ public sealed class UpdateServiceTests
         try
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                UpdateService.DownloadAsync(Release(server), null, CancellationToken.None, destination));
+                new UpdateService().DownloadAsync(Release(server), null, CancellationToken.None, destination));
 
             // Un instalador que no se pudo verificar no puede quedarse en disco esperando a que alguien
             // lo ejecute como administrador.
@@ -309,7 +309,7 @@ public sealed class UpdateServiceTests
         try
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                UpdateService.DownloadAsync(Release(server), null, CancellationToken.None, destination));
+                new UpdateService().DownloadAsync(Release(server), null, CancellationToken.None, destination));
 
             Assert.False(File.Exists(destination));
         }
@@ -370,7 +370,7 @@ public sealed class UpdateServiceTests
         try
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                UpdateService.DownloadAsync(
+                new UpdateService().DownloadAsync(
                     Release(server, withChecksum: false), null, CancellationToken.None, destination));
 
             Assert.False(File.Exists(destination));
@@ -397,7 +397,7 @@ public sealed class UpdateServiceTests
         try
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                UpdateService.DownloadAsync(
+                new UpdateService().DownloadAsync(
                     Release(server, withChecksum: false), null, CancellationToken.None, destination));
 
             Assert.False(File.Exists(destination));

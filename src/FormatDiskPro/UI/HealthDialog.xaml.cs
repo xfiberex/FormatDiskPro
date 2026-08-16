@@ -1,4 +1,4 @@
-using Microsoft.UI.Text;
+﻿using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -15,11 +15,13 @@ public sealed partial class HealthDialog : ContentDialog
     private readonly bool _dark;
     private readonly char _letter;
     private readonly string _driveLabel;
+    private readonly IDiskService _disk;
 
-    public HealthDialog(bool dark, char letter, string driveLabel)
+    public HealthDialog(bool dark, char letter, string driveLabel, IDiskService disk)
     {
         InitializeComponent();
         _dark = dark;
+        _disk = disk;
         _letter = letter;
         _driveLabel = driveLabel;
 
@@ -55,7 +57,7 @@ public sealed partial class HealthDialog : ContentDialog
         StatusText.Text = L.T("health.querying");
         RowsPanel.Children.Clear();
         NoteText.Visibility = Visibility.Collapsed;
-        var info = await DiskService.GetSmartAsync(_letter);
+        var info = await _disk.GetSmartAsync(_letter);
         Populate(info);
     }
 

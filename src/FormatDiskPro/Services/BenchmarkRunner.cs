@@ -22,7 +22,15 @@ public enum BenchPhase { Preparing, SeqWrite, SeqRead, RndWrite, RndRead }
 /// frío y los picos transitorios. La E/S sin caché exige buffers y desplazamientos alineados al sector: los
 /// buffers se fijan con <see cref="GCHandle"/> y se toma un sub-rango alineado.</para>
 /// </remarks>
-public static class BenchmarkRunner
+public interface IBenchmarkRunner
+{
+    /// <inheritdoc cref="BenchmarkRunner.RunAsync"/>
+    Task<BenchmarkResult?> RunAsync(
+        char letter, IProgress<(BenchPhase phase, int percent)> progress, CancellationToken ct);
+}
+
+/// <inheritdoc cref="IBenchmarkRunner"/>
+public sealed class BenchmarkRunner : IBenchmarkRunner
 {
     private const int SeqBlock      = 1024 * 1024;   // 1 MiB por operación secuencial (estilo SEQ1M)
     private const int RndBlock      = 4096;          // 4 KiB por operación aleatoria (estilo RND4K)
@@ -45,7 +53,7 @@ public static class BenchmarkRunner
     /// <param name="ct">Token de cancelación.</param>
     /// <returns>Velocidades secuenciales y de 4 KiB aleatorio y tamaño probado, o <c>null</c> si no se pudo medir.</returns>
     /// <exception cref="OperationCanceledException">Si se cancela mediante <paramref name="ct"/>.</exception>
-    public static async Task<BenchmarkResult?> RunAsync(
+    public async Task<BenchmarkResult?> RunAsync(
         char letter, IProgress<(BenchPhase phase, int percent)> progress, CancellationToken ct)
     {
         if (!char.IsLetter(letter)) return null;

@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml.Controls;
 
 namespace FormatDiskPro.UI;
 
@@ -9,7 +9,8 @@ namespace FormatDiskPro.UI;
 /// </summary>
 public sealed partial class AboutDialog : ContentDialog
 {
-    public AboutDialog()
+    /// <param name="updates">Servicio que abre los enlaces externos (GitHub, donaciones).</param>
+    public AboutDialog(IUpdateService updates)
     {
         InitializeComponent();
 
@@ -28,7 +29,7 @@ public sealed partial class AboutDialog : ContentDialog
             PrimaryButtonText = L.T("about.donate");
 
         // Abrir enlaces sin cerrar el diálogo (Cancel = true).
-        PrimaryButtonClick   += (_, args) => { args.Cancel = true; UpdateService.OpenUrl(AppInfo.DonateUrl); };
-        SecondaryButtonClick += (_, args) => { args.Cancel = true; UpdateService.OpenUrl(AppInfo.RepoUrl); };
+        PrimaryButtonClick   += (_, args) => { args.Cancel = true; updates.OpenUrl(AppInfo.DonateUrl); };
+        SecondaryButtonClick += (_, args) => { args.Cancel = true; updates.OpenUrl(AppInfo.RepoUrl); };
     }
 }

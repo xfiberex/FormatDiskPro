@@ -96,7 +96,7 @@ public sealed class OperationErrorTests(AppFixture fixture)
             Assert.DoesNotContain("CRASH:", added);
 
             // 5: vuelve a estado ocioso. Se miran DrivePicker y MnuTools, no StartButton: este último es
-            // `enabled && !_isDriveProtected` (SetFormEnabled), y al desaparecer la USB el selector puede
+            // `enabled && !_isDriveProtected` (SetControlsEnabled), y al desaparecer la USB el selector puede
             // caer en C:, que está protegida — quedaría deshabilitado con la app perfectamente ociosa.
             MainWindowActions.WaitUntilEnabled(Window, "DrivePicker", TimeSpan.FromSeconds(15));
             MainWindowActions.WaitUntilEnabled(Window, "MnuTools", TimeSpan.FromSeconds(15));

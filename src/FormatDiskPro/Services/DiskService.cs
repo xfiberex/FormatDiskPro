@@ -1,18 +1,46 @@
-using System.Diagnostics;
 using System.Text;
 
 namespace FormatDiskPro;
 
 /// <summary>
+/// Consultas y cambios de estado sobre unidades: salud S.M.A.R.T., disco físico, protección de
+/// escritura y expulsión.
+/// </summary>
+public interface IDiskService
+{
+    /// <summary>Obtiene salud S.M.A.R.T., tipo de bus y tipo de medio del disco físico de la unidad.</summary>
+    Task<DiskService.HealthInfo?> GetHealthAsync(char letter);
+
+    /// <summary>Obtiene el detalle S.M.A.R.T. extendido del disco físico de la unidad.</summary>
+    Task<SmartInfo?> GetSmartAsync(char letter);
+
+    /// <summary>Indica si el disco físico está en solo lectura; <c>null</c> si no se puede determinar.</summary>
+    Task<bool?> IsDiskReadOnlyAsync(char letter);
+
+    /// <summary>Número de disco físico de la unidad; <c>null</c> si no se puede determinar.</summary>
+    Task<int?> GetDiskNumberAsync(char letter);
+
+    /// <summary>Quita la protección de escritura del disco físico. <c>true</c> si lo logra.</summary>
+    Task<bool> ClearReadOnlyAsync(char letter);
+
+    /// <summary>Expulsa una unidad removible usando el shell de Windows.</summary>
+    Task<bool> EjectAsync(char letter);
+}
+
+/// <summary>
 /// Operaciones sobre unidades vía PowerShell: salud S.M.A.R.T., expulsión y borrado seguro.
 /// Todos los comandos se envían como -EncodedCommand (Base64 UTF-16LE) para evitar inyección.
 /// </summary>
-public static class DiskService
+/// <remarks>
+/// Recibe el <see cref="IProcessRunner"/> por constructor (`T4-02`): así los caminos de error
+/// —salida vacía, texto que no se puede interpretar, PowerShell que no arranca— se prueban sin
+/// disco de por medio. El parseo de la salida sigue viviendo en <c>Core/</c>.
+/// </remarks>
+public sealed class DiskService(IProcessRunner runner) : IDiskService
 {
     public sealed record HealthInfo(string Health, string Bus, string Media);
 
-    /// <summary>Obtiene salud S.M.A.R.T., tipo de bus y tipo de medio del disco físico de la unidad.</summary>
-    public static async Task<HealthInfo?> GetHealthAsync(char letter)
+    public async Task<HealthInfo?> GetHealthAsync(char letter)
     {
         if (!char.IsLetter(letter)) return null;
 
@@ -33,12 +61,11 @@ public static class DiskService
             parts.Length > 2 ? parts[2].Trim() : "?");
     }
 
-    /// <summary>
-    /// Obtiene el detalle S.M.A.R.T. extendido del disco físico de la unidad (salud, bus, medio,
-    /// RPM, temperatura, horas de encendido, desgaste de SSD y errores de lectura/escritura).
+    /// <inheritdoc/>
+    /// <remarks>
     /// Los contadores de fiabilidad pueden no estar disponibles (p. ej. USB) → quedan nulos.
-    /// </summary>
-    public static async Task<SmartInfo?> GetSmartAsync(char letter)
+    /// </remarks>
+    public async Task<SmartInfo?> GetSmartAsync(char letter)
     {
         if (!char.IsLetter(letter)) return null;
 
@@ -52,11 +79,7 @@ public static class DiskService
         return SmartInfo.Parse(output);
     }
 
-    /// <summary>
-    /// Indica si el disco físico de la unidad está en solo lectura (protegido contra escritura).
-    /// Devuelve <c>null</c> si no se puede determinar.
-    /// </summary>
-    public static async Task<bool?> IsDiskReadOnlyAsync(char letter)
+    public async Task<bool?> IsDiskReadOnlyAsync(char letter)
     {
         if (!char.IsLetter(letter)) return null;
 
@@ -70,11 +93,9 @@ public static class DiskService
         return null;
     }
 
-    /// <summary>
-    /// Obtiene el número de disco físico al que pertenece la unidad. Devuelve <c>null</c> si no se
-    /// puede determinar. Se usa como guarda crítica para no reinicializar el disco del sistema.
-    /// </summary>
-    public static async Task<int?> GetDiskNumberAsync(char letter)
+    /// <inheritdoc/>
+    /// <remarks>Guarda crítica: se usa para no reinicializar el disco del sistema.</remarks>
+    public async Task<int?> GetDiskNumberAsync(char letter)
     {
         if (!char.IsLetter(letter)) return null;
 
@@ -86,8 +107,7 @@ public static class DiskService
         return int.TryParse(output, out int number) ? number : null;
     }
 
-    /// <summary>Quita la protección de escritura del disco físico de la unidad. <c>true</c> si lo logra.</summary>
-    public static async Task<bool> ClearReadOnlyAsync(char letter)
+    public async Task<bool> ClearReadOnlyAsync(char letter)
     {
         if (!char.IsLetter(letter)) return false;
 
@@ -98,8 +118,7 @@ public static class DiskService
         return await RunAsync(script) == 0;
     }
 
-    /// <summary>Expulsa una unidad removible usando el shell de Windows.</summary>
-    public static async Task<bool> EjectAsync(char letter)
+    public async Task<bool> EjectAsync(char letter)
     {
         if (!char.IsLetter(letter)) return false;
 
@@ -114,39 +133,35 @@ public static class DiskService
 
     // ── Internos ──────────────────────────────────────────────────
 
-    private static ProcessStartInfo BuildPsi(string script, bool capture)
+    private static ProcessSpec BuildSpec(string script, bool capture)
     {
         byte[] bytes = Encoding.Unicode.GetBytes(script);
         string encoded = Convert.ToBase64String(bytes);
-        return new ProcessStartInfo
+        return new ProcessSpec
         {
             FileName               = "powershell.exe",
             Arguments              = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
-            UseShellExecute        = false,
             RedirectStandardOutput = capture,
             RedirectStandardError  = capture,
-            CreateNoWindow         = true,
         };
     }
 
-    private static async Task<int> RunAsync(string script)
+    private async Task<int> RunAsync(string script)
     {
         try
         {
-            using var proc = new Process { StartInfo = BuildPsi(script, capture: false) };
-            proc.Start();
+            using var proc = runner.Start(BuildSpec(script, capture: false));
             await proc.WaitForExitAsync();
             return proc.ExitCode;
         }
         catch { return -1; }
     }
 
-    private static async Task<string> RunCapturedAsync(string script)
+    private async Task<string> RunCapturedAsync(string script)
     {
         try
         {
-            using var proc = new Process { StartInfo = BuildPsi(script, capture: true) };
-            proc.Start();
+            using var proc = runner.Start(BuildSpec(script, capture: true));
             var outTask = proc.StandardOutput.ReadToEndAsync();
             await proc.WaitForExitAsync();
             return await outTask;

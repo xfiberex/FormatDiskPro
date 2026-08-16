@@ -7,7 +7,20 @@ namespace FormatDiskPro;
 /// minimizada — complementa el aviso al terminar (<see cref="Notifier"/>). Vía COM/Win32; si el shell
 /// no expone la interfaz (poco común), las llamadas quedan en no-op y el progreso solo se ve en la app.
 /// </summary>
-public static class TaskbarProgress
+public interface ITaskbarProgress
+{
+    /// <summary>Progreso normal (0-100 %) en el icono de la barra de tareas.</summary>
+    void SetValue(IntPtr hwnd, int percent);
+
+    /// <summary>Progreso indeterminado (operación en marcha sin porcentaje conocido).</summary>
+    void SetIndeterminate(IntPtr hwnd);
+
+    /// <summary>Quita el progreso del icono (operación terminada).</summary>
+    void Clear(IntPtr hwnd);
+}
+
+/// <inheritdoc cref="ITaskbarProgress"/>
+public sealed class TaskbarProgress : ITaskbarProgress
 {
     private enum TbpFlag : uint
     {
@@ -45,7 +58,7 @@ public static class TaskbarProgress
     }
 
     /// <summary>Progreso normal (0-100 %) en el icono de la barra de tareas.</summary>
-    public static void SetValue(IntPtr hwnd, int percent)
+    public void SetValue(IntPtr hwnd, int percent)
     {
         try
         {
@@ -56,14 +69,14 @@ public static class TaskbarProgress
     }
 
     /// <summary>Progreso indeterminado (barra animada, sin porcentaje) en el icono.</summary>
-    public static void SetIndeterminate(IntPtr hwnd)
+    public void SetIndeterminate(IntPtr hwnd)
     {
         try { Instance?.SetProgressState(hwnd, TbpFlag.Indeterminate); }
         catch { }
     }
 
     /// <summary>Quita el progreso del icono (operación terminada, con o sin error).</summary>
-    public static void Clear(IntPtr hwnd)
+    public void Clear(IntPtr hwnd)
     {
         try { Instance?.SetProgressState(hwnd, TbpFlag.NoProgress); }
         catch { }

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
@@ -27,11 +27,43 @@ public sealed record ReleaseInfo(
     long AssetSize,
     string ChecksumUrl = "");
 
+/// <summary>Actualizaciones vía GitHub Releases: consulta, descarga verificada e instalación.</summary>
+public interface IUpdateService
+{
+    /// <inheritdoc cref="UpdateService.GetLatestAsync"/>
+    Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default);
+
+    /// <inheritdoc cref="UpdateService.GetReleaseByTagAsync"/>
+    Task<ReleaseInfo?> GetReleaseByTagAsync(string tag, CancellationToken ct = default);
+
+    /// <inheritdoc cref="UpdateService.CheckForUpdateAsync"/>
+    Task<ReleaseInfo?> CheckForUpdateAsync(CancellationToken ct = default);
+
+    /// <inheritdoc cref="UpdateService.DownloadAsync"/>
+    Task<string> DownloadAsync(
+        ReleaseInfo release, IProgress<int>? progress, CancellationToken ct, string? destinationPath = null);
+
+    /// <inheritdoc cref="UpdateService.LaunchInstaller"/>
+    void LaunchInstaller(string installerPath, bool silent = false);
+
+    /// <inheritdoc cref="UpdateService.OpenUrl"/>
+    void OpenUrl(string url);
+}
+
 /// <summary>
 /// Soporte de actualizaciones vía GitHub Releases: consulta la última versión,
 /// descarga el instalador y lo ejecuta. La comparación de versiones vive en <see cref="UpdateChecker"/>.
 /// </summary>
-public static class UpdateService
+/// <remarks>
+/// <b>Lo que aquí NO se instancia, y por qué.</b> `T4-02` convirtió los servicios en objetos inyectables
+/// para poder probar sus caminos de error sin hardware. Este ya se probaba entero —sus pruebas levantan
+/// un servidor HTTP local y ejercitan hash correcto, hash que no coincide, checksum ausente y respuesta
+/// desmedida—, así que sus miembros internos (<c>ParseRelease</c>, <c>ComputeSha256Async</c>,
+/// <c>VerifyInstallerAsync</c>…) siguen siendo <c>static</c>: tocarlos sería reescribir la ruta de
+/// verificación que se ejecuta <b>elevada</b>, sin ganar una sola prueba. Lo que se instancia es la
+/// superficie que consume la UI, para que dependa de <see cref="IUpdateService"/> y no de un tipo estático.
+/// </remarks>
+public sealed class UpdateService : IUpdateService
 {
     private static readonly HttpClient Http = CreateClient();
 
@@ -48,14 +80,14 @@ public static class UpdateService
     }
 
     /// <summary>Obtiene la última versión publicada, o null si no se pudo determinar.</summary>
-    public static Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default)
+    public Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default)
         => GetFromUrlAsync(AppInfo.LatestReleaseApiUrl, ct);
 
     /// <summary>
     /// Obtiene la versión publicada con el tag indicado (p. ej. <c>v1.7.0</c>), o null si no existe.
     /// Se usa para mostrar las novedades de la versión instalada tras una actualización.
     /// </summary>
-    public static Task<ReleaseInfo?> GetReleaseByTagAsync(string tag, CancellationToken ct = default)
+    public Task<ReleaseInfo?> GetReleaseByTagAsync(string tag, CancellationToken ct = default)
         => string.IsNullOrWhiteSpace(tag)
             ? Task.FromResult<ReleaseInfo?>(null)
             : GetFromUrlAsync(AppInfo.ReleaseByTagApiUrl(tag), ct);
@@ -142,7 +174,7 @@ public static class UpdateService
     }
 
     /// <summary>Devuelve la última versión solo si es más reciente que la instalada; null en caso contrario.</summary>
-    public static async Task<ReleaseInfo?> CheckForUpdateAsync(CancellationToken ct = default)
+    public async Task<ReleaseInfo?> CheckForUpdateAsync(CancellationToken ct = default)
     {
         var latest = await GetLatestAsync(ct);
         if (latest is null) return null;
@@ -155,7 +187,7 @@ public static class UpdateService
     /// archivo descargado; si no se puede verificar, lo borra y lanza.
     /// </summary>
     /// <param name="destinationPath">Solo para pruebas: si es null se usa la carpeta temporal habitual.</param>
-    public static async Task<string> DownloadAsync(
+    public async Task<string> DownloadAsync(
         ReleaseInfo release, IProgress<int>? progress, CancellationToken ct, string? destinationPath = null)
     {
         if (string.IsNullOrEmpty(release.AssetUrl))
@@ -488,7 +520,7 @@ public static class UpdateService
     /// Si es <see langword="true"/>, lo ejecuta en modo silencioso (`/VERYSILENT`) y le indica
     /// que relance la app al terminar (`/AUTOUPDATE=1`), para una actualización sin interrupción.
     /// </param>
-    public static void LaunchInstaller(string installerPath, bool silent = false)
+    public void LaunchInstaller(string installerPath, bool silent = false)
     {
         var psi = new ProcessStartInfo(installerPath) { UseShellExecute = true };
         if (silent) psi.Arguments = "/VERYSILENT /NORESTART /AUTOUPDATE=1";
@@ -496,7 +528,7 @@ public static class UpdateService
     }
 
     /// <summary>Abre una URL en el navegador predeterminado.</summary>
-    public static void OpenUrl(string url)
+    public void OpenUrl(string url)
     {
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
     }

@@ -49,7 +49,7 @@ public static class TestDrive
     /// <summary>
     /// ¿Hay alguna unidad montada que NO sea la de sistema? Las pruebas de la tarjeta de opciones no
     /// tocan ninguna unidad, pero necesitan que haya una seleccionable: sobre la de sistema
-    /// (<c>[Protegido] C:</c>) <c>SetFormEnabled</c> deshabilita casi todos esos controles.
+    /// (<c>[Protegido] C:</c>) <c>SetControlsEnabled</c> deshabilita casi todos esos controles.
     ///
     /// <para>Es una precondición de <b>máquina</b>, no de la USB de pruebas: un equipo con un solo disco
     /// no la cumple. Antes eso salía en <b>rojo</b> —cuatro fallos que no eran fallos— y este proyecto ya

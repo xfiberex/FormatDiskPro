@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 
 namespace FormatDiskPro.Tests;
 
@@ -13,12 +13,16 @@ public sealed class HistoryTests : IDisposable
 {
     private readonly string _dir;
     private readonly string _log;
+    // La ruta se inyecta por constructor (T4-02): antes hacía falta una costura `internal static`
+    // con la ruta como parámetro para no escribir en el %AppData% real.
+    private readonly History _history;
 
     public HistoryTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), $"fdp_history_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_dir);
         _log = Path.Combine(_dir, "history.log");
+        _history = new History(_log);
     }
 
     public void Dispose()
@@ -44,11 +48,11 @@ public sealed class HistoryTests : IDisposable
     [Fact]
     public void LogTo_BelowThreshold_DoesNotRotate()
     {
-        History.LogTo(_log, "FORMAT OK G:");
-        History.LogTo(_log, "VERIFY OK G:");
+        _history.Log("FORMAT OK G:");
+        _history.Log("VERIFY OK G:");
 
         Assert.False(File.Exists(Previous));
-        Assert.Equal(2, HistoryEntry.ParseAll(History.ReadLinesFrom(_log)).Count);
+        Assert.Equal(2, HistoryEntry.ParseAll(_history.ReadLines()).Count);
     }
 
     [Fact]
@@ -56,7 +60,7 @@ public sealed class HistoryTests : IDisposable
     {
         FillToThreshold("VIEJA");
 
-        History.LogTo(_log, "NUEVA");
+        _history.Log("NUEVA");
 
         Assert.True(File.Exists(Previous), "La generación anterior debería estar en history.1.log.");
         Assert.True(new FileInfo(_log).Length < HistoryRotation.MaxBytes,
@@ -73,9 +77,9 @@ public sealed class HistoryTests : IDisposable
     public void ReadLinesFrom_AfterRotation_StillShowsTheOlderEntries()
     {
         FillToThreshold("VIEJA");
-        History.LogTo(_log, "NUEVA");
+        _history.Log("NUEVA");
 
-        var entries = HistoryEntry.ParseAll(History.ReadLinesFrom(_log));
+        var entries = HistoryEntry.ParseAll(_history.ReadLines());
 
         Assert.Contains(entries, e => e.Detail.Contains("VIEJA", StringComparison.Ordinal));
         Assert.Contains(entries, e => e.Detail.Contains("NUEVA", StringComparison.Ordinal));
@@ -91,9 +95,9 @@ public sealed class HistoryTests : IDisposable
     public void LogTo_RotatingTwice_KeepsOnlyTwoGenerations()
     {
         FillToThreshold("PRIMERA");
-        History.LogTo(_log, "SEGUNDA");
+        _history.Log("SEGUNDA");
         FillToThreshold("TERCERA");
-        History.LogTo(_log, "CUARTA");
+        _history.Log("CUARTA");
 
         Assert.Equal(2, Directory.GetFiles(_dir).Length);
         Assert.DoesNotContain("PRIMERA", File.ReadAllText(Previous), StringComparison.Ordinal);
@@ -108,12 +112,12 @@ public sealed class HistoryTests : IDisposable
     public void ClearAt_AlsoRemovesTheRotatedGeneration()
     {
         FillToThreshold("VIEJA");
-        History.LogTo(_log, "NUEVA");
+        _history.Log("NUEVA");
 
-        History.ClearAt(_log);
+        _history.Clear();
 
         Assert.False(File.Exists(Previous));
-        Assert.Empty(HistoryEntry.ParseAll(History.ReadLinesFrom(_log)));
+        Assert.Empty(HistoryEntry.ParseAll(_history.ReadLines()));
     }
 
     /// <summary>El registro es defensivo: una ruta imposible no puede tumbar la operación que registra.</summary>
@@ -122,7 +126,9 @@ public sealed class HistoryTests : IDisposable
     {
         string impossible = Path.Combine(_dir, "no\0valido", "history.log");
 
-        History.LogTo(impossible, "FORMAT OK G:");           // no debe lanzar
-        Assert.Empty(History.ReadLinesFrom(impossible));      // ni al leerlo
+        var broken = new History(impossible);
+
+        broken.Log("FORMAT OK G:");           // no debe lanzar
+        Assert.Empty(broken.ReadLines());      // ni al leerlo
     }
 }

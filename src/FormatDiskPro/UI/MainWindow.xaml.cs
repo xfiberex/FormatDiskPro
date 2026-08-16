@@ -19,7 +19,7 @@ namespace FormatDiskPro.UI;
 
 public sealed partial class MainWindow : Window
 {
-    // ── Static lookup tables (same as MainForm) ───────────────────
+    // ── Static lookup tables ──────────────────────────────────────
 
     private static readonly Dictionary<string, (long[] Sizes, long Default)> FsDefaults = new()
     {
@@ -56,8 +56,10 @@ public sealed partial class MainWindow : Window
     private bool _closingForUpdate;
     private readonly UISettings _uiSettings = new();
     private readonly AppSettings _settings = AppSettings.Load();
+    // Servicios inyectados (T4-02): la ventana orquesta, no construye. Ver AppServices.
+    private readonly AppServices _services;
     private char? _pendingInitialLetter;
-    private Process? _activeProcess;
+    private IProcessHandle? _activeProcess;
     private CancellationTokenSource? _cts;
     private DateTime _opStart;
     // Umbral mínimo de duración para avisar al terminar (operaciones cortas no avisan).
@@ -77,8 +79,15 @@ public sealed partial class MainWindow : Window
 
     // ── Constructor ───────────────────────────────────────────────
 
-    public MainWindow()
+    /// <param name="services">
+    /// Grafo de servicios de la app. Lo construye <see cref="App"/> (la raíz de composición) y lo pasa
+    /// aquí; el valor por omisión existe solo para el diseñador de XAML y para código de prueba que no
+    /// necesite sustituir nada.
+    /// </param>
+    public MainWindow(AppServices? services = null)
     {
+        _services = services ?? new AppServices();
+
         InitializeComponent();
 
         // Window-level title bar extension: WinUI draws and themes the caption
@@ -250,7 +259,7 @@ public sealed partial class MainWindow : Window
         FormatProgress.Value = 0;
         _lastOperationFailed = true;
         StatusText.Text = L.T("status.unexpected");
-        History.Log(OperationFailure.LogLine(operation, letter, ex));
+        _services.History.Log(OperationFailure.LogLine(operation, letter, ex));
         await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ex.Message}");
     }
 
@@ -357,11 +366,11 @@ public sealed partial class MainWindow : Window
 
         // Protección de escritura: si el disco está en solo lectura, el formateo fallaría con un error
         // poco claro. Lo detectamos y ofrecemos quitarla antes de continuar.
-        if (await DiskService.IsDiskReadOnlyAsync(driveItem.Letter) == true)
+        if (await _services.Disk.IsDiskReadOnlyAsync(driveItem.Letter) == true)
         {
             if (!await ShowConfirmAsync(L.T("unlock.confirmTitle"), L.T("unlock.confirmBody", driveItem.Letter)))
                 return;
-            if (!await DiskService.ClearReadOnlyAsync(driveItem.Letter))
+            if (!await _services.Disk.ClearReadOnlyAsync(driveItem.Letter))
             {
                 await ShowInfoAsync(L.T("unlock.confirmTitle"), L.T("unlock.failed", driveItem.Letter));
                 return;
@@ -467,12 +476,12 @@ public sealed partial class MainWindow : Window
             if (useFormatCom)
             {
                 var percent = new Progress<int>(p => FormatProgress.Value = p);
-                (code, output) = await FormatProcess.RunComAsync(
+                (code, output) = await _services.Format.RunComAsync(
                     driveLetter, fs, allocBytes, label, percent, p => _activeProcess = p, _cts!.Token);
             }
             else
             {
-                var (c, so, se) = await FormatProcess.RunVolumeAsync(
+                var (c, so, se) = await _services.Format.RunVolumeAsync(
                     driveLetter, fs, allocBytes, label, quickFormat, compress, p => _activeProcess = p, _cts!.Token);
                 code = c;
                 output = string.IsNullOrWhiteSpace(se) ? so : se;
@@ -484,7 +493,7 @@ public sealed partial class MainWindow : Window
             {
                 FormatProgress.Value = 0;
                 StatusText.Text = L.T("status.cancelled");
-                History.Log($"FORMAT CANCELLED {driveLetter}: {fs}");
+                _services.History.Log($"FORMAT CANCELLED {driveLetter}: {fs}");
                 return;
             }
 
@@ -509,14 +518,14 @@ public sealed partial class MainWindow : Window
 
                     try
                     {
-                        await SecureWipe.RunAsync(driveLetter, securePasses, wipeProgress, _cts!.Token);
+                        await _services.Wipe.RunAsync(driveLetter, securePasses, wipeProgress, _cts!.Token);
                     }
                     catch (OperationCanceledException)
                     {
                         _opTotalBytes = 0;
                         FormatProgress.Value = 0;
                         StatusText.Text = L.T("status.cancelled");
-                        History.Log($"WIPE CANCELLED {driveLetter}:");
+                        _services.History.Log($"WIPE CANCELLED {driveLetter}:");
                         return;
                     }
 
@@ -525,13 +534,13 @@ public sealed partial class MainWindow : Window
                     if (_cancelRequested)
                     {
                         StatusText.Text = L.T("status.cancelled");
-                        History.Log($"WIPE CANCELLED {driveLetter}:");
+                        _services.History.Log($"WIPE CANCELLED {driveLetter}:");
                         return;
                     }
                 }
 
                 StatusText.Text = L.T("status.success");
-                History.Log($"FORMAT OK {driveLetter}: fs={fs} alloc={allocBytes} quick={quickFormat} compress={compress} wipe={secureWipe}{(secureWipe ? $" passes={securePasses}" : "")} label='{label}'");
+                _services.History.Log($"FORMAT OK {driveLetter}: fs={fs} alloc={allocBytes} quick={quickFormat} compress={compress} wipe={secureWipe}{(secureWipe ? $" passes={securePasses}" : "")} label='{label}'");
                 await ShowInfoAsync(L.T("success.title"), L.T("success.body", driveLetter, fs));
                 LoadDrives();
             }
@@ -540,7 +549,7 @@ public sealed partial class MainWindow : Window
                 FormatProgress.Value = 0;
                 _lastOperationFailed = true;
                 StatusText.Text = L.T("status.error");
-                History.Log($"FORMAT FAIL {driveLetter}: fs={fs} code={code}");
+                _services.History.Log($"FORMAT FAIL {driveLetter}: fs={fs} code={code}");
                 await ShowInfoAsync(L.T("error.formatTitle"), L.T("error.formatBody", driveLetter, output.Trim()));
             }
         }
@@ -556,7 +565,7 @@ public sealed partial class MainWindow : Window
             FormatProgress.Value = 0;
             _lastOperationFailed = true;
             StatusText.Text = _cancelRequested ? L.T("status.cancelled") : L.T("status.unexpected");
-            History.Log($"FORMAT ERROR {driveLetter}: {ex.Message}");
+            _services.History.Log($"FORMAT ERROR {driveLetter}: {ex.Message}");
             if (!_cancelRequested)
                 await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ex.Message}");
         }
@@ -616,7 +625,7 @@ public sealed partial class MainWindow : Window
         _lastOperationFailed = false;
         FormatProgress.ShowError = false;
         _cts = new CancellationTokenSource();
-        SetFormEnabled(false);
+        SetControlsEnabled(false);
         StatusText.ClearValue(TextBlock.ForegroundProperty);
         ElapsedText.Text = "00:00";
         CloseButton.Content = L.T("btn.cancel");
@@ -634,10 +643,10 @@ public sealed partial class MainWindow : Window
         _activeProcess = null;
         _cts?.Dispose();
         _cts = null;
-        TaskbarProgress.Clear(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        _services.Taskbar.Clear(WinRT.Interop.WindowNative.GetWindowHandle(this));
         // Si nos estamos cerrando para actualizar, la ventana ya se va: no tocar la UI.
         if (_closingForUpdate) return;
-        SetFormEnabled(true);
+        SetControlsEnabled(true);
         CloseButton.Content = L.T("btn.close");
         // Barra en rojo (Fluent ShowError) al fallar o cancelar, hasta el próximo BeginOperation.
         FormatProgress.ShowError = _cancelRequested || _lastOperationFailed;
@@ -651,7 +660,7 @@ public sealed partial class MainWindow : Window
         // Aviso al terminar operaciones largas: sonido + parpadeo de la barra (solo si el usuario
         // no está mirando la ventana). No aplica a operaciones cortas ni canceladas.
         if (Notifier.ShouldNotify(DateTime.Now - _opStart, _settings.NotifyOnFinish, _cancelRequested, OperationNotifyThreshold))
-            Notifier.OperationFinished(WinRT.Interop.WindowNative.GetWindowHandle(this));
+            _services.Notifier.OperationFinished(WinRT.Interop.WindowNative.GetWindowHandle(this));
     }
 
     private async void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -698,8 +707,8 @@ public sealed partial class MainWindow : Window
         // Espeja el estado de FormatProgress en el icono de la barra de tareas (visible con la app
         // minimizada), a la misma cadencia de 1 s del cronómetro — complementa el aviso al terminar.
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-        if (FormatProgress.IsIndeterminate) TaskbarProgress.SetIndeterminate(hwnd);
-        else                                TaskbarProgress.SetValue(hwnd, (int)FormatProgress.Value);
+        if (FormatProgress.IsIndeterminate) _services.Taskbar.SetIndeterminate(hwnd);
+        else                                _services.Taskbar.SetValue(hwnd, (int)FormatProgress.Value);
     }
 
     // ── Helpers ───────────────────────────────────────────────────
@@ -712,7 +721,12 @@ public sealed partial class MainWindow : Window
         return DriveLetter.Same(letter, sys);
     }
 
-    private void SetFormEnabled(bool enabled)
+    /// <summary>
+    /// Habilita o deshabilita los controles de la ventana según si hay una operación en curso. Los de
+    /// formato quedan además sujetos a la protección de la unidad: sobre una unidad protegida siguen
+    /// deshabilitados aunque no haya nada corriendo.
+    /// </summary>
+    private void SetControlsEnabled(bool enabled)
     {
         bool canFormat = enabled && !_isDriveProtected;
 

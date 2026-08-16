@@ -1,7 +1,20 @@
-using System.Diagnostics;
 using System.Text;
 
 namespace FormatDiskPro;
+
+/// <summary>Lanza los procesos que formatean: <c>Format-Volume</c> y <c>format.com</c>.</summary>
+public interface IFormatProcess
+{
+    /// <inheritdoc cref="FormatProcess.RunVolumeAsync"/>
+    Task<(int code, string stdout, string stderr)> RunVolumeAsync(
+        char driveLetter, string fs, long allocBytes, string label,
+        bool quickFormat, bool compress, Action<IProcessHandle>? started, CancellationToken ct);
+
+    /// <inheritdoc cref="FormatProcess.RunComAsync"/>
+    Task<(int code, string output)> RunComAsync(
+        char driveLetter, string fs, long allocBytes, string label,
+        IProgress<int>? percent, Action<IProcessHandle>? started, CancellationToken ct);
+}
 
 /// <summary>
 /// Lanza los procesos que formatean: <c>Format-Volume</c> (vía PowerShell) y <c>format.com</c>.
@@ -16,7 +29,7 @@ namespace FormatDiskPro;
 /// llama necesita poder matarlo al cancelar, y un estado estático compartido en un servicio que puede
 /// invocarse desde varios sitios es justo lo que no conviene.</para>
 /// </summary>
-public static class FormatProcess
+public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
 {
     /// <summary>
     /// Formatea con <c>Format-Volume</c> (PowerShell). Devuelve el código de salida y las dos salidas por
@@ -30,26 +43,20 @@ public static class FormatProcess
     /// <param name="compress">Compresión NTFS.</param>
     /// <param name="started">Recibe el proceso recién arrancado (para poder cancelarlo).</param>
     /// <param name="ct">Cancelación: mata el árbol de procesos.</param>
-    public static async Task<(int code, string stdout, string stderr)> RunVolumeAsync(
+    public async Task<(int code, string stdout, string stderr)> RunVolumeAsync(
         char driveLetter, string fs, long allocBytes, string label,
-        bool quickFormat, bool compress, Action<Process>? started, CancellationToken ct)
+        bool quickFormat, bool compress, Action<IProcessHandle>? started, CancellationToken ct)
     {
         string script = FormatLogic.BuildVolumeScript(driveLetter, fs, allocBytes, label, quickFormat, compress);
         string args   = FormatLogic.EncodeArguments(script);
-        var psi = new ProcessStartInfo
-        {
-            FileName               = "powershell.exe",
-            Arguments              = args,
-            UseShellExecute        = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            CreateNoWindow         = true,
-        };
 
         // Sin `using` a propósito: el proceso se entrega a quien llama, que es quien lo cancela y quien lo
         // libera al cerrar la operación. Liberarlo aquí dejaría su referencia inservible del otro lado.
-        var proc = new Process { StartInfo = psi };
-        proc.Start();
+        var proc = runner.Start(new ProcessSpec
+        {
+            FileName  = "powershell.exe",
+            Arguments = args,
+        });
         started?.Invoke(proc);
         using var reg = ct.Register(() => { try { proc.Kill(entireProcessTree: true); } catch { } });
 
@@ -72,27 +79,20 @@ public static class FormatProcess
     /// quedaba esperando una tecla con el formato a medias. La entrada se <b>cierra</b> para que una build
     /// hipotética que sí pregunte falle rápido en vez de colgarse indefinidamente.
     /// </remarks>
-    public static async Task<(int code, string output)> RunComAsync(
+    public async Task<(int code, string output)> RunComAsync(
         char driveLetter, string fs, long allocBytes, string label,
-        IProgress<int>? percent, Action<Process>? started, CancellationToken ct)
+        IProgress<int>? percent, Action<IProcessHandle>? started, CancellationToken ct)
     {
         string formatExe = Path.Combine(Environment.SystemDirectory, "format.com");
-        var psi = new ProcessStartInfo
-        {
-            FileName               = formatExe,
-            UseShellExecute        = false,
-            RedirectStandardInput  = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            CreateNoWindow         = true,
-        };
-        foreach (string a in FormatLogic.BuildComArgumentList(driveLetter, fs, allocBytes, label))
-            psi.ArgumentList.Add(a);
 
         // Sin `using` a propósito: el proceso se entrega a quien llama, que es quien lo cancela y quien lo
         // libera al cerrar la operación. Liberarlo aquí dejaría su referencia inservible del otro lado.
-        var proc = new Process { StartInfo = psi };
-        proc.Start();
+        var proc = runner.Start(new ProcessSpec
+        {
+            FileName              = formatExe,
+            ArgumentList          = FormatLogic.BuildComArgumentList(driveLetter, fs, allocBytes, label),
+            RedirectStandardInput = true,
+        });
         started?.Invoke(proc);
         using var reg = ct.Register(() => { try { proc.Kill(entireProcessTree: true); } catch { } });
 

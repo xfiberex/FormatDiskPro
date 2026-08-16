@@ -25,10 +25,12 @@
 pendientes. Lo que queda fuera está **deliberadamente** fuera — incluidas las dos decisiones que definen el
 producto y **no se van a reabrir**: la app corre **siempre elevada** y su ventana es de **tamaño fijo**.
 
-**Parte 2 — calidad: ABIERTA (2026-08-13).** Una auditoría técnica transversal (código, seguridad,
-rendimiento, accesibilidad, i18n, arquitectura, QA, documentación, DevOps) encontró **37 puntos de mejora**,
-ninguno de ellos una característica nueva. Que la funcionalidad esté cerrada no cierra la calidad: ver
-**[Parte 2](#parte-2--backlog-de-remediación-auditoría-2026-08-13)**.
+**Parte 2 — calidad: ABIERTA (2026-08-13), 38/40 al 2026-08-16.** Una auditoría técnica transversal
+(código, seguridad, rendimiento, accesibilidad, i18n, arquitectura, QA, documentación, DevOps) encontró
+**37 puntos de mejora**, ninguno de ellos una característica nueva. Que la funcionalidad esté cerrada no
+cierra la calidad: ver **[Parte 2](#parte-2--backlog-de-remediación-auditoría-2026-08-13)**. Las **dos que
+quedan** dependen de algo ajeno al código: un certificado de firma (`T4-03`) y una tanda de capturas
+regeneradas (`T4-04`).
 
 **Tier 5 — ocurrencias: ABIERTO (2026-08-15).** «Funcionalidad terminada» no significa «sin huecos»: usar
 lo entregado revela dónde una característica se queda a medio camino. El primero, real: *FAT32 pequeña*
@@ -627,7 +629,8 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
   - **Honestidad sobre el punto 3:** partir un archivo en `partial` **no reduce el acoplamiento** — sigue
     siendo la misma clase con el mismo estado compartido. Lo que arregla es lo que la tarea decía:
     encontrar algo en 2.000 líneas. El rediseño de verdad (inyección de dependencias, `Services` no
-    estáticos) es `T4-02`, y sigue abierto.
+    estáticos) es `T4-02`, **resuelto el 2026-08-16** — y que siga siendo una clase grande con estado
+    compartido tampoco lo arregló aquello: lo que arregló fue que sus fallos sean observables.
   - **Sin cambiar comportamiento, y comprobado como toca:** build 0/0, **389/389** unitarias y la suite de
     UI **24/27 con la USB conectada** — exactamente el mismo resultado que antes de tocar nada.
 
@@ -900,13 +903,57 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
 
 ## 🔵 Tier 4 — Futuro / opcional *(fuera del alcance inmediato)*
 
-- [ ] **[T4-01] `CHANGELOG.md` en la raíz** — hoy el registro vive repartido entre `CONTEXT.md` y las notas
+- [x] **[T4-01] `CHANGELOG.md` en la raíz** — el registro vivía repartido entre `CONTEXT.md` y las notas
   de GitHub Releases; un `CHANGELOG.md` estándar (Keep a Changelog) es lo que espera quien llega al repo.
   *Área: Documentación · Esfuerzo: bajo · Depende de: ninguna*
+  - **Resuelta el 2026-08-16.** [`CHANGELOG.md`](CHANGELOG.md) con las 28 versiones publicadas y una
+    sección *Sin publicar*. Enlazado desde el README y desde `CONTEXT.md`.
+  - **Con puerta en el corte, o habría nacido para envejecer.** `release.ps1` **aborta** si
+    `CHANGELOG.md` no tiene ya la sección de la versión que se va a publicar, y el mensaje dice
+    exactamente qué escribir. Es la misma forma que ya tienen aquí la cobertura mínima y el `.sha256`:
+    un documento que se mantiene «por disciplina» se queda atrás, y entonces **afirma ser el registro
+    del proyecto y miente** — peor que no tenerlo.
+  - **Las fechas salen de los tags de git, no del recuerdo.** Al escribirlas a ojo desde el índice de
+    versiones de `CONTEXT.md`, **18 de 28 estaban mal** (hasta 8 días de desviación). Se corrigieron con
+    `git for-each-ref`. El detalle importa porque este archivo es justo el que alguien consultará para
+    saber cuándo entró un cambio.
 
-- [ ] **[T4-02] Inyección de dependencias en `Services`** — todos son `static`, lo que hace imposible
+- [x] **[T4-02] Inyección de dependencias en `Services`** — todos eran `static`, lo que hacía imposible
   probar los caminos de error sin hardware (raíz de `T2-05`). Es un rediseño, no un arreglo.
   *Área: Arquitectura · Esfuerzo: alto · Depende de: T2-05*
+  - **Resuelta el 2026-08-16.** Los once servicios pasan a clases con interfaz, y el grafo se construye
+    en una **raíz de composición** (`Services/AppServices`) que `App` crea y pasa a `MainWindow`, que a
+    su vez la pasa a los diálogos que la necesitan (`HealthDialog`, `HistoryDialog`, `AboutDialog`,
+    `WhatsNewDialog`). **No es un localizador de servicios:** nadie le pide nada «desde dentro», así que
+    las dependencias siguen siendo visibles en cada constructor — que es la mitad del valor de esto.
+  - **La costura que de verdad desbloquea las pruebas es `IProcessRunner`.** Lo caro de probar no era la
+    estática: era que cada servicio hacía `new Process(...)` él mismo. Con el lanzador inyectado, un
+    doble reproduce en milisegundos lo que antes exigía la avería real — un `chkdsk` que devuelve 2, un
+    `Clear-Disk` que falla a mitad, un `powershell.exe` bloqueado por directiva.
+  - **La abstracción se queda en *arrancar* el proceso, no en «ejecutar y devolver la salida».** Cada
+    servicio lee su salida distinto, y con matices que costaron hardware descubrir: el solapamiento de
+    marcadores de `T3-02`, cerrar la entrada estándar de `T1-02`, esperar con `CancellationToken.None`
+    para no perder el código de salida al cancelar. Unificar esos bucles habría sido **reescribirlos**,
+    y este cambio no podía cambiar comportamiento. Los bucles quedan intactos; solo cambia de dónde sale
+    el proceso.
+  - **Lo que ganó el proyecto, en pruebas: 398 → 433 (+35), ninguna toca un disco.** Entre ellas, las
+    del camino destructivo que **nunca** se habían podido escribir: reinicializar con `Clear-Disk`
+    fallando a mitad, y —el peor caso— salir con código 0 pero **sin letra asignada**, o sea el disco
+    borrado y sin volumen montable. Antes, comprobar eso significaba borrar un disco de verdad.
+  - **Dos costuras artificiales desaparecen al llegar la real:** `History.LogTo/ReadLinesFrom/ClearAt`
+    (`internal static` con la ruta como parámetro) vuelven a ser privadas, porque ahora la ruta se
+    inyecta por constructor.
+  - **`UpdateService` conserva sus miembros internos `static`, a propósito.** Ya se probaba entero
+    —sus pruebas levantan un servidor HTTP local y ejercitan hash correcto, hash que no coincide,
+    checksum ausente y respuesta desmedida—, así que instanciarlos habría sido reescribir la ruta de
+    verificación que corre **elevada** sin ganar una sola prueba. Se instancia lo que consume la UI.
+  - **Verificado por reversión, no solo por «pasa en verde»:** deshaciendo la guarda de la letra nueva
+    falla `Reinit_ExitZeroButNoLetterAssigned_IsAFailure`; poniendo el solapamiento de marcadores a 0
+    falla `Reinit_Success_ReportsEveryStageOnceAndInOrder` — que para eso entrega su salida partida en
+    trozos de 6 caracteres, en vez de de una vez como haría un `StringReader`.
+  - **Lo que esto NO es.** No cambia comportamiento: las 398 pruebas anteriores siguen en verde tal cual,
+    y el build sigue en 0/0. Tampoco elimina el acoplamiento de `MainWindow`, que sigue siendo una clase
+    grande con estado compartido (eso lo dijo ya `T2-08`). Lo que hace es que **fallar sea observable**.
 
 - [ ] **[T4-03] Firmar el instalador** — reabriría la decisión `#13`, cerrada el 2026-06-24. Solo tiene
   sentido si aparece presupuesto para un certificado; haría a `T1-08` relevante en producción.
@@ -916,9 +963,13 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
   produce 12 en claro y oscuro. *(Ya listado como pulido opcional en `CONTEXT.md` §6.)*
   *Área: Documentación · Esfuerzo: bajo · Depende de: ninguna*
 
-- [ ] **[T4-05] Renombrar el `Name` interno del formulario** — resto de la migración desde Windows Forms.
-  *(Ya listado como pulido opcional en `CONTEXT.md` §6.)*
+- [x] **[T4-05] Renombrar el `Name` interno del formulario** — resto de la migración desde Windows Forms.
+  *(Estaba listado como pulido opcional en `CONTEXT.md` §6.)*
   *Área: Limpieza · Esfuerzo: bajo · Depende de: ninguna*
+  - **Resuelta el 2026-08-16.** Quedaban exactamente dos rastros, y ninguno era una propiedad `Name`:
+    el método **`SetFormEnabled`** (ahora `SetControlsEnabled`, que además describe lo que hace: habilita
+    controles, no un formulario) y un comentario *«same as MainForm»* sobre las tablas estáticas.
+    Actualizadas también las cinco referencias en comentarios de los UI tests.
 
 ---
 
@@ -1056,12 +1107,15 @@ hemos salido.**
 | 2026-08-15 | **T2-01** | `StatusText` como región activa `Polite` + notificación UIA en los hitos (inicio/fin/error/cancelación), nunca por tick. +1 prueba de UI. |
 | 2026-08-15 | **T2-02** | Error de etiqueta `Assertive` y vinculado al campo con `DescribedBy`. +1 prueba de UI. *(Un `Collapsed` no está en el árbol UIA.)* |
 | 2026-08-15 | — | `NonSystemDriveFact`: las 4 pruebas de la tarjeta de opciones se **omiten** en una máquina de un solo disco, en vez de fallar. |
+| 2026-08-16 | **T4-02** | Inyección de dependencias: 11 servicios con interfaz + raíz de composición `AppServices` + costura `IProcessRunner`. Los caminos de error se prueban sin hardware. +35 pruebas (398 → 433). |
+| 2026-08-16 | **T4-01** | `CHANGELOG.md` (Keep a Changelog) con las 28 versiones, fechas tomadas de los tags de git. `release.ps1` aborta si falta la sección de la versión a publicar. |
+| 2026-08-16 | **T4-05** | `SetFormEnabled` → `SetControlsEnabled` y fuera el comentario «same as MainForm»: últimos rastros de Windows Forms. |
 | 2026-08-15 | ~~**T2-10**~~ | ❌ **Descartada.** Se implementó el workflow y se revirtió: el testing de este proyecto es **solo local**. Ver *Decisiones cerradas*. |
 
-**Estado:** 35/40 completadas · 1 descartada (`T2-10`) · **5 abiertas** (T0: 0 · **T1: 0** · **T2: 0** · **T3: 0** · T4: 5).
-**Tiers 0, 1, 2 y 3 cerrados.** De la auditoría solo queda abierto el **Tier 4**, que por definición está
-fuera del alcance inmediato: `CHANGELOG.md`, inyección de dependencias, firmar el instalador, más capturas
-y renombrar el `Name` interno del formulario.
+**Estado:** 38/40 completadas · 1 descartada (`T2-10`) · **2 abiertas** (T0: 0 · **T1: 0** · **T2: 0** · **T3: 0** · T4: 2).
+**Tiers 0, 1, 2 y 3 cerrados.** Del **Tier 4** quedan solo las dos que dependen de algo ajeno al código:
+**`T4-03`** (firmar el instalador) necesita presupuesto para un certificado y reabriría la decisión `#13`,
+y **`T4-04`** (más capturas) espera una tanda regenerada con `tools/capture-screenshots.ps1`.
 **Aparte de las 40**, el **Tier 5** (5 tareas, abierto desde el 2026-08-15) recoge ampliaciones de features
 ya entregadas; no cuenta en este progreso porque no es remediación.
 **Tiers 0 y 1 cerrados**, y no solo razonados: los tres fallos que «necesitaban hardware o un Windows

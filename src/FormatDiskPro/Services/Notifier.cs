@@ -7,7 +7,14 @@ namespace FormatDiskPro;
 /// el botón de la app en la barra de tareas, pero solo cuando la ventana <b>no</b> está en primer plano
 /// (si el usuario ya está mirando, no molesta). Vía Win32 (<c>user32.dll</c>).
 /// </summary>
-public static class Notifier
+public interface INotifier
+{
+    /// <inheritdoc cref="Notifier.OperationFinished"/>
+    void OperationFinished(IntPtr hwnd);
+}
+
+/// <inheritdoc cref="INotifier"/>
+public sealed class Notifier : INotifier
 {
     private const uint FLASHW_TRAY      = 0x00000002;  // parpadear el botón de la barra de tareas
     private const uint FLASHW_TIMERNOFG = 0x0000000C;  // hasta que la ventana pase a primer plano
@@ -43,7 +50,7 @@ public static class Notifier
     /// Avisa de que terminó la operación (sonido + parpadeo de la barra de tareas), salvo que la ventana
     /// <paramref name="hwnd"/> ya esté en primer plano. Nunca lanza.
     /// </summary>
-    public static void OperationFinished(IntPtr hwnd)
+    public void OperationFinished(IntPtr hwnd)
     {
         try
         {

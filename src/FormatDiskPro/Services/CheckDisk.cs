@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 
 namespace FormatDiskPro;
@@ -6,15 +5,24 @@ namespace FormatDiskPro;
 /// <summary>Resultado interpretado de una comprobación con chkdsk.</summary>
 public enum CheckResult { Clean, Repaired, Errors, Failed }
 
+/// <summary>Comprobación/reparación del sistema de archivos con <c>chkdsk</c>.</summary>
+public interface ICheckDisk
+{
+    /// <inheritdoc cref="CheckDisk.RunAsync"/>
+    Task<(int code, string output)> RunAsync(
+        char letter, bool repair, IProgress<int> progress, CancellationToken ct);
+}
+
 /// <summary>
 /// Comprobación/reparación del sistema de archivos con <c>chkdsk</c>. El modo solo-lectura
 /// (sin modificadores) es seguro y universal (NTFS/FAT/exFAT); la reparación usa <c>/f</c>
 /// y requiere bloqueo exclusivo del volumen.
 /// </summary>
-public static class CheckDisk
+public sealed class CheckDisk(IProcessRunner runner) : ICheckDisk
 {
     /// <summary>
     /// Interpreta el código de salida de chkdsk según si se pidió reparar. Lógica pura y testeable.
+    /// Sigue siendo <c>static</c>: no tiene dependencias que inyectar.
     /// </summary>
     public static CheckResult Interpret(int exitCode, bool repair) => exitCode switch
     {
@@ -33,25 +41,20 @@ public static class CheckDisk
     /// <param name="progress">Progreso 0-100 (parseado de la salida de chkdsk).</param>
     /// <param name="ct">Token de cancelación (mata el proceso al cancelar).</param>
     /// <returns>Código de salida de chkdsk y la salida combinada (stdout + stderr).</returns>
-    public static async Task<(int code, string output)> RunAsync(
+    public async Task<(int code, string output)> RunAsync(
         char letter, bool repair, IProgress<int> progress, CancellationToken ct)
     {
         if (!char.IsLetter(letter)) return (-1, "");
 
-        var psi = new ProcessStartInfo
-        {
-            FileName               = "chkdsk.exe",
-            UseShellExecute        = false,
-            RedirectStandardInput  = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            CreateNoWindow         = true,
-        };
-        psi.ArgumentList.Add($"{char.ToUpperInvariant(letter)}:");
-        if (repair) psi.ArgumentList.Add("/f");
+        var args = new List<string> { $"{char.ToUpperInvariant(letter)}:" };
+        if (repair) args.Add("/f");
 
-        using var proc = new Process { StartInfo = psi };
-        proc.Start();
+        using var proc = runner.Start(new ProcessSpec
+        {
+            FileName              = "chkdsk.exe",
+            ArgumentList          = args,
+            RedirectStandardInput = true,
+        });
         using var reg = ct.Register(() => { try { proc.Kill(entireProcessTree: true); } catch { } });
 
         // Si chkdsk no puede bloquear el volumen, pregunta si programar la comprobación en el próximo

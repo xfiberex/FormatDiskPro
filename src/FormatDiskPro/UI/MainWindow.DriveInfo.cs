@@ -82,7 +82,7 @@ public sealed partial class MainWindow
         DiskService.HealthInfo? info;
         try
         {
-            info = await DiskService.GetHealthAsync(letter);
+            info = await _services.Disk.GetHealthAsync(letter);
         }
         catch (Exception ex)
         {
@@ -90,7 +90,7 @@ public sealed partial class MainWindow
             // una Task que nadie observa, es decir, en silencio. Se atrapa y se cuenta — la salud pasa a
             // "no disponible", que es exactamente lo que el usuario necesita saber.
             if (_healthLetter == letter) RenderHealth(null);
-            History.Log($"HEALTH ERROR {letter}: {ex.Message}");
+            _services.History.Log($"HEALTH ERROR {letter}: {ex.Message}");
             return;
         }
 

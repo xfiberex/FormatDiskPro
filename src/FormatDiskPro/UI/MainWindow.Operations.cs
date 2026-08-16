@@ -61,7 +61,7 @@ public sealed partial class MainWindow
 
         try
         {
-            var result = await CapacityVerifier.RunAsync(item.Letter, progress, _cts!.Token);
+            var result = await _services.Verifier.RunAsync(item.Letter, progress, _cts!.Token);
 
             if (_cancelRequested || result.FailureDetail == "cancelled")
             {
@@ -74,7 +74,7 @@ public sealed partial class MainWindow
             {
                 FormatProgress.Value = 100;
                 StatusText.Text = L.T("verify.okTitle");
-                History.Log($"VERIFY OK {item.Letter}: written={result.WrittenBytes}");
+                _services.History.Log($"VERIFY OK {item.Letter}: written={result.WrittenBytes}");
                 await ShowInfoAsync(L.T("verify.okTitle"), L.T("verify.okBody", item.Letter, FormatBytes(result.WrittenBytes)));
             }
             else
@@ -83,7 +83,7 @@ public sealed partial class MainWindow
                 _lastOperationFailed = true;
                 StatusText.Foreground = new SolidColorBrush(ProtectedColor());
                 StatusText.Text = L.T("verify.failTitle");
-                History.Log($"VERIFY FAIL {item.Letter}: {result.FailureDetail} ok-until={result.WrittenBytes}");
+                _services.History.Log($"VERIFY FAIL {item.Letter}: {result.FailureDetail} ok-until={result.WrittenBytes}");
                 await ShowInfoAsync(L.T("verify.failTitle"), L.T("verify.failBody", item.Letter, FormatBytes(result.WrittenBytes)));
             }
         }
@@ -116,12 +116,12 @@ public sealed partial class MainWindow
             return;
         }
 
-        bool ok = await DiskService.EjectAsync(item.Letter);
+        bool ok = await _services.Disk.EjectAsync(item.Letter);
         if (ok)
         {
             StatusText.ClearValue(TextBlock.ForegroundProperty);
             StatusText.Text = L.T("status.ejected");
-            History.Log($"EJECT {item.Letter}:");
+            _services.History.Log($"EJECT {item.Letter}:");
             LoadDrives();
         }
         else
@@ -138,7 +138,7 @@ public sealed partial class MainWindow
             await ShowInfoAsync(L.T("msg.warning"), L.T("msg.selectDrive"));
             return;
         }
-        var dlg = new HealthDialog(_darkMode, item.Letter, item.DisplayText)
+        var dlg = new HealthDialog(_darkMode, item.Letter, item.DisplayText, _services.Disk)
         {
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
@@ -158,7 +158,7 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (await DiskService.IsDiskReadOnlyAsync(item.Letter) != true)
+        if (await _services.Disk.IsDiskReadOnlyAsync(item.Letter) != true)
         {
             await ShowInfoAsync(L.T("unlock.confirmTitle"), L.T("unlock.notProtected", item.Letter));
             return;
@@ -167,11 +167,11 @@ public sealed partial class MainWindow
         if (!await ShowConfirmAsync(L.T("unlock.confirmTitle"), L.T("unlock.confirmBody", item.Letter)))
             return;
 
-        if (await DiskService.ClearReadOnlyAsync(item.Letter))
+        if (await _services.Disk.ClearReadOnlyAsync(item.Letter))
         {
             StatusText.ClearValue(TextBlock.ForegroundProperty);
             StatusText.Text = L.T("unlock.cleared", item.Letter);
-            History.Log($"UNLOCK {item.Letter}:");
+            _services.History.Log($"UNLOCK {item.Letter}:");
             LoadDrives();
         }
         else
@@ -250,7 +250,7 @@ public sealed partial class MainWindow
 
         try
         {
-            var (code, _) = await CheckDisk.RunAsync(item.Letter, repair, progress, _cts!.Token);
+            var (code, _) = await _services.CheckDisk.RunAsync(item.Letter, repair, progress, _cts!.Token);
 
             if (_cancelRequested)
             {
@@ -261,7 +261,7 @@ public sealed partial class MainWindow
 
             FormatProgress.Value = 100;
             CheckResult res = CheckDisk.Interpret(code, repair);
-            History.Log($"CHKDSK {item.Letter}: repair={repair} code={code} result={res}");
+            _services.History.Log($"CHKDSK {item.Letter}: repair={repair} code={code} result={res}");
 
             string msg = res switch
             {
@@ -315,8 +315,8 @@ public sealed partial class MainWindow
         // Guarda crítica: el disco físico objetivo no puede ser el mismo que el de Windows
         // (Clear-Disk borra TODO el disco, no solo la partición seleccionada).
         char sysLetter  = Path.GetPathRoot(Environment.SystemDirectory)![0];
-        int? targetDisk = await DiskService.GetDiskNumberAsync(item.Letter);
-        int? sysDisk    = await DiskService.GetDiskNumberAsync(sysLetter);
+        int? targetDisk = await _services.Disk.GetDiskNumberAsync(item.Letter);
+        int? sysDisk    = await _services.Disk.GetDiskNumberAsync(sysLetter);
         if (targetDisk is null || (sysDisk is not null && targetDisk == sysDisk))
         {
             await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.sameDisk"));
@@ -352,7 +352,7 @@ public sealed partial class MainWindow
 
         try
         {
-            var r = await ReinitDrive.RunAsync(item.Letter, style, fs, label, partitionSizeBytes, stage, _cts!.Token);
+            var r = await _services.Reinit.RunAsync(item.Letter, style, fs, label, partitionSizeBytes, stage, _cts!.Token);
             FormatProgress.IsIndeterminate = false;
 
             if (_cancelRequested || r.Detail == "cancelled")
@@ -365,7 +365,7 @@ public sealed partial class MainWindow
             if (r.Ok && r.NewLetter is char newLetter)
             {
                 FormatProgress.Value = 100;
-                History.Log($"REINIT {item.Letter}: -> {newLetter}: fs={fs} style={style.ToPowerShell()}{(smallFat32 ? $" small-fat32={partitionSizeBytes}" : "")}");
+                _services.History.Log($"REINIT {item.Letter}: -> {newLetter}: fs={fs} style={style.ToPowerShell()}{(smallFat32 ? $" small-fat32={partitionSizeBytes}" : "")}");
                 _pendingInitialLetter = newLetter;
                 DrivePicker.SelectedIndex = -1;   // fuerza que LoadDrives use la nueva letra
                 LoadDrives();
@@ -378,7 +378,7 @@ public sealed partial class MainWindow
             {
                 FormatProgress.Value = 0;
                 _lastOperationFailed = true;
-                History.Log($"REINIT FAIL {item.Letter}: {r.Detail}");
+                _services.History.Log($"REINIT FAIL {item.Letter}: {r.Detail}");
                 StatusText.Foreground = new SolidColorBrush(ProtectedColor());
                 StatusText.Text = L.T("reinit.failed");
                 await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.failed"));
@@ -439,7 +439,7 @@ public sealed partial class MainWindow
         Exception? failure = null;
         try
         {
-            res = await BenchmarkRunner.RunAsync(item.Letter, progress, _cts!.Token);
+            res = await _services.Benchmark.RunAsync(item.Letter, progress, _cts!.Token);
         }
         catch (OperationCanceledException)
         {
@@ -495,7 +495,7 @@ public sealed partial class MainWindow
         // IOPS junto a los MB/s del 4 KiB aleatorio (como CrystalDiskMark): bytes/s ÷ 4096, redondeado.
         string rndWIops = FormatIops(res.Random4K.WriteBytesPerSec);
         string rndRIops = FormatIops(res.Random4K.ReadBytesPerSec);
-        History.Log($"BENCH {item.Letter}: seq w={seqW} r={seqR} · rnd4k w={rndW} ({rndWIops}) r={rndR} ({rndRIops}) bytes={res.TestBytes}");
+        _services.History.Log($"BENCH {item.Letter}: seq w={seqW} r={seqR} · rnd4k w={rndW} ({rndWIops}) r={rndR} ({rndRIops}) bytes={res.TestBytes}");
         StatusText.Text = L.T("bench.resultTitle");
         await ShowDialogAsync(
             L.T("bench.resultTitle"),

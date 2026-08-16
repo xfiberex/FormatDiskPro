@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
@@ -20,15 +20,17 @@ public sealed partial class HistoryDialog : ContentDialog
 {
     private readonly bool _dark;
     private readonly IntPtr _hwnd;
+    private readonly IHistory _history;
     private readonly ObservableCollection<HistoryRow> _rows = new();
     private IReadOnlyList<HistoryEntry> _all = [];   // más recientes primero
     private bool _ready;
 
-    public HistoryDialog(bool dark, IntPtr hwnd)
+    public HistoryDialog(bool dark, IntPtr hwnd, IHistory history)
     {
         InitializeComponent();
         _dark = dark;
         _hwnd = hwnd;
+        _history = history;
 
         Title                      = L.T("history.title");
         CloseButtonText            = L.T("btn.close");
@@ -61,7 +63,7 @@ public sealed partial class HistoryDialog : ContentDialog
 
     private void LoadEntries()
     {
-        var entries = HistoryEntry.ParseAll(History.ReadLines());
+        var entries = HistoryEntry.ParseAll(_history.ReadLines());
         _all = entries.Reverse().ToList();   // más recientes primero
         ApplyFilter();
     }
@@ -116,7 +118,7 @@ public sealed partial class HistoryDialog : ContentDialog
             ExportErrorBar.Title   = L.T("history.exportFailed");
             ExportErrorBar.Message = ex.Message;
             ExportErrorBar.IsOpen  = true;
-            History.Log($"EXPORT ERROR: {ex.Message}");
+            _history.Log($"EXPORT ERROR: {ex.Message}");
         }
     }
 
@@ -128,12 +130,12 @@ public sealed partial class HistoryDialog : ContentDialog
                               new SolidColorBrush(ColorFor(e.Result, _dark)));
     }
 
-    private void OpenFile_Click(object sender, RoutedEventArgs e) => History.Open();
+    private void OpenFile_Click(object sender, RoutedEventArgs e) => _history.Open();
 
     private void ClearConfirm_Click(object sender, RoutedEventArgs e)
     {
         ClearFlyout.Hide();
-        History.Clear();
+        _history.Clear();
         LoadEntries();
     }
 

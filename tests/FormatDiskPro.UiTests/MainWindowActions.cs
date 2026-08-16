@@ -17,7 +17,7 @@ public static class MainWindowActions
     /// <summary>
     /// Espera a que un control se habilite. Tras cerrar el ContentDialog de resultado de una operación
     /// (Formatear/Reinicializar), <c>EndOperation()</c> — que rehabilita los controles vía
-    /// <c>SetFormEnabled(true)</c> — corre en el <c>finally</c> DESPUÉS de que el <c>await</c> de
+    /// <c>SetControlsEnabled(true)</c> — corre en el <c>finally</c> DESPUÉS de que el <c>await</c> de
     /// <c>ShowInfoAsync</c> se resuelva; hay un margen (dispatcher) entre "el diálogo ya no está en el
     /// árbol" (lo que <see cref="DialogHelper.WaitForNoDialog"/> confirma) y "el finally ya se ejecutó"
     /// — confirmado contra hardware real con <c>SmallFat32Check</c> tras Reinicializar.
@@ -123,7 +123,7 @@ public static class MainWindowActions
 
     /// <summary>
     /// Selecciona la primera unidad del picker que NO sea la unidad de sistema (protegida: casi todos
-    /// los controles de formato se deshabilitan sobre ella, per <c>MainWindow.SetFormEnabled</c>).
+    /// los controles de formato se deshabilitan sobre ella, per <c>MainWindow.SetControlsEnabled</c>).
     /// Para tests que solo necesitan "alguna unidad formateable", sin importar cuál.
     /// </summary>
     public static char SelectAnyNonSystemDrive(Window window)

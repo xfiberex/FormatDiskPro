@@ -15,7 +15,17 @@ namespace FormatDiskPro;
 /// <para>La E/S sin caché exige que <b>buffer, desplazamiento y longitud</b> estén alineados al sector; de
 /// ahí <see cref="Alignment"/>, el buffer fijado con <see cref="GCHandle"/> y el redondeo del objetivo.</para>
 /// </remarks>
-public static class CapacityVerifier
+public interface ICapacityVerifier
+{
+    /// <inheritdoc cref="CapacityVerifier.RunAsync"/>
+    Task<CapacityVerifier.VerifyResult> RunAsync(
+        char letter,
+        IProgress<(CapacityVerifier.Phase phase, int percent, long bytes)> progress,
+        CancellationToken ct);
+}
+
+/// <inheritdoc cref="ICapacityVerifier"/>
+public sealed class CapacityVerifier : ICapacityVerifier
 {
     private const int  BlockSize    = 8 * 1024 * 1024;          // 8 MB: unidad del patrón anti-aliasing
     private const long MaxFileSize  = 1L * 1024 * 1024 * 1024;  // 1 GB por archivo (seguro incluso en FAT32)
@@ -29,7 +39,11 @@ public static class CapacityVerifier
 
     public enum Phase { Writing, Reading }
 
-    public static async Task<VerifyResult> RunAsync(
+    /// <summary>
+    /// Verifica la capacidad real de la unidad <paramref name="letter"/>: escribe el patrón en su espacio
+    /// libre (menos el margen de seguridad) y lo relee sin pasar por la caché del sistema.
+    /// </summary>
+    public async Task<VerifyResult> RunAsync(
         char letter,
         IProgress<(Phase phase, int percent, long bytes)> progress,
         CancellationToken ct)

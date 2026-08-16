@@ -1,4 +1,4 @@
-using FormatDiskPro;
+﻿using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -133,7 +133,7 @@ public sealed class CapacityVerifierTests
     [Fact]
     public async Task RunAsync_DriveNotReady_ReturnsUnitNotReady()
     {
-        var result = await CapacityVerifier.RunAsync(TestPaths.UnusedDriveLetter(), Ignore, CancellationToken.None);
+        var result = await new CapacityVerifier().RunAsync(TestPaths.UnusedDriveLetter(), Ignore, CancellationToken.None);
 
         Assert.False(result.Ok);
         Assert.Equal("unit-not-ready", result.FailureDetail);

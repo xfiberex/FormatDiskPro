@@ -251,6 +251,7 @@ function Show-UiTestCoverage {
 
 # ── Rutas ──────────────────────────────────────────────────────────────────
 $root          = $PSScriptRoot
+$changelog     = Join-Path $root "CHANGELOG.md"
 $csproj        = Join-Path $root "src\FormatDiskPro\FormatDiskPro.csproj"
 $solution      = Join-Path $root "FormatDiskPro.slnx"
 $buildScript   = Join-Path $root "src\FormatDiskPro\installer\build-installer.ps1"
@@ -289,6 +290,30 @@ Info "Versión a publicar: $Version  (tag $tag)"
 if ($currentVersion -and $currentVersion -ne $Version) {
     Info "Bump de versión: $currentVersion -> $Version"
 }
+
+# ── CHANGELOG ──────────────────────────────────────────────────────────────
+# Un CHANGELOG que se queda atrás es peor que no tenerlo: afirma ser el registro del proyecto y miente.
+# El corte exige que la versión que se va a publicar YA tenga su sección, igual que exige el .sha256 y el
+# mínimo de cobertura. Es lo único que impide que este archivo envejezca en silencio.
+# El .* del final acepta la fecha con cualquier separador (guion normal o raya).
+if (-not (Test-Path $changelog)) {
+    Die "No se encontró CHANGELOG.md. Un corte no puede salir sin su registro de cambios."
+}
+$changelogRaw = [System.IO.File]::ReadAllText($changelog)
+if ($changelogRaw -notmatch "(?m)^##\s*\[$([regex]::Escape($Version))\]") {
+    Die @"
+CHANGELOG.md no tiene una sección para la $Version.
+
+Antes de cortar, mueve lo que haya bajo '## [Sin publicar]' a una sección nueva:
+
+    ## [$Version] — $(Get-Date -Format 'yyyy-MM-dd')
+
+y añade abajo su enlace:
+
+    [$Version]: https://github.com/xfiberex/FormatDiskPro/releases/tag/$tag
+"@
+}
+Ok "CHANGELOG.md tiene la sección de la $Version."
 
 # ── Validaciones de git ──────────────────────────────────────────────────────
 Push-Location $root

@@ -60,7 +60,8 @@ Inspirada en el diálogo nativo de Windows "Formatear unidad", pero ampliada has
 - **Diálogo de novedades**: tras actualizar, muestra automáticamente (una sola vez) las novedades de la nueva versión —las mismas notas publicadas en GitHub Releases—; también disponible en cualquier momento desde *Ayuda → Novedades…*
 - **Icono propio** de aplicación
 
-> 📋 Consulta la **[hoja de ruta](ROADMAP.md)** para ver las características implementadas y las próximas (organizadas por *tiers*).
+> 📋 Consulta la **[hoja de ruta](ROADMAP.md)** para ver las características implementadas y las próximas (organizadas por *tiers*),
+> y el **[changelog](CHANGELOG.md)** para lo que trajo cada versión.
 
 ## Requisitos
 
@@ -137,6 +138,8 @@ src\FormatDiskPro\installer\new-selfsigned-cert.ps1 -Trust   # (como admin) adem
 El script `release.ps1` (raíz del repo) corta una versión completa en un paso: valida, ejecuta las pruebas, actualiza `<Version>`, compila el instalador, hace commit + tag, lo sube y crea el **GitHub Release** con el instalador y su **`.sha256`** adjuntos.
 
 > ⚠️ El asset `.sha256` es **obligatorio** mientras se publique sin firmar: es con lo que la app verifica la descarga antes de ejecutarla como administrador. `release.ps1` aborta si no lo encuentra.
+>
+> 📝 El corte también **aborta si [`CHANGELOG.md`](CHANGELOG.md) no tiene la sección de la versión** que se va a publicar. Mueve antes lo que haya bajo *Sin publicar* a su propia sección: un changelog que se queda atrás afirma ser el registro del proyecto y miente.
 
 ```powershell
 .\release.ps1 -Version 1.7.0           # release completo
@@ -274,6 +277,7 @@ tests/FormatDiskPro.UiTests/  Pruebas de UI con FlaUI/UIA3 sobre la app real (fu
 tools/capture-screenshots.ps1 Regenera las capturas del README conduciendo la app por UI Automation
 docs/screenshots/             Capturas del README (generadas, no editadas a mano)
 ROADMAP.md                    Hoja de ruta de características (tiers)
+CHANGELOG.md                  Qué cambió en cada versión (Keep a Changelog)
 release.ps1                   Corte de versión en un paso (build + tag + GitHub Release)
 ```
 

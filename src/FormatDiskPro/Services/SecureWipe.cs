@@ -17,7 +17,17 @@ namespace FormatDiskPro;
 /// borra es la sobrescritura—, pero «borrado seguro» invita a suponer otra cosa y el coste frente a la
 /// E/S es despreciable: sale más barato cumplir la expectativa que documentar por qué no se cumple.</para>
 /// </remarks>
-public static class SecureWipe
+public interface ISecureWipe
+{
+    /// <inheritdoc cref="SecureWipe.RunAsync"/>
+    Task<int> RunAsync(
+        char letter, int passes,
+        IProgress<(int percent, long bytesDone, long totalBytes)> progress,
+        CancellationToken ct);
+}
+
+/// <inheritdoc cref="ISecureWipe"/>
+public sealed class SecureWipe : ISecureWipe
 {
     private const int  BlockSize   = 8 * 1024 * 1024;          // 8 MB por escritura
     private const long MaxFileSize = 1L * 1024 * 1024 * 1024;  // 1 GB por archivo (seguro incluso en FAT32)
@@ -67,7 +77,7 @@ public static class SecureWipe
     /// <param name="ct">Token de cancelación.</param>
     /// <returns><c>0</c> si se completó; <c>-1</c> si la unidad no estaba lista.</returns>
     /// <exception cref="OperationCanceledException">Si se cancela mediante <paramref name="ct"/>.</exception>
-    public static async Task<int> RunAsync(
+    public async Task<int> RunAsync(
         char letter, int passes,
         IProgress<(int percent, long bytesDone, long totalBytes)> progress,
         CancellationToken ct)

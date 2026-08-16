@@ -7,6 +7,10 @@ public partial class App : Application
 {
     public static Window? MainWindow { get; private set; }
 
+    // Raíz de composición (T4-02): el grafo de servicios se construye AQUÍ, una vez, y se pasa hacia
+    // abajo. Es lo único que la app sabe sobre qué implementación usa cada cosa.
+    private readonly AppServices _services = new();
+
     // Evita apilar diálogos si varias excepciones caen seguidas (p. ej. una operación por fases).
     private bool _showingCrashDialog;
 
@@ -19,7 +23,7 @@ public partial class App : Application
         // último recurso para que un fallo de E/S no se lleve por delante la aplicación entera.
         UnhandledException += OnUnhandledException;
 
-        MainWindow = new UI.MainWindow();
+        MainWindow = new UI.MainWindow(_services);
         MainWindow.Activate();
     }
 
@@ -40,7 +44,7 @@ public partial class App : Application
     {
         e.Handled = true;
 
-        try { History.Log($"CRASH: {e.Exception}"); } catch { /* el log nunca debe empeorar un fallo */ }
+        try { _services.History.Log($"CRASH: {e.Exception}"); } catch { /* el log nunca debe empeorar un fallo */ }
 
         if (_showingCrashDialog) return;
         _showingCrashDialog = true;

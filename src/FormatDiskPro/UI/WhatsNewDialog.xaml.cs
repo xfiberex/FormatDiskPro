@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml.Controls;
 
 namespace FormatDiskPro.UI;
 
@@ -15,7 +15,8 @@ public sealed partial class WhatsNewDialog : ContentDialog
     /// <param name="version">Versión legible a mostrar (p. ej. "1.7.0").</param>
     /// <param name="notesMarkdown">Cuerpo Markdown de las notas (puede venir vacío).</param>
     /// <param name="url">URL del release en GitHub (botón "Ver en GitHub").</param>
-    public WhatsNewDialog(string version, string notesMarkdown, string url)
+    /// <param name="updates">Servicio que abre la URL en el navegador.</param>
+    public WhatsNewDialog(string version, string notesMarkdown, string url, IUpdateService updates)
     {
         InitializeComponent();
         _url = url;
@@ -29,6 +30,6 @@ public sealed partial class WhatsNewDialog : ContentDialog
         string plain = ReleaseNotes.ToPlainText(notesMarkdown);
         NotesText.Text = string.IsNullOrWhiteSpace(plain) ? L.T("whatsnew.empty") : plain;
 
-        PrimaryButtonClick += (_, _) => UpdateService.OpenUrl(_url);
+        PrimaryButtonClick += (_, _) => updates.OpenUrl(_url);
     }
 }

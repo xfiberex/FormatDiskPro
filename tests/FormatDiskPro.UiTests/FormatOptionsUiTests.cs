@@ -16,7 +16,7 @@ public sealed class FormatOptionsUiTests
     {
         Window = fixture.MainWindow;
         // La unidad seleccionada al arrancar (o la que haya dejado otro test) puede ser la de
-        // sistema, protegida: SetFormEnabled deshabilita casi todos los controles de esta tarjeta
+        // sistema, protegida: SetControlsEnabled deshabilita casi todos los controles de esta tarjeta
         // sobre ella. Estos tests son de UI pura (nunca pulsan Iniciar), asÃ­ que cualquier otra
         // unidad sirve.
         MainWindowActions.SelectAnyNonSystemDrive(Window);

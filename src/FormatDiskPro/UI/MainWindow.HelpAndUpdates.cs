@@ -28,7 +28,7 @@ public sealed partial class MainWindow
 {
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new HistoryDialog(_darkMode, WinRT.Interop.WindowNative.GetWindowHandle(this))
+        var dlg = new HistoryDialog(_darkMode, WinRT.Interop.WindowNative.GetWindowHandle(this), _services.History)
         {
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
@@ -38,7 +38,7 @@ public sealed partial class MainWindow
 
     private async void MnuAbout_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new AboutDialog { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        var dlg = new AboutDialog(_services.Updates) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         await dlg.ShowAsync();
     }
 
@@ -98,13 +98,14 @@ public sealed partial class MainWindow
     private async Task ShowWhatsNewAsync()
     {
         ReleaseInfo? rel = null;
-        try { rel = await UpdateService.GetReleaseByTagAsync("v" + AppInfo.VersionString) ?? await UpdateService.GetLatestAsync(); }
-        catch (Exception ex) { History.Log($"WHATSNEW ERROR: {ex.Message}"); }
+        try { rel = await _services.Updates.GetReleaseByTagAsync("v" + AppInfo.VersionString) ?? await _services.Updates.GetLatestAsync(); }
+        catch (Exception ex) { _services.History.Log($"WHATSNEW ERROR: {ex.Message}"); }
 
         var dlg = new WhatsNewDialog(
             rel?.Version ?? AppInfo.VersionString,
             rel?.Notes ?? "",
-            string.IsNullOrEmpty(rel?.HtmlUrl) ? AppInfo.ReleasesPageUrl : rel!.HtmlUrl)
+            string.IsNullOrEmpty(rel?.HtmlUrl) ? AppInfo.ReleasesPageUrl : rel!.HtmlUrl,
+            _services.Updates)
         {
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
@@ -123,10 +124,10 @@ public sealed partial class MainWindow
         }
 
         ReleaseInfo? rel;
-        try { rel = await UpdateService.CheckForUpdateAsync(); }
+        try { rel = await _services.Updates.CheckForUpdateAsync(); }
         catch (Exception ex)
         {
-            History.Log($"UPDATE CHECK ERROR: {ex.Message}");
+            _services.History.Log($"UPDATE CHECK ERROR: {ex.Message}");
             if (manual)
             {
                 StatusText.Text = "";
@@ -152,7 +153,7 @@ public sealed partial class MainWindow
         if (string.IsNullOrEmpty(rel.AssetUrl))
         {
             await ShowInfoAsync(L.T("update.availTitle"), L.T("update.noasset", rel.Version));
-            UpdateService.OpenUrl(rel.HtmlUrl);
+            _services.Updates.OpenUrl(rel.HtmlUrl);
             return;
         }
 
@@ -222,14 +223,14 @@ public sealed partial class MainWindow
 
         try
         {
-            string path = await UpdateService.DownloadAsync(rel, progress, _cts!.Token);
-            History.Log($"UPDATE DOWNLOADED {rel.Version}: {path}");
+            string path = await _services.Updates.DownloadAsync(rel, progress, _cts!.Token);
+            _services.History.Log($"UPDATE DOWNLOADED {rel.Version}: {path}");
             StatusText.Text = L.T("update.launching");
             // Instalación silenciosa: el instalador cierra esta app, actualiza y la relanza.
             // Marcamos el cierre como intencional ANTES de salir para que AppWindow_Closing no lo
             // cancele por _isBusy; así la app suelta el AppMutex/los archivos y el instalador procede.
             _closingForUpdate = true;
-            UpdateService.LaunchInstaller(path, silent: true);
+            _services.Updates.LaunchInstaller(path, silent: true);
             Application.Current.Exit();
         }
         catch (OperationCanceledException)
@@ -242,7 +243,7 @@ public sealed partial class MainWindow
             FormatProgress.Value = 0;
             _lastOperationFailed = true;
             StatusText.Text = "";
-            History.Log($"UPDATE DOWNLOAD ERROR {rel.Version}: {ex.Message}");
+            _services.History.Log($"UPDATE DOWNLOAD ERROR {rel.Version}: {ex.Message}");
             await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ex.Message));
         }
         finally

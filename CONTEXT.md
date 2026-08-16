@@ -14,9 +14,9 @@
 | **Estado** | 🏁 **Funcionalidad TERMINADA** (Tiers 1–9) · 🔧 **backlog de calidad abierto** tras la auditoría del 2026-08-13 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **398** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** |
-| **Última actualización** | 2026-08-15 (v1.20.0 publicada y verificada · auditoría **35/40**, **Tiers 0–3 cerrados** · **Tier 5 «Ocurrencias» abierto** · **CI descartada: el testing es local**) |
+| **Pruebas** | **433** unitarias · **27** de UI sobre la app real — **24 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-15 |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — Parte 1 (producto) cerrada · Parte 2 (calidad) **abierta** · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | 2026-08-16 (auditoría **38/40**: `T4-01`/`T4-02`/`T4-05` cerradas · **Services inyectables** · `CHANGELOG.md` · **Tier 5 «Ocurrencias» abierto** · **CI descartada: el testing es local**) |
 
 ---
 
@@ -52,7 +52,9 @@ src/FormatDiskPro/
 │  ├─ OperationFailure.cs Línea de historial de una operación fallida (camino de error de T0-02)
 │  ├─ HistoryRotation.cs  Política de rotación del historial (umbral y nombre de la generación anterior)
 │  └─ AppInfo.cs          Versión, coordenadas del repo, enlace de donación
-├─ Services/        Efectos colaterales (procesos / disco / red)
+├─ Services/        Efectos colaterales (procesos / disco / red) — clases con interfaz, inyectadas
+│  ├─ AppServices.cs       RAÍZ DE COMPOSICIÓN: el único sitio que decide qué implementación usa la app
+│  ├─ ProcessRunner.cs     IProcessRunner: la costura que hace testeables los caminos de error (T4-02)
 │  ├─ DiskService.cs       S.M.A.R.T., nº de disco, protección de escritura, expulsión (PowerShell)
 │  ├─ SecureWipe.cs        Sobrescritor propio del espacio libre, con progreso
 │  ├─ CheckDisk.cs         chkdsk (comprobar / reparar) con streaming de progreso
@@ -83,15 +85,21 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    369 pruebas xUnit sobre Core y los helpers de Services
+tests/FormatDiskPro.Tests/    433 pruebas xUnit sobre Core y los Services (con IProcessRunner falso)
 tests/FormatDiskPro.UiTests/  25 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
+CHANGELOG.md                  Qué cambió en cada versión (Keep a Changelog); el corte exige su sección
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
 FormatDiskPro.slnx            Solución: app + Tests. UiTests NO está incluido, a propósito.
 ```
 
 **Regla de oro:** la lógica testeable vive en `Core`, **sin dependencias de WinUI, `Process` ni `HttpClient`**.
 La UI y los servicios la consumen. Namespace único `FormatDiskPro`.
+
+**Segunda regla, desde `T4-02` (2026-08-16):** los `Services` son **clases con interfaz**, no estáticas, y
+nadie las construye salvo la raíz de composición `AppServices`. `App` la crea y se la pasa a `MainWindow`,
+que se la pasa a los diálogos. **No es un localizador de servicios** —nadie le pide nada «desde dentro»—,
+así que cada constructor sigue declarando de qué depende.
 
 ### Pruebas de UI (`FormatDiskPro.UiTests`) — lo que hay que saber
 
@@ -123,11 +131,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **398 / 398** (289 + 109 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **433 / 433** (289 + 144 de la auditoría) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **27** en total · con la USB (`utilidades`, sin opt-in): **24 pasan / 3 se omiten / 0 fallan** (2026-08-15) · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.20.0** (2026-08-15) · `master` sin trabajo pendiente de publicar |
-| Auditoría | 2026-08-13 — **35/40 completadas** + 1 descartada (`T2-10`, CI) · **Tiers 0–3 cerrados**; abiertas solo las 5 del Tier 4 ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
+| Publicado | **v1.20.0** (2026-08-15) · `master` con `T4-01`/`T4-02`/`T4-05` **sin publicar** (ver *Sin publicar* en [`CHANGELOG.md`](CHANGELOG.md)) |
+| Auditoría | 2026-08-13 — **38/40 completadas** + 1 descartada (`T2-10`, CI) · **Tiers 0–3 cerrados**; del Tier 4 quedan `T4-03` (certificado) y `T4-04` (capturas) ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5** abierto (2026-08-15): 5 tareas de ampliación de features ya entregadas, **fuera** del recuento de la auditoría. Primera: el espacio que *FAT32 pequeña* deja sin asignar |
 
 **Tiers completados**
@@ -293,6 +301,9 @@ commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su 
 > `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` activa: un corte jamás debe formatear una unidad.
 >
 > Solo hace `git add -u`, así que **los archivos nuevos hay que `git add`earlos antes**.
+>
+> **Y aborta si [`CHANGELOG.md`](CHANGELOG.md) no tiene la sección de la versión** que se va a publicar
+> (`T4-01`): mueve antes lo que haya bajo *Sin publicar* a `## [X.Y.Z] — fecha` y añade su enlace abajo.
 
 ## 6. Estado del proyecto: TERMINADO (2026-07-13)
 
@@ -306,8 +317,9 @@ es (ver §4).
 clientes ≤ 1.14.1 llegaron a la 1.15.0 con el código viejo, que no verificaba nada. El primer uso real es
 **1.15.0 → 1.15.1**.
 
-Pulido opcional, sin impacto: más capturas (hoy 3), renombrar el `Name` interno del form, y la validación de
-etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
+Pulido opcional, sin impacto: más capturas (hoy 3) y que la validación de etiqueta no rechace `'` (menor,
+por diseño: el escape lo cubre). Lo de «renombrar el `Name` interno del form» quedó hecho en `T4-05`
+(2026-08-16): eran `SetFormEnabled` y un comentario, no una propiedad `Name`.
 
 ## 7. Cómo mantener este documento
 
@@ -321,8 +333,13 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 
 ### Índice de versiones
 
+> El índice por versión vive ahora también, y con más detalle, en [`CHANGELOG.md`](CHANGELOG.md)
+> (`T4-01`). Esta tabla se conserva porque es la entrada al registro **razonado** de abajo: allí está el
+> *qué*, aquí empieza el *por qué*.
+
 | Versión | Qué trajo |
 |---|---|
+| *(sin publicar)* | `T4-01`/`T4-02`/`T4-05`: `CHANGELOG.md` con puerta en el corte, `Services` inyectables con raíz de composición y costura `IProcessRunner` (+35 pruebas de caminos de error, ninguna toca un disco), y fuera el último resto de Windows Forms. |
 | **1.20.0** | **Tier 3 cerrado.** Pulido de lo que fallaba en silencio: la exportación CSV del historial informa del error real, la salud ilegible se muestra como «no disponible», el borrado seguro usa RNG criptográfico, las preferencias se normalizan al cargarlas, los iconos decorativos salen del árbol de accesibilidad y un marcador mal escrito en una traducción ya no tumba una pantalla. |
 | **1.19.0** | **Tier 2 cerrado.** *Verificar capacidad* deja de poder leer de la caché del sistema (se acabaron los falsos OK en unidades pequeñas). Cobertura de `Core/` medida (97 %) y exigida en el corte; `MainWindow` repartido (2107 → 753 líneas) sin cambiar comportamiento; `SECURITY.md` y `CONTRIBUTING.md`. |
 | **1.18.0** | Tercera tanda de la auditoría: las operaciones se pueden seguir con un lector de pantalla (región activa + notificación en los hitos), el error de etiqueta se lee desde su campo, el `.sha256` se empareja con su instalador y se lee acotado, `history.log` rota. El corte declara qué cobertura de UI no ejerció. |
@@ -351,6 +368,73 @@ etiqueta no rechaza `'` (menor, por diseño: el escape lo cubre).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-16 — `T4-02`, `T4-01` y `T4-05`: que fallar sea observable
+
+El Tier 4 era «futuro / opcional» por definición, pero dos de sus tareas eran deuda de verdad. Auditoría
+**38/40**: solo quedan las dos que no dependen del código —`T4-03` necesita un certificado de firma y
+`T4-04`, una tanda de capturas regeneradas—.
+
+**`T4-02` — los `Services` dejan de ser estáticos.** Los once pasan a clases con interfaz, y el grafo se
+construye en una **raíz de composición** (`Services/AppServices`) que `App` crea y pasa a `MainWindow`, y
+esta a los diálogos que la necesitan. **No es un localizador de servicios:** nadie le pide nada «desde
+dentro», así que cada constructor sigue declarando de qué depende — que es la mitad del valor de esto.
+
+> **Lo caro de probar no era la estática: era `new Process(...)`.** La tarea decía «todos son `static`, lo
+> que hace imposible probar los caminos de error sin hardware», y la parte operativa de esa frase es la
+> segunda. Cada servicio construía su propio proceso, así que reproducir un `chkdsk` que devuelve 2, un
+> `Clear-Disk` que revienta a mitad o un `powershell.exe` bloqueado por directiva exigía **provocar la
+> avería de verdad** — y en el caso de *Reinicializar unidad*, borrar un disco. La costura que lo cambia
+> todo es `IProcessRunner`.
+
+**La abstracción se queda en *arrancar* el proceso, no en «ejecutar y devolver la salida».** Es la decisión
+que más importa aquí. Cada servicio lee su salida de forma distinta y con matices que costaron hardware
+descubrir: el solapamiento de marcadores (`T3-02`), cerrar la entrada estándar (`T1-02`), esperar con
+`CancellationToken.None` para no perder el código de salida al cancelar. Unificar esos bucles en un
+«runner que lo hace todo» habría sido **reescribirlos**, y este cambio no podía cambiar comportamiento.
+Los bucles quedan intactos; solo cambia de dónde sale el proceso.
+
+**Resultado en pruebas: 398 → 433, y ninguna toca un disco.** Entre las 35 nuevas están las del camino
+destructivo que nunca se habían podido escribir: reinicializar con `Clear-Disk` fallando, y —el peor caso—
+salir con **código 0 pero sin letra asignada**, o sea el disco borrado y sin volumen montable. También se
+fija por prueba que `CheckDisk.RunAsync` **no atrapa nada** (deliberado: la excepción tiene que llegar al
+`catch` del handler, `T0-02`), que `/f` solo se pasa al reparar y que `/Y` siempre se pasa a `format.com`.
+
+> **Verificado por reversión, no por «pasa en verde».** Deshaciendo la guarda de la letra nueva falla
+> `Reinit_ExitZeroButNoLetterAssigned_IsAFailure`; poniendo el solapamiento de marcadores a 0 falla
+> `Reinit_Success_ReportsEveryStageOnceAndInOrder`. Esa segunda solo funciona porque el doble entrega la
+> salida **partida en trozos de 6 caracteres**: con un `StringReader` normal llegaría entera de una vez y
+> la prueba pasaría igual con el solapamiento roto. Es la misma lección de siempre aquí — una prueba que
+> no puede fallar no prueba nada.
+
+**Dos costuras artificiales desaparecen al llegar la real.** `History.LogTo`/`ReadLinesFrom`/`ClearAt` eran
+`internal static` con la ruta como parámetro, la única forma que había de no escribir en el `%AppData%` del
+usuario al probar. Con la ruta inyectada por constructor vuelven a ser privadas.
+
+**`UpdateService` conserva sus miembros internos `static`, y es una excepción razonada.** Ya se probaba
+entero —sus pruebas levantan un servidor HTTP local y ejercitan hash correcto, hash que no coincide,
+checksum ausente y respuesta desmedida—, así que instanciarlos habría significado **reescribir la ruta de
+verificación que corre elevada** sin ganar una sola prueba. Se instancia lo que consume la UI.
+
+**`T4-01` — `CHANGELOG.md`, con puerta en el corte.** Las 28 versiones publicadas más una sección *Sin
+publicar*. Lo que lo hace sostenible no es el archivo: `release.ps1` **aborta si no existe ya la sección de
+la versión que se va a publicar**, con un mensaje que dice exactamente qué escribir. Misma forma que la
+cobertura mínima y el `.sha256`, y por el mismo motivo — un changelog que se queda atrás **afirma ser el
+registro del proyecto y miente**, que es peor que no tenerlo.
+
+> **Las fechas salen de `git for-each-ref`, no del recuerdo.** Escritas a ojo desde el índice de versiones
+> de este mismo archivo, **18 de las 28 estaban mal**, alguna con ocho días de desviación. El índice de
+> arriba nunca las tuvo: solo dice qué trajo cada versión, no cuándo salió. Escribir un documento cuyo
+> propósito es responder «¿cuándo entró esto?» a base de memoria era garantizar que respondiera mal.
+
+**`T4-05` — el último resto de Windows Forms.** No era una propiedad `Name`: eran `SetFormEnabled` (ahora
+`SetControlsEnabled`, que además describe lo que hace) y un comentario *«same as MainForm»*.
+
+Build 0/0, **433/433** unitarias. La suite de UI no se ha vuelto a ejecutar tras estos cambios: el refactor
+no toca XAML ni `AutomationId`, pero **eso es un razonamiento, no una medida** — el corte con `-UiTests`
+sigue siendo la puerta que lo comprueba.
 
 ---
 
@@ -472,7 +556,8 @@ Dos extracciones **reales**, las que pedía la tarea, y luego una partición del
 > **Lo que este cambio NO es.** Partir un archivo en `partial` no reduce el acoplamiento: sigue siendo la
 > misma clase con el mismo estado compartido. Arregla exactamente lo que la tarea decía —encontrar algo
 > en 2.000 líneas— y nada más. El rediseño de verdad (inyección de dependencias, `Services` no estáticos)
-> es `T4-02`, y sigue abierto **a propósito**.
+> es `T4-02`, **cerrado el 2026-08-16** — y que `MainWindow` siga siendo una clase grande con estado
+> compartido tampoco lo arregló aquello: lo que arregló fue que los fallos de los servicios sean observables.
 
 Verificado como toca para un refactor que promete no cambiar comportamiento: build 0/0, 389/389
 unitarias y la suite de UI **24/27 con la USB conectada** — el mismo resultado, tras cada paso.
