@@ -13,7 +13,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
-## [Sin publicar]
+## [1.23.0] — 2026-08-17
 
 ### Cambiado
 
@@ -470,7 +470,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.21.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.23.0...HEAD
+[1.23.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.23.0
 [1.22.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.22.0
 [1.21.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.21.0
 [1.20.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.20.0
