@@ -11,12 +11,12 @@
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Versión publicada** | **1.22.0** (2026-08-16) |
-| **Estado** | 🏁 **SIN TAREAS ABIERTAS.** Producto (Tiers 1–9), auditoría de calidad y Tier 5 «Ocurrencias»: los tres cerrados |
+| **Estado** | Producto (Tiers 1–9), auditoría de calidad, Tier 5 «Ocurrencias» y **Tier 6 — refinado de UX/UI** (15/15, 2026-08-17): **todos cerrados**. Sin tareas abiertas |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **521** unitarias (`Core/` al 97,9 %) · **28** de UI sobre la app real — **25 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-16 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — todo cerrado · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-16 (**v1.22.0 publicada y verificada** · **Tier 5 cerrado**: plan de particiones como dato puro, el sobrante aprovechable en una segunda partición, informe del fallo parcial · `T5-04` descartada) |
+| **Pruebas** | **563** unitarias (`Core/` al 97,9 %) · **28** de UI sobre la app real — **25 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-16 |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — sin tareas abiertas · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | 2026-08-17 (**Tier 6 cerrado**, 15/15: la revisión de UX/UI abrió 11 tareas y su propia tarea de cobertura (`T6-11`) descubrió 3 más · **sin publicar**: bloque de ocupación a dos colores, textos legales legibles, números en el idioma de la app) |
 
 ---
 
@@ -86,8 +86,8 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    521 pruebas xUnit sobre Core y los Services (con IProcessRunner falso)
-tests/FormatDiskPro.UiTests/  28 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
+tests/FormatDiskPro.Tests/    563 pruebas xUnit sobre Core y los Services (con IProcessRunner falso)
+tests/FormatDiskPro.UiTests/  30 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
 CHANGELOG.md                  Qué cambió en cada versión (Keep a Changelog); el corte exige su sección
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
@@ -126,19 +126,31 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 - `VerifyCapacity_CompletesForTestDrive` lleva `[Trait("Category","Slow")]`: escribe y relee casi todo el
   espacio libre (es lo que hace falta para detectar capacidad falsificada) y puede superar los 30 min. Fuera
   del filtro por defecto.
+- **Para iterar, lanza SIEMPRE con el filtro** — es lo mismo que hace `release.ps1`:
+
+  ```
+  dotnet test tests\FormatDiskPro.UiTests\FormatDiskPro.UiTests.csproj --no-build --filter "Category!=Slow"
+  ```
+
+  Sin él, `dotnet test` a secas arrastra `VerifyCapacity`, cuyo *timeout* es de **3 horas** y que sobre una
+  partición de decenas de GB los consume de verdad. Con el filtro: **1 m 53 s** (2026-08-17, USB de dos
+  particiones). El «`dotnet test` a secas» no es la forma neutra de correr esta suite: es la forma lenta.
+- **Recuerda compilar el proyecto de UI aparte** (`dotnet build tests\FormatDiskPro.UiTests\...csproj`): no
+  está en el `.slnx`, así que `--no-build` tras un `dotnet build FormatDiskPro.slnx` ejecuta el **DLL
+  anterior**. Ver §4.
 
 ## 3. Estado actual
 
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **521 / 521** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03`) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **28** en total (el «27» anterior era un dato mal anotado; `--list-tests` da 28) · con la USB (`utilidades`, sin opt-in): **25 pasan / 3 se omiten / 0 fallan** (2026-08-16) · **el corte ejecuta 27**: `release.ps1` filtra `Category!=Slow` · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · sin USB ni segundo disco: 15 pasan / 12 se omiten, y **el corte ya dice cuáles** |
+| Unitarias | **585 / 585** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| UI tests | **30** en total (+1 de `T6-01`, +1 de `T6-02`) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.22.0** (2026-08-16) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **Ninguna.** Producto, auditoría y Tier 5: los tres cerrados |
+| Tareas abiertas | **0**. El **Tier 6 (refinado de UX/UI)** se abrió y se cerró el 2026-08-17, 15/15: 11 de la revisión inicial, `T6-12` salida de hacer `T6-04`, y `T6-13`/`T6-14`/`T6-15` de la revisión completa (`T6-11`). Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
 > quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
@@ -282,10 +294,20 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   copiados en `HistoryDialog` y `MainWindow`, y por ahí entró un gris de 3.52:1 sin romper el build.
   **Única excepción fuera de `Core`:** `MainWindow.UpdateCaptionButtonColors` (cromo de ventana, superpuesto
   sobre Mica/Acrylic: no hay fondo fijo contra el que medir).
+- **Un color se mide contra lo que hay que distinguirlo, no siempre contra el fondo** (desde 2026-08-16).
+  `PaletteColor.Against` permite declarar un color **adyacente** como referencia. Lo usa la pista de la
+  barra de ocupación: contra la tarjeta no llega al 3:1 *a propósito* —es un hueco, no una segunda barra—,
+  y lo que el usuario tiene que separar ahí es *usado* de *libre*. Entra al inventario con una entrada por
+  cada relleno con el que puede compartir barra. Si alguien le quita el `Against` «para medirla como las
+  demás», el barrido la suspende y la reacción natural sería oscurecerla hasta que compita con el relleno:
+  hay un test que fija que esas entradas declaren su vecino.
 - **La barra de capacidad NO usa el color de acento** (desde el pase de UX del 2026-07-20). Un `ProgressBar`
   por defecto hereda el acento del sistema; en un equipo con **acento rojo** la barra de ocupación se veía
   roja con el disco medio vacío y leía como *alarma*. Ahora codifica ocupación, no marca: neutro <80 %,
   ámbar ≥80 %, rojo ≥90 % (`MainWindow.CapacityBrush`, con `SeverityPalette.NeutralFill` para el neutro).
+  Desde 2026-08-16 **tampoco es un `ProgressBar`**: su plantilla fija la pista en 1 px, así que usado y
+  libre no podían tener el mismo grosor. Es un `Border` (libre) con un `Border` hijo (usado) y columnas
+  estrella — ver el registro de cambios de esa fecha.
 - **Capturas: fotografía el PUBLISH self-contained, no el `dotnet build`.** En esta máquina el apphost de un
   `dotnet build -c Release` (runtime .NET *framework-dependent*) **no arranca**: muestra "You must install or
   update .NET". `tools/capture-screenshots.ps1` prefiere `bin\Release`, así que tras un build plano capturaba
@@ -377,6 +399,320 @@ ni mueve datos).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-08-17 — `T6-12` a `T6-15`: se cierra el Tier 6 (15/15)
+
+**`T6-13` — *Novedades* enseñaba el Markdown.** Dos fallos en el mismo conversor: se quitaban `**` y `__`
+pero no la cursiva de un asterisco, y se respetaban los saltos de línea del original —ajustado a ~100
+columnas— que el diálogo volvía a ajustar por su cuenta, partiendo las frases dos veces. El «cuidado»
+anotado en la tarea era real y marcó el diseño: las regex de énfasis exigen marcador **pareado y pegado a
+un no-espacio** (y el subrayado, que no haya letra alrededor), así que `2 * 3 = 6` y `notas_de_version`
+salen intactos; el desenvolvido va por bloques, de modo que una viñeta no se pega a la siguiente pero su
+continuación ajustada sí se le une. Tres de las nueve pruebas nuevas guardan justo eso: lo que **no** debe
+tocarse.
+
+**`T6-14` — el primer intento fue peor que el problema.** Con `NoWrap` y el cuerpo a 11 px el texto legal
+dejaba de partirse… y pasaba a salir **cortado** en el borde, sin barra visible. Cambié un ajuste feo por
+una truncación silenciosa, y no lo vi razonando: lo vio la captura. La solución fue medir en vez de elegir
+entre las tres opciones que proponía la tarea — `LICENSE` mide 78 columnas como mucho, y a 10 px de
+Consolas entran ~78 en 430 px, que es todo lo que da una ventana de 500. Con eso la GPL entera, 674 líneas,
+se lee sin tocar la barra horizontal. Es la **única excepción declarada** al ancho común de `T6-07`, y está
+documentada en los dos sitios donde alguien podría intentar «arreglarla».
+
+Las tres líneas que aún no cabían resultaron ser **nuestras**: `THIRD-PARTY-NOTICES.txt` es el documento de
+atribución del proyecto, no texto ajeno, así que se reajustó a 78 columnas. El texto MIT que cita y la GPL
+no se tocaron — eso era exactamente lo prohibido.
+
+**`T6-15` — la prueba no ancla las cadenas.** Los resúmenes de reinicialización traían saltos puestos a mano
+que peleaban con el ajuste del control, y quedaban partidos en un sitio distinto en cada idioma. Se podía
+arreglar y anclar el resultado; en vez de eso, la prueba recorre **cada `\n` de los tres textos en los cinco
+idiomas** y falla si no separa párrafos ni abre un elemento de la lista numerada. Así caza también el que se
+cuele en una traducción futura, que es cuando esto vuelve.
+
+**`T6-12` — el fallo estaba dentro de la propia suite.** Decidido: los números que se **muestran** siguen al
+idioma elegido en la app. Es lo coherente con dejar cambiar de idioma sin tocar Windows — si cambia el
+texto, cambia el número. Nueva `L.Culture`, que `L.Set` actualiza junto al idioma y que `FormatBytes` usa
+por defecto (aceptando además una cultura explícita, que es lo que hace testeable la escalera de unidades
+sin mezclarla con el separador).
+
+Lo que **no** se hizo, y es la mitad del trabajo: `L.Culture` **no** se asigna a `CultureInfo.CurrentCulture`.
+La cultura del hilo gobierna también comparaciones y mayúsculas, que es por donde volvería `T1-01` (la
+guarda de disco de sistema fallando bajo cultura turca). Hay una prueba que fija `tr-TR`, cambia el idioma
+y comprueba que el hilo no se ha movido.
+
+Y el detalle que lo delató: al aplicarlo se pusieron rojas **cuatro pruebas existentes** que afirmaban el
+separador **inglés** con la app arrancando en español. Pasaban porque `FormatBytes` leía la cultura del
+hilo y el fixture la fijaba invariante — medían el separador de la prueba, no el de la app. Estaban verdes
+describiendo algo que el usuario nunca veía. Ahora cada una dice en qué idioma habla.
+
+---
+
+### 2026-08-17 — `T6-11`: la revisión completa encuentra lo que la incompleta no podía
+
+26 tomas, 13 pantallas × 2 temas, con la app corriendo y la USB conectada. Confirmó en ejecución `T6-01`,
+`T6-02`, `T6-06`, `T6-07` y `T6-10`, y la barra de ocupación en los dos temas —en claro, relleno `#5C5C5C`
+sobre pista `#E0E0E0`: se distinguen sin esfuerzo, que era lo que el cálculo prometía y nadie había visto—.
+
+**Y abrió tres tareas que la primera ronda no podía ver**, todas en pantallas que entonces no se pudieron
+abrir: `T6-13` (*Novedades* muestra los asteriscos de la cursiva de Markdown y parte los párrafos por donde
+venían ajustados en el original), `T6-14` (los textos legales vienen a ~75 columnas y en el diálogo entran
+~60, así que hasta las líneas separadoras salen cortadas) y `T6-15` (los resúmenes de confirmación llevan
+`\n` incrustados y el control vuelve a ajustar encima).
+
+**Esto es el argumento de la tarea, no una nota al pie.** Una revisión que solo mira lo que puede mirar
+produce una lista que parece completa. Anotar el hueco (`T6-11`) y luego cerrarlo fue lo que convirtió
+«diez hallazgos» en trece — y los tres nuevos están en sitios que importan: la primera pantalla tras
+actualizar, el texto legal y lo que hay que leer antes de borrar un disco.
+
+**Y siguió pagando después.** Al implementar `T6-14` el primer intento truncaba el texto legal en silencio
+—peor que el ajuste feo que venía a arreglar— y no lo detectó ningún razonamiento: lo detectó volver a
+fotografiar el diálogo. La captura no es la verificación de esta tarea; es la verificación de todas.
+
+**Detalle de intendencia:** `docs/screenshots/gallery/` está en `.gitignore`, así que refrescarla no mete
+26 binarios en el repo. Es material de revisión local; las tres capturas del README viven aparte y esas sí
+se versionan.
+
+---
+
+### 2026-08-17 — `T6-06`, `T6-07` y `T6-08`: dos trampas de WinUI y un hallazgo medio equivocado
+
+**`T6-07` es el aviso de que una revisión también puede estar mal.** Anoté que «cada diálogo coloca sus
+botones distinto» como si fuera descuido. Los botones apilados de *chkdsk* **no** lo son: con tres botones
+nativos en fila, WinUI truncaba «Comprobar y reparar» **sin puntos suspensivos** («Comprobar y repar»), y
+en PT/IT es peor. Estaba explicado en un comentario del propio código, que no leí antes de escribir el
+hallazgo. Uniformarlos habría reintroducido un fallo real. Lo mismo el *Historial*: sus tres botones **no
+cierran** el diálogo, así que van en el contenido; abajo solo va lo que cierra.
+
+Lo que **sí** estaba mal era el **ancho**: siete diálogos con seis criterios (360, 380, 400, 300–420,
+360–420, y el de chkdsk **sin ninguno**, ajustándose a su texto). Abrir dos seguidos hacía «saltar» la
+ventana. Ahora los fijan dos tokens compartidos. Y la regla que la app ya seguía sin estar escrita —qué va
+en los botones nativos, qué en el contenido, cuándo se apila— queda escrita en `AppTheme.xaml`, **con el
+porqué de la excepción de chkdsk**, para que el siguiente que la mire no la «arregle».
+
+**`T6-08`: en WinUI un panel no se puede deshabilitar.** `IsEnabled` vive en `Control` y `Panel` deriva de
+`FrameworkElement`, así que `<StackPanel IsEnabled="False">` no compila (`WMC0011`) — al contrario que en
+WPF, donde `UIElement` sí lo tiene. Fue lo primero que intenté.
+
+Y su corolario, que es el que de verdad hay que recordar: **un `TextBlock` tampoco es un `Control`**, así
+que no tiene estado visual deshabilitado. Apagar solo los desplegables dejaría las etiquetas a pleno
+contraste, más vivas que el control al que acompañan. Se atenúan aparte con `TextFillColorDisabledBrush`
+—el token del tema, no un alfa inventado— y al reactivarlas con `ClearValue`, para no dejarles un color
+clavado que sobreviva a un cambio de tema en caliente.
+
+---
+
+### 2026-08-17 — `T6-04` y `T6-05`: el mismo principio en dos sitios
+
+Las dos tareas son la misma idea: **la app guarda datos de máquina y los enseñaba sin traducir**.
+«32161 h» y `small-fat32=2147483648` son correctos y no responden a la pregunta que el usuario tenía al
+abrir esa pantalla.
+
+**`T6-04` — un decimal siempre, y así no hay que pluralizar.** «1,0 años» concuerda en los cinco idiomas;
+«1 años» no. Evitar la concordancia singular/plural en cinco traducciones vale más que ahorrar un decimal.
+Los cortes de tramo están a **dos** unidades, no a una: con 33 días se dice «≈ 33,5 días», no «≈ 1,1 meses».
+
+**`T6-05` — transforma lo que se MUESTRA, nunca lo que se guarda.** Era tentador arreglarlo en las llamadas
+a `History.Log`, y habría sido peor por dos motivos: `history.log` y el CSV tienen consumidores y el byte
+exacto es justo lo que sirve al depurar; y las entradas **ya escritas** seguirían ilegibles. Como función
+de presentación, el historial de hace un mes también se arregla.
+
+**Lista blanca de claves, no heurístico.** En la misma línea conviven `code=1`, `passes=3` y `quick=True`.
+Un «convierte los números que parezcan grandes» acabaría diciendo «1 B» donde pone `code=1`. Añadir un
+tamaño nuevo obliga a tocar la lista, que es justo la decisión que conviene tomar a conciencia.
+
+**Lo que casi se cuela.** El buscador del historial filtra por el detalle crudo. Con la lista mostrando
+«2 GB» y el fichero guardando «2147483648», teclear lo que estás viendo no habría devuelto nada — un
+buscador que no encuentra lo que hay en pantalla es peor que no tener buscador. `Matches` busca ahora en
+los dos.
+
+**Y una tarea nueva, `T6-12`.** Poner un decimal al lado de una palabra traducida hizo visible algo
+anterior: los números se formatean con la cultura de **Windows** y el texto con el idioma de **la app**,
+que son cosas distintas porque la app deja cambiar el idioma sin tocar Windows. Sale `32,161 h (≈ 3.7
+años)`. No es una regresión de `T6-04`: `FormatBytes` lleva haciéndolo desde siempre (`223.6 GB`), y
+`T6-04` se implementó con el mismo criterio para no dejar dos conviviendo. Arreglarlo es un cambio
+transversal y va aparte.
+
+---
+
+### 2026-08-17 — `T6-03`: «no lo sé» y «no aplica» no son lo mismo
+
+La fila decía «Velocidad de rotación: **SSD**» —una velocidad cuyo valor es un tipo de medio— con «Tipo de
+medio: SSD» justo encima. En un disco de estado sólido no es que el dato falte: es que la pregunta no
+existe.
+
+**Lo interesante fue el caso de en medio.** Hay tres estados, no dos:
+
+| Señal | Qué significa | Qué se pinta |
+|---|---|---|
+| `RPM = 0` | el disco dice «no giro» | fila **oculta** |
+| `RPM > 0` | gira a esa velocidad | fila con las RPM |
+| sin RPM, medio = SSD | no hay contador, pero se declara SSD | fila **oculta** |
+| sin RPM, medio desconocido | **no se sabe** | fila con *No disponible* |
+
+El último es el que obliga a pensar. Esconder la fila ahí sería **afirmar que es de estado sólido sin
+saberlo**, que es exactamente el tipo de mentira que esta tarea venía a quitar. Por eso `HasSpindle`
+devuelve `true` cuando no hay ninguna señal: «asume que gira» no es una suposición sobre el hardware, es
+la instrucción de mostrar la fila como desconocida en vez de decidir por el usuario.
+
+**Dónde vive.** En `Core/SmartInfo`, no en el diálogo: es una decisión y aquí las decisiones se miden.
+De paso se va el literal `"SSD"` del code-behind, que era texto de cara al usuario fuera de
+`Localization/` — justo el patrón que `LocalizationCoverageTests` persigue.
+
+**Verificado por las dos caras, en la app real** (`capture-screenshots.ps1 -Only health`): en **D:** (SATA
+SSD) la fila ya no aparece; en **I:** (USB que no informa de nada) **sigue apareciendo** como *No
+disponible*. Una sola de las dos capturas no habría distinguido «lo arreglé» de «la borré para todos».
+
+---
+
+### 2026-08-17 — `T6-02`: el placeholder que regalaba la respuesta, y lo que tapaba
+
+El campo de confirmación llevaba como `PlaceholderText` la propia letra a teclear: parecía relleno, y
+ponía la respuesta dentro del hueco donde hay que transcribirla — el único punto de fricción deliberada de
+la app. Quitar esa línea es el arreglo entero… salvo por lo que se descubre al quitarla.
+
+**WinUI usa el `PlaceholderText` como NOMBRE ACCESIBLE del `TextBox` cuando no hay otro.** El campo se
+llamaba `I`: un lector de pantalla **anunciaba la respuesta en voz alta**. El fallo era peor de lo que la
+revisión había anotado, y la mitad grave era la que no se veía en la captura. Y borrar el placeholder sin
+más lo habría dejado llamándose «…», que no es mejor. Se le da nombre explícito
+(`confirm.inputName` ×5), que además no depende de lo que se pinte dentro.
+
+**La primera prueba que escribí no valía, y lo dijo la reversión.** Buscaba «un elemento del diálogo cuyo
+texto visible sea exactamente la letra», razonando que así daba igual cómo expusiera WinUI el placeholder.
+Pasó en verde — y **volvió a pasar con el fallo reintroducido**: WinUI no lo publica como texto de ningún
+elemento. Un diagnóstico volcando las propiedades del `TextBox` señaló el sitio real (`Name`), y la prueba
+se reescribió contra él. Ahí sí falla al revertir.
+
+**La lección no es sobre placeholders.** Es que «lo escribí, pasa en verde» no dice nada sobre si la prueba
+mira donde cree mirar. Esta pasó dos veces por motivos opuestos, y solo la reversión distinguió una de la
+otra. Es el mismo patrón que ya había mordido en `T1-04` y en `T1-07`.
+
+---
+
+### 2026-08-17 — `T6-01`: el título del diálogo destructivo deja de ser un valor por defecto
+
+Reinicializar se anunciaba como «Confirmar formato». Lo arreglado no es la cadena: es **de dónde salía**.
+`ConfirmDialog` fijaba `Title = L.T("confirm.title")` **en su constructor**, así que las dos operaciones
+irreversibles no podían tener títulos distintos aunque quisieran. Ahora el título es un **parámetro
+obligatorio**, no opcional con valor por defecto: una tercera operación destructiva no puede heredar el
+nombre equivocado por omisión, porque no compila sin decidirlo. Nueva clave `confirm.titleReinit` ×5.
+
+**La prueba unitaria recorre los cinco idiomas**, no solo el español: el fallo era una cadena compartida,
+y la forma natural de reintroducirlo es traducir uno nuevo copiando el de al lado. Exige que los dos
+títulos existan y **difieran** en cada idioma.
+
+**La prueba de UI no se ancla a un texto fijo.** `FormatDiskPro.UiTests` conduce el `.exe` como caja negra
+—no referencia el ensamblado de la app— así que comparar contra «Confirmar reinicialización» rompería la
+suite con la app en inglés. Lo que exige es lo que define el fallo: que cada operación tenga **su propio**
+título y ninguno esté vacío. Hizo falta un `DialogHelper.ReadTitle`: la plantilla de WinUI pinta el título
+en un `ContentControl x:Name="Title"`, con caída al `Name` del diálogo.
+
+**Verificada por reversión, no solo en verde.** Contra la app real lee `'Confirmar formato'` y
+`'Confirmar reinicialización'`; devolviendo la llamada a `confirm.title` **falla**, y el mensaje dice cuál
+es el problema en vez de «esperaba X, obtuve Y». Una prueba que solo se ha visto en verde no demuestra que
+mire lo que dice mirar.
+
+**Dato de intendencia:** las etiquetas de la USB de pruebas se habían quedado en `UTIL`/`TEST` y
+`TestDrive` busca `utilidades`/`Bios Flash` — las pruebas se **omitían**, que es lo correcto (precondición
+ausente no es fallo), pero se leen como «pasadas» en el resumen si no se mira el desglose. Se reetiquetaron.
+FAT32 guarda su etiqueta en mayúsculas (`BIOS FLASH`); `FindLetter` compara con `OrdinalIgnoreCase`, así
+que da igual.
+
+---
+
+### 2026-08-17 — Revisión de UX/UI: se abre el Tier 6
+
+Revisión enfocada **solo** en interfaz, sobre las capturas del corte de la v1.22.0 y contrastando cada
+hallazgo contra el código. Resultado: **[Tier 6](ROADMAP.md#-tier-6--refinado-de-uxui)**, 11 tareas.
+
+**Los tres que no son cuestión de gusto** —la interfaz afirma algo que no es cierto—:
+
+1. **`ConfirmDialog` titula «Confirmar formato» también al reinicializar.** El título está fijado en el
+   constructor, así que la operación **más** destructiva de la app (borra el disco físico entero) se
+   anuncia con el nombre de otra menos grave. El cuerpo sí lo explica bien; el título no.
+2. **El campo de confirmación lleva la letra como *placeholder***. Parece relleno —en las capturas se ve
+   una «G» gris sin que nadie haya tecleado— y regala la respuesta justo donde el diseño puso fricción a
+   propósito.
+3. **«Velocidad de rotación: SSD»**. Una velocidad cuyo valor es un tipo de medio, con la fila de encima
+   ya diciendo «Tipo de medio: SSD».
+
+**El de más recorrido** es `T6-05`: el historial muestra la línea de log en crudo
+(`REINIT I: -> G: fs=FAT32 style=MBR small-fat32=2147483648`). Eso son bytes sin convertir en una pantalla
+que la gente abre para comprobar qué le hizo a un disco. Al arreglarlo hay dos cosas que no se pueden
+romper: el CSV y `history.log` tienen consumidores, y el parseo por líneas ya se partió una vez (`T3-11`).
+
+**Lo que esta revisión NO vio, y está anotado como `T6-11`.** El terminal no estaba elevado, así que ni
+`capture-screenshots.ps1` ni FlaUI pudieron correr —los dos abortan por diseño contra una app
+`requireAdministrator`—. Las capturas usadas son **anteriores** al bloque de ocupación nuevo, y quedaron
+sin fotografiar Presets, Acerca de, Novedades, Licencia y Terceros. Los 10 hallazgos son válidos porque
+cada uno está verificado en el código, pero **la cobertura no fue completa**, y eso vale la pena tenerlo
+escrito en vez de dar el tier por exhaustivo.
+
+**Nota de nombres:** ya existía un «Tier 6 — Pulido UX/UI» en la Parte 1 del ROADMAP (v1.13.0, IDs
+`#28`–`#36`). Este es de la Parte 2 y usa `T6-xx`. Se parecen porque tratan de lo mismo; no son el mismo
+tier. Está advertido en las dos cabeceras.
+
+---
+
+### 2026-08-16 — La barra de ocupación pasa a tener dos colores (y deja de ser un `ProgressBar`)
+
+Hasta aquí el espacio **libre** no se pintaba: era el hueco del `ProgressBar`, una línea de 1 px del color
+de pista del sistema. En una unidad recién formateada —0 % usado— la barra no mostraba absolutamente nada,
+que es justo el estado en el que el usuario acaba de mirarla.
+
+**Por qué no bastaba con engordar el `ProgressBar`.** Su plantilla (WinUI 1.8) pinta la pista con
+`Height="{ThemeResource ProgressBarTrackHeight}"` = **1**, mientras el relleno ocupa el `MinHeight` del
+control. Aunque se suba el `MinHeight`, usado y libre **no pueden tener el mismo grosor** sin sobrescribir
+dos recursos internos de la plantilla, uno de ellos a través de un `Binding` con `StaticResource` que se
+resuelve al aplicar el template. Se cambió por un `Border` (pista = libre) con un `Border` hijo (relleno =
+usado) y columnas estrella para el reparto: dos colores, un grosor, y sitio para más segmentos el día que
+la barra tenga que representar varias particiones.
+
+**Lo que se rompía al añadir el segundo color.** El relleno neutro del tema claro era `#8A8A8A`, elegido
+cuando su vecino era el fondo de la tarjeta. Con la pista pintada al lado, la frontera usado/libre se
+quedaba en **2.62:1**: por debajo del 3:1 de WCAG 1.4.11, y esa frontera es *toda* la información de la
+barra. Se oscureció a `#5C5C5C` → **5.07:1**. El tema oscuro no se tocó: allí el relleno ya era el claro de
+los dos.
+
+**El barrido de contraste tuvo que aprender a medir contra un vecino.** La pista **no debe** llegar al 3:1
+contra la tarjeta —es un hueco, no una segunda barra—, así que meterla en `All()` tal cual la habría
+suspendido, y la reacción natural habría sido oscurecerla hasta que compitiera con el relleno: el umbral
+correcto aplicado al par equivocado. `PaletteColor` gana un `Against` opcional, y la pista entra al
+inventario con **una entrada por cada relleno con el que puede compartir barra** (neutro, ámbar, rojo × 2
+temas). Medidos: 5.07 / 3.98 / 4.29 en claro, 3.39 / 5.70 / 4.37 en oscuro. Un test fija que esas entradas
+declaren su `Against`, para que nadie se lo quite «para que se mida como las demás».
+
+**Accesibilidad:** un `Border` no expone valor de rango como hacía el `ProgressBar`, así que el nombre
+accesible dejó de ser suficiente como etiqueta suelta. `info.used` pasa a llevar el dato
+(«Espacio utilizado: 43 %») y se fija en `RenderCapacity`, no en `ApplyLanguage` — ese ya termina llamando
+a `UpdateInfo`, y la barra está oculta mientras no haya unidad.
+
+**Segunda pasada, el mismo día:** esquinas rectas en vez de píldora y el dato de ocupación **fuera** de la
+barra, en su propio bloque: separador, línea `Ocupación` … `Usado 780,9 GB / 930,5 GB` (etiqueta izquierda,
+dato derecha) y la barra debajo, a **6 px**.
+
+- **Por qué 6 px y no 10.** La barra es el único bloque de color saturado de la tarjeta; el resto es
+  tipografía gris con un título de acento. A 10 px, con la unidad al 84 % —ámbar—, pesaba más que el
+  título de sección y desencajaba. Es un dato, no un control: la mitad de superficie de color basta.
+- **Por qué el dato lleva etiqueta.** Suelto y alineado a la derecha era el único texto así de toda la
+  tarjeta (las otras seis entradas son «Etiqueta: valor» en dos columnas a la izquierda), y se leía como
+  huérfano. Emparejado con `Ocupación` a la izquierda reproduce la estructura de la referencia y encaja en
+  la rejilla.
+
+- **El rótulo por dentro se probó y se descartó.** Anclado a la derecha, el texto cae sobre el espacio
+  libre casi siempre… salvo con la unidad casi llena, que es justo cuando hay que leerlo: ahí queda sobre
+  el relleno ámbar o rojo. Se resolvió dándole fondo propio del color de la pista, que funcionaba pero
+  dejaba una muesca gris dentro de la barra al llenarse. Fuera no hay problema que resolver: es texto de
+  la tarjeta, con el contraste de cualquier otro. **Si alguien vuelve a intentar meterlo dentro, este es
+  el caso que hay que resolver primero**, y medir anchos en tiempo de ejecución no basta: queda el tramo
+  en que el texto pisa los dos segmentos.
+- **Fallo encontrado mientras el rótulo estaba dentro, y que se queda arreglado:**
+  `ContrastAgainstReference` componía el alfa sobre el fondo de la tarjeta aunque el color se pintara
+  encima de otra cosa. Con colores opacos da igual, pero el color de texto claro lleva alfa (`#E4000000`):
+  la cifra no correspondía a lo que se ve, que es el fallo exacto que ese barrido existe para cazar. Ahora
+  se compone sobre la referencia, con un test propio — no depende de que haya hoy un color translúcido
+  sobre un vecino.
 
 ---
 
@@ -618,7 +954,8 @@ volumen —lo que hacía antes— la sección habría desaparecido por completo.
 
 ### 2026-08-16 — Corte de la **v1.21.0** (auditoría cerrada)
 
-`release.ps1 -Version 1.21.0 -UiTests -NotesFile docselease-notes-1.21.0.md` desde terminal elevada y
+`release.ps1 -Version 1.21.0 -UiTests -NotesFile docs
+elease-notes-1.21.0.md` desde terminal elevada y
 con la USB conectada, precedido de un `-DryRun` completo — el primer corte que pasa por la **puerta del
 `CHANGELOG`** de `T4-01`, y convenía verla funcionar antes de tocar git. Cobertura de `Core/` **97.4 %**
 (368/378, mínimo 90), **433/433** unitarias y **24/27** de UI, con los 3 omitidos siendo exactamente los

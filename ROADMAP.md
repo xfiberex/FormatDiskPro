@@ -16,13 +16,15 @@
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
 > | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
 >
-> Al final de la Parte 2 hay además un **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`):
-> ampliaciones de lo ya entregado, **no** parte de la auditoría (que sigue siendo de 40 tareas).
+> Al final de la Parte 2 hay además dos tiers que **no** son parte de la auditoría (que sigue siendo de
+> 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
+> entregado, y **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también.
 
 ## 🏁 Estado
 
-> **Este archivo ya no tiene nada abierto. Es un registro, no una lista de tareas.** Lo que queda fuera
-> está fuera a propósito, y su porqué está en *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
+> **Todo lo que hay aquí es registro: no queda nada abierto.** Lo que
+> queda fuera está fuera a propósito, y su porqué está en
+> *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
 
 **Parte 1 — funcionalidad: TERMINADA (2026-07-13).** Tiers 1–9 completados; no hay características
 pendientes. Lo que queda fuera está **deliberadamente** fuera — incluidas las dos decisiones que definen el
@@ -40,6 +42,15 @@ dejaba el resto del disco **sin asignar**, y recuperarlo obligaba a salir a una 
 **4 completadas** (`T5-01`, `T5-02`, `T5-03`, `T5-05`) y **1 descartada** por decisión de producto
 (`T5-04`, N particiones). Viven en el **[Tier 5](#-tier-5--ocurrencias-para-features-existentes)**, aparte
 de la auditoría y aparte del historial cerrado de la Parte 1.
+
+**Tier 6 — refinado de UX/UI: CERRADO (2026-08-17), 15/15.** Una revisión enfocada solo en interfaz sobre
+las capturas del corte de la v1.22.0 encontró **10 hallazgos** —**3 defectos** en los que la interfaz
+afirma algo que no es cierto (el diálogo de *Reinicializar* titulado «Confirmar formato», el campo de
+confirmación mostrando la letra que hay que teclear, y una velocidad de rotación cuyo valor es «SSD») y
+**7 refinamientos**— más una tarea para **completar la propia revisión**, que no pudo ejecutarse contra la
+app por falta de terminal elevada. Al ejecutarla (`T6-11`, galería completa en ambos temas) aparecieron
+**tres hallazgos más** que la primera ronda no podía ver, así que el tier cerró en **15**. Ver
+**[Tier 6](#-tier-6--refinado-de-uxui)**.
 
 | Tier | Tema | Versión |
 |---|---|---|
@@ -239,8 +250,9 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 > ejecutables. **Ninguna añade funcionalidad**: todas corrigen, endurecen o miden lo que ya existe. El
 > informe que las originó no se repite aquí — cada tarea es autocontenida.
 >
-> **Única excepción, y está marcada como tal:** el **Tier 5** del final no viene de la auditoría y sí añade
-> funcionalidad. Va aquí por continuidad de numeración, no porque forme parte de las 40.
+> **Excepciones, y están marcadas como tales:** los **Tiers 5 y 6** del final no vienen de la auditoría.
+> El **5** además añade funcionalidad; el **6** no —es refinado de interfaz— pero nace de una revisión
+> posterior, no de aquel informe. Van aquí por continuidad de numeración, no porque formen parte de las 40.
 >
 > **Base de la revisión:** v1.15.2 · build 0 advertencias/0 errores · **289/289** unitarias verificadas en
 > ejecución (224 ms) el 2026-08-13.
@@ -255,7 +267,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T3** | Pulido — errores silenciosos, docs contradictorias, consistencia | 11 | bajo |
 | **T4** | Futuro / opcional — fuera del alcance inmediato | 5 | — |
 | **T5** | **Ocurrencias para features existentes** — ampliaciones nacidas de usar lo ya entregado | 5 | medio-alto |
-| | **Total** | **45** | |
+| **T6** | **Refinado de UX/UI** — lo único abierto: 3 defectos + 11 refinamientos + 1 de cobertura | 15 | bajo-medio |
+| | **Total** | **60** | |
 
 **Orden recomendado:** T0 → T1-01/02 (guardas destructivas) → T1-03/04 (a11y medible) → T1-05/06/07
 (i18n) → T1-08/09 (updater) → T2 → T3.
@@ -672,7 +685,7 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
     falta 2 MB para que exista, pero el respaldo existe justamente para no dejar rastro en el `%AppData%`
     del usuario, y una excepción «que casi nunca pasa» es como se cuelan.
 
-- [ ] ~~**[T2-10] CI de solo unitarias en GitHub Actions**~~ — ❌ **DESCARTADA (2026-08-15)**
+- [x] ~~**[T2-10] CI de solo unitarias en GitHub Actions**~~ — ❌ **DESCARTADA (2026-08-15)**
   - **Área:** DevOps
   - **Ubicación:** `.github/` (hoy solo contiene `FUNDING.yml`)
   - **Qué hacer:** la decisión de 2026-07-12 descartó CI porque un runner hospedado no puede correr los UI
@@ -1143,10 +1156,364 @@ hemos salido.**
 
 ---
 
+## 🎨 Tier 6 — Refinado de UX/UI
+
+> **Ojo con el nombre: hay otro «Tier 6» en este archivo.** El de la **Parte 1** («Pulido UX/UI», v1.13.0)
+> es historial de producto cerrado y usa IDs `#28`–`#36`. Este es de la **Parte 2** y usa `T6-xx`. Se
+> llaman parecido porque tratan de lo mismo; no son el mismo tier ni la misma numeración.
+>
+> **Como el Tier 5, este tampoco forma parte de la auditoría** (que cerró en 40 tareas y ahí se queda).
+> A diferencia del Tier 5, **no añade funcionalidad**: todo lo de aquí es la interfaz diciendo algo
+> impreciso, mostrando un dato en crudo o pintando dos veces lo mismo de forma distinta.
+
+**Origen (2026-08-17):** revisión enfocada solo en UX/UI, sobre las capturas del corte de la v1.22.0
+(`docs/screenshots/`, 2026-08-16) y contrastando cada hallazgo contra el código. **10 hallazgos: 3 son
+defectos** —la interfaz afirma algo que no es cierto— **y 7 son refinamientos**.
+
+**Lo que esta revisión NO cubrió, y hay que cubrir antes de darla por completa** (`T6-11`):
+
+- El terminal no estaba elevado, así que **no se pudieron usar ni `tools/capture-screenshots.ps1` ni
+  FlaUI**: los dos abortan por diseño contra una app `requireAdministrator`.
+- Las capturas son **anteriores** al bloque de ocupación nuevo (barra de dos colores + rótulo), así que
+  eso **no está revisado en ejecución** por nadie salvo a ojo del usuario.
+- Quedan diálogos **sin fotografiar en esta ronda**: Presets, Acerca de, Novedades, Licencia y Terceros
+  (los de `docs/screenshots/gallery/` son de julio y ya no representan la app).
+
+---
+
+### Defectos — la interfaz afirma algo que no es cierto
+
+- [x] **[T6-01] El diálogo de *Reinicializar* se titula «Confirmar formato»** — **hecho (2026-08-17)**
+  - **Área:** UI / seguridad de la acción destructiva
+  - **Ubicación:** `src/FormatDiskPro/UI/ConfirmDialog.xaml.cs`, `src/FormatDiskPro/UI/MainWindow.Operations.cs`, `src/FormatDiskPro/Localization/Localization.cs`
+  - **Qué hacer:** `ConfirmDialog` fija `Title = L.T("confirm.title")` en el constructor, así que las **dos**
+    operaciones destructivas se anuncian como «Confirmar formato». El cuerpo del diálogo sí explica bien que
+    se borra el disco entero. Pasar el título como parámetro y añadir una clave para la reinicialización.
+  - **Por qué:** es la operación **más** destructiva de la app —borra el disco físico completo, todas sus
+    particiones— presentándose con el nombre de otra menos grave. Quien lee solo el título confirma algo
+    distinto de lo que va a ocurrir.
+  - **Criterio de aceptación:** abrir *Reinicializar* muestra un título que nombra la reinicialización;
+    abrir *Iniciar* sigue mostrando el de formato. Una prueba de UI comprueba los dos, no uno.
+  - **Cómo se hizo:** el título pasa a ser **parámetro obligatorio** de `ConfirmDialog`, no un valor por
+    defecto. Una tercera operación destructiva no puede heredar el nombre equivocado por omisión: quien la
+    añada tiene que decidirlo. Nueva clave `confirm.titleReinit` en los cinco idiomas.
+  - **Verificado — y por reversión, no solo en verde:** prueba unitaria (los dos títulos existen y difieren
+    en **los cinco** idiomas, para que una traducción perezosa no rehaga el fallo en uno solo), 527/527. Y
+    la de UI (`ConfirmDialogs_EachDestructiveOperationHasItsOwnTitle`) contra la app real: lee
+    `'Confirmar formato'` y `'Confirmar reinicialización'`. **Devolviendo la llamada a `confirm.title`, la
+    prueba falla** y el mensaje nombra el problema.
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T6-02] El campo de confirmación lleva la letra a adivinar como *placeholder*** — **hecho (2026-08-17)**
+  - **Área:** UI / seguridad de la acción destructiva
+  - **Ubicación:** `src/FormatDiskPro/UI/ConfirmDialog.xaml.cs`, `src/FormatDiskPro/UI/ConfirmDialog.xaml`
+  - **Qué hacer:** el code-behind hace `InputBox.PlaceholderText = _letter`, pisando el `"…"` neutro que ya
+    trae el XAML. Quitarlo.
+  - **Por qué:** dos daños a la vez. **Parece relleno**: en las capturas el campo muestra una «G» gris y se
+    lee como si ya estuviera escrita (el script de captura no teclea nada). Y **regala la respuesta** justo
+    en el único punto donde el diseño añade fricción a propósito: escribir la letra es la barrera que separa
+    «he entendido qué unidad voy a destruir» de «he pulsado dos veces».
+  - **Criterio de aceptación:** el campo aparece visiblemente vacío y el botón primario sigue deshabilitado
+    hasta que la letra tecleada coincide.
+  - **Era peor de lo que decía esta tarea.** WinUI usa el `PlaceholderText` como **nombre accesible** del
+    `TextBox` cuando no hay otro: el campo se llamaba `I`, o sea que un lector de pantalla **anunciaba la
+    respuesta en voz alta**. Y quitar el placeholder sin más lo habría dejado llamándose «…». Se le da
+    nombre propio (`confirm.inputName`, ×5 idiomas), que además no depende de lo que se pinte dentro.
+  - **La primera prueba que escribí no valía, y lo dijo la reversión.** Buscaba un elemento del diálogo cuyo
+    texto visible fuera justo la letra, y pasaba **igual con el fallo puesto**: WinUI no publica el
+    placeholder como texto de ningún elemento. Se reescribió contra el `Name` del campo, que es donde el
+    fallo existía.
+  - **Verificado por reversión:** con `PlaceholderText = _letter` de vuelta, la prueba falla con
+    `Name='I'`. 527/527 unitarias · 26/29 de UI (3 omitidas de opt-in).
+  - *Esfuerzo: trivial · Depende de: —*
+
+- [x] **[T6-03] «Velocidad de rotación: SSD»** — **hecho (2026-08-17)**
+  - **Área:** UI / S.M.A.R.T.
+  - **Ubicación:** `src/FormatDiskPro/UI/HealthDialog.xaml.cs`
+  - **Qué hacer:** cuando las RPM son 0 se devuelve el literal `"SSD"` como *valor* de la fila «Velocidad de
+    rotación». Ocultar la fila en ese caso (o mostrar «No aplicable», localizado).
+  - **Por qué:** una velocidad cuyo valor es un tipo de medio es un error de categoría, y la fila
+    inmediatamente anterior ya dice «Tipo de medio: SSD». Un disco de estado sólido no tiene eje: la
+    respuesta correcta no es «SSD», es que la pregunta no aplica. De paso, `"SSD"` es texto de cara al
+    usuario fuera de `Localization/`.
+  - **Criterio de aceptación:** en un SSD la fila no aparece (o dice «No aplicable»); en un disco mecánico
+    sigue mostrando las RPM.
+  - **Cómo se hizo:** la decisión es lógica pura y vive en `Core` —`SmartInfo.HasSpindle`—, no en el
+    diálogo, para poder medirla. `RPM = 0` es el disco diciendo explícitamente «no giro» y manda sobre el
+    tipo de medio; sin RPM, decide el medio. **Sin ninguna señal devuelve `true`** («asume que gira») a
+    propósito: esconder la fila por desconocimiento afirmaría que es de estado sólido sin saberlo. De paso
+    desaparece el literal `"SSD"`, que era texto de cara al usuario fuera de `Localization/`.
+  - **Verificado en la app real, por las dos caras** (capturas con `capture-screenshots.ps1 -Only health`):
+    en **D:** (SATA SSD) la fila ya no aparece; en **I:** (USB que no informa de nada) **sigue apareciendo**
+    como *No disponible*. +9 unitarias sobre `HasSpindle`.
+  - *Esfuerzo: bajo · Depende de: —*
+
+### Refinamientos
+
+- [x] **[T6-04] Las horas de encendido, en escala humana** — **hecho (2026-08-17)**
+  - **Área:** UI / S.M.A.R.T.
+  - **Ubicación:** `src/FormatDiskPro/UI/HealthDialog.xaml.cs`, `src/FormatDiskPro/Localization/Localization.cs`
+  - **Qué hacer:** hoy se pinta `{0} h` en crudo: «32147 h». Añadir separador de millares (según cultura) y
+    el equivalente legible: `32.147 h (3 años y 8 meses)`.
+  - **Por qué:** el dato existe para responder «¿cuánto ha vivido este disco?», y en horas nadie lo
+    responde de cabeza.
+  - **Cómo se hizo:** `SmartInfo.PowerOnEquivalent`, función pura en `Core`. Elige unidad por tramos
+    (días / meses / años) con los cortes a **dos** unidades y no a una, para no decir «1,1 meses» pudiendo
+    decir «33,5 días». **Siempre un decimal**, y por eso no hay que pluralizar: «1,0 años» concuerda en
+    los cinco idiomas y «1 años» no.
+  - **Verificado:** +11 unitarias y captura de la app — `32,161 h (≈ 3.7 años)` en el SSD de 3 años y medio.
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T6-05] El historial habla en lenguaje de log, no de usuario** — **hecho (2026-08-17)**
+  - **Área:** UI / historial
+  - **Ubicación:** `src/FormatDiskPro/UI/HistoryDialog.xaml.cs`, `src/FormatDiskPro/Core/HistoryEntry.cs`, `src/FormatDiskPro/UI/MainWindow.Operations.cs`
+  - **Qué hacer:** el detalle de cada entrada es la línea de log tal cual:
+    `REINIT I: -> G: fs=FAT32 style=MBR small-fat32=2147483648`. Darle una representación legible
+    —incluido convertir los tamaños en bytes a `FormatBytes`— **sin perder** la línea original.
+  - **Por qué:** es la mayor distancia entre lo que la app es y lo que enseña. `2147483648` son 2 GB, y
+    quien abre *Historial de operaciones* no está depurando: está comprobando qué le hizo a un disco.
+  - **Cuidado con no romper dos cosas al arreglarlo:** la exportación **CSV** y el fichero `history.log`
+    que se puede abrir desde el propio diálogo son formatos con consumidores; lo que cambia es cómo se
+    **muestra**. Y el parseo de una entrada por línea ya se rompió una vez (`T3-11`): lo que se añada no
+    puede volver a partir entradas.
+  - **Criterio de aceptación:** una prueba fija que la representación mostrada de una entrada de
+    reinicialización no contiene el número de bytes en crudo, y otra que el CSV exportado sigue igual.
+  - **Cómo se hizo:** `HistoryEntry.Humanize`, función **de presentación** en `Core`. Convierte el valor,
+    no la línea (`small-fat32=2 GB`, no prosa), y sobre una **lista blanca de claves** —en la misma línea
+    conviven `code=1` y `passes=3`, y convertir esos a «1 B» sería peor que no hacer nada. Se aplica solo
+    al pintar la fila: `history.log` y el CSV siguen con el byte exacto, y las entradas **ya escritas** se
+    ven bien sin migrar nada.
+  - **Lo que casi se cuela:** el buscador filtra por `Detail` crudo. Sin tocarlo, teclear «2 GB» —lo que
+    el usuario está viendo— no habría devuelto nada. `Matches` busca ahora en los dos.
+  - **Verificado:** +11 unitarias (incluidas las dos que exige el criterio) y captura de la app: la lista
+    muestra `small-fat32=2 GB` y `bytes=512 MB`, con `code=0` y `repair=False` intactos.
+  - *Esfuerzo: medio · Depende de: —*
+
+- [x] **[T6-06] «Etiqueta del volumen:» es el único encabezado con dos puntos** — **hecho (2026-08-17)**
+  - **Área:** UI / i18n
+  - **Ubicación:** `src/FormatDiskPro/Localization/Localization.cs` (`label.label`), `src/FormatDiskPro/UI/MainWindow.xaml`
+  - **Qué hacer:** quitar los dos puntos en los cinco idiomas. «Sistema de archivos» y «Tamaño de unidad de
+    asignación» —los otros dos encabezados de la misma tarjeta— no los llevan.
+  - **Por qué:** son tres campos en fila; que uno puntúe distinto se ve.
+  - **Verificado:** captura de la app — los tres encabezados sin dos puntos — y una prueba por idioma que
+    falla si alguno vuelve a terminar en `:` (también cubre el francés, donde sería « :» con espacio).
+  - *Esfuerzo: trivial · Depende de: —*
+
+- [x] **[T6-07] Cada diálogo coloca sus botones de forma distinta** — **hecho (2026-08-17)**
+  - **Área:** UI / consistencia
+  - **Ubicación:** `src/FormatDiskPro/UI/HistoryDialog.xaml`, `src/FormatDiskPro/UI/MainWindow.Operations.cs` (diálogo de modo de chkdsk), `src/FormatDiskPro/UI/ConfirmDialog.xaml`, `src/FormatDiskPro/UI/HealthDialog.xaml`
+  - **Qué hacer:** unificar el pie de los diálogos. Hoy *chkdsk* apila dos botones a todo el ancho y deja
+    «Cancelar» alineado a la derecha; *Historial* pone tres a la izquierda y «Cerrar» a la derecha. Los
+    anchos de diálogo también bailan bastante entre sí.
+  - **Por qué:** son cuatro pantallas de la misma app y cada una enseña una gramática de botones distinta.
+  - **Antes de tocar:** decidir **una** regla y escribirla (aquí o en `CONTEXT.md`), o el siguiente diálogo
+    volverá a inventarse la suya.
+  - **⚠️ El hallazgo estaba medio equivocado, y eso cambió la tarea.** Los botones apilados de *chkdsk*
+    **no** son un descuido: con tres botones nativos en fila, WinUI truncaba «Comprobar y reparar» **sin
+    puntos suspensivos** («Comprobar y repar»), y en PT/IT es peor. Estaba documentado en un comentario del
+    propio código. Uniformarlos habría reintroducido un fallo real. Igual el *Historial*: sus tres botones
+    NO cierran el diálogo, así que van en el contenido; abajo solo va lo que cierra.
+  - **Lo que sí estaba mal era el ANCHO.** Siete diálogos con seis criterios: 360, 380, 400, 300–420,
+    360–420 y uno **sin ninguno** (el de chkdsk, que se ajustaba a su texto y salía visiblemente más
+    estrecho). Abrir dos seguidos hacía «saltar» la ventana. Ahora los fijan dos tokens compartidos,
+    `DialogContentMinWidth`/`MaxWidth`, incluido el que se construye en código.
+  - **Y la regla queda escrita** en `AppTheme.xaml`, junto a los tokens: qué va en los botones nativos (lo
+    que cierra), qué va en el contenido (lo que no) y cuándo se apila (cuando el texto pueda truncarse),
+    con el porqué de la excepción de chkdsk para que nadie la «arregle».
+  - **Verificado:** captura de los diálogos — el de chkdsk ya tiene el mismo ancho que el resto.
+  - *Esfuerzo: medio · Depende de: —*
+
+- [x] **[T6-08] Los grupos deshabilitados se atenúan dos veces** — **hecho (2026-08-17)**
+  - **Área:** UI / accesibilidad
+  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml`, `src/FormatDiskPro/UI/MainWindow.FormatOptions.cs`, `src/FormatDiskPro/UI/MainWindow.Preferences.cs`
+  - **Qué hacer:** los sub-bloques (`WipePassesPanel`, `SmallFat32SizePanel`, `RestPanel`) llevan
+    `Opacity="0.5"` en el panel **y** `IsEnabled="false"` en el control. Poner `IsEnabled` en el panel
+    entero y quitar la opacidad.
+  - **Por qué:** el ComboBox queda doblemente apagado, y la etiqueta —que ya usa el color terciario del
+    tema— pierde contraste por una vía que el barrido de `SeverityPalette` **no mira**: la opacidad no es
+    un color del inventario. El visual deshabilitado del tema sí está exento por norma y es el que Windows
+    dibuja en el resto del sistema.
+  - **Criterio de aceptación:** los tres bloques se ven igual entre sí deshabilitados, y ningún texto
+    visible depende de un `Opacity` para atenuarse.
+  - **Lo primero que intenté no compila:** en WinUI **un panel no se puede deshabilitar**. `IsEnabled` vive
+    en `Control` y `Panel` deriva de `FrameworkElement`, así que `<StackPanel IsEnabled="False">` da
+    `WMC0011` — al contrario que en WPF, donde `UIElement` sí lo tiene.
+  - **Cómo quedó:** helper `SetSubOptionEnabled(on, labels, controls)`. El control se apaga con su propio
+    `IsEnabled` (visual deshabilitado del tema, exento de contraste por serlo de verdad) y la etiqueta
+    **aparte**, porque un `TextBlock` tampoco es un `Control` y se quedaría a pleno contraste, más viva que
+    el desplegable de al lado: se le pone `TextFillColorDisabledBrush` y al reactivar `ClearValue`, para no
+    dejarle un color clavado al cambiar de tema en caliente. `RestDetailPanel`, que antes no se atenúaba,
+    entra en el mismo tratamiento.
+  - **Verificado:** la app arranca (la búsqueda del pincel del tema ocurre en `SetControlsEnabled` al
+    iniciar: si la clave no existiera, no arrancaría) y las pruebas de UI que ejercen el
+    habilitar/deshabilitar siguen en verde.
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T6-09] «sólo NTFS»** — **hecho (2026-08-17)**
+  - **Área:** i18n / redacción
+  - **Ubicación:** `src/FormatDiskPro/Localization/Localization.cs` (`opt.compress`)
+  - **Qué hacer:** «solo», sin tilde. La RAE la retiró en 2010.
+  - **Cómo se hizo:** corregida, y con una prueba que **barre el diccionario entero** en vez de anclar esa
+    cadena: es el tipo de detalle que vuelve solo al escribir texto nuevo, no al editar el existente.
+  - *Esfuerzo: trivial · Depende de: —*
+
+- [x] **[T6-10] *chkdsk* no explica en qué se diferencian sus dos opciones** — **hecho (2026-08-17)**
+  - **Área:** UI / redacción
+  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.Operations.cs`, `src/FormatDiskPro/Localization/Localization.cs`
+  - **Qué hacer:** el diálogo ofrece «Solo comprobar» y «Comprobar y reparar» sin una línea que diga qué
+    cambia. Añadir una descripción breve a cada opción: reparar exige acceso exclusivo al volumen (puede
+    pedir desmontarlo o reiniciar) y puede tardar mucho más.
+  - **Por qué:** es una elección que hoy se hace a ciegas, y la opción equivocada deja la unidad ocupada un
+    buen rato. Que «Solo comprobar» sea ya el botón primario ayuda, pero no explica.
+  - **Cómo se hizo:** cada opción pasa a ser un **«command link»** —título más una línea de explicación
+    dentro del propio botón—, que es el patrón de Windows para elegir entre dos acciones que no se
+    distinguen por el nombre. Encaja con que ya estuvieran apilados (ver `T6-07`).
+  - **Detalle de accesibilidad:** al pasar el contenido de una cadena a un panel con dos textos, el nombre
+    accesible dependía de cómo recorriera la automatización ese panel. Se fija explícito, y así el lector
+    de pantalla lee también la explicación — que es justo lo que hace falta para elegir.
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T6-12] Los números siguen a Windows y el texto al idioma de la app** — **hecho (2026-08-17)**
+  - **Área:** i18n / UI
+  - **Ubicación:** `src/FormatDiskPro/Core/FormatLogic.cs` (`FormatBytes`), `src/FormatDiskPro/UI/HealthDialog.xaml.cs`, y cualquier otro sitio que formatee números
+  - **Qué hacer:** decidir —y aplicar en todas partes— si los números se formatean con la cultura del
+    **sistema** o con la del **idioma elegido en la app**, que son cosas distintas porque la app deja
+    cambiar el idioma sin tocar Windows. Hoy nadie fija `CurrentCulture` a partir de `L.Current`.
+  - **Cómo se ve:** con la interfaz en español sobre un Windows en inglés sale `32,161 h (≈ 3.7 años)` —
+    separadores ingleses con palabras españolas— y lo mismo lleva haciendo `FormatBytes` desde siempre
+    (`223.6 GB`). En español debería ser `32.161 h (≈ 3,7 años)`.
+  - **Origen:** apareció al hacer `T6-04`, que puso un decimal justo al lado de una palabra traducida y lo
+    hizo visible. **No es una regresión de `T6-04`**: es anterior y afecta a toda la app, y `T6-04` se
+    implementó igual que el resto (`CurrentCulture`) para no dejar dos criterios conviviendo.
+  - **Cuidado:** lo que se **guarda** (`history.log`, CSV, comandos de PowerShell) debe seguir en
+    `InvariantCulture` — esto es solo para lo que se **muestra**. Cambiarlo a lo bruto es exactamente cómo
+    reaparecería `T1-01` (la guarda de disco de sistema bajo cultura turca).
+  - **Decidido:** los números que se muestran siguen al **idioma elegido en la app**. Es lo coherente con
+    que la app deje cambiar de idioma sin tocar Windows: si el texto cambia, el número también.
+  - **Hecho:** nueva `L.Culture` (es-ES/en-US/pt-BR/fr-FR/it-IT), que `L.Set` actualiza junto al idioma.
+    `FormatLogic.FormatBytes` la usa por defecto y acepta una cultura explícita; `HealthDialog` pasa de
+    `CurrentCulture` a `L.Culture`. `Throughput.FormatSpeed` y `HistoryEntry.Humanize` la heredan por
+    delegar en `FormatBytes`.
+  - **Lo que NO se hizo, a propósito:** `L.Culture` **no** se asigna a `CultureInfo.CurrentCulture`. La
+    cultura del hilo gobierna además comparaciones y mayúsculas, que es por donde volvería `T1-01`; hay
+    una prueba que fija tr-TR, cambia el idioma y comprueba que el hilo no se ha movido.
+  - **Lo que delató el fallo:** cuatro pruebas de la suite afirmaban el separador **inglés** con la app
+    arrancando en español. Pasaban porque `FormatBytes` leía la cultura del hilo y el fixture la ponía
+    invariante — medían el separador de la prueba, no el de la app. Ahora la cultura se dice en cada una.
+  - **De propina:** la fecha del historial (`yyyy-MM-dd HH:mm`) pasa a invariante explícita — el patrón
+    ya era ISO fijo, pero `-` y `:` son *marcadores* de separador y los ponía Windows.
+  - *Esfuerzo: medio · Depende de: —*
+
+### Completar la propia revisión
+
+- [x] **[T6-11] Rehacer la revisión con la app en ejecución** — **hecho (2026-08-17)**
+  - **Área:** QA / UX
+  - **Ubicación:** `tools/capture-screenshots.ps1`, `docs/screenshots/gallery/`
+  - **Qué hacer:** desde **terminal elevada**, `.\tools\capture-screenshots.ps1 -Gallery` y revisar lo que
+    la ronda del 2026-08-17 no pudo ver: el bloque de ocupación nuevo, y los diálogos de Presets, Acerca
+    de, Novedades, Licencia y Terceros. Refrescar de paso `docs/screenshots/gallery/`, que es de julio.
+  - **Por qué:** la revisión que abre este tier se hizo sobre fotos previas al último cambio de la tarjeta
+    *Unidad*, y sin poder abrir la mitad de los diálogos. Sus 10 hallazgos son válidos —cada uno está
+    contrastado contra el código—, pero **la cobertura no fue completa y conviene que eso quede dicho**.
+  - **Hecho:** 26 tomas (13 pantallas × 2 temas) con la USB conectada, ninguna omitida.
+    `docs/screenshots/gallery/` **está en `.gitignore`**, así que refrescarla no mete 26 binarios en el
+    repo: es material de revisión local, no del proyecto.
+  - **Confirmado en ejecución:** el bloque de ocupación en los dos temas (en claro, relleno `#5C5C5C` sobre
+    pista `#E0E0E0`: se distinguen sin esfuerzo), `T6-01` («Confirmar reinicialización»), `T6-02` (el campo
+    se ve vacío), `T6-06`, `T6-07` y `T6-10`.
+  - **Y encontró tres cosas que la primera ronda no podía ver** — `T6-13`, `T6-14` y `T6-15`. Que ampliar la
+    cobertura produjera hallazgos nuevos es la señal de que esta tarea hacía falta.
+  - *Esfuerzo: bajo (pero requiere elevación y sesión de escritorio) · Depende de: —*
+
+---
+
+### Abiertas —y cerradas— por la revisión completa (`T6-11`)
+
+- [x] **[T6-13] *Novedades* enseña Markdown en crudo y con los párrafos rotos** — **hecho (2026-08-17)**
+  - **Área:** UI / `Core`
+  - **Ubicación:** `src/FormatDiskPro/Core/ReleaseNotes.cs`
+  - **Qué hacer:** dos cosas en el mismo conversor. **(1)** `ToPlainText` quita `**` y `__` pero **no la
+    cursiva de un solo asterisco**, así que el diálogo muestra `*Reinicializar unidad → …*` con los
+    asteriscos a la vista. **(2)** Conserva los saltos de línea del Markdown original, que viene ajustado a
+    ~100 columnas; el diálogo ajusta encima y salen párrafos partidos a mitad de frase («…para actualizar
+    el / BIOS de una placa base…»). Dentro de un párrafo, un salto simple debe pasar a espacio — que es lo
+    que significa en Markdown.
+  - **Por qué importa más de lo que parece:** es la **primera pantalla que se ve tras actualizar**.
+  - **Cuidado:** quitar todos los `*` a lo bruto se llevaría también los de un texto legítimo, y desenvolver
+    a lo bruto pegaría viñetas y encabezados. `ReleaseNotesTests` ya existe: ampliarlo.
+  - **Hecho:** dos regex de énfasis simple que exigen marcador **pareado y pegado a un no-espacio** (el
+    subrayado pide además que no haya letra alrededor, para no partir `nombres_asi`), y un desenvolvido
+    que cierra bloque solo en línea en blanco, encabezado o salto forzado de Markdown (dos espacios al
+    final) — así una viñeta no se pega a la siguiente pero su continuación ajustada sí se le une.
+  - **+9 pruebas**, tres de ellas guardando el «cuidado»: `2 * 3 = 6`, `notas_de_version_final` y un
+    asterisco suelto salen intactos. Verificado por reversión (5 rojas con el fallo puesto) y a ojo en
+    la captura de *Novedades*.
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T6-14] Los textos legales no caben en el ancho del diálogo** — **hecho (2026-08-17)**
+  - **Área:** UI
+  - **Ubicación:** `src/FormatDiskPro/UI/LegalTextDialog.xaml`
+  - **Qué hacer:** *Licencia* y *Avisos de terceros* se pintan en monoespaciada y su fuente viene ajustada a
+    ~72-80 columnas, pero en el diálogo entran unas ~60: cada línea larga se parte, y hasta las líneas de
+    guiones separadoras salen cortadas en dos. Elegir una de tres: bajar el tamaño de letra, dar a este
+    diálogo un ancho propio (documentando por qué se sale del común que fijó `T6-07`), o permitir
+    desplazamiento horizontal.
+  - **Por qué:** es texto legal. Se lee mal, pero **no puede verse alterado**: la salida NO es reajustar el
+    contenido.
+  - **Hecho: las tres a la vez, porque ninguna basta sola.** Medidos los ficheros reales (`LICENSE` 78
+    columnas como mucho, `THIRD-PARTY-NOTICES.txt` 81): `TextWrapping="NoWrap"` para no alterar la
+    maquetación, un `LegalDialogContentWidth` propio de 430 —la única excepción declarada al ancho común
+    de `T6-07`, documentada en `AppTheme.xaml` y en el propio diálogo—, cuerpo a 10 px (que es una medida,
+    no un gusto: a 10 px de Consolas entran ~78 columnas en 430) y desplazamiento horizontal de red.
+    Resultado: la GPL entera —674 líneas— se lee sin tocar la barra.
+  - **El primer intento fue peor que el problema.** Con `NoWrap` a 11 px el texto salía **cortado** al
+    llegar al borde, sin barra visible: cambié un ajuste feo por una truncación silenciosa. Lo cazó la
+    captura, no el razonamiento — por eso `T6-11` existe.
+  - **Y las 3 líneas que seguían sin caber eran nuestras**, no de nadie: `THIRD-PARTY-NOTICES.txt` es el
+    documento de atribución del proyecto, así que se reajustó a 78 columnas. El texto MIT que cita y la
+    GPL **no se tocaron** — eso era justo lo prohibido.
+  - *Esfuerzo: bajo · Depende de: T6-07*
+
+- [x] **[T6-15] Los resúmenes de confirmación llevan saltos de línea fijos** — **hecho (2026-08-17)**
+  - **Área:** i18n / UI
+  - **Ubicación:** `src/FormatDiskPro/Localization/Localization.cs` (`reinit.summary*`)
+  - **Qué hacer:** esas cadenas traen `
+` incrustados para maquetar y el `TextBlock` ajusta por su cuenta
+    encima. Resultado: «…de la unidad I: (todas sus / particiones) / y se recreará…», partido donde no toca
+    —y en un sitio distinto en cada idioma, porque la frase no mide lo mismo—. Dejar solo los saltos que
+    separan **párrafos** y que del ajuste se encargue el control.
+  - **Por qué:** es el texto que hay que leer **antes de borrar un disco entero**.
+  - **Hecho:** fuera el salto de maquetación en las tres claves × 5 idiomas; quedan los que separan
+    párrafos y los que abren un elemento de la lista numerada de `reinit.summaryTwoPartitions`, que sí
+    son estructura. La prueba no ancla las cadenas: recorre **cada `
+` de los 15 textos** y falla si no
+    es una de esas dos cosas, así que también caza el que se cuele en una traducción futura.
+  - *Esfuerzo: bajo · Depende de: —*
+
+---
+
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-17 | **T6-14** | Los textos legales caben: `NoWrap` + ancho propio (430, la única excepción declarada al común de `T6-07`) + cuerpo a 10 px, que es una medida —a 10 px de Consolas entran ~78 columnas, y `LICENSE` mide 78— no un gusto. El primer intento (11 px) **truncaba** el texto sin barra visible: peor que el fallo, y lo cazó la captura. Las 3 líneas que aún no cabían eran de nuestro propio fichero de atribución; el texto MIT y la GPL no se tocaron. |
+| 2026-08-17 | **T6-15** | Fuera el salto de maquetación de los 15 resúmenes de reinicialización. La prueba recorre cada `
+` de los tres textos en cinco idiomas en vez de anclar las cadenas: caza también el que se cuele en una traducción futura. |
+| 2026-08-17 | **T6-13** | *Novedades* deja de enseñar `*asteriscos*` y de partir los párrafos a mitad de frase: énfasis simple pareado y desenvolvido por bloques (viñeta, encabezado y salto forzado cierran; la continuación ajustada de una viñeta se le une). +9 unitarias, tres de ellas guardando lo que NO debe tocarse. |
+| 2026-08-17 | **T6-12** | Los números que se muestran siguen al idioma de la app, no a Windows: nueva `L.Culture`, que `FormatBytes` usa por defecto. **No** se asigna a `CurrentCulture` —por ahí volvería `T1-01`— y hay una prueba con tr-TR que lo fija. Lo delataron cuatro pruebas que afirmaban el separador inglés con la app en español. |
+| 2026-08-17 | **T6-11** | Galería completa (26 tomas, 2 temas) con la app en ejecución. Confirma `T6-01`, `T6-02`, `T6-06`, `T6-07`, `T6-10` y la barra de ocupación en ambos temas — y **abre `T6-13`, `T6-14` y `T6-15`**, que la primera ronda no podía ver. |
+| 2026-08-17 | **T6-10** | Las dos opciones de chkdsk pasan a ser «command link»: título más una línea que dice qué cambia (reparar exige uso exclusivo y tarda mucho más). Nombre accesible explícito, porque el contenido dejó de ser una cadena. |
+| 2026-08-17 | **T6-09** | «solo» sin tilde, y un barrido del diccionario entero que falla si reaparece en cualquier cadena. |
+| 2026-08-17 | **T6-08** | Fuera el `Opacity="0.5"` que doblaba la atenuación. En WinUI un panel **no** se puede deshabilitar (`IsEnabled` es de `Control`), así que el helper apaga control por control y atenúa la etiqueta con `TextFillColorDisabledBrush` — un `TextBlock` no tiene estado deshabilitado. |
+| 2026-08-17 | **T6-07** | El hallazgo estaba medio equivocado: los botones apilados de chkdsk evitan un truncado real de WinUI en PT/IT y se quedan. Lo que sí estaba mal era el **ancho** (siete diálogos, seis criterios): ahora dos tokens compartidos. La regla de dónde va cada botón queda escrita en `AppTheme.xaml`. |
+| 2026-08-17 | **T6-06** | «Etiqueta del volumen» sin dos puntos en los cinco idiomas, como los otros dos encabezados de la misma tarjeta. +3 pruebas que fallan si alguno vuelve a puntuar. |
+| 2026-08-17 | **T6-05** | El historial muestra los tamaños legibles (`small-fat32=2 GB`) vía `HistoryEntry.Humanize`, función de **presentación**: `history.log` y el CSV conservan el byte exacto y las entradas ya escritas se ven bien sin migrar. Lista blanca de claves para no tocar `code=1`. `Matches` busca en crudo **y** en legible, o teclear lo que se ve no encontraría nada. +11 unitarias. |
+| 2026-08-17 | **T6-04** | Horas de encendido con separador de millares y equivalencia: `32,161 h (≈ 3.7 años)`. Nueva `SmartInfo.PowerOnEquivalent` (tramos días/meses/años, un decimal siempre para no pluralizar en cinco idiomas). +11 unitarias. |
+| 2026-08-17 | **T6-12** | **Abierta** ese día, no cerrada: al poner un decimal junto a una palabra traducida se hizo visible que los números siguen la cultura de Windows y el texto el idioma de la app. Es anterior y afecta a toda la app (`FormatBytes` incluido). |
+| 2026-08-17 | **T6-03** | La fila del eje solo se pinta si hay eje: nueva función pura `SmartInfo.HasSpindle` en `Core` (RPM=0 manda; sin RPM decide el medio; sin señal asume que gira, para no afirmar «SSD» sin saberlo). Fuera el literal `"SSD"`. +9 unitarias y verificación visual en SSD y en USB. |
+| 2026-08-17 | **T6-02** | Fuera el placeholder que era la letra a teclear. Al quitarlo se vio que WinUI lo usaba como **nombre accesible** del campo (un lector de pantalla cantaba la respuesta): se le da nombre propio, `confirm.inputName` ×5 idiomas. La primera prueba pasaba con el fallo puesto —no veía el placeholder— y se reescribió contra el `Name`. Verificada por reversión. |
+| 2026-08-17 | **T6-01** | El título de `ConfirmDialog` pasa a ser parámetro **obligatorio**: reinicializar dejaba de anunciarse como «Confirmar formato». Nueva clave `confirm.titleReinit` ×5 idiomas. +1 unitaria (los títulos difieren en los cinco) y +1 de UI, **verificada por reversión** sobre la app real. |
+| 2026-08-17 | — | Revisión de UX/UI sobre las capturas del corte 1.22.0: **Tier 6 abierto** con 11 tareas (3 defectos · 7 refinamientos · 1 para completar la propia revisión, que no pudo correr contra la app por falta de terminal elevada). |
 | 2026-08-13 | — | Auditoría inicial: 37 tareas abiertas (T0: 2 · T1: 9 · T2: 11 · T3: 10 · T4: 5). |
 | 2026-08-13 | **T0-01** | Handler `UnhandledException` en `App.OnLaunched`: registra `CRASH:`, marca `Handled` y avisa. Nueva clave `crash.body`. |
 | 2026-08-13 | **T0-02** | `catch` en los cuatro handlers de operación, vía el helper compartido `MainWindow.ReportOperationErrorAsync`. |

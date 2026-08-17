@@ -15,7 +15,70 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
-Nada todavía.
+### Cambiado
+
+- **La barra de ocupación pinta ahora el espacio libre, no solo el usado**, y pasa a tener bloque propio
+  dentro de la tarjeta *Unidad*: separador, línea `Ocupación` — `Usado 780,9 GB / 930,5 GB` y la barra
+  debajo, de 6 px y con las esquinas rectas en vez de la píldora anterior. Antes el hueco era la pista de
+  1 px de un `ProgressBar`: en una unidad recién formateada (0 % usada) no se veía nada, y el espacio
+  usado no aparecía en cifras por ningún lado. La barra de progreso de las operaciones no cambia.
+- El relleno «usado» del **tema claro** se oscurece de `#8A8A8A` a `#5C5C5C`. Con el espacio libre pintado
+  al lado, la frontera usado/libre se quedaba en 2.62:1, por debajo del 3:1 que WCAG exige a un objeto
+  gráfico; ahora es 5.07:1.
+- El nombre accesible de la barra incluye el porcentaje («Espacio utilizado: 43 %») en los cinco idiomas.
+- **El diálogo de *Comprobar errores* explica sus dos opciones** (`T6-10`). Antes eran dos botones con el
+  nombre a secas: ahora cada uno lleva debajo qué hace y qué cuesta — *Solo comprobar* no cambia nada y
+  deja la unidad utilizable; *Comprobar y reparar* corrige, pero necesita uso exclusivo de la unidad y
+  puede tardar mucho más.
+- «sólo» → «solo» en la casilla de compresión (`T6-09`): la RAE retiró esa tilde en 2010.
+- **Todos los diálogos tienen ya el mismo ancho** (`T6-07`). Había seis criterios distintos y el de
+  *Comprobar errores* no tenía ninguno, así que salía más estrecho: abrir dos seguidos hacía saltar la
+  ventana.
+- **«Etiqueta del volumen» pierde los dos puntos** (`T6-06`), como los otros dos campos de su tarjeta.
+- **Las opciones desactivadas se ven mejor** (`T6-08`): se atenuaban dos veces, así que los desplegables
+  quedaban más apagados de la cuenta. Ahora usan el aspecto deshabilitado del propio tema de Windows, y
+  sus etiquetas lo acompañan.
+- **Las horas de encendido se leen** (`T6-04`). Antes: `32161 h`. Ahora: `32.161 h (≈ 3,7 años)`, con
+  separador de millares y la equivalencia en días, meses o años según lo que dé una cifra útil.
+- **El historial muestra los tamaños en unidades, no en bytes** (`T6-05`): `small-fat32=2 GB` en vez de
+  `small-fat32=2147483648`. Solo cambia lo que se ve, así que las entradas ya registradas también se leen
+  mejor; `history.log` y el CSV exportado conservan el número exacto. El buscador encuentra las dos formas.
+- **Los números siguen ahora al idioma de la app, no al de Windows** (`T6-12`). Con la interfaz en español
+  sobre un Windows en inglés salía `223.6 GB` y `32,161 h (≈ 3.7 años)`: separadores ingleses pegados a
+  palabras españolas. Cambiar el idioma en la app cambia también cómo se escriben las cifras. Lo que se
+  **guarda** —`history.log`, el CSV, los comandos— sigue en formato invariante y no depende del idioma.
+- **La *Licencia* y los *Avisos de terceros* se leen enteros** (`T6-14`). Vienen preformateados a ~80
+  columnas de anchura fija y el diálogo los ajustaba a unas 60: cada línea larga se partía en dos, y hasta
+  las líneas de guiones separadoras salían cortadas. Ahora conservan su maquetación original.
+
+### Corregido
+
+- **La pantalla de *Novedades* enseñaba los asteriscos del Markdown** y partía los párrafos a mitad de
+  frase (`T6-13`). Se quitaban las negritas pero no las cursivas de un solo asterisco, y se respetaban los
+  saltos de línea del texto original —ajustado a 100 columnas— que el diálogo volvía a ajustar por su
+  cuenta. Es la primera pantalla que se ve tras actualizar.
+- **Los resúmenes de *Reinicializar unidad* se partían donde no toca** (`T6-15`): «…de la unidad I: (todas
+  sus / particiones) / y se recreará…», y en un sitio distinto en cada idioma. Llevaban saltos de línea
+  puestos a mano que peleaban con el ajuste del propio control. Es el texto que hay que leer antes de
+  borrar un disco entero.
+
+- **«Velocidad de rotación: SSD»** en *Salud del disco* (`T6-03`). Una velocidad cuyo valor era un tipo de
+  medio, con «Tipo de medio: SSD» en la fila de encima. En un disco de estado sólido la fila ya no aparece
+  —no es un dato que falte, es una pregunta que no aplica— y en un disco mecánico sigue mostrando sus RPM.
+  Si no se sabe si gira, la fila se mantiene como «No disponible»: esconderla sería dar por hecho que es
+  SSD.
+- **El campo de confirmación mostraba la letra que hay que teclear** (`T6-02`). Iba como texto de
+  marcador, así que el campo se leía como si ya estuviera relleno y regalaba la respuesta justo donde la
+  app pone su única fricción deliberada. Además, WinUI usaba ese marcador como **nombre accesible** del
+  campo: un lector de pantalla anunciaba la letra en voz alta. Ahora el campo aparece vacío y tiene su
+  propio nombre («Letra de la unidad»), en los cinco idiomas.
+- **El diálogo de confirmación de *Reinicializar unidad* se titulaba «Confirmar formato»** (`T6-01`). Las
+  dos operaciones irreversibles comparten el mismo diálogo y compartían también el título, fijado dentro
+  de él. El cuerpo sí explicaba que se borra el disco físico entero, pero quien leía solo el título estaba
+  confirmando algo distinto —y menos grave— de lo que iba a ocurrir. Ahora cada operación pone el suyo.
+- El barrido de contraste componía el alfa de un color sobre el fondo de la tarjeta aunque el color se
+  pintara encima de otra cosa. Hoy ningún color de la app está en ese caso, pero daba una cifra que no
+  correspondía a lo que se ve, que es justo lo que ese barrido existe para evitar.
 
 ---
 
