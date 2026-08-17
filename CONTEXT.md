@@ -10,13 +10,13 @@
 | | |
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
-| **Versión publicada** | **1.22.0** (2026-08-16) |
+| **Versión publicada** | **1.23.0** (2026-08-17) |
 | **Estado** | Producto (Tiers 1–9), auditoría de calidad, Tier 5 «Ocurrencias» y **Tier 6 — refinado de UX/UI** (15/15, 2026-08-17): **todos cerrados**. Sin tareas abiertas |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **563** unitarias (`Core/` al 97,9 %) · **28** de UI sobre la app real — **25 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-16 |
 | **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — sin tareas abiertas · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-17 (**Tier 6 cerrado**, 15/15: la revisión de UX/UI abrió 11 tareas y su propia tarea de cobertura (`T6-11`) descubrió 3 más · **sin publicar**: bloque de ocupación a dos colores, textos legales legibles, números en el idioma de la app) |
+| **Última actualización** | 2026-08-17 (**v1.23.0 publicada y verificada** · **Tier 6 cerrado**, 15/15: la revisión de UX/UI abrió 11 tareas y su propia tarea de cobertura (`T6-11`) descubrió 3 más) |
 
 ---
 
@@ -147,7 +147,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Unitarias | **585 / 585** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **30** en total (+1 de `T6-01`, +1 de `T6-02`) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.22.0** (2026-08-16) · `master` sin trabajo pendiente de publicar |
+| Publicado | **v1.23.0** (2026-08-17) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
 | Tareas abiertas | **0**. El **Tier 6 (refinado de UX/UI)** se abrió y se cerró el 2026-08-17, 15/15: 11 de la revisión inicial, `T6-12` salida de hacer `T6-04`, y `T6-13`/`T6-14`/`T6-15` de la revisión completa (`T6-11`). Producto, auditoría y Tier 5: cerrados |
@@ -369,6 +369,7 @@ ni mueve datos).
 
 | Versión | Qué trajo |
 |---|---|
+| **1.23.0** | **Tier 6 cerrado: refinado de UX/UI.** Tres cosas que la interfaz afirmaba y no eran ciertas —«Reinicializar unidad» confirmándose bajo el título «Confirmar formato», el campo de confirmación regalando la letra a teclear (y cantándola un lector de pantalla), y una velocidad de rotación cuyo valor era «SSD»— más los sitios donde el dato salía en crudo: bytes en el historial, horas de encendido sin equivalencia, Markdown a la vista en *Novedades* y textos legales que no cabían. Los números pasan a seguir al idioma de la app, no al de Windows. +64 pruebas (521 → 585). |
 | **1.22.0** | **Tier 5 completo.** El espacio sobrante de *FAT32 pequeña* deja de morir sin asignar: se puede crear una segunda partición (exFAT/NTFS) en la misma operación, con la FAT32 siempre primera. La opción aparece por fin en unidades de menos de 32 GB, donde llevaba escondida desde la 1.14.0 — y con ella se arreglaron un selector que ofrecía tamaños que no caben y un tope medido sobre el volumen en vez del disco. El fallo a mitad ya informa de qué particiones quedaron, sin revertir nada. +88 pruebas (433 → 521). |
 | **1.21.0** | **Auditoría cerrada.** Corte de **mantenimiento**: la app se comporta igual que la 1.20.0. `Services` inyectables con raíz de composición y costura `IProcessRunner` (+35 pruebas de caminos de error, ninguna toca un disco), `CHANGELOG.md` con puerta en el corte, README con 12 capturas, y fuera el último resto de Windows Forms. `T4-03` (firmar) descartada: contradecía `#13`. |
 | **1.20.0** | **Tier 3 cerrado.** Pulido de lo que fallaba en silencio: la exportación CSV del historial informa del error real, la salud ilegible se muestra como «no disponible», el borrado seguro usa RNG criptográfico, las preferencias se normalizan al cargarlas, los iconos decorativos salen del árbol de accesibilidad y un marcador mal escrito en una traducción ya no tumba una pantalla. |
