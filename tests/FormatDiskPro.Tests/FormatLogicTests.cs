@@ -8,13 +8,17 @@ namespace FormatDiskPro.Tests;
 /// Pruebas de la lógica pura crítica: construcción de comandos de formato,
 /// parseo de progreso y formateo de bytes. Cubre además el blindaje anti-inyección.
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public sealed class FormatLogicTests : IDisposable
 {
     private readonly CultureInfo _prevCulture = CultureInfo.CurrentCulture;
 
     public FormatLogicTests()
     {
-        // FormatBytes usa formato de cultura actual; fijamos invariante para asertar el separador "." de forma estable.
+        // Desde `T6-12`, FormatBytes NO usa la cultura del hilo: la recibe o la toma de L.Culture. Esta
+        // fijación se queda como suelo estable para el resto de la clase —y para dejar constancia de que
+        // la cultura del hilo ya no decide nada aquí, que es justo lo que comprueba
+        // SettingTheAppLanguage_DoesNotTouchTheThreadCulture.
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
     }
 
@@ -243,6 +247,9 @@ public sealed class FormatLogicTests : IDisposable
 
     // ── FormatBytes ──────────────────────────────────────────────
 
+    // La escalera de unidades no depende del idioma, así que se fija la cultura en la llamada: si estas
+    // pruebas no la dijeran, estarían midiendo dos cosas a la vez. La cultura tiene sus propias pruebas
+    // justo debajo.
     [Theory]
     [InlineData(0L, "0 B")]
     [InlineData(512L, "512 B")]
@@ -252,11 +259,53 @@ public sealed class FormatLogicTests : IDisposable
     [InlineData(1073741824L, "1 GB")]
     [InlineData(1099511627776L, "1 TB")]
     public void FormatBytes_FormatsAcrossUnits(long bytes, string expected)
-        => Assert.Equal(expected, FormatLogic.FormatBytes(bytes));
+        => Assert.Equal(expected, FormatLogic.FormatBytes(bytes, CultureInfo.InvariantCulture));
 
     [Theory]
     [InlineData(2L * 1024 * 1024 * 1024, "2 GB")]              // entero: sin ".0"
     [InlineData(62060003328L, "57.8 GB")]                       // no entero: un decimal
     public void FormatBytes_OmitsTrailingZeroDecimal(long bytes, string expected)
-        => Assert.Equal(expected, FormatLogic.FormatBytes(bytes));
+        => Assert.Equal(expected, FormatLogic.FormatBytes(bytes, CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// `T6-12`: el separador decimal lo pone el idioma elegido en la app, no Windows. Antes de esto,
+    /// estas cuatro pruebas afirmaban el separador inglés con la app arrancando en español — el propio
+    /// fallo, dentro de la suite.
+    /// </summary>
+    [Theory]
+    [InlineData(AppLang.Es, "1,5 KB")]
+    [InlineData(AppLang.En, "1.5 KB")]
+    [InlineData(AppLang.Pt, "1,5 KB")]
+    [InlineData(AppLang.Fr, "1,5 KB")]
+    [InlineData(AppLang.It, "1,5 KB")]
+    public void FormatBytes_UsesTheDecimalSeparatorOfTheAppLanguage(AppLang lang, string expected)
+    {
+        var prev = L.Current;
+        try
+        {
+            L.Set(lang);
+            Assert.Equal(expected, FormatLogic.FormatBytes(1536));
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>
+    /// El «cuidado» de `T6-12`: <see cref="L.Culture"/> es solo para formatear lo que se muestra. Si
+    /// además se asignara a <see cref="CultureInfo.CurrentCulture"/>, volvería `T1-01` — la guarda de
+    /// disco de sistema fallando bajo cultura turca, donde <c>ToUpper('i')</c> no da <c>'I'</c>.
+    /// </summary>
+    [Fact]
+    public void SettingTheAppLanguage_DoesNotTouchTheThreadCulture()
+    {
+        var prevLang    = L.Current;
+        var prevCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
+            L.Set(AppLang.Fr);
+            Assert.Equal("tr-TR", CultureInfo.CurrentCulture.Name);
+            Assert.Equal("fr-FR", L.Culture.Name);
+        }
+        finally { CultureInfo.CurrentCulture = prevCulture; L.Set(prevLang); }
+    }
 }

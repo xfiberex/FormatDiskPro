@@ -10,10 +10,24 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <ScrollViewer MinWidth="360" MaxWidth="420" MaxHeight="420"
+    <!--
+        T6-14 — este diálogo se sale a propósito del ancho común que fijó T6-07, y no ajusta el texto.
+        Licencia y Avisos de terceros vienen preformateados a ~80 columnas de monoespaciada: al ajustarlos
+        al ancho del resto de diálogos cada línea larga se partía en dos y hasta las líneas de guiones
+        separadoras salían cortadas. La salida NO puede ser reajustar el contenido —es texto legal, no
+        puede verse alterado—, y ensancharlo lo suficiente tampoco cabe: la ventana mide 500 DIP.
+        Así que se preserva la maquetación original (NoWrap) y de lo que sobra se encarga el
+        desplazamiento horizontal, que es como se lee un fichero de texto.
+
+        El tamaño 10 no es estético, es una medida: LICENSE mide 78 columnas como mucho, y a 10 px de
+        Consolas entran ~78 en LegalDialogContentWidth. Es decir, la GPL —674 líneas— se lee entera sin
+        tocar la barra horizontal; esta solo hace falta para el puñado de líneas de 79-81 de
+        THIRD-PARTY-NOTICES. Si alguno de los dos ficheros se ensancha, hay que rehacer esta cuenta.
+    -->
+    <ScrollViewer MinWidth="{StaticResource LegalDialogContentWidth}" MaxWidth="{StaticResource LegalDialogContentWidth}" MaxHeight="420"
                   VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-        <TextBlock x:Name="BodyText" TextWrapping="Wrap" FontSize="12"
+                  HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto">
+        <TextBlock x:Name="BodyText" TextWrapping="NoWrap" FontSize="10"
                    FontFamily="Consolas" IsTextSelectionEnabled="True" />
     </ScrollViewer>
 </ContentDialog>

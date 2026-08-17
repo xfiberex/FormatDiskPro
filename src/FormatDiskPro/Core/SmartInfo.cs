@@ -46,6 +46,72 @@ public sealed record SmartInfo(
             WriteErrors:     LongOrNull(F(8)));
     }
 
+    /// <summary>Unidad en la que se expresa la equivalencia legible de las horas de encendido.</summary>
+    public enum PowerOnUnit { None, Days, Months, Years }
+
+    /// <summary>Equivalencia legible de unas horas de encendido: cuánto, y en qué unidad.</summary>
+    /// <param name="Unit">Unidad elegida; <see cref="PowerOnUnit.None"/> si no merece la pena traducirlo.</param>
+    /// <param name="Value">Cantidad en esa unidad, redondeada a un decimal.</param>
+    public readonly record struct PowerOnSpan(PowerOnUnit Unit, double Value);
+
+    // 365,25 días/año repartidos en 12 meses. Se usa el año juliano, no 365, para que «2 años» sean dos
+    // años de reloj y no dos años y medio día.
+    private const double HoursPerDay   = 24;
+    private const double HoursPerMonth = 365.25 * 24 / 12;   // 730,5
+    private const double HoursPerYear  = 365.25 * 24;        // 8766
+
+    /// <summary>
+    /// Traduce unas horas de encendido a una escala que se entienda de un vistazo. Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// <para>Nace de `T6-04`: la fila decía «32161 h». El dato existe para responder «¿cuánto ha vivido
+    /// este disco?», y en horas nadie lo responde de cabeza.</para>
+    ///
+    /// <para><b>Siempre con un decimal, y por eso nunca hay que pluralizar.</b> «1,0 años» concuerda en
+    /// los cinco idiomas; «1 años» no. Evitar la concordancia singular/plural en cinco traducciones vale
+    /// más que ahorrar un decimal.</para>
+    ///
+    /// <para>La unidad se elige por tramos para que el número tenga siempre magnitud útil: por debajo de
+    /// un día no se traduce nada (las horas ya se leen), hasta dos meses en días, hasta dos años en meses,
+    /// y a partir de ahí en años. Los cortes están a <b>dos</b> unidades, no a una, para no mostrar
+    /// «≈ 1,1 meses» pudiendo decir «≈ 33,5 días».</para>
+    /// </remarks>
+    /// <param name="hours">Horas de encendido, o <c>null</c> si el disco no las reporta.</param>
+    public static PowerOnSpan PowerOnEquivalent(long? hours)
+    {
+        if (hours is not long h || h < HoursPerDay) return new(PowerOnUnit.None, 0);
+
+        (PowerOnUnit unit, double divisor) =
+            h < 2 * HoursPerMonth ? (PowerOnUnit.Days,   HoursPerDay)
+          : h < 2 * HoursPerYear  ? (PowerOnUnit.Months, HoursPerMonth)
+          :                         (PowerOnUnit.Years,  HoursPerYear);
+
+        return new(unit, Math.Round(h / divisor, 1));
+    }
+
+    /// <summary>
+    /// ¿Tiene esta unidad un eje que gire? <c>false</c> en estado sólido, donde la velocidad de rotación
+    /// no es un dato desconocido: es una pregunta que no aplica. Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// <para>Dos señales, en este orden. <b>RPM = 0</b> es la respuesta explícita del propio disco («no
+    /// giro»), así que manda sobre cualquier otra cosa. Si no reporta RPM en absoluto, se mira el tipo de
+    /// medio: un USB que no expone contadores puede seguir diciendo que es SSD.</para>
+    ///
+    /// <para>Cuando no hay ninguna de las dos, la respuesta es <c>true</c> —«asume que gira»— a propósito:
+    /// significa «no lo sé», y en ese caso la interfaz debe mostrar la fila como *no disponible* en vez de
+    /// esconderla. Esconder por desconocimiento sería afirmar algo que no sabemos.</para>
+    ///
+    /// <para>Nace de `T6-03`: la fila decía «Velocidad de rotación: SSD» —una velocidad cuyo valor es un
+    /// tipo de medio— con «Tipo de medio: SSD» justo encima.</para>
+    /// </remarks>
+    public static bool HasSpindle(SmartInfo? info)
+    {
+        if (info is null) return false;
+        if (info.SpindleSpeedRpm is uint rpm) return rpm != 0;
+        return !info.Media.Contains("SSD", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Clasifica una temperatura (°C) en niveles: ≤ 50 normal, 51–60 atención, &gt; 60 crítico.
     /// <c>null</c> → <see cref="SmartLevel.Unknown"/>. Lógica pura.

@@ -208,12 +208,46 @@ public sealed partial class MainWindow
     {
         bool on = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsEnabled
                && SmallFat32Check.IsChecked == true && _smallFat32Sizes.Count > 0;
-        SmallFat32SizePicker.IsEnabled = on;
-        SmallFat32SizePanel.Opacity    = on ? 1.0 : 0.5;
-        SmallFat32GoButton.IsEnabled   = on;
-        RestPicker.IsEnabled           = on;
-        RestPanel.Opacity              = on ? 1.0 : 0.5;
+        SetSubOptionEnabled(on, [SmallFat32SizeLbl], SmallFat32SizePicker);
+        SmallFat32GoButton.IsEnabled = on;
+        SetSubOptionEnabled(on, [RestLbl], RestPicker);
         UpdateRestOption();
+    }
+
+    /// <summary>
+    /// Habilita o deshabilita un sub-bloque de opciones —sus controles y sus etiquetas— como una unidad.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué existe</b> (`T6-08`). Antes cada bloque se atenuaba DOS veces: <c>Opacity="0.5"</c>
+    /// sobre el panel entero y <c>IsEnabled="false"</c> sobre el control, así que el desplegable quedaba
+    /// doblemente apagado. Ahora solo lo apaga su propio <c>IsEnabled</c>, con el visual deshabilitado del
+    /// tema — el mismo que dibuja Windows en el resto del sistema, y que está exento del requisito de
+    /// contraste por ser deshabilitado de verdad y no un texto tenue.</para>
+    ///
+    /// <para><b>Se reciben los controles uno a uno, y no el panel que los contiene, porque en WinUI un
+    /// panel no se puede deshabilitar:</b> <c>IsEnabled</c> vive en <c>Control</c>, y <c>Panel</c> deriva
+    /// de <c>FrameworkElement</c>. Un <c>&lt;StackPanel IsEnabled="False"&gt;</c> no compila
+    /// (<c>WMC0011</c>) — al contrario que en WPF, donde <c>UIElement</c> sí lo tiene. Es la primera cosa
+    /// que uno intenta al arreglar esto.</para>
+    ///
+    /// <para><b>La etiqueta hay que atenuarla aparte</b>, por el mismo motivo: un <c>TextBlock</c> tampoco
+    /// es un <c>Control</c>, así que no tiene estado visual deshabilitado y se quedaría a pleno contraste,
+    /// más viva que el desplegable de al lado. Se le pone <c>TextFillColorDisabledBrush</c>, que es el
+    /// token del tema para esto, y al reactivarla se hace <c>ClearValue</c> para devolverla al color de su
+    /// estilo en vez de fijarle otro a mano (que se quedaría clavado al cambiar de tema en caliente).</para>
+    /// </remarks>
+    /// <param name="on">Si el sub-bloque debe quedar activo.</param>
+    /// <param name="labels">Etiquetas del bloque, que no se atenúan solas.</param>
+    /// <param name="controls">Controles del bloque.</param>
+    private static void SetSubOptionEnabled(bool on, TextBlock[] labels, params Control[] controls)
+    {
+        foreach (Control control in controls) control.IsEnabled = on;
+
+        foreach (TextBlock label in labels)
+        {
+            if (on) label.ClearValue(TextBlock.ForegroundProperty);
+            else    label.Foreground = (Brush)Application.Current.Resources["TextFillColorDisabledBrush"];
+        }
     }
 
     // ── Reinicializar: qué hacer con el espacio sobrante (`T5-02`) ──

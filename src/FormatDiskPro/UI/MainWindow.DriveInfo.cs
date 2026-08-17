@@ -218,12 +218,41 @@ public sealed partial class MainWindow
             InfoFreeText.Text  = L.T("info.free", FormatBytes(free));
             InfoFsText.Text    = L.T("info.fs", drive.DriveFormat);
             InfoTypeText.Text  = L.T("info.type", DriveTypeName(drive.DriveType));
-            double usedPct = total > 0 ? (total - free) * 100.0 / total : 0;
-            CapacityBar.Value      = usedPct;
-            CapacityBar.Foreground = CapacityBrush(usedPct);
-            CapacityBar.Visibility = Visibility.Visible;
+            RenderCapacity(total, free);
         }
         catch { ClearInfo(); }
+    }
+
+    /// <summary>
+    /// Pinta la barra de ocupación: el relleno usado a la izquierda y el espacio libre como pista.
+    /// </summary>
+    /// <remarks>
+    /// El reparto se hace con las columnas ESTRELLA del <c>Grid</c>, no con un ancho en píxeles: así la
+    /// proporción sobrevive a cualquier redimensión sin volver a calcular nada. Los dos colores se
+    /// reasignan en cada llamada porque dependen del tema efectivo, y <c>ApplyThemeMode</c> vuelve a pasar
+    /// por aquí al cambiar de tema.
+    /// </remarks>
+    /// <param name="total">Tamaño total del volumen, en bytes.</param>
+    /// <param name="free">Espacio libre disponible, en bytes.</param>
+    private void RenderCapacity(long total, long free)
+    {
+        long used = Math.Max(0, total - free);
+        double usedPct = total > 0 ? Math.Clamp(used * 100.0 / total, 0, 100) : 0;
+
+        CapacityColumns.ColumnDefinitions[0].Width = new GridLength(usedPct, GridUnitType.Star);
+        CapacityColumns.ColumnDefinitions[1].Width = new GridLength(100 - usedPct, GridUnitType.Star);
+        CapacityUsedFill.Background = CapacityBrush(usedPct);
+        CapacityBar.Background      = new SolidColorBrush(SeverityPalette.TrackFill(_darkMode));
+        CapacityText.Text           = L.T("info.usedOf", FormatBytes(used), FormatBytes(total));
+        CapacityPanel.Visibility    = Visibility.Visible;
+
+        // El nombre accesible lleva el dato, no solo la etiqueta: un Border no expone valor de rango como
+        // hacía el ProgressBar, así que «Espacio utilizado» a secas no le diría nada a un lector de
+        // pantalla. Se fija aquí y no en ApplyLanguage porque ese también termina llamando a UpdateInfo.
+        // El rótulo visible queda en Raw: dice lo mismo en bytes y leerlo dos veces sobra.
+        string name = L.T("info.used", (int)Math.Round(usedPct));
+        AutomationProperties.SetName(CapacityBar, name);
+        ToolTipService.SetToolTip(CapacityBar, name);
     }
 
     /// <summary>
@@ -252,6 +281,6 @@ public sealed partial class MainWindow
         InfoHealthText.Text = L.T("info.health", L.T("info.dash"));
         InfoBusText.Text    = L.T("info.bus", L.T("info.dash"));
         InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
-        CapacityBar.Visibility = Visibility.Collapsed;
+        CapacityPanel.Visibility = Visibility.Collapsed;
     }
 }

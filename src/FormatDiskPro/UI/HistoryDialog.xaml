@@ -11,7 +11,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <Grid MinWidth="300" MaxWidth="420" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="12">
+    <Grid MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="12">
 
         <StackPanel Grid.Row="0" Spacing="8">
             <TextBox x:Name="SearchBox" PlaceholderText="Buscar…" TextChanged="Search_Changed" />

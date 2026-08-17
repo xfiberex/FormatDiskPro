@@ -78,11 +78,18 @@ public sealed partial class HealthDialog : ContentDialog
         AddMetricRow(L.T("health.status"), Show(info.Health), SmartInfo.HealthLevel(info.Health));
         AddRow(L.T("health.bus"),     Show(info.Bus));
         AddRow(L.T("health.media"),   Show(info.Media));
-        AddRow(L.T("health.spindle"), SpindleText(info));
+        // La fila del eje solo aparece si hay eje (T6-03). En un SSD no es un dato que falte: es una
+        // pregunta que no aplica, y la fila de encima ya dice «Tipo de medio: SSD». Antes se rellenaba con
+        // el literal "SSD" —una velocidad cuyo valor era un tipo de medio, y texto sin traducir fuera de
+        // Localization/—. Si NO se sabe si gira, la fila sí se muestra, como «no disponible»: esconderla
+        // por desconocimiento sería afirmar que es de estado sólido sin saberlo.
+        if (SmartInfo.HasSpindle(info))
+            AddRow(L.T("health.spindle"),
+                info.SpindleSpeedRpm is uint rpm ? L.T("health.unit.rpm", rpm) : L.T("health.na"));
         AddMetricRow(L.T("health.temp"),
             info.TemperatureC is int t ? L.T("health.unit.temp", t) : L.T("health.na"),
             SmartInfo.TemperatureLevel(info.TemperatureC));
-        AddRow(L.T("health.hours"),   info.PowerOnHours is long h ? L.T("health.unit.hours", h) : L.T("health.na"));
+        AddRow(L.T("health.hours"),   PowerOnHoursText(info.PowerOnHours));
         AddMetricRow(L.T("health.wear"),
             info.WearPercent is int w ? L.T("health.unit.percent", w) : L.T("health.na"),
             SmartInfo.WearLevel(info.WearPercent));
@@ -124,11 +131,26 @@ public sealed partial class HealthDialog : ContentDialog
     internal static Brush LevelBrush(SmartLevel level, bool dark) =>
         new SolidColorBrush(SeverityPalette.For(level, dark));
 
-    private string SpindleText(SmartInfo info)
+    /// <summary>
+    /// Horas de encendido con separador de millares y, si aporta, su equivalencia legible:
+    /// <c>32.161 h (≈ 3,7 años)</c>. El reparto en tramos es lógica pura y vive en
+    /// <see cref="SmartInfo.PowerOnEquivalent"/>; aquí solo se le pone idioma y formato de número.
+    /// </summary>
+    private static string PowerOnHoursText(long? hours)
     {
-        if (info.SpindleSpeedRpm is uint rpm)
-            return rpm == 0 ? "SSD" : L.T("health.unit.rpm", rpm);
-        return info.Media.Contains("SSD", StringComparison.OrdinalIgnoreCase) ? "SSD" : L.T("health.na");
+        if (hours is not long h) return L.T("health.na");
+
+        string exact = h.ToString("N0", L.Culture);
+        var span = SmartInfo.PowerOnEquivalent(h);
+        if (span.Unit == SmartInfo.PowerOnUnit.None) return L.T("health.unit.hours", exact);
+
+        string key = span.Unit switch
+        {
+            SmartInfo.PowerOnUnit.Days   => "health.span.days",
+            SmartInfo.PowerOnUnit.Months => "health.span.months",
+            _                            => "health.span.years",
+        };
+        return L.T("health.unit.hoursWith", exact, L.T(key, span.Value.ToString("0.0", L.Culture)));
     }
 
     private static string Show(string v) => string.IsNullOrEmpty(v) || v == "?" ? "—" : v;

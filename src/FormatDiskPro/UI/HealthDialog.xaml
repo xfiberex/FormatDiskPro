@@ -15,7 +15,7 @@
         </Style>
     </ContentDialog.SecondaryButtonStyle>
 
-    <StackPanel MaxWidth="360" Spacing="10">
+    <StackPanel Spacing="10" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
         <TextBlock x:Name="StatusText" FontSize="13" Opacity="0.7" />
         <StackPanel x:Name="RowsPanel" Spacing="6" />
         <TextBlock x:Name="NoteText" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />

@@ -19,7 +19,14 @@ public enum ContrastRequirement
 /// <param name="Color">Color (puede llevar alfa: se compone sobre el fondo antes de medir).</param>
 /// <param name="Dark">Tema al que pertenece; determina el fondo de referencia.</param>
 /// <param name="Requirement">Umbral WCAG aplicable según el uso.</param>
-public sealed record PaletteColor(string Name, Color Color, bool Dark, ContrastRequirement Requirement)
+/// <param name="Against">
+/// Color ADYACENTE contra el que hay que medir, si no es el fondo de la tarjeta. Lo necesita la pista de
+/// la barra de ocupación: lo que el usuario tiene que distinguir ahí es «usado» de «libre», no la pista
+/// del fondo. Medirla contra el fondo exigiría un gris tan marcado que la pista competiría con el relleno
+/// y la barra dejaría de leerse de un vistazo — el umbral correcto sería el equivocado.
+/// </param>
+public sealed record PaletteColor(
+    string Name, Color Color, bool Dark, ContrastRequirement Requirement, Color? Against = null)
 {
     /// <summary>Razón de contraste mínima exigible a este color.</summary>
     public double MinimumRatio => Requirement == ContrastRequirement.NormalText ? 4.5 : 3.0;
@@ -98,15 +105,32 @@ public static class SeverityPalette
         dark ? Color.FromArgb(255, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xE4, 0x00, 0x00, 0x00);
 
     /// <summary>
-    /// Relleno neutro de la barra de ocupación cuando queda espacio de sobra (&lt; 80 %).
+    /// Relleno del espacio USADO en la barra de ocupación cuando queda sitio de sobra (&lt; 80 %).
     /// </summary>
     /// <remarks>
-    /// Existe para que la barra NO use el color de acento del sistema, que es lo que hace un
+    /// <para>Existe para que la barra NO use el color de acento del sistema, que es lo que hace un
     /// <c>ProgressBar</c> por defecto: en un equipo con acento rojo se veía roja con el disco medio vacío
-    /// y leía como alarma. Es un objeto gráfico, así que le basta el 3:1 (no el 4.5:1 del texto).
+    /// y leía como alarma. Es un objeto gráfico, así que le basta el 3:1 (no el 4.5:1 del texto).</para>
+    ///
+    /// <para>El gris claro era <c>#8A8A8A</c>, elegido cuando el hueco de la barra era el fondo de la
+    /// tarjeta. Al pintarse el espacio libre con <see cref="TrackFill"/> pasó a tener un vecino, y contra
+    /// esa pista se quedaba en 2.61:1: la frontera usado/libre —que es TODA la información de la barra—
+    /// no llegaba al 3:1. <c>#5C5C5C</c> la sube a 5.07:1 sin tocar el tema oscuro, donde el relleno ya
+    /// era el claro de los dos.</para>
     /// </remarks>
     public static Color NeutralFill(bool dark) =>
-        dark ? Color.FromArgb(255, 0xA0, 0xA0, 0xA0) : Color.FromArgb(255, 0x8A, 0x8A, 0x8A);
+        dark ? Color.FromArgb(255, 0xA0, 0xA0, 0xA0) : Color.FromArgb(255, 0x5C, 0x5C, 0x5C);
+
+    /// <summary>
+    /// Pista de la barra de ocupación: el espacio LIBRE. Es el segundo color de la barra, no un fondo.
+    /// </summary>
+    /// <remarks>
+    /// Se mide contra los tres rellenos posibles (neutro, ámbar, rojo) y no contra la tarjeta — ver
+    /// <see cref="PaletteColor.Against"/>. Es deliberadamente sutil frente al fondo (1.28:1 en claro,
+    /// 1.60:1 en oscuro): tiene que marcar hasta dónde llega la unidad sin leerse como una segunda barra.
+    /// </remarks>
+    public static Color TrackFill(bool dark) =>
+        dark ? Color.FromArgb(255, 0x4A, 0x4A, 0x4A) : Color.FromArgb(255, 0xE0, 0xE0, 0xE0);
 
     /// <summary>Fondo de la tarjeta del tema efectivo: la referencia contra la que se mide el contraste.</summary>
     public static Color Background(bool dark) => dark ? DarkBackground : LightBackground;
@@ -128,16 +152,36 @@ public static class SeverityPalette
 
             list.Add(new("Text", Text(dark), dark, ContrastRequirement.NormalText));
             list.Add(new("NeutralFill", NeutralFill(dark), dark, ContrastRequirement.Graphical));
+
+            // La pista entra al inventario como cualquier otro color, pero declarando su vecino: hay una
+            // entrada por cada relleno con el que puede compartir barra, porque el 3:1 tiene que cumplirse
+            // con los tres. Basta que uno cambie para que salte el que ya no separa lo usado de lo libre.
+            foreach ((string fill, Color color) in ((string, Color)[])
+                     [("NeutralFill", NeutralFill(dark)),
+                      ("Warning",     For(SmartLevel.Warning, dark)),
+                      ("Critical",    For(SmartLevel.Critical, dark))])
+                list.Add(new($"TrackFill vs {fill}", TrackFill(dark), dark, ContrastRequirement.Graphical, color));
         }
         return list;
     }
 
-    /// <summary>Contraste real de una entrada del inventario contra el fondo de su tema.</summary>
+    /// <summary>
+    /// Contraste real de una entrada del inventario contra su referencia: el fondo de la tarjeta, o el
+    /// color adyacente si la entrada declara uno en <see cref="PaletteColor.Against"/>.
+    /// </summary>
+    /// <remarks>
+    /// El alfa se compone sobre la REFERENCIA, no sobre la tarjeta: un texto semitransparente encima de la
+    /// pista de la barra deja ver la pista, no el fondo. Con los colores opacos da igual —<see cref="Flatten"/>
+    /// no hace nada—, pero el color de texto claro lleva alfa (Fluent <c>#E4000000</c>) y componerlo sobre el
+    /// fondo equivocado daría un número que no corresponde a lo que se ve, que es justo lo que este barrido
+    /// existe para evitar.
+    /// </remarks>
     /// <param name="entry">Entrada del inventario (ver <see cref="All"/>).</param>
-    public static double ContrastAgainstBackground(PaletteColor entry)
+    public static double ContrastAgainstReference(PaletteColor entry)
     {
         Color background = Background(entry.Dark);
-        return ContrastRatio(Flatten(entry.Color, background), background);
+        Color reference  = entry.Against is Color adjacent ? Flatten(adjacent, background) : background;
+        return ContrastRatio(Flatten(entry.Color, reference), reference);
     }
 
     /// <summary>

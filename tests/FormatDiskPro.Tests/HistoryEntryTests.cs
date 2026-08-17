@@ -7,6 +7,7 @@ namespace FormatDiskPro.Tests;
 /// Pruebas del parseo del historial: clasificación de categoría/resultado a partir de las
 /// líneas reales que escribe <see cref="History.Log"/>, y descarte de comentarios/vacías.
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public sealed class HistoryEntryTests
 {
     private const string Ts = "2026-06-21 14:30:05";
@@ -150,5 +151,116 @@ public sealed class HistoryEntryTests
         string csv = HistoryEntry.ToCsv([HistoryEntry.Parse($"{Ts}\tFORMAT OK G: fs=NTFS")!]);
         Assert.Contains("FORMAT OK G: fs=NTFS", csv);
         Assert.DoesNotContain("'FORMAT", csv);
+    }
+
+    // ── T6-05: los tamaños en bytes, legibles al MOSTRARLOS ────────────────────────
+
+    /// <summary>
+    /// El historial enseñaba la línea de log cruda: <c>small-fat32=2147483648</c>. Quien lo abre está
+    /// comprobando qué le hizo a un disco, no depurando.
+    /// </summary>
+    [Theory]
+    [InlineData("REINIT I: -> G: fs=FAT32 style=MBR small-fat32=2147483648",
+                "REINIT I: -> G: fs=FAT32 style=MBR small-fat32=2 GB")]
+    [InlineData("VERIFY OK G: written=32010928128", "VERIFY OK G: written=29.8 GB")]
+    [InlineData("VERIFY FAIL G: bloque corrupto ok-until=1048576", "VERIFY FAIL G: bloque corrupto ok-until=1 MB")]
+    [InlineData("BENCH H: rnd4k r=34.7 MB/s bytes=536870912", "BENCH H: rnd4k r=34.7 MB/s bytes=512 MB")]
+    public void Humanize_TurnsRawByteCountsIntoSizes(string raw, string expected)
+    {
+        // Humanize es presentación, así que desde `T6-12` el separador lo pone el idioma activo; se fija
+        // para que estos casos hablen de la conversión a tamaños y no del separador.
+        var prev = L.Current;
+        try
+        {
+            L.Set(AppLang.En);
+            Assert.Equal(expected, HistoryEntry.Humanize(raw));
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>
+    /// Lista blanca, no heurístico: en la MISMA línea hay números que no son tamaños. Convertir
+    /// <c>code=1</c> en «1 B» sería peor que no tocar nada.
+    /// </summary>
+    [Theory]
+    [InlineData("CHKDSK G: repair=False code=0 result=OK")]
+    [InlineData("FORMAT OK G: fs=NTFS quick=True compress=False wipe=True passes=3 label='utilidades'")]
+    [InlineData("REINIT REJECTED G: DoesNotFit (partición 1)")]
+    public void Humanize_LeavesNonSizeNumbersAlone(string raw)
+        => Assert.Equal(raw, HistoryEntry.Humanize(raw));
+
+    /// <summary>`alloc` sí es un tamaño: el clúster de 4096 bytes se lee como 4 KB.</summary>
+    [Fact]
+    public void Humanize_ConvertsAllocationUnit()
+        => Assert.Contains("alloc=4 KB", HistoryEntry.Humanize("FORMAT OK G: fs=NTFS alloc=4096 quick=True"));
+
+    /// <summary>Un valor que no cabe en un long se deja como está, en vez de perderlo o lanzar.</summary>
+    [Fact]
+    public void Humanize_UnparseableValue_IsLeftUntouched()
+    {
+        string raw = "VERIFY OK G: written=99999999999999999999999";
+        Assert.Equal(raw, HistoryEntry.Humanize(raw));
+    }
+
+    [Fact]
+    public void Humanize_EmptyOrNull_DoesNotThrow()
+    {
+        Assert.Equal("", HistoryEntry.Humanize(null));
+        Assert.Equal("", HistoryEntry.Humanize(""));
+    }
+
+    /// <summary>
+    /// La transformación es de PRESENTACIÓN: el CSV y `history.log` tienen consumidores y siguen llevando
+    /// el byte exacto, que es justo el dato que sirve al depurar. Si alguien mueve `Humanize` a las
+    /// llamadas de `History.Log`, esto lo caza.
+    /// </summary>
+    [Fact]
+    public void ToCsv_KeepsTheExactByteCount()
+    {
+        var e = HistoryEntry.Parse($"{Ts}	REINIT I: -> G: small-fat32=2147483648")!;
+        string csv = HistoryEntry.ToCsv([e]);
+
+        Assert.Contains("small-fat32=2147483648", csv);
+        Assert.DoesNotContain("2 GB", csv);
+        Assert.Equal("REINIT I: -> G: small-fat32=2147483648", e.Detail);
+    }
+
+    /// <summary>
+    /// El otro lado de la misma regla, y el «cuidado» explícito de `T6-12`: lo que se GUARDA no depende
+    /// del idioma. El CSV sale igual con la app en los cinco, marca de tiempo incluida — si algún día se
+    /// escribe con <c>L.Culture</c> en vez de con la invariante, un fichero exportado en francés dejaría
+    /// de poder leerse con la app en inglés.
+    /// </summary>
+    [Fact]
+    public void ToCsv_IsTheSameInEveryLanguage()
+    {
+        var e = HistoryEntry.Parse($"{Ts}\tVERIFY OK G: written=32010928128")!;
+        var prev = L.Current;
+        try
+        {
+            L.Set(AppLang.En);
+            string reference = HistoryEntry.ToCsv([e]);
+
+            foreach (AppLang lang in Enum.GetValues<AppLang>())
+            {
+                L.Set(lang);
+                Assert.Equal(reference, HistoryEntry.ToCsv([e]));
+            }
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>
+    /// El buscador tiene que encontrar lo que está EN PANTALLA. La lista muestra «2 GB» y el fichero
+    /// guarda «2147483648»: buscar en uno solo haría que teclear lo que se ve no devolviera nada.
+    /// </summary>
+    [Fact]
+    public void Matches_FindsBothTheRawBytesAndWhatIsOnScreen()
+    {
+        var e = HistoryEntry.Parse($"{Ts}	REINIT I: -> G: small-fat32=2147483648")!;
+
+        Assert.True(e.Matches("2147483648", null, null));   // lo que hay en el log
+        Assert.True(e.Matches("2 GB", null, null));         // lo que hay en la lista
+        Assert.False(e.Matches("3 GB", null, null));
     }
 }

@@ -108,6 +108,105 @@ public sealed class LocalizationTests
     public void FromCulture_MapsLanguagePart(string? culture, AppLang expected)
         => Assert.Equal(expected, L.FromCulture(culture));
 
+    /// <summary>
+    /// Las dos operaciones irreversibles comparten <c>ConfirmDialog</c>, y hasta `T6-01` compartían
+    /// también el título: reinicializar —que borra el disco físico entero— se anunciaba como «Confirmar
+    /// formato». Esto fija que sean títulos distintos en los CINCO idiomas, para que una traducción
+    /// perezosa no rehaga el fallo en un idioma mientras el español sigue bien.
+    /// </summary>
+    [Fact]
+    public void ConfirmTitles_NameTheirOwnOperation_InEveryLanguage()
+    {
+        var prev = L.Current;
+        try
+        {
+            foreach (AppLang lang in Enum.GetValues<AppLang>())
+            {
+                L.Set(lang);
+                string format = L.T("confirm.title");
+                string reinit = L.T("confirm.titleReinit");
+
+                Assert.False(string.IsNullOrWhiteSpace(format), $"confirm.title vacío en {lang}");
+                Assert.False(string.IsNullOrWhiteSpace(reinit), $"confirm.titleReinit vacío en {lang}");
+                Assert.NotEqual(format, reinit);
+            }
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>
+    /// `T6-06`: los tres campos de la tarjeta de formato van uno debajo de otro, y «Etiqueta del volumen:»
+    /// era el único que terminaba en dos puntos. Puestos en fila, se nota. El francés se comprueba igual:
+    /// allí la forma sería « :», con espacio fino delante, y tampoco debe aparecer.
+    /// </summary>
+    [Theory]
+    [InlineData("fs.label")]
+    [InlineData("alloc.label")]
+    [InlineData("label.label")]
+    public void FieldHeaders_DoNotEndInAColon_InAnyLanguage(string key)
+    {
+        var prev = L.Current;
+        try
+        {
+            foreach (AppLang lang in Enum.GetValues<AppLang>())
+            {
+                L.Set(lang);
+                string header = L.T(key).TrimEnd();
+                Assert.False(header.EndsWith(':'), $"{key} en {lang} termina en dos puntos: '{header}'");
+            }
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>
+    /// `T6-09`: la RAE retiró la tilde de «solo» en 2010. Es el tipo de detalle que vuelve solo al
+    /// escribir una cadena nueva, así que se barre el diccionario entero en vez de arreglar la que había.
+    /// </summary>
+    [Fact]
+    public void SpanishStrings_DoNotUseTheObsoleteAccentOnSolo()
+    {
+        var offenders = L.Map
+            .Where(kv => kv.Value.Length > 0 && kv.Value[0].Contains("sólo", StringComparison.OrdinalIgnoreCase))
+            .Select(kv => kv.Key)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            "«sólo» con tilde (obsoleto desde 2010) en: " + string.Join(", ", offenders));
+    }
+
+    /// <summary>
+    /// `T6-15`: los resúmenes de reinicialización traían saltos de línea puestos a mano para maquetar,
+    /// y el <c>TextBlock</c> ajusta por su cuenta encima: la frase salía partida donde no tocaba, y en un
+    /// sitio distinto en cada idioma porque no mide lo mismo. Este es el texto que hay que leer antes de
+    /// borrar un disco entero, así que del ajuste se encarga el control y en la cadena solo quedan los
+    /// saltos que separan párrafos o abren un elemento de la lista numerada.
+    /// </summary>
+    [Theory]
+    [InlineData("reinit.summary")]
+    [InlineData("reinit.summaryFat32Small")]
+    [InlineData("reinit.summaryTwoPartitions")]
+    public void ReinitSummaries_OnlyBreakBetweenParagraphs_InEveryLanguage(string key)
+    {
+        Assert.True(L.Map.ContainsKey(key), $"Falta la clave '{key}'.");
+
+        foreach ((string text, int i) in L.Map[key].Select((t, i) => (t, i)))
+        {
+            var lang = (AppLang)i;
+            for (int at = text.IndexOf('\n'); at >= 0; at = text.IndexOf('\n', at + 1))
+            {
+                string rest = text[(at + 1)..];
+
+                // Permitido: separar párrafos (línea en blanco) o abrir un elemento de lista ("  1) ").
+                bool paragraph = rest.StartsWith('\n') || (at > 0 && text[at - 1] == '\n');
+                bool listItem  = System.Text.RegularExpressions.Regex.IsMatch(rest, @"^\s*\d+\)");
+
+                Assert.True(paragraph || listItem,
+                    $"'{key}' en {lang} corta a mitad de frase en el carácter {at}: " +
+                    $"…{text[Math.Max(0, at - 25)..at]}⏎{rest[..Math.Min(25, rest.Length)]}…");
+            }
+        }
+    }
+
     [Fact]
     public void T_ReturnsActiveLanguageString()
     {

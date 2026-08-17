@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Linq;
@@ -118,17 +119,27 @@ public static partial class FormatLogic
     {
         var matches = PercentRegex().Matches(chunk);
         if (matches.Count == 0) return -1;
-        return int.TryParse(matches[^1].Groups[1].Value, out int v) ? v : -1;
+        // Se lee de la salida de una herramienta, no de un humano: invariante siempre.
+        return int.TryParse(matches[^1].Groups[1].Value, NumberStyles.Integer,
+                            CultureInfo.InvariantCulture, out int v) ? v : -1;
     }
 
-    /// <summary>Formatea una cantidad de bytes en una cadena legible (B, KB, MB, GB, TB), con un decimal
-    /// como máximo y sin el ".0" en valores enteros ("2 GB", "1.5 KB").</summary>
-    public static string FormatBytes(long bytes)
+    /// <summary>
+    /// Formatea una cantidad de bytes en una cadena legible (B, KB, MB, GB, TB), con un decimal como
+    /// máximo y sin el <c>,0</c> en valores enteros ("2 GB", "1,5 KB" en español; "1.5 KB" en inglés).
+    ///
+    /// <para>`T6-12`: el separador decimal lo pone <see cref="L.Culture"/> —el idioma elegido en la app—,
+    /// no la cultura de Windows, que es de donde venía «223.6 GB» junto a texto en español. Es una función
+    /// de <b>presentación</b>: nada de lo que se guarda pasa por aquí.</para>
+    /// </summary>
+    /// <param name="bytes">Cantidad de bytes.</param>
+    /// <param name="culture">Cultura de formato; por omisión, la del idioma activo de la app.</param>
+    public static string FormatBytes(long bytes, IFormatProvider? culture = null)
     {
         string[] u = ["B", "KB", "MB", "GB", "TB"];
         double v = bytes; int i = 0;
         while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
-        return $"{v:0.#} {u[i]}";
+        return string.Format(culture ?? L.Culture, "{0:0.#} {1}", v, u[i]);
     }
 
     // es: "por ciento" · pt: "por cento" · it: "per cento" · fr: "pour cent" · de: "Prozent".

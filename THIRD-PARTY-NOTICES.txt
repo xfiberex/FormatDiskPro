@@ -6,37 +6,38 @@ FormatDiskPro se distribuye bajo la licencia GNU General Public License v3.0
 componentes de terceros, cada uno bajo su propia licencia. Se reproduce el
 aviso correspondiente a efectos de atribución.
 
-FormatDiskPro is distributed under the GNU General Public License v3.0 (see the
-LICENSE file). This product includes or depends on the following third-party
-components, each under its own license, reproduced here for attribution.
+FormatDiskPro is distributed under the GNU General Public License v3.0 (see
+the LICENSE file). This product includes or depends on the following
+third-party components, each under its own license, reproduced here for
+attribution.
 
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 1) .NET Runtime and Libraries
    © Microsoft Corporation and the .NET Foundation.
    Licencia: MIT License.
    https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
 
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 2) Windows App SDK / WinUI 3 (Microsoft.WindowsAppSDK)
    © Microsoft Corporation.
    Licencia: MIT License.
    https://github.com/microsoft/WindowsAppSDK/blob/main/LICENSE
 
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 3) Segoe Fluent Icons (fuente de iconos)
    © Microsoft Corporation.
    Fuente de iconos incluida con Windows 10/11 y utilizada por la interfaz.
-   Su uso se rige por los términos de la fuente provista con el sistema Windows.
+   Su uso se rige por los términos de la fuente provista con Windows.
 
---------------------------------------------------------------------------------
-4) Inno Setup (solo para construir el instalador; no se redistribuye con la app)
+------------------------------------------------------------------------------
+4) Inno Setup (solo para construir el instalador; no se redistribuye)
    © Jordan Russell. Portions © Martijn Laan.
    Licencia: Inno Setup License (estilo permisivo).
    https://jrsoftware.org/files/is/license.txt
 
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 Texto de la licencia MIT (componentes 1 y 2)
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

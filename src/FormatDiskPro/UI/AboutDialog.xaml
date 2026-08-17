@@ -22,7 +22,7 @@
 
     <ScrollViewer MaxHeight="460" VerticalScrollBarVisibility="Auto"
                   HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="400" Spacing="8">
+        <StackPanel Spacing="8" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
             <TextBlock Text="FormatDiskPro" FontWeight="SemiBold" FontSize="18"
                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
             <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="12" />

@@ -86,6 +86,89 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
         }
     }
 
+    /// <summary>
+    /// `T6-01`: formatear y reinicializar comparten <c>ConfirmDialog</c>, y hasta la revisión de
+    /// UX/UI del 2026-08-17 compartían también el título — el diálogo fijaba «Confirmar formato» en su
+    /// constructor. Reinicializar borra el disco físico ENTERO, así que anunciarlo con el nombre de la
+    /// operación menos grave hace que quien lee solo el título confirme algo distinto de lo que ocurre.
+    ///
+    /// <para>No se comparan contra un texto fijo a propósito: este proyecto conduce el <c>.exe</c> como
+    /// caja negra (sin referencia al ensamblado de la app), y anclar la cadena en español haría fallar la
+    /// prueba con la app en otro idioma. Lo que se exige es lo que define el fallo: que cada operación
+    /// tenga su propio título y ninguno esté vacío.</para>
+    /// </summary>
+    [TestDriveFact]
+    public void ConfirmDialogs_EachDestructiveOperationHasItsOwnTitle()
+    {
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        SelectTestDrive(letter);
+
+        string formatTitle;
+        MainWindowActions.Button(Window, "StartButton").Invoke();
+        try   { formatTitle = DialogHelper.ReadTitle(DialogHelper.WaitForDialog(fixture)); }
+        finally { DialogHelper.SafeCloseAnyDialog(fixture); }
+
+        string reinitTitle;
+        MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuReinit");
+        try   { reinitTitle = DialogHelper.ReadTitle(DialogHelper.WaitForDialog(fixture)); }
+        finally { DialogHelper.SafeCloseAnyDialog(fixture); }
+
+        output.WriteLine($"Título de formatear:      '{formatTitle}'");
+        output.WriteLine($"Título de reinicializar:  '{reinitTitle}'");
+
+        Assert.NotEmpty(formatTitle);
+        Assert.NotEmpty(reinitTitle);
+        Assert.False(formatTitle == reinitTitle,
+            $"Las dos operaciones destructivas se anuncian con el mismo título ('{formatTitle}'): " +
+            "reinicializar borra el disco entero y no puede presentarse con el nombre de formatear.");
+    }
+
+    /// <summary>
+    /// `T6-02`: el campo de confirmación llevaba como <c>PlaceholderText</c> la propia letra que hay que
+    /// teclear. Una letra gris dentro de una caja vacía es indistinguible de una escrita —el campo se leía
+    /// como ya relleno— y además ponía la respuesta dentro del hueco donde hay que transcribirla, que es
+    /// el único punto de fricción deliberada de la app.
+    ///
+    /// <para><b>Dónde se comprueba, y por qué ahí.</b> El primer intento buscaba un elemento del diálogo
+    /// cuyo texto visible fuera justo la letra, y pasaba **igual con el fallo puesto**: WinUI no publica el
+    /// placeholder como texto de ningún elemento. Lo que hace es usarlo como <b>nombre accesible</b> del
+    /// propio <c>TextBox</c> cuando no hay otro — o sea que el campo se llamaba «I» y un lector de pantalla
+    /// cantaba la respuesta. Por eso se comprueba el <c>Name</c>: es donde el fallo existía de verdad, y de
+    /// paso cubre la mitad de accesibilidad que el arreglo visual no tocaba.</para>
+    /// </summary>
+    [TestDriveFact]
+    public void ConfirmDialog_DoesNotEchoTheLetterInsideTheInputBox()
+    {
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        SelectTestDrive(letter);
+
+        MainWindowActions.Button(Window, "StartButton").Invoke();
+        var dialog = DialogHelper.WaitForDialog(fixture);
+        try
+        {
+            var inputBox = DialogHelper.WaitForChild(dialog, "InputBox").AsTextBox();
+
+            Assert.Equal("", inputBox.Text);
+            Assert.False(DialogHelper.PrimaryButton(dialog).IsEnabled);
+
+            string name = inputBox.Name;
+            output.WriteLine($"Nombre accesible del campo: '{name}'");
+
+            Assert.False(string.Equals(name.Trim(), letter.ToString(), StringComparison.OrdinalIgnoreCase),
+                $"El campo de confirmación se llama '{name}': es la letra que el usuario tiene que teclear. " +
+                "Visualmente hace que el campo parezca ya relleno, y un lector de pantalla anuncia la " +
+                "respuesta en voz alta — justo donde la app pone su única fricción deliberada.");
+
+            // Y que no se haya quedado sin nombre útil al quitar el placeholder: «…» tampoco sirve.
+            Assert.False(string.IsNullOrWhiteSpace(name.Trim('…', '.', ' ')),
+                $"El campo de confirmación no tiene nombre accesible propio (Name='{name}').");
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
+
     // ── Ciclo de vida destructivo completo (requiere opt-in explícito) ─────────────
 
     /// <summary>

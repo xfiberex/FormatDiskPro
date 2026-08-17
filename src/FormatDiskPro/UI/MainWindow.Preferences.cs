@@ -73,8 +73,7 @@ public sealed partial class MainWindow
     private void UpdateWipePassesEnabled()
     {
         bool on = SecureWipeCheck.IsEnabled && SecureWipeCheck.IsChecked == true;
-        WipePassesPicker.IsEnabled = on;
-        WipePassesPanel.Opacity = on ? 1.0 : 0.5;
+        SetSubOptionEnabled(on, [WipePassesLbl], WipePassesPicker);
     }
 
     private void SecureWipeCheck_Toggled(object sender, RoutedEventArgs e) => UpdateWipePassesEnabled();
@@ -166,6 +165,7 @@ public sealed partial class MainWindow
         MnuAbout.Text    = L.T("menu.about");
 
         UnitGroupLbl.Text       = L.T("section.drive");
+        CapacityLbl.Text        = L.T("info.capacity");
         FormatGroupLbl.Text     = L.T("section.format");
         FileSystemPicker.Header = L.T("fs.label");
         AllocUnitPicker.Header  = L.T("alloc.label");
@@ -197,8 +197,9 @@ public sealed partial class MainWindow
         AutomationProperties.SetName(RestPicker,   L.T("opt.rest"));
         AutomationProperties.SetName(RestFsPicker, L.T("opt.restFs"));
         AutomationProperties.SetName(RestLabelBox, L.T("opt.restLabel"));
-        AutomationProperties.SetName(CapacityBar, L.T("info.used"));
-        ToolTipService.SetToolTip(CapacityBar, L.T("info.used"));
+        // El nombre y el tooltip de la barra de ocupación llevan el porcentaje, así que se fijan en
+        // RenderCapacity y no aquí: este método termina llamando a UpdateInfo si hay unidad seleccionada,
+        // y la barra está oculta mientras no la haya.
         UpdateLabelHint();   // refresca el hint visible (si lo hay) al cambiar de idioma
 
         MnuLangEs.IsChecked = L.Current == AppLang.Es;

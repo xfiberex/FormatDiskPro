@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -124,9 +125,15 @@ public sealed partial class HistoryDialog : ContentDialog
 
     private HistoryRow ToRow(HistoryEntry e)
     {
-        string time  = e.Time == DateTime.MinValue ? "" : e.Time.ToString("yyyy-MM-dd HH:mm");
+        // El patrón ya es ISO fijo, pero '-' y ':' son marcadores de separador: sin cultura explícita los
+        // pone Windows y en algunas sale "2026.08.17 13.42" dentro de un patrón que pedía guiones (T6-12).
+        string time  = e.Time == DateTime.MinValue
+            ? ""
+            : e.Time.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
         string title = $"{CategoryText(e.Category)} · {ResultText(e.Result)}";
-        return new HistoryRow(time, title, e.Detail, GlyphFor(e.Result),
+        // Solo la fila que se ve lleva los tamaños en legible (T6-05). El CSV (HistoryEntry.ToCsv) y el
+        // propio history.log siguen exportando e.Detail con el byte exacto: son formatos con consumidores.
+        return new HistoryRow(time, title, HistoryEntry.Humanize(e.Detail), GlyphFor(e.Result),
                               new SolidColorBrush(ColorFor(e.Result, _dark)));
     }
 

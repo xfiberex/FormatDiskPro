@@ -7,6 +7,7 @@ namespace FormatDiskPro.Tests;
 /// <summary>
 /// Pruebas de la lógica de rendimiento: estimación de ETA y formateo de velocidad/tiempo restante.
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public sealed class ThroughputTests : IDisposable
 {
     private readonly CultureInfo _prevCulture = CultureInfo.CurrentCulture;
@@ -35,13 +36,37 @@ public sealed class ThroughputTests : IDisposable
     public void FormatSpeed_Zero_ReturnsEmpty()
         => Assert.Equal("", Throughput.FormatSpeed(0));
 
+    // FormatSpeed delega en FormatBytes, así que desde `T6-12` el separador decimal es el del idioma
+    // activo. Se fija aquí en lugar de heredar el que hubiera: si no, esto acabaría afirmando el
+    // separador inglés con la app arrancando en español, que es el fallo que `T6-12` vino a arreglar.
     [Theory]
     [InlineData(1048576d, "1 MB/s")]
     [InlineData(1073741824d, "1 GB/s")]
     [InlineData(1024d, "1 KB/s")]
     [InlineData(1572864d, "1.5 MB/s")]
     public void FormatSpeed_FormatsAcrossUnits(double bytesPerSec, string expected)
-        => Assert.Equal(expected, Throughput.FormatSpeed(bytesPerSec));
+    {
+        var prev = L.Current;
+        try
+        {
+            L.Set(AppLang.En);
+            Assert.Equal(expected, Throughput.FormatSpeed(bytesPerSec));
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>`T6-12`: en español la misma velocidad lleva coma.</summary>
+    [Fact]
+    public void FormatSpeed_FollowsTheAppLanguage()
+    {
+        var prev = L.Current;
+        try
+        {
+            L.Set(AppLang.Es);
+            Assert.Equal("1,5 MB/s", Throughput.FormatSpeed(1572864d));
+        }
+        finally { L.Set(prev); }
+    }
 
     // ── FormatEta ────────────────────────────────────────────────
 

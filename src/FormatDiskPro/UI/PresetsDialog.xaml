@@ -11,7 +11,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <StackPanel MaxWidth="380" Spacing="12">
+    <StackPanel Spacing="12" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
 
         <!-- Guardar / editar configuración -->
         <StackPanel Spacing="6">

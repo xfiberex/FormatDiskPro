@@ -398,7 +398,8 @@ public sealed partial class MainWindow : Window
             (secure ? $" + {L.T("confirm.secure")}" + (securePasses > 1 ? $" ×{securePasses}" : "") : "") +
             (smallFat32Ignored ? $"\n\n{L.T("confirm.smallFat32Ignored")}" : "");
 
-        var dlg = new ConfirmDialog(driveItem.Letter, summary) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        var dlg = new ConfirmDialog(driveItem.Letter, L.T("confirm.title"), summary)
+            { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
 
         await RunFormatAsync(driveItem.Letter, fs, allocBytes, label, quick, compress, secure, securePasses);
@@ -751,8 +752,9 @@ public sealed partial class MainWindow : Window
         SecureWipeCheck.IsEnabled   = canFormat;
         CompressCheck.IsEnabled     = canFormat && FileSystemPicker.SelectedItem?.ToString() == "NTFS";
         SmallFat32Check.IsEnabled   = canFormat;
-        RestFsPicker.IsEnabled      = canFormat;
-        RestLabelBox.IsEnabled      = canFormat;
+        // El detalle del sobrante se apaga como bloque, igual que los otros tres (T6-08): sus dos
+        // etiquetas no se atenúan solas por estar dentro de un panel deshabilitado.
+        SetSubOptionEnabled(canFormat, [RestFsLbl, RestLabelLbl], RestFsPicker, RestLabelBox);
         UpdateWipePassesEnabled();
         UpdateSmallFat32SizeEnabled();   // gobierna también RestPicker (ver UpdateSmallFat32SizeEnabled)
     }

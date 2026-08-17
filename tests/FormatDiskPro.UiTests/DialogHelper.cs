@@ -174,6 +174,39 @@ public static class DialogHelper
     private static string SafeControlType(AutomationElement element) { try { return element.ControlType.ToString(); } catch { return "?"; } }
 
     /// <summary>
+    /// Título visible de un <c>ContentDialog</c>. La plantilla de WinUI lo pinta en un
+    /// <c>ContentControl x:Name="Title"</c>, así que se localiza por ese AutomationId; si ese elemento no
+    /// expone texto (un <c>ContentControl</c> puede dejar el suyo en el TextBlock hijo), se cae al primer
+    /// descendiente de tipo Text con contenido, y por último al Name del propio diálogo — que para un
+    /// ContentDialog UIA suele resolver al título.
+    /// </summary>
+    /// <remarks>
+    /// Existe por `T6-01`: las dos operaciones irreversibles comparten <c>ConfirmDialog</c> y compartían
+    /// también el título, así que reinicializar se anunciaba como «Confirmar formato».
+    /// </remarks>
+    public static string ReadTitle(Window dialog)
+    {
+        var titleElement = dialog.FindFirstDescendant(cf => cf.ByAutomationId("Title"));
+        if (titleElement is not null)
+        {
+            string direct = ReadText(titleElement).Trim();
+            if (direct.Length > 0) return direct;
+
+            foreach (var child in titleElement.FindAllDescendants(cf => cf.ByControlType(ControlType.Text)))
+            {
+                string nested = ReadText(child).Trim();
+                if (nested.Length > 0) return nested;
+            }
+        }
+
+        string fromName = SafeName(dialog).Trim();
+        if (fromName.Length > 0) return fromName;
+
+        throw new InvalidOperationException(
+            "No se pudo leer el título del diálogo abierto. Árbol encontrado:\n" + DumpTree(dialog, 3));
+    }
+
+    /// <summary>
     /// Mejor esfuerzo: cierra cualquier ContentDialog que esté abierto en este momento, sin lanzar si
     /// ya no hay ninguno o si el cierre falla. Pensado para bloques <c>finally</c>: WinUI solo permite
     /// un ContentDialog abierto a la vez, y un segundo intento de abrir otro lanza dentro de un

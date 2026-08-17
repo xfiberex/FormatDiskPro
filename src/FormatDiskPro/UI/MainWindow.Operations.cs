@@ -1,4 +1,5 @@
 ﻿using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Text;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -205,12 +206,37 @@ public sealed partial class MainWindow
 
         bool? repairChoice = null;   // null = cancelar · false = solo comprobar · true = comprobar y reparar
 
-        var scanButton = new Button
+        // Opción con título y una línea de explicación debajo, como los "command link" de los cuadros de
+        // diálogo de Windows (T6-10). La diferencia entre comprobar y reparar no se deduce del nombre, y la
+        // equivocada deja la unidad ocupada un buen rato: reparar exige uso exclusivo del volumen.
+        static Button ModeButton(string title, string description, bool accent)
         {
-            Content             = L.T("check.scanOnly"),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Style               = (Style)Application.Current.Resources["AccentButtonStyle"],
-        };
+            var content = new StackPanel { Spacing = 2 };
+            content.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold });
+            // Sin Opacity ni color propio: hereda el del botón, que es el que Fluent ya eligió para
+            // contrastar con su fondo — en el botón de acento el fondo no es el de la tarjeta.
+            content.Children.Add(new TextBlock
+            {
+                Text = description, FontSize = 12, TextWrapping = TextWrapping.Wrap,
+            });
+
+            var button = new Button
+            {
+                Content                    = content,
+                HorizontalAlignment        = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding                    = new Thickness(12, 8, 12, 8),
+            };
+            if (accent) button.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
+
+            // El contenido pasa a ser un panel con dos textos: sin un nombre explícito, el que deduzca la
+            // automatización depende de cómo recorra ese panel. Se fija, y de paso el lector de pantalla
+            // lee también la explicación, que es lo que hace falta para elegir.
+            AutomationProperties.SetName(button, $"{title}. {description}");
+            return button;
+        }
+
+        var scanButton = ModeButton(L.T("check.scanOnly"), L.T("check.scanOnlyDesc"), accent: true);
         // AutomationId explícito: al crearse en código no hay x:Name del que WinUI lo derive, y los UI
         // tests localizan por AutomationId. Sin esto quedan fuera de su alcance — que es justo lo que
         // pasó al apilar estos botones en la v1.15.2: el test seguía buscando el 'PrimaryButton' que
@@ -220,16 +246,20 @@ public sealed partial class MainWindow
         // Enfocar el botón por defecto preserva "Enter = Solo comprobar" (antes lo daba DefaultButton).
         scanButton.Loaded += (_, _) => scanButton.Focus(FocusState.Programmatic);
 
-        var panel = new StackPanel { Spacing = 8 };
+        // Mismo ancho que el resto de diálogos (T6-07). Este se construye en código, así que no hereda el
+        // MinWidth/MaxWidth que los demás toman del XAML: sin esto se ajustaba solo a su texto y salía
+        // notablemente más estrecho que el de al lado.
+        var panel = new StackPanel
+        {
+            Spacing  = 8,
+            MinWidth = (double)Application.Current.Resources["DialogContentMinWidth"],
+            MaxWidth = (double)Application.Current.Resources["DialogContentMaxWidth"],
+        };
         panel.Children.Add(new TextBlock { Text = L.T("check.modeBody", item.Letter), TextWrapping = TextWrapping.Wrap });
         panel.Children.Add(scanButton);
         if (!protectedDrive)
         {
-            var repairButton = new Button
-            {
-                Content             = L.T("check.repair"),
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-            };
+            var repairButton = ModeButton(L.T("check.repair"), L.T("check.repairDesc"), accent: false);
             AutomationProperties.SetAutomationId(repairButton, "CheckRepairButton");
             repairButton.Click += (_, _) => { repairChoice = true; modeDlg.Hide(); };
             panel.Children.Add(repairButton);
@@ -402,7 +432,8 @@ public sealed partial class MainWindow
                       FormatLogic.FormatBytes(partitionSizeBytes!.Value), restFs, restSize)
                 : L.T("reinit.summaryFat32Small", item.Letter, FormatLogic.FormatBytes(partitionSizeBytes!.Value)))
             : L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
-        var confirm = new ConfirmDialog(item.Letter, summary) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        var confirm = new ConfirmDialog(item.Letter, L.T("confirm.titleReinit"), summary)
+            { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
 
         BeginOperation();

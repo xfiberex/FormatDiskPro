@@ -121,9 +121,46 @@
                             <TextBlock x:Name="InfoBusText"    Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Conexión: –" />
                         </Grid>
 
-                        <!-- Ocupación usado/libre de un vistazo (oculta si la unidad no está lista) -->
-                        <ProgressBar x:Name="CapacityBar" Maximum="100" Margin="0,2,0,0"
-                                     Visibility="Collapsed" />
+                        <!-- Ocupación usado/libre de un vistazo (oculta si la unidad no está lista).
+
+                             Ya no es un ProgressBar: su plantilla pinta la pista con una altura FIJA de
+                             1 px (ProgressBarTrackHeight) mientras el relleno ocupa el MinHeight, así que
+                             «usado» y «libre» no pueden tener el mismo grosor por muchos recursos que se
+                             sobrescriban. Aquí la pista es el propio Border (espacio libre) y el relleno es
+                             su hijo (espacio usado): dos colores medidos, un solo grosor, y sitio para más
+                             segmentos el día que la barra tenga que mostrar varias particiones.
+
+                             Los colores se asignan en UpdateInfo porque dependen del tema efectivo y de la
+                             ocupación; el ancho del relleno son las columnas estrella de CapacityColumns. -->
+                        <!-- Bloque de ocupación: etiqueta a la izquierda y dato a la derecha en la MISMA
+                             línea, con su separador, y la barra debajo.
+
+                             El dato va FUERA de la barra: dentro habría que resolver qué hay debajo del
+                             texto cuando la unidad se llena (el relleno pasa por detrás del rótulo), y eso
+                             obliga a medir anchos o a darle fondo propio. Fuera es texto de la tarjeta, con
+                             el contraste de cualquier otro. Y va emparejado con una etiqueta porque, suelto,
+                             era el único texto alineado a la derecha de toda la tarjeta.
+
+                             6 px: la barra es el único bloque de color saturado de la tarjeta, y a 10 px
+                             pesaba más que el título de sección. Es un dato, no un control. -->
+                        <StackPanel x:Name="CapacityPanel" Spacing="6" Margin="0,2,0,0"
+                                    Visibility="Collapsed">
+                            <Border Style="{StaticResource CardDividerStyle}" />
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <TextBlock x:Name="CapacityLbl" Grid.Column="0"
+                                           Style="{StaticResource InfoTextStyle}" Text="Ocupación" />
+                                <TextBlock x:Name="CapacityText" Grid.Column="1"
+                                           HorizontalAlignment="Right"
+                                           Style="{StaticResource InfoTextStyle}"
+                                           AutomationProperties.AccessibilityView="Raw" />
+                            </Grid>
+                            <Border x:Name="CapacityBar" Height="6" CornerRadius="2"
+                                    AutomationProperties.AccessibilityView="Content">
+                                <Grid x:Name="CapacityColumns" ColumnDefinitions="0*,100*">
+                                    <Border x:Name="CapacityUsedFill" Grid.Column="0" CornerRadius="2" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -144,7 +181,7 @@
                                   Header="Tamaño de unidad de asignación" Margin="0,2,0,0" />
 
                         <TextBox x:Name="VolumeLabelBox" MaxLength="32" HorizontalAlignment="Stretch"
-                                 Header="Etiqueta del volumen:" Margin="0,2,0,0"
+                                 Header="Etiqueta del volumen" Margin="0,2,0,0"
                                  TextChanged="VolumeLabelBox_TextChanged" />
                         <!-- Assertive: es un error que bloquea la acción que el usuario está intentando,
                              no información de fondo. El vínculo con VolumeLabelBox (DescribedBy) se hace en
@@ -169,11 +206,11 @@
                             <TextBlock x:Name="OptionsGroupLbl" Text="Opciones de formato" Style="{StaticResource SectionTitleStyle}" />
                         </StackPanel>
                         <CheckBox x:Name="QuickFormatCheck" Content="Formato rápido"                        IsChecked="True" />
-                        <CheckBox x:Name="CompressCheck"    Content="Habilitar compresión (sólo NTFS)"      IsEnabled="False" />
+                        <CheckBox x:Name="CompressCheck"    Content="Habilitar compresión (solo NTFS)"      IsEnabled="False" />
                         <CheckBox x:Name="SecureWipeCheck"  Content="Borrado seguro (sobrescribir espacio libre)"
                                   Checked="SecureWipeCheck_Toggled" Unchecked="SecureWipeCheck_Toggled" />
                         <StackPanel x:Name="WipePassesPanel" Orientation="Horizontal" Spacing="8"
-                                    Margin="30,0,0,0" VerticalAlignment="Center" Opacity="0.5">
+                                    Margin="30,0,0,0" VerticalAlignment="Center">
                             <TextBlock x:Name="WipePassesLbl" Text="Pasadas:" VerticalAlignment="Center"
                                        Style="{StaticResource HintTextStyle}" />
                             <ComboBox x:Name="WipePassesPicker" MinWidth="64" IsEnabled="False"
@@ -187,7 +224,7 @@
                                   Visibility="Collapsed"
                                   Checked="SmallFat32Check_Toggled" Unchecked="SmallFat32Check_Toggled" />
                         <StackPanel x:Name="SmallFat32SizePanel" Orientation="Horizontal" Spacing="8"
-                                    Margin="30,0,0,0" VerticalAlignment="Center" Opacity="0.5" Visibility="Collapsed">
+                                    Margin="30,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
                             <TextBlock x:Name="SmallFat32SizeLbl" Text="Tamaño:" VerticalAlignment="Center"
                                        Style="{StaticResource HintTextStyle}" />
                             <!-- Sin items fijos: se pueblan por código con los tamaños que caben de verdad
@@ -198,7 +235,7 @@
                         <!-- T5-02: el sobrante deja de morir sin asignar. Misma operación y misma
                              confirmación destructiva; lo único que cambia es cuántas particiones se crean. -->
                         <StackPanel x:Name="RestPanel" Orientation="Horizontal" Spacing="8"
-                                    Margin="30,0,0,0" VerticalAlignment="Center" Opacity="0.5" Visibility="Collapsed">
+                                    Margin="30,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
                             <TextBlock x:Name="RestLbl" Text="El resto del disco:" VerticalAlignment="Center"
                                        Style="{StaticResource HintTextStyle}" />
                             <ComboBox x:Name="RestPicker" MinWidth="190" IsEnabled="False"

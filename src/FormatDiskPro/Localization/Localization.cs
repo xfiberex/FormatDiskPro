@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace FormatDiskPro;
 
 public enum AppLang { Es, En, Pt, Fr, It }
@@ -10,11 +12,36 @@ public static class L
 {
     public static AppLang Current { get; private set; } = AppLang.Es;
 
+    /// <summary>
+    /// Cultura con la que se formatean los números <b>que se muestran</b> (separadores de millares y
+    /// decimal). Sigue al idioma elegido en la app, no al de Windows: son cosas distintas porque la app
+    /// deja cambiar el idioma sin tocar el sistema, y hasta `T6-12` salían mezclados —«32,161 h (≈ 3.7
+    /// años)», separadores ingleses con palabras españolas—.
+    ///
+    /// <para><b>Esto NO es <see cref="CultureInfo.CurrentCulture"/>, y a propósito.</b> Asignar la cultura
+    /// del hilo cambiaría también comparaciones y mayúsculas, que es exactamente por donde volvería
+    /// `T1-01` (la guarda de disco de sistema fallando bajo cultura turca). Aquí solo se formatea, y
+    /// solo para pantalla: lo que se <b>guarda</b> —<c>history.log</c>, el CSV, los comandos de
+    /// PowerShell— sigue pasando <see cref="CultureInfo.InvariantCulture"/> de forma explícita.</para>
+    /// </summary>
+    public static CultureInfo Culture { get; private set; } = CultureFor(AppLang.Es);
+
     public static void Set(AppLang lang)
     {
         if (Current == lang) return;
         Current = lang;
+        Culture = CultureFor(lang);
     }
+
+    /// <summary>Cultura de referencia de cada idioma soportado. Pura; no toca el hilo.</summary>
+    private static CultureInfo CultureFor(AppLang lang) => CultureInfo.GetCultureInfo(lang switch
+    {
+        AppLang.En => "en-US",
+        AppLang.Pt => "pt-BR",
+        AppLang.Fr => "fr-FR",
+        AppLang.It => "it-IT",
+        _          => "es-ES",
+    });
 
     /// <summary>
     /// Idioma a partir del nombre de una cultura .NET (p. ej. <c>"es-ES"</c>, <c>"pt-BR"</c>, <c>"fr"</c>):
@@ -93,10 +120,12 @@ public static class L
         ["fs.desc.fat32"]    = ["Alta compatibilidad con dispositivos y consolas. Límite máximo de 4 GB por archivo.", "High compatibility with devices and consoles. Maximum 4 GB per file.", "Alta compatibilidade com dispositivos e consoles. Limite máximo de 4 GB por arquivo.", "Grande compatibilité avec les appareils et les consoles. Limite de 4 Go par fichier.", "Elevata compatibilità con dispositivi e console. Limite massimo di 4 GB per file."],
         ["fs.desc.fat"]      = ["Sistema heredado para unidades muy pequeñas (< 2 GB). Compatibilidad máxima con hardware antiguo.", "Legacy system for very small drives (< 2 GB). Maximum compatibility with old hardware.", "Sistema legado para unidades muito pequenas (< 2 GB). Compatibilidade máxima com hardware antigo.", "Système hérité pour les très petits lecteurs (< 2 Go). Compatibilité maximale avec le matériel ancien.", "Sistema legacy per unità molto piccole (< 2 GB). Massima compatibilità con hardware datato."],
         ["alloc.label"]      = ["Tamaño de unidad de asignación", "Allocation unit size", "Tamanho da unidade de alocação", "Taille d'unité d'allocation", "Dimensione unità di allocazione"],
-        ["label.label"]      = ["Etiqueta del volumen:", "Volume label:", "Rótulo do volume:", "Nom de volume :", "Etichetta del volume:"],
+        // Sin dos puntos (T6-06): es un `Header` de campo, como `fs.label` y `alloc.label` justo encima.
+        // Era el único de los tres que puntuaba, y se notaba al verlos en fila.
+        ["label.label"]      = ["Etiqueta del volumen", "Volume label", "Rótulo do volume", "Nom de volume", "Etichetta del volume"],
         ["options.group"]    = ["Opciones de formato", "Format options", "Opções de formatação", "Options de formatage", "Opzioni di formattazione"],
         ["opt.quick"]        = ["Formato rápido", "Quick format", "Formatação rápida", "Formatage rapide", "Formattazione rapida"],
-        ["opt.compress"]     = ["Habilitar compresión (sólo NTFS)", "Enable compression (NTFS only)", "Ativar compactação (apenas NTFS)", "Activer la compression (NTFS uniquement)", "Abilita compressione (solo NTFS)"],
+        ["opt.compress"]     = ["Habilitar compresión (solo NTFS)", "Enable compression (NTFS only)", "Ativar compactação (apenas NTFS)", "Activer la compression (NTFS uniquement)", "Abilita compressione (solo NTFS)"],
         ["opt.secure"]       = ["Borrado seguro (sobrescribir espacio libre)", "Secure erase (overwrite free space)", "Apagamento seguro (sobrescrever espaço livre)", "Effacement sécurisé (écraser l'espace libre)", "Cancellazione sicura (sovrascrivi spazio libero)"],
         ["opt.passes"]       = ["Pasadas:", "Passes:", "Passagens:", "Passes :", "Passaggi:"],
         ["opt.smallFat32"]     = ["Crear solo una partición FAT32 pequeña y dejar el resto sin asignar", "Create only a small FAT32 partition and leave the rest unallocated", "Criar apenas uma partição FAT32 pequena e deixar o resto não alocado", "Créer uniquement une petite partition FAT32 et laisser le reste non alloué", "Crea solo una piccola partizione FAT32 e lascia il resto non allocato"],
@@ -129,7 +158,10 @@ public static class L
         ["info.type"]        = ["Tipo: {0}", "Type: {0}", "Tipo: {0}", "Type : {0}", "Tipo: {0}"],
         ["info.health"]      = ["Salud: {0}", "Health: {0}", "Saúde: {0}", "Santé : {0}", "Stato: {0}"],
         ["info.bus"]         = ["Conexión: {0}", "Bus: {0}", "Conexão: {0}", "Connexion : {0}", "Connessione: {0}"],
-        ["info.used"]        = ["Espacio utilizado", "Used space", "Espaço utilizado", "Espace utilisé", "Spazio utilizzato"],
+        ["info.used"]        = ["Espacio utilizado: {0} %", "Used space: {0}%", "Espaço utilizado: {0} %", "Espace utilisé : {0} %", "Spazio utilizzato: {0} %"],
+        // Bloque de la barra de ocupación: etiqueta a la izquierda, cuánto se usa de cuánto a la derecha.
+        ["info.capacity"]    = ["Ocupación", "Usage", "Ocupação", "Utilisation", "Utilizzo"],
+        ["info.usedOf"]      = ["Usado {0} / {1}", "Used {0} / {1}", "Usado {0} / {1}", "Utilisé {0} / {1}", "Usato {0} / {1}"],
         ["info.dash"]        = ["–", "–", "–", "–", "–"],
         ["info.loading"]     = ["consultando…", "querying…", "consultando…", "interrogation…", "interrogazione…"],
 
@@ -225,6 +257,12 @@ public static class L
         ["health.writeErr"] = ["Errores de escritura", "Write errors", "Erros de escrita", "Erreurs d'écriture", "Errori di scrittura"],
         ["health.unit.temp"]    = ["{0} °C", "{0} °C", "{0} °C", "{0} °C", "{0} °C"],
         ["health.unit.hours"]   = ["{0} h", "{0} h", "{0} h", "{0} h", "{0} h"],
+        // Horas de encendido con su equivalencia legible (T6-04). Siempre con un decimal: «1,0 años»
+        // concuerda en los cinco idiomas y «1 años» no, así que no hay que pluralizar nada.
+        ["health.unit.hoursWith"] = ["{0} h ({1})", "{0} h ({1})", "{0} h ({1})", "{0} h ({1})", "{0} h ({1})"],
+        ["health.span.days"]    = ["≈ {0} días", "≈ {0} days", "≈ {0} dias", "≈ {0} jours", "≈ {0} giorni"],
+        ["health.span.months"]  = ["≈ {0} meses", "≈ {0} months", "≈ {0} meses", "≈ {0} mois", "≈ {0} mesi"],
+        ["health.span.years"]   = ["≈ {0} años", "≈ {0} years", "≈ {0} anos", "≈ {0} ans", "≈ {0} anni"],
         ["health.unit.percent"] = ["{0} %", "{0} %", "{0} %", "{0} %", "{0} %"],
         ["health.unit.rpm"]     = ["{0} RPM", "{0} RPM", "{0} RPM", "{0} RPM", "{0} RPM"],
 
@@ -239,6 +277,10 @@ public static class L
         ["check.modeBody"]       = ["¿Cómo quieres comprobar la unidad {0}:?", "How do you want to check drive {0}:?", "Como deseja verificar a unidade {0}:?", "Comment vérifier le lecteur {0}: ?", "Come vuoi controllare l'unità {0}:?"],
         ["check.scanOnly"]       = ["Solo comprobar", "Check only", "Apenas verificar", "Vérifier seulement", "Solo controlla"],
         ["check.repair"]         = ["Comprobar y reparar", "Check and repair", "Verificar e reparar", "Vérifier et réparer", "Controlla e ripara"],
+        // Qué distingue a una de otra (T6-10). Sin esto se elegía a ciegas, y la opción equivocada deja la
+        // unidad ocupada un buen rato.
+        ["check.scanOnlyDesc"]   = ["Solo informa: no cambia nada y puedes seguir usando la unidad.", "Reports problems only: nothing is changed and the drive stays usable.", "Apenas informa: não altera nada e a unidade continua utilizável.", "Signale uniquement : rien n'est modifié et le lecteur reste utilisable.", "Solo segnala: non modifica nulla e l'unità resta utilizzabile."],
+        ["check.repairDesc"]     = ["Corrige lo que encuentre. Necesita uso exclusivo de la unidad y puede tardar mucho más.", "Fixes what it finds. Needs exclusive use of the drive and can take much longer.", "Corrige o que encontrar. Precisa de uso exclusivo da unidade e pode demorar muito mais.", "Corrige ce qu'il trouve. Nécessite un accès exclusif au lecteur et peut être bien plus long.", "Corregge ciò che trova. Richiede l'uso esclusivo dell'unità e può richiedere molto più tempo."],
         ["check.scanning"]       = ["Comprobando {0}:…", "Checking {0}:…", "Verificando {0}:…", "Vérification de {0}:…", "Controllo di {0}:…"],
         ["check.repairing"]      = ["Comprobando y reparando {0}:…", "Checking and repairing {0}:…", "Verificando e reparando {0}:…", "Vérification et réparation de {0}:…", "Controllo e riparazione di {0}:…"],
         ["check.resultClean"]    = ["La unidad {0}: no tiene errores.", "Drive {0}: has no errors.", "A unidade {0}: não tem erros.", "Le lecteur {0}: ne contient aucune erreur.", "L'unità {0}: non presenta errori."],
@@ -250,7 +292,7 @@ public static class L
         ["reinit.onlyRemovable"] = ["Solo se pueden reinicializar unidades extraíbles (USB).", "Only removable drives (USB) can be reinitialized.", "Apenas unidades removíveis (USB) podem ser reinicializadas.", "Seuls les lecteurs amovibles (USB) peuvent être réinitialisés.", "Solo le unità rimovibili (USB) possono essere reinizializzate."],
         ["reinit.blockedSystem"] = ["No se puede reinicializar el disco del sistema.", "The system disk cannot be reinitialized.", "O disco do sistema não pode ser reinicializado.", "Le disque système ne peut pas être réinitialisé.", "Il disco di sistema non può essere reinizializzato."],
         ["reinit.sameDisk"]      = ["La unidad comparte disco físico con Windows: no se puede reinicializar.", "The drive shares its physical disk with Windows: it cannot be reinitialized.", "A unidade compartilha o disco físico com o Windows: não pode ser reinicializada.", "Le lecteur partage son disque physique avec Windows : il ne peut pas être réinitialisé.", "L'unità condivide il disco fisico con Windows: non può essere reinizializzata."],
-        ["reinit.summary"]       = ["Se borrará TODO el disco físico de la unidad {0}: (todas sus particiones)\ny se recreará una única partición {1} formateada en {2}.\n\nEsta acción NO se puede deshacer.", "The ENTIRE physical disk of drive {0}: will be erased (all its partitions)\nand a single {1} partition formatted as {2} will be recreated.\n\nThis action CANNOT be undone.", "TODO o disco físico da unidade {0}: será apagado (todas as suas partições)\ne será recriada uma única partição {1} formatada em {2}.\n\nEsta ação NÃO pode ser desfeita.", "TOUT le disque physique du lecteur {0}: sera effacé (toutes ses partitions)\net une seule partition {1} formatée en {2} sera recréée.\n\nCette action est IRRÉVERSIBLE.", "L'INTERO disco fisico dell'unità {0}: verrà cancellato (tutte le sue partizioni)\ne verrà ricreata un'unica partizione {1} formattata in {2}.\n\nQuesta azione NON può essere annullata."],
+        ["reinit.summary"]       = ["Se borrará TODO el disco físico de la unidad {0}: (todas sus particiones) y se recreará una única partición {1} formateada en {2}.\n\nEsta acción NO se puede deshacer.", "The ENTIRE physical disk of drive {0}: will be erased (all its partitions) and a single {1} partition formatted as {2} will be recreated.\n\nThis action CANNOT be undone.", "TODO o disco físico da unidade {0}: será apagado (todas as suas partições) e será recriada uma única partição {1} formatada em {2}.\n\nEsta ação NÃO pode ser desfeita.", "TOUT le disque physique du lecteur {0}: sera effacé (toutes ses partitions) et une seule partition {1} formatée en {2} sera recréée.\n\nCette action est IRRÉVERSIBLE.", "L'INTERO disco fisico dell'unità {0}: verrà cancellato (tutte le sue partizioni) e verrà ricreata un'unica partizione {1} formattata in {2}.\n\nQuesta azione NON può essere annullata."],
         ["reinit.stage.clean"]     = ["Reinicializando {0}: — limpiando disco…", "Reinitializing {0}: — cleaning disk…", "Reinicializando {0}: — limpando disco…", "Réinitialisation de {0}: — nettoyage du disque…", "Reinizializzazione di {0}: — pulizia disco…"],
         ["reinit.stage.init"]      = ["Reinicializando {0}: — inicializando disco…", "Reinitializing {0}: — initializing disk…", "Reinicializando {0}: — inicializando disco…", "Réinitialisation de {0}: — initialisation du disque…", "Reinizializzazione di {0}: — inizializzazione disco…"],
         ["reinit.stage.partition"] = ["Reinicializando {0}: — creando partición…", "Reinitializing {0}: — creating partition…", "Reinicializando {0}: — criando partição…", "Réinitialisation de {0}: — création de la partition…", "Reinizializzazione di {0}: — creazione partizione…"],
@@ -258,7 +300,7 @@ public static class L
         ["reinit.doneTitle"]     = ["Unidad reinicializada", "Drive reinitialized", "Unidade reinicializada", "Lecteur réinitialisé", "Unità reinizializzata"],
         ["reinit.doneBody"]      = ["La unidad se reinicializó correctamente y ahora está disponible como {0}:.", "The drive was reinitialized successfully and is now available as {0}:.", "A unidade foi reinicializada com sucesso e agora está disponível como {0}:.", "Le lecteur a été réinitialisé avec succès et est maintenant disponible en tant que {0}:.", "L'unità è stata reinizializzata correttamente ed è ora disponibile come {0}:."],
         ["reinit.failed"]        = ["No se pudo reinicializar la unidad.", "Could not reinitialize the drive.", "Não foi possível reinicializar a unidade.", "Impossible de réinitialiser le lecteur.", "Impossibile reinizializzare l'unità."],
-        ["reinit.summaryFat32Small"] = ["Se borrará TODO el disco físico de la unidad {0}: (todas sus particiones)\ny se creará una única partición FAT32 de {1}; el resto del disco quedará SIN ASIGNAR.\n\nEsta acción NO se puede deshacer.", "The ENTIRE physical disk of drive {0}: will be erased (all its partitions)\nand a single {1} FAT32 partition will be created; the rest of the disk will be left UNALLOCATED.\n\nThis action CANNOT be undone.", "TODO o disco físico da unidade {0}: será apagado (todas as suas partições)\ne será criada uma única partição FAT32 de {1}; o restante do disco ficará NÃO ALOCADO.\n\nEsta ação NÃO pode ser desfeita.", "TOUT le disque physique du lecteur {0}: sera effacé (toutes ses partitions)\net une seule partition FAT32 de {1} sera créée ; le reste du disque restera NON ALLOUÉ.\n\nCette action est IRRÉVERSIBLE.", "L'INTERO disco fisico dell'unità {0}: verrà cancellato (tutte le sue partizioni)\ne verrà creata un'unica partizione FAT32 da {1}; il resto del disco rimarrà NON ALLOCATO.\n\nQuesta azione NON può essere annullata."],
+        ["reinit.summaryFat32Small"] = ["Se borrará TODO el disco físico de la unidad {0}: (todas sus particiones) y se creará una única partición FAT32 de {1}; el resto del disco quedará SIN ASIGNAR.\n\nEsta acción NO se puede deshacer.", "The ENTIRE physical disk of drive {0}: will be erased (all its partitions) and a single {1} FAT32 partition will be created; the rest of the disk will be left UNALLOCATED.\n\nThis action CANNOT be undone.", "TODO o disco físico da unidade {0}: será apagado (todas as suas partições) e será criada uma única partição FAT32 de {1}; o restante do disco ficará NÃO ALOCADO.\n\nEsta ação NÃO pode ser desfeita.", "TOUT le disque physique du lecteur {0}: sera effacé (toutes ses partitions) et une seule partition FAT32 de {1} sera créée ; le reste du disque restera NON ALLOUÉ.\n\nCette action est IRRÉVERSIBLE.", "L'INTERO disco fisico dell'unità {0}: verrà cancellato (tutte le sue partizioni) e verrà creata un'unica partizione FAT32 da {1}; il resto del disco rimarrà NON ALLOCATO.\n\nQuesta azione NON può essere annullata."],
         ["reinit.doneBodyFat32Small"] = ["La unidad se reinicializó correctamente: ahora tiene una partición FAT32 de {1} disponible como {0}:. El resto del disco quedó sin asignar (puedes usarlo más adelante desde Administración de discos de Windows).", "The drive was reinitialized successfully: it now has a {1} FAT32 partition available as {0}:. The rest of the disk was left unallocated (you can use it later from Windows Disk Management).", "A unidade foi reinicializada com sucesso: agora tem uma partição FAT32 de {1} disponível como {0}:. O restante do disco ficou não alocado (você pode usá-lo depois pelo Gerenciamento de Disco do Windows).", "Le lecteur a été réinitialisé avec succès : il dispose maintenant d'une partition FAT32 de {1} disponible en tant que {0}:. Le reste du disque est resté non alloué (vous pouvez l'utiliser plus tard depuis la Gestion des disques de Windows).", "L'unità è stata reinizializzata correttamente: ora ha una partizione FAT32 da {1} disponibile come {0}:. Il resto del disco è rimasto non allocato (puoi usarlo in seguito da Gestione disco di Windows)."],
 
         ["bench.confirmTitle"]   = ["Benchmark rápido", "Quick benchmark", "Benchmark rápido", "Benchmark rapide", "Benchmark rapido"],
@@ -290,8 +332,15 @@ public static class L
         ["msg.goneTitle"]    = ["Unidad no disponible", "Drive unavailable", "Unidade indisponível", "Lecteur indisponible", "Unità non disponibile"],
         ["msg.goneBody"]     = ["La unidad {0}: ya no está disponible. Actualice la lista.", "Drive {0}: is no longer available. Refresh the list.", "A unidade {0}: não está mais disponível. Atualize a lista.", "Le lecteur {0}: n'est plus disponible. Actualisez la liste.", "L'unità {0}: non è più disponibile. Aggiorna l'elenco."],
 
-        ["confirm.title"]    = ["Confirmar formato", "Confirm format", "Confirmar formatação", "Confirmer le formatage", "Conferma formattazione"],
+        // Dos títulos, no uno: ConfirmDialog lo comparten formatear y reinicializar, y hasta la revisión
+        // de UX/UI del 2026-08-17 las dos se anunciaban como «Confirmar formato» (T6-01). Reinicializar
+        // borra el disco físico ENTERO: no puede presentarse con el nombre de la operación menos grave.
+        ["confirm.title"]      = ["Confirmar formato", "Confirm format", "Confirmar formatação", "Confirmer le formatage", "Conferma formattazione"],
+        ["confirm.titleReinit"] = ["Confirmar reinicialización", "Confirm reinitialization", "Confirmar reinicialização", "Confirmer la réinitialisation", "Conferma reinizializzazione"],
         ["confirm.warning"]  = ["ADVERTENCIA: Se destruirán TODOS los datos en:", "WARNING: ALL data will be destroyed on:", "AVISO: TODOS os dados serão destruídos em:", "AVERTISSEMENT : TOUTES les données seront détruites sur :", "AVVISO: TUTTI i dati verranno distrutti su:"],
+        // Nombre accesible del campo donde se teclea la letra. Explícito a propósito (T6-02): sin él, WinUI
+        // usa el PlaceholderText como nombre, y el placeholder era la propia letra a adivinar.
+        ["confirm.inputName"] = ["Letra de la unidad", "Drive letter", "Letra da unidade", "Lettre du lecteur", "Lettera dell'unità"],
         ["confirm.drive"]    = ["Unidad", "Drive", "Unidade", "Lecteur", "Unità"],
         ["confirm.fs"]       = ["Sistema", "File system", "Sistema", "Système", "Sistema"],
         ["confirm.cluster"]  = ["Cluster", "Cluster", "Cluster", "Cluster", "Cluster"],
@@ -303,7 +352,7 @@ public static class L
         // único útil que se puede decir es qué quedó en él — y dejar claro que la app no ha tocado nada más.
         ["reinit.failedPartial"] = ["No se pudo completar la reinicialización.\n\nEl disco YA estaba borrado cuando falló, así que no ha quedado como estaba. Se crearon {0} de {1} particiones y quedaron utilizables: {2}.\n\nNo se ha borrado nada más: revisa la unidad y vuelve a reinicializarla cuando quieras.", "The reinitialization could not be completed.\n\nThe disk had ALREADY been erased when it failed, so it is not as it was. {0} of {1} partitions were created and these are usable: {2}.\n\nNothing else was erased: check the drive and reinitialize it again whenever you want.", "Não foi possível concluir a reinicialização.\n\nO disco JÁ estava apagado quando falhou, então não ficou como estava. Foram criadas {0} de {1} partições e ficaram utilizáveis: {2}.\n\nNada mais foi apagado: verifique a unidade e reinicialize-a quando quiser.", "La réinitialisation n'a pas pu être terminée.\n\nLe disque était DÉJÀ effacé au moment de l'échec, il n'est donc pas dans son état d'origine. {0} partitions sur {1} ont été créées et celles-ci sont utilisables : {2}.\n\nRien d'autre n'a été effacé : vérifiez le lecteur et réinitialisez-le quand vous le souhaitez.", "Non è stato possibile completare la reinizializzazione.\n\nIl disco era GIÀ stato cancellato quando è fallita, quindi non è come prima. Sono state create {0} partizioni su {1} e queste sono utilizzabili: {2}.\n\nNon è stato cancellato nient'altro: controlla l'unità e reinizializzala quando vuoi."],
         ["reinit.noneUsable"]    = ["ninguna", "none", "nenhuma", "aucune", "nessuna"],
-        ["reinit.summaryTwoPartitions"] = ["Se borrará TODO el disco físico de la unidad {0}: (todas sus particiones)\ny se crearán DOS particiones:\n  1) FAT32 de {1}\n  2) {2} con el resto del disco ({3})\n\nEsta acción NO se puede deshacer.", "The ENTIRE physical disk of drive {0}: will be erased (all its partitions)\nand TWO partitions will be created:\n  1) {1} FAT32\n  2) {2} with the rest of the disk ({3})\n\nThis action CANNOT be undone.", "TODO o disco físico da unidade {0}: será apagado (todas as suas partições)\ne serão criadas DUAS partições:\n  1) FAT32 de {1}\n  2) {2} com o restante do disco ({3})\n\nEsta ação NÃO pode ser desfeita.", "TOUT le disque physique du lecteur {0}: sera effacé (toutes ses partitions)\net DEUX partitions seront créées :\n  1) FAT32 de {1}\n  2) {2} avec le reste du disque ({3})\n\nCette action est IRRÉVERSIBLE.", "L'INTERO disco fisico dell'unità {0}: verrà cancellato (tutte le sue partizioni)\ne verranno create DUE partizioni:\n  1) FAT32 da {1}\n  2) {2} con il resto del disco ({3})\n\nQuesta azione NON può essere annullata."],
+        ["reinit.summaryTwoPartitions"] = ["Se borrará TODO el disco físico de la unidad {0}: (todas sus particiones) y se crearán DOS particiones:\n  1) FAT32 de {1}\n  2) {2} con el resto del disco ({3})\n\nEsta acción NO se puede deshacer.", "The ENTIRE physical disk of drive {0}: will be erased (all its partitions) and TWO partitions will be created:\n  1) {1} FAT32\n  2) {2} with the rest of the disk ({3})\n\nThis action CANNOT be undone.", "TODO o disco físico da unidade {0}: será apagado (todas as suas partições) e serão criadas DUAS partições:\n  1) FAT32 de {1}\n  2) {2} com o restante do disco ({3})\n\nEsta ação NÃO pode ser desfeita.", "TOUT le disque physique du lecteur {0}: sera effacé (toutes ses partitions) et DEUX partitions seront créées :\n  1) FAT32 de {1}\n  2) {2} avec le reste du disque ({3})\n\nCette action est IRRÉVERSIBLE.", "L'INTERO disco fisico dell'unità {0}: verrà cancellato (tutte le sue partizioni) e verranno create DUE partizioni:\n  1) FAT32 da {1}\n  2) {2} con il resto del disco ({3})\n\nQuesta azione NON può essere annullata."],
         ["reinit.doneBodyTwoPartitions"] = ["La unidad se reinicializó correctamente: ahora tiene una partición FAT32 de {1} en {0}: y una segunda partición de {3} en {2}:, sin dejar espacio sin asignar.", "The drive was reinitialized successfully: it now has a {1} FAT32 partition on {0}: and a second {3} partition on {2}:, with no unallocated space left.", "A unidade foi reinicializada com sucesso: agora tem uma partição FAT32 de {1} em {0}: e uma segunda partição de {3} em {2}:, sem deixar espaço não alocado.", "Le lecteur a été réinitialisé avec succès : il dispose maintenant d'une partition FAT32 de {1} sur {0}: et d'une seconde partition de {3} sur {2}:, sans espace non alloué.", "L'unità è stata reinizializzata correttamente: ora ha una partizione FAT32 da {1} su {0}: e una seconda partizione da {3} su {2}:, senza spazio non allocato."],
         ["reinit.invalidPlan"]   = ["La distribución de particiones pedida no es válida para este disco. No se ha modificado nada.", "The requested partition layout isn't valid for this disk. Nothing was changed.", "O layout de partições solicitado não é válido para este disco. Nada foi alterado.", "La disposition de partitions demandée n'est pas valide pour ce disque. Rien n'a été modifié.", "Il layout di partizioni richiesto non è valido per questo disco. Non è stato modificato nulla."],
         ["reinit.sizeTooBig"]    = ["La partición de {0} no cabe en este disco ({1}). Elige un tamaño menor.", "A {0} partition doesn't fit on this disk ({1}). Choose a smaller size.", "Uma partição de {0} não cabe neste disco ({1}). Escolha um tamanho menor.", "Une partition de {0} ne tient pas sur ce disque ({1}). Choisissez une taille inférieure.", "Una partizione da {0} non entra in questo disco ({1}). Scegli una dimensione minore."],

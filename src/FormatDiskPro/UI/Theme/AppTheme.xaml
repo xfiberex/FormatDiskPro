@@ -27,6 +27,38 @@
     <!-- Radio de esquina de las tarjetas de sección -->
     <CornerRadius x:Key="AppCardCornerRadius">8</CornerRadius>
 
+    <!--
+        Ancho del CONTENIDO de los diálogos (T6-07). Un ContentDialog se ajusta a lo que lleva dentro,
+        así que sin un ancho común cada uno salía distinto: había 360, 380, 400, 300–420 y uno sin nada
+        (el de chkdsk, que quedaba visiblemente más estrecho). Abrir dos seguidos hacía "saltar" la
+        ventana. Estos dos valores los fijan todos; si un diálogo nuevo necesita otro ancho, la pregunta
+        es por qué, no cuál.
+
+        ── Dónde van los botones de un diálogo (la regla que ya seguía la app sin estar escrita) ──
+
+          · Un botón que CIERRA el diálogo va en los botones NATIVOS del ContentDialog
+            (Primary/Secondary/Close): Fluent los coloca igual en toda la app y es lo que el usuario
+            espera encontrar abajo a la derecha.
+          · Un botón que NO cierra —"Abrir archivo", "Exportar CSV", "Vaciar historial"— va DENTRO del
+            contenido. Si estuviera abajo, el usuario esperaría que cerrase. (Excepción legítima:
+            "Actualizar" de HealthDialog es nativo y cancela su propio cierre con
+            `args.Cancel = true`, porque re-consulta lo que el propio diálogo está mostrando.)
+          · Si las etiquetas pueden no caber en una fila, se APILAN dentro del contenido. No es cuestión
+            de gusto: con tres botones nativos en fila, WinUI truncaba "Comprobar y reparar" SIN puntos
+            suspensivos ("Comprobar y repar"), y en PT/IT es peor. Apilados no truncan en ningún idioma.
+            Por eso el diálogo de chkdsk NO se parece a los demás, y debe seguir sin parecerse.
+    -->
+    <x:Double x:Key="DialogContentMinWidth">360</x:Double>
+    <x:Double x:Key="DialogContentMaxWidth">420</x:Double>
+
+    <!--
+        La única excepción declarada al ancho común (T6-14): Licencia y Avisos de terceros llevan texto
+        legal preformateado a ~80 columnas que NO se puede reajustar. Se les da todo el ancho que admite
+        la ventana (500 DIP menos el relleno del ContentDialog) y el resto lo cubre el desplazamiento
+        horizontal. El porqué completo está en LegalTextDialog.xaml, que es donde se usa.
+    -->
+    <x:Double x:Key="LegalDialogContentWidth">430</x:Double>
+
     <!-- Contenedor de sección: superficie sutil + borde de 1px (look "card" de Win11Debloat) -->
     <Style x:Key="AppCardStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />

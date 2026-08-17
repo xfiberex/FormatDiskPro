@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace FormatDiskPro;
 
@@ -18,7 +19,7 @@ public enum HistoryResult { Ok, Fail, Error, Cancelled, Info }
 /// <param name="Result">Resultado de la operación.</param>
 /// <param name="Detail">Mensaje (sin la marca de tiempo).</param>
 /// <param name="Raw">Línea original completa.</param>
-public sealed record HistoryEntry(
+public sealed partial record HistoryEntry(
     DateTime Time, HistoryCategory Category, HistoryResult Result, string Detail, string Raw)
 {
     private const string TimeFormat = "yyyy-MM-dd HH:mm:ss";
@@ -52,6 +53,52 @@ public sealed record HistoryEntry(
                      .Replace("\r", LineBreakMarker)
                      .Trim();
     }
+
+    /// <summary>
+    /// Claves del log cuyo valor son BYTES en crudo. Es una <b>lista blanca</b>, no un heurístico: en la
+    /// misma línea conviven <c>code=1</c>, <c>passes=3</c> o <c>quick=True</c>, y convertir esos a «1 B»
+    /// sería peor que no hacer nada. Si mañana se registra un tamaño nuevo, hay que añadirlo aquí — que es
+    /// justo la decisión que conviene tomar a conciencia.
+    /// </summary>
+    private static readonly HashSet<string> ByteValueKeys =
+        new(StringComparer.OrdinalIgnoreCase) { "written", "ok-until", "small-fat32", "bytes", "alloc" };
+
+    /// <summary>
+    /// Devuelve el detalle con los tamaños en bytes convertidos a algo legible:
+    /// <c>small-fat32=2147483648</c> → <c>small-fat32=2 GB</c>. Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// <para>Nace de `T6-05`: el historial mostraba la línea de log tal cual. Quien abre *Historial de
+    /// operaciones* no está depurando —está comprobando qué le hizo a un disco— y <c>2147483648</c> no
+    /// responde a eso.</para>
+    ///
+    /// <para><b>Transforma lo que se MUESTRA, nunca lo que se guarda.</b> <c>history.log</c> y el CSV
+    /// siguen llevando el número exacto: son formatos con consumidores, y el byte exacto es justo el dato
+    /// que sirve al depurar. Por eso esto es una función de presentación y no un cambio en las llamadas a
+    /// <c>History.Log</c> — que además dejaría ilegibles las entradas ya escritas.</para>
+    ///
+    /// <para>La conversión es de <b>valor</b>, no de línea: se conserva <c>clave=</c> porque identifica el
+    /// campo. El objetivo es que el número se entienda, no reescribir el registro en prosa.</para>
+    /// </remarks>
+    public static string Humanize(string? detail)
+    {
+        string s = detail ?? "";
+        if (s.Length == 0) return s;
+
+        return ByteValueRegex().Replace(s, m =>
+        {
+            string key = m.Groups["key"].Value;
+            if (!ByteValueKeys.Contains(key)) return m.Value;
+            return long.TryParse(m.Groups["value"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                                 out long bytes) && bytes >= 0
+                ? $"{key}={FormatLogic.FormatBytes(bytes)}"
+                : m.Value;
+        });
+    }
+
+    // clave=valor con la clave alfanumérica (admite guion, como en `small-fat32`) y el valor entero.
+    [GeneratedRegex(@"(?<key>[A-Za-z][A-Za-z0-9-]*)=(?<value>\d+)\b")]
+    private static partial Regex ByteValueRegex();
 
     /// <summary>Interpreta una línea del historial. Devuelve <c>null</c> para comentarios o líneas vacías.</summary>
     public static HistoryEntry? Parse(string line)
@@ -87,12 +134,20 @@ public sealed record HistoryEntry(
     /// significan "cualquiera"; la <paramref name="search"/> (sin distinción de mayúsculas, recortada) se
     /// compara contra el detalle. Cadena de búsqueda vacía no filtra. Lógica pura.
     /// </summary>
+    /// <remarks>
+    /// Se busca en el detalle crudo <b>y</b> en el legible (<see cref="Humanize"/>). Desde `T6-05` la lista
+    /// enseña «small-fat32=2 GB» mientras el fichero guarda «2147483648»: buscar solo en uno de los dos
+    /// haría que teclear justo lo que se está viendo no encontrara nada. Un buscador que no encuentra lo
+    /// que hay en pantalla es peor que no tener buscador.
+    /// </remarks>
     public bool Matches(string? search, HistoryCategory? category, HistoryResult? result)
     {
         if (category is HistoryCategory c && Category != c) return false;
         if (result   is HistoryResult   r && Result   != r) return false;
         string s = (search ?? "").Trim();
-        return s.Length == 0 || Detail.Contains(s, StringComparison.OrdinalIgnoreCase);
+        return s.Length == 0
+            || Detail.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || Humanize(Detail).Contains(s, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -19,13 +19,13 @@ public sealed class SeverityPaletteTests
     // Se recorre por dentro en vez de con [Theory] para dar un único fallo con TODOS los colores que no
     // llegan al mínimo, en lugar de tener que arreglarlos de uno en uno.
     [Fact]
-    public void EverySemanticColor_MeetsItsWcagContrast_AgainstItsCardBackground()
+    public void EverySemanticColor_MeetsItsWcagContrast_AgainstItsReference()
     {
         var offenders = new List<string>();
 
         foreach (PaletteColor entry in SeverityPalette.All())
         {
-            double ratio = SeverityPalette.ContrastAgainstBackground(entry);
+            double ratio = SeverityPalette.ContrastAgainstReference(entry);
             if (ratio < entry.MinimumRatio)
                 offenders.Add($"{entry.Name} en tema {(entry.Dark ? "oscuro" : "claro")}: " +
                               $"{ratio:F2}:1 (mínimo {entry.MinimumRatio:F1}:1)");
@@ -45,6 +45,7 @@ public sealed class SeverityPaletteTests
     [InlineData("HistoryResult.")]
     [InlineData("Text")]
     [InlineData("NeutralFill")]
+    [InlineData("TrackFill")]
     public void All_CoversEverySemanticColorFamily_InBothThemes(string namePrefix)
     {
         var matching = SeverityPalette.All().Where(e => e.Name.StartsWith(namePrefix, StringComparison.Ordinal)).ToList();
@@ -53,6 +54,62 @@ public sealed class SeverityPaletteTests
         Assert.Contains(matching, e => !e.Dark);
         Assert.Contains(matching, e =>  e.Dark);
     }
+
+    /// <summary>
+    /// La pista de la barra de ocupación es el ÚNICO color que no se mide contra el fondo, y tiene que
+    /// seguir así: contra la tarjeta no llega al 3:1 a propósito (es un hueco, no una segunda barra).
+    /// Si alguien le quita el <c>Against</c> «para que se mida como los demás», el barrido lo daría por
+    /// suspendido y la reacción natural sería oscurecerla hasta que compita con el relleno. Esto fija que
+    /// cada entrada de la pista declare contra QUÉ relleno se compara.
+    /// </summary>
+    [Fact]
+    public void TrackFill_IsMeasuredAgainstEveryFillItCanShareTheBarWith()
+    {
+        foreach (bool dark in (bool[])[false, true])
+        {
+            var entries = SeverityPalette.All()
+                .Where(e => e.Dark == dark && e.Name.StartsWith("TrackFill", StringComparison.Ordinal))
+                .ToList();
+
+            Assert.All(entries, e => Assert.NotNull(e.Against));
+
+            // Los tres rellenos que CapacityBrush puede pintar: neutro, ámbar (≥80 %) y rojo (≥90 %).
+            Assert.Equal(3, entries.Count);
+            Assert.Contains(entries, e => e.Against == SeverityPalette.NeutralFill(dark));
+            Assert.Contains(entries, e => e.Against == SeverityPalette.For(SmartLevel.Warning, dark));
+            Assert.Contains(entries, e => e.Against == SeverityPalette.For(SmartLevel.Critical, dark));
+        }
+    }
+
+    /// <summary>
+    /// Cuando una entrada declara un vecino, el alfa se compone sobre ESE vecino, no sobre la tarjeta: un
+    /// texto semitransparente encima de la pista de la barra deja ver la pista, no el fondo de la tarjeta.
+    /// Componerlo sobre el fondo equivocado da un número que no corresponde a lo que se ve — exactamente el
+    /// fallo que este barrido existe para cazar.
+    /// </summary>
+    [Fact]
+    public void ContrastAgainstReference_CompositesAlphaOverTheAdjacentColor_NotTheCard()
+    {
+        Color adjacent    = Color.FromArgb(255, 0x40, 0x40, 0x40);   // vecino opaco, más oscuro que la tarjeta clara
+        Color translucent = Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF);  // blanco al 50 %
+
+        var entry = new PaletteColor("prueba", translucent, Dark: false, ContrastRequirement.NormalText, adjacent);
+
+        double expected = SeverityPalette.ContrastRatio(SeverityPalette.Flatten(translucent, adjacent), adjacent);
+        Assert.Equal(expected, SeverityPalette.ContrastAgainstReference(entry), precision: 6);
+
+        // Y no es lo mismo que componerlo sobre la tarjeta: si lo fuera, el test anterior no probaría nada.
+        double overCard = SeverityPalette.ContrastRatio(
+            SeverityPalette.Flatten(translucent, SeverityPalette.LightBackground), adjacent);
+        Assert.NotEqual(overCard, expected, precision: 2);
+    }
+
+    /// <summary>Usado y libre no pueden acabar siendo el mismo color en ningún tema.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UsedAndFreeFills_AreDifferentColors(bool dark)
+        => Assert.NotEqual(SeverityPalette.NeutralFill(dark), SeverityPalette.TrackFill(dark));
 
     /// <summary>
     /// El resultado del historial y la severidad S.M.A.R.T. comparten significado: «correcto» y «fallo»
