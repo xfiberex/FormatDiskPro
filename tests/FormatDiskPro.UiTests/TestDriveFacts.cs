@@ -83,3 +83,29 @@ public sealed class DestructiveFactAttribute : FactAttribute
                    $"'{TestDrive.PrimaryLabel}').";
     }
 }
+
+/// <summary>
+/// <c>[Fact]</c> que se <b>SALTA</b> si el historial de la máquina no tiene entradas suficientes para
+/// que la lista se pueda desplazar. La lista del historial solo existe cuando hay entradas —con el
+/// historial vacío se colapsa y en su sitio va el estado vacío—, así que sin ellas no hay nada que
+/// recorrer con el teclado: es precondición ausente, no un fallo (`T7-06`).
+/// </summary>
+public sealed class HistoryFilledFactAttribute : FactAttribute
+{
+    /// <summary>Entradas mínimas para que la lista (MaxHeight 320) tenga algo que desplazar.</summary>
+    private const int MinimumEntries = 12;
+
+    public HistoryFilledFactAttribute()
+    {
+        string path = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "FormatDiskPro", "history.log");
+
+        int lines = 0;
+        try { if (File.Exists(path)) lines = File.ReadAllLines(path).Count(l => l.Trim().Length > 0); }
+        catch { lines = 0; }
+
+        if (lines < MinimumEntries)
+            Skip = $"Requiere un historial con al menos {MinimumEntries} entradas ({path} tiene {lines}).";
+    }
+}

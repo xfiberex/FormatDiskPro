@@ -11,12 +11,12 @@
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Versión publicada** | **1.23.0** (2026-08-17) |
-| **Estado** | Producto (Tiers 1–9), auditoría de calidad, Tier 5 «Ocurrencias» y **Tier 6 — refinado de UX/UI** (15/15): **cerrados**. Abierto: **Tier 7 — consistencia y descubribilidad de la UI** (5/6, desde 2026-08-25) |
+| **Estado** | Producto (Tiers 1–9), auditoría de calidad, Tier 5 «Ocurrencias» y **Tier 6 — refinado de UX/UI** (15/15): **cerrados**. Abierto: **Tier 7 — consistencia y descubribilidad de la UI** (7/8, desde 2026-08-25) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **588** unitarias (`Core/` al 97,9 %) · **30** de UI sobre la app real — **26 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-17 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — 1 tarea abierta (`T7-06`, preparada y pendiente de ejecutar con la app delante) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-25 (**Tier 7**: revisión de UX/UI sobre el código de `UI/`, 6 hallazgos y ninguno un defecto de corrección; hechas 5 — queda `T7-06`, que exige la app en marcha. Sin publicar todavía) |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — 1 tarea abierta (`T7-08`, que es mirar la pantalla, no escribir código) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | 2026-08-25 (**Tier 7**, 7/8: la revisión con la app en marcha (`T7-06`) desmintió su propia sospecha y abrió `T7-07` —ya hecha— y `T7-08`, que es una comprobación visual. Sin publicar todavía) |
 
 ---
 
@@ -145,12 +145,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 |---|---|
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **588 / 588** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05`) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **32** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-25, sin ninguna y ya con las dos del Tier 7, fueron **17 pasan / 14 se omiten / 0 fallan** — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
+| UI tests | **36** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, −1 la sonda borrada) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-25, sin ninguna y ya con las siete del Tier 7, fueron **22 pasan / 14 se omiten / 0 fallan** — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.23.0** (2026-08-17) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **1**: `T7-06` — rehacer la revisión **con la app en marcha** (desplazamiento por teclado de los `ListView`, foco inicial y orden de tabulación, y si WinUI pinta el tooltip de un ítem de menú deshabilitado). Del **Tier 7** (abierto el 2026-08-25 con 6 hallazgos, ninguno un defecto de corrección) están hechas `T7-01`, `T7-02`, `T7-03`, `T7-04` y `T7-05`. El **Tier 6** se abrió y se cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
+| Tareas abiertas | **1**: `T7-08` — comprobar **a ojo** si WinUI pinta el tooltip de un ítem de menú deshabilitado (`T7-02`); FlaUI no puede medirlo. Del **Tier 7** (abierto el 2026-08-25) están hechas `T7-01` a `T7-07`: la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`, dos defectos de accesibilidad que solo se ven con lector de pantalla. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
 > quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
@@ -340,7 +340,7 @@ commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su 
 
 ## 6. Qué queda fuera, y por qué
 
-**La única tarea abierta es `T7-06`** —verificar la UI con la app en marcha, no una característica nueva;
+**La única tarea abierta es `T7-08`** —mirar si un tooltip aparece, no una característica nueva;
 el estado vivo está en §3, esta sección es solo el alcance—. Los tres frentes del proyecto están cerrados:
 producto (Tiers 1–9, 2026-07-13), auditoría de calidad (2026-08-16) y Tier 5 «Ocurrencias» (2026-08-16).
 
@@ -403,7 +403,7 @@ ni mueve datos).
 
 ---
 
-### 2026-08-25 — Tier 7: cinco de seis (`T7-01` a `T7-05`)
+### 2026-08-25 — Tier 7: siete de ocho (`T7-01` a `T7-07`)
 
 **Por qué hay otro tier de UI con el Tier 6 recién cerrado.** El Tier 6 nació de las **capturas** y cerró
 la clase «la interfaz afirma algo que no es cierto». Esta revisión partió del **código** de `UI/` y buscó
@@ -472,14 +472,36 @@ se ha podido confirmar. Una sonda con FlaUI no encontró tooltip ninguno… tamp
 habilitado que sí lo tiene, así que la sonda no prueba nada. Se deja escrito como pregunta abierta en vez
 de como hecho, que es la diferencia entre `T6-11` y la ronda que la precedió.
 
-**Lo que queda abierto** es `T7-06`, en el [`ROADMAP.md`](ROADMAP.md), con los cuatro puntos escritos uno
-a uno: teclado en los `ListView`, foco inicial y orden de tabulación, el tooltip de arriba y la galería en
-los dos temas. Queda **preparada, no hecha**: hay una sonda (`tests/FormatDiskPro.UiTests/T706Probe.cs`) que
-recorre los puntos 1 y 2 y **no afirma nada** —solo cuenta lo que ve—, porque afirmar sin haber mirado es
-justo lo que esta tarea existe para evitar. Con su salida delante hay que **convertirla en asserts o
-borrarla**: una prueba que no puede fallar es ruido verde. No se ha podido ejecutar en la sesión en que se
-escribió —la terminal dejó de estar elevada a mitad, y sin elevación FlaUI no automatiza una app
-`requireAdministrator`—, así que **no está verificada ni siquiera como sonda**.
+**`T7-06` — la revisión con la app en marcha desmintió su propia sospecha.** La tarea salió de suponer que
+un `ListView` con `SelectionMode="None"` no se podría recorrer con el teclado. **Se puede**: tres
+tabulaciones desde el buscador caen en una fila del historial y ↓/AvPág la desplazan (0 % → 30 %). El foco
+inicial es el correcto en los dos diálogos y el flyout de borrado de `T7-01` funciona a teclado —el foco
+cae en el botón que confirma y el tab se queda dentro—. **No había nada que arreglar en lo que la tarea iba
+a arreglar**, y eso también es un resultado: hay dos pruebas que lo fijan y que **siguen verdes al revertir
+todos los arreglos de este tier**, porque no prueban código nuestro sino una promesa de la plataforma.
+
+El método importa más que el resultado: se escribió una **sonda que no afirmaba nada** —recorría la app e
+imprimía lo que veía— y solo con su salida delante se escribieron los asserts. Escribir primero los asserts
+habría fijado la suposición falsa. La sonda se borró al convertirse en las cinco pruebas, que era su
+condición de existencia: una prueba que no puede fallar es ruido verde.
+
+**`T7-07` — y encontró lo que la lectura no podía ver.** Las filas de las dos listas se anunciaban con el
+`ToString()` del record: «HistoryRow { Time = …, Glyph = , Accent = Microsoft.UI.Xaml.Media.SolidColorBrush }»
+y «FormatPreset { Name = …, AllocationUnit = 4096, … }». Pasa porque el contenido del ítem es un **objeto**,
+no texto. Y los dos `ComboBox` de filtro del historial no exponían nombre: «cuadro combinado», sin decir
+qué filtran —el buscador de al lado sí lo tenía desde `T7-05`—.
+
+El arreglo va en el **contenedor** (`ContainerContentChanging`), no en la plantilla: el nombre que se
+anuncia es el del `ListViewItem`, y ponerlo dentro no lo toca. **Verificado por reversión, y la reversión
+reparte**: sin los arreglos caen las tres pruebas de nombres y siguen verdes las dos de teclado. Que una
+prueba siga verde al revertir es sospechoso salvo que se sepa **por qué** —aquí, porque mide la plataforma—.
+
+**`T7-08` — lo único que queda, y no es código.** ¿Pinta WinUI el tooltip de un `MenuFlyoutItem`
+deshabilitado? De eso depende que `T7-02` cumpla su propia condición. **FlaUI no puede contestarlo**: no
+detecta el tooltip ni sobre un control habilitado que sí lo tiene, con el ratón encima confirmado por
+`FromPoint`. Un cero ahí no distingue «no hay tooltip» de «no sé verlo», así que **no se afirma nada**: la
+tarea es poner el ratón encima y mirar. Si no aparece, el motivo se lleva a la `InfoBar` de la ventana,
+que ya hace eso mismo para la unidad protegida.
 
 ### 2026-08-17 — `T6-12` a `T6-15`: se cierra el Tier 6 (15/15)
 

@@ -33,7 +33,12 @@
                        AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
 
-        <ListView x:Name="EntriesList" Grid.Row="1" MaxHeight="320" SelectionMode="None">
+        <!-- ContainerContentChanging (T7-07): sin él, el ListViewItem se anuncia con el ToString() del
+             record —«HistoryRow { Time = …, Glyph = , Accent = Microsoft.UI.Xaml.Media.SolidColorBrush }»—
+             porque su contenido es un objeto, no texto. Es la fila entera lo que hay que nombrar, y el
+             nombre va en el CONTENEDOR: ponerlo en la plantilla no cambia el del ListViewItem. -->
+        <ListView x:Name="EntriesList" Grid.Row="1" MaxHeight="320" SelectionMode="None"
+                  ContainerContentChanging="EntriesList_ContainerContentChanging">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="ui:HistoryRow">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="0,4">

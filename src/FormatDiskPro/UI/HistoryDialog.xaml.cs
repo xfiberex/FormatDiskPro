@@ -49,6 +49,10 @@ public sealed partial class HistoryDialog : ContentDialog
 
         EntriesList.ItemsSource = _rows;
         PopulateFilters();
+        // Los dos filtros no tenían Header ni nombre: se anunciaban como «cuadro combinado» a secas,
+        // sin decir qué filtran (T7-07). El buscador de al lado sí lo tenía desde T7-05.
+        AutomationProperties.SetName(CategoryFilter, L.T("history.filter.catName"));
+        AutomationProperties.SetName(ResultFilter,   L.T("history.filter.resName"));
         _ready = true;
         LoadEntries();
     }
@@ -108,6 +112,22 @@ public sealed partial class HistoryDialog : ContentDialog
     {
         if (_ready) ApplyFilter();
     }
+
+    /// <summary>
+    /// Nombra cada fila para quien no la ve (<c>T7-07</c>): «Formato · Correcto. 2026-08-18 08:42.
+    /// unidad=I: fs=exFAT». Sin esto, el <c>ListViewItem</c> se anuncia con el <c>ToString()</c> del
+    /// record —marca de clase y todo, incluido el <c>SolidColorBrush</c> del acento—, porque su
+    /// contenido es un objeto y no una cadena. Se ve tabulando hasta la lista con un lector de pantalla.
+    ///
+    /// <para>Va en el <b>contenedor</b> y no en la plantilla: el nombre que se anuncia es el del
+    /// <c>ListViewItem</c>, y ponerlo dentro no lo cambia.</para>
+    /// </summary>
+    private void EntriesList_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.InRecycleQueue || args.Item is not HistoryRow row) return;
+        AutomationProperties.SetName(args.ItemContainer, $"{row.Title}. {row.Time}. {row.Detail}");
+    }
+
     private void Filter_Changed(object sender, SelectionChangedEventArgs e) { if (_ready) ApplyFilter(); }
 
     private async void Export_Click(object sender, RoutedEventArgs e)

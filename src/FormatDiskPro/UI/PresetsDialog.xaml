@@ -33,7 +33,11 @@
         <StackPanel Spacing="6">
             <TextBlock x:Name="ListHeader" FontWeight="SemiBold" />
             <TextBlock x:Name="EmptyText" Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
+            <!-- ContainerContentChanging (T7-07): igual que en el historial, sin él cada fila se anuncia
+                 con el ToString() del record —«FormatPreset { Name = …, AllocationUnit = 4096, … }»—.
+                 El nombre de la fila es el del preset; sus cuatro botones ya se nombran solos. -->
             <ListView x:Name="PresetsList" MaxHeight="200" SelectionMode="None"
+                      ContainerContentChanging="PresetsList_ContainerContentChanging"
                       Padding="0" Background="Transparent">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="fdp:FormatPreset">

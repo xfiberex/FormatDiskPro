@@ -233,6 +233,8 @@ public static class L
         // llegan YA formateados con L.Culture desde el diálogo — string.Format usaría la cultura de
         // Windows y volvería a mezclar separadores ingleses con texto en español (T6-12).
         ["history.count"]        = ["{0} de {1}", "{0} of {1}", "{0} de {1}", "{0} sur {1}", "{0} di {1}"],
+        ["history.filter.catName"]= ["Filtrar por categoría", "Filter by category", "Filtrar por categoria", "Filtrer par catégorie", "Filtra per categoria"],
+        ["history.filter.resName"]= ["Filtrar por resultado", "Filter by result", "Filtrar por resultado", "Filtrer par résultat", "Filtra per risultato"],
         ["history.filter.allCat"]= ["Todas las categorías", "All categories", "Todas as categorias", "Toutes les catégories", "Tutte le categorie"],
         ["history.filter.allRes"]= ["Todos los resultados", "All results", "Todos os resultados", "Tous les résultats", "Tutti i risultati"],
         ["history.export"]       = ["Exportar CSV", "Export CSV", "Exportar CSV", "Exporter CSV", "Esporta CSV"],

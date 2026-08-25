@@ -145,6 +145,18 @@ public sealed partial class PresetsDialog : ContentDialog
         if (i >= 0 && i < _userPresets.Count - 1) { _userPresets.Move(i, i + 1); Persist(); }
     }
 
+    /// <summary>
+    /// Nombra cada fila con el nombre del preset (<c>T7-07</c>). Sin esto, el <c>ListViewItem</c> se
+    /// anuncia con el <c>ToString()</c> del record —«FormatPreset { Name = …, AllocationUnit = 4096,
+    /// … }»—, porque su contenido es un objeto y no una cadena. Va en el <b>contenedor</b>: el nombre
+    /// que se anuncia es el suyo, y ponerlo dentro de la plantilla no lo cambia.
+    /// </summary>
+    private void PresetsList_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.InRecycleQueue || args.Item is not FormatPreset preset) return;
+        AutomationProperties.SetName(args.ItemContainer, preset.Name);
+    }
+
     /// <summary>Pregunta del flyout de borrado, con el nombre del preset que está a punto de perderse.</summary>
     private void DeleteConfirmText_Loaded(object sender, RoutedEventArgs e)
     {

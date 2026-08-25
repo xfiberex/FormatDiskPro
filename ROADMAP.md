@@ -19,12 +19,13 @@
 > Al final de la Parte 2 hay además tres tiers que **no** son parte de la auditoría (que sigue siendo de
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
 > entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, y **Tier 7 — Consistencia
-> y descubribilidad de la UI** (`T7-01`–`T7-06`), **el único abierto**, con una sola tarea viva.
+> y descubribilidad de la UI** (`T7-01`–`T7-08`), **el único abierto**, con una sola tarea viva (`T7-08`).
 
 ## 🏁 Estado
 
 > **Casi todo lo que hay aquí es registro.** Lo único abierto es el
-> **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (5 de 6). Lo que
+> **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (7 de 8), y lo que queda es **mirar la
+> pantalla**, no escribir código. Lo que
 > queda fuera está fuera a propósito, y su porqué está en
 > *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
 
@@ -54,14 +55,18 @@ app por falta de terminal elevada. Al ejecutarla (`T6-11`, galería completa en 
 **tres hallazgos más** que la primera ronda no podía ver, así que el tier cerró en **15**. Ver
 **[Tier 6](#-tier-6--refinado-de-uxui)**.
 
-**Tier 7 — consistencia y descubribilidad: ABIERTO (2026-08-25), 5/6.** Con el Tier 6 cerrado, una
+**Tier 7 — consistencia y descubribilidad: ABIERTO (2026-08-25), 7/8.** Con el Tier 6 cerrado, una
 revisión sobre el **código** de la UI —no sobre capturas— buscó lo que una galería no enseña: qué pasa al
 pulsar y qué se ofrece para negarse después. **6 hallazgos, ninguno un defecto de corrección**: borrar un
 preset no confirmaba mientras vaciar el historial sí (`T7-01`), *Herramientas* ofrece operaciones que
 después rechaza en un diálogo (`T7-02`), el campo más esotérico era el único sin ayuda (`T7-03`), la app
 tiene un solo atajo de teclado (`T7-04`), la búsqueda del historial no dice cuánto oculta (`T7-05`) y
-quedan dos preguntas que solo se contestan con la app en marcha (`T7-06`). Hechas todas menos `T7-06`, que **exige la app en marcha y las manos encima**: es la misma
-tarea que `T6-11`, y aquella abrió tres hallazgos que la revisión sobre código no podía ver. Ver **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)**.
+quedan dos preguntas que solo se contestan con la app en marcha (`T7-06`). `T7-06` —la revisión **con la app en marcha**— se hizo el mismo día y, como `T6-11` en su
+tier, **abrió lo que la lectura no podía ver**: `T7-07` (las filas del historial y de presets se
+anunciaban con el volcado del record, y los filtros no decían qué filtraban), ya hecha, y `T7-08`, que
+no es código sino **una comprobación de ojo**: si WinUI pinta el tooltip de un ítem de menú
+deshabilitado. De paso desmintió la sospecha de partida: los `ListView` con `SelectionMode="None"`
+**sí** se recorren y desplazan solo con teclado. Ver **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)**.
 
 | Tier | Tema | Versión |
 |---|---|---|
@@ -1610,36 +1615,71 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     `MenuBar` viven en un flyout que puede no haberse desplegado nunca.
   - *Esfuerzo: bajo · Depende de: —*
 
-### Abierta
+### Hecha con la app en marcha
 
-- [ ] **[T7-06] Rehacer la revisión con la app en ejecución** — *preparada, pendiente de ejecutar*
+- [x] **[T7-06] Rehacer la revisión con la app en ejecución** — **hecho (2026-08-25)**
   - **Área:** UI / QA
-  - **Ubicación:** `tests/FormatDiskPro.UiTests/T706Probe.cs` (sonda), `tools/capture-screenshots.ps1`
-  - **Qué hacer:** contestar lo que **no se resuelve leyendo código**, con la app delante:
-    1. **Teclado en los `ListView`.** Historial y presets usan `SelectionMode="None"` con `MaxHeight`.
-       ¿Se llega a la lista tabulando? ¿Se desplaza con ↓/AvPág sin ratón? Si no, hay que darle
-       `IsTabStop`/`TabNavigation` o repensar el modo de selección.
-    2. **Foco inicial y orden de tabulación** de cada diálogo, tras `T6-07`/`T6-14` y con los flyouts
-       nuevos de `T7-01`: dónde cae el foco al abrir, y si el recorrido pasa por los botones de icono de
-       cada fila de presets en un orden que se entienda.
-    3. **El tooltip de un ítem de menú deshabilitado** (`T7-02`): ¿lo pinta WinUI? El `HelpText` ya está
-       probado —es lo que lee un lector de pantalla—, pero si el tooltip no aparece, el motivo **no se ve**
-       y hay que llevarlo a otro sitio (la `InfoBar` de la ventana, como hace `ProtectedBar`).
-    4. **Galería en los dos temas** con `tools/capture-screenshots.ps1`, incluyendo lo que el Tier 7 tocó:
-       el flyout de borrado de un preset, la pista del tamaño de asignación, el recuento del historial y
-       los atajos visibles en el menú.
-  - **Por qué:** es la misma tarea que `T6-11`, y aquella abrió **tres hallazgos** que la revisión sobre
-    código no podía ver. Que las cinco tareas anteriores estén hechas no cierra el tier: cierra la mitad
-    que se puede leer.
-  - **Cómo:** la sonda `T706Probe` responde a los puntos 1 y 2 sin criterio propio —no afirma nada, solo
-    **cuenta lo que ve**— y con su salida delante hay que **convertirla en asserts o borrarla**; dejarla
-    como está es ruido verde. Exige **terminal elevada**: la app es `requireAdministrator` y tanto FlaUI
-    como el script de capturas abortan por diseño sin ella.
+  - **Ubicación:** `tests/FormatDiskPro.UiTests/KeyboardAndNamingTests.cs`, `TestDriveFacts.cs`
+  - **Qué hacer:** contestar lo que **no se resuelve leyendo código**: teclado en los `ListView` de
+    historial y presets, foco inicial y orden de tabulación de los diálogos, y si el tooltip de un ítem
+    de menú deshabilitado (`T7-02`) se ve.
+  - **Por qué:** es la misma tarea que `T6-11`, y aquella abrió tres hallazgos que la revisión sobre
+    código no podía ver. Que las cinco anteriores estén hechas cierra la mitad que se puede leer.
+  - **Hecho:** se escribió una sonda que **no afirmaba nada** —solo recorría la app y contaba lo que
+    veía— y con su salida delante se convirtió en cinco pruebas y se borró, que era la condición.
+    Resultados:
+    - **La sospecha de partida era falsa.** Con `SelectionMode="None"`, los `ListView` **sí** se
+      recorren y se desplazan solo con teclado: en el historial, tres tabulaciones desde el buscador
+      caen en una fila y ↓/AvPág mueven la lista (0 % → 30 %). No había nada que arreglar. Queda fijado
+      por dos pruebas que **no dependen de ningún arreglo nuestro**: siguen verdes al revertirlo todo.
+    - **Foco inicial correcto** en los dos diálogos (buscador; nombre del preset), y el flyout de
+      borrado de `T7-01` **funciona con el teclado**: al abrirse el foco cae en el botón que confirma,
+      y el tab se queda dentro del flyout.
+    - **Y abrió `T7-07`**, con dos defectos que solo se ven con un lector de pantalla: las filas se
+      anunciaban con el volcado del record y los dos filtros del historial no decían qué filtraban.
+    - **El tooltip del ítem deshabilitado sigue sin respuesta**, y va aparte en `T7-08`: FlaUI no lo
+      detecta **ni sobre un control habilitado que sí lo tiene** (se comprobó el ratón encima con
+      `FromPoint`), así que la sonda no distingue «no hay tooltip» de «no sé verlo». Es una
+      comprobación de ojo, de cinco segundos, y no se afirma nada mientras no se haga.
+  - *Esfuerzo: medio · Depende de: T7-01 y T7-02*
 
-    ```
-    dotnet test tests\FormatDiskPro.UiTests\FormatDiskPro.UiTests.csproj --filter "FullyQualifiedName~T706Probe" -v n
-    ```
-  - *Esfuerzo: medio · Depende de: T7-01 y T7-02 (sus flyouts y sus ítems apagados entran en la revisión)*
+### Abiertas por la revisión con la app en marcha (`T7-06`)
+
+- [x] **[T7-07] Las filas se anunciaban con el volcado del record** — **hecho (2026-08-25)**
+  - **Área:** UI / accesibilidad
+  - **Ubicación:** `src/FormatDiskPro/UI/HistoryDialog.xaml(.cs)`, `PresetsDialog.xaml(.cs)`, `Localization.cs`
+  - **Qué pasaba:** el `ListViewItem` de una fila del historial se anunciaba como
+    `HistoryRow { Time = 2026-08-18 08:42, Title = …, Glyph = , Accent = Microsoft.UI.Xaml.Media.SolidColorBrush }`,
+    y el de un preset como `FormatPreset { Name = …, AllocationUnit = 4096, …, NameKey =  }`: el
+    `ToString()` del record, marca de clase y pincel incluidos. Pasa porque el contenido del ítem es un
+    **objeto**, no texto. Además, los dos `ComboBox` de filtro del historial **no exponían nombre**: se
+    anunciaban como «cuadro combinado» a secas, sin decir qué filtran — el buscador de al lado sí lo
+    tenía desde `T7-05`.
+  - **Por qué:** es exactamente lo que `T6-02` corrigió en el campo de confirmación (un lector de
+    pantalla diciendo lo que no debía) y lo que `T2-01`/`T2-02` construyeron para las operaciones. La app
+    se puede seguir a ciegas menos en sus dos listas.
+  - **Hecho:** el nombre se pone en el **contenedor** vía `ContainerContentChanging` —dentro de la
+    plantilla no cambia el del `ListViewItem`—: la fila del historial se anuncia «Formato · Correcto.
+    2026-08-18 08:42. unidad=I: fs=exFAT» y la de un preset, con su nombre. Los dos filtros reciben
+    `history.filter.catName`/`resName` × 5 idiomas. **Verificado por reversión**: quitando los tres
+    arreglos, las tres pruebas de nombres fallan y las dos de teclado siguen verdes.
+  - *Esfuerzo: bajo · Depende de: T7-06*
+
+- [ ] **[T7-08] ¿Se ve el tooltip de un ítem de menú deshabilitado?**
+  - **Área:** UI / prevención de errores
+  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.DriveInfo.cs` (`SetMenuItemAvailability`)
+  - **Qué hacer:** seleccionar el disco de sistema, abrir *Herramientas* y **poner el ratón encima** de
+    *Reinicializar unidad…*, que está apagado. Si aparece «No disponible: la unidad está protegida o es
+    el disco del sistema», `T7-02` está completa y esta tarea se cierra sin tocar código. Si **no**
+    aparece, el motivo solo lo recibe un lector de pantalla (el `HelpText`, que sí está probado) y hay
+    que llevarlo a la vista — el sitio natural es la `InfoBar` de la ventana, que ya hace justo eso para
+    la unidad protegida (`ProtectedBar`).
+  - **Por qué:** de esto depende que `T7-02` cumpla su propia condición —«las dos mitades van juntas o
+    no va ninguna»—. Un ítem gris y mudo es peor que el diálogo que sustituyó.
+  - **Ojo:** **no intentar medirlo con FlaUI otra vez.** Ya se probó: no detecta el tooltip ni sobre un
+    control habilitado que sí lo tiene, con el ratón encima confirmado por `FromPoint`. Un cero ahí no
+    prueba nada, y tomarlo por prueba sería el error que `T6-11` existe para no repetir.
+  - *Esfuerzo: bajo (mirar) · Depende de: —*
 
 ---
 
@@ -1647,6 +1687,8 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-25 | **T7-07** | Las filas de historial y presets dejan de anunciarse con el `ToString()` del record —«HistoryRow { …, Accent = Microsoft.UI.Xaml.Media.SolidColorBrush }»— y los dos filtros del historial dicen qué filtran. El nombre va en el **contenedor** (`ContainerContentChanging`): dentro de la plantilla no cambia el del `ListViewItem`. **Verificado por reversión**: quitando los arreglos caen las tres pruebas de nombres y siguen verdes las dos de teclado. |
+| 2026-08-25 | **T7-06** | Revisión con la app en marcha. **Desmintió su propia sospecha**: `SelectionMode="None"` no impide recorrer ni desplazar los `ListView` con teclado (0 % → 30 % con ↓ y AvPág). Foco inicial correcto en ambos diálogos y flyout de borrado de `T7-01` usable con teclado. Abrió **`T7-07`** (hecha) y **`T7-08`** (el tooltip del ítem apagado, que FlaUI no puede medir: no lo ve ni sobre un control habilitado que sí lo tiene). La sonda que lo midió se convirtió en 5 pruebas y se borró. |
 | 2026-08-25 | **T7-04** | Atajos para los tres diagnósticos que no escriben nada (`Ctrl+I` salud, `Ctrl+B` benchmark, `Ctrl+H` historial) y `Ctrl+E` para exportar dentro del historial. Formatear/reinicializar/verificar **no llevan atajo a propósito**. Sin `KeyboardAcceleratorTextOverride`: el `MenuFlyoutItem` pinta solo el texto cuando el acelerador existe de verdad. Sacó a la luz que `MnuHistory_Click` no comprobaba `_isBusy` —le bastaba con que el menú se deshabilitara— y `Ctrl+H` llega sin pasar por el menú. **Verificado por reversión** con un UI test que pulsa el atajo sin abrir el menú. |
 | 2026-08-25 | **T7-02** | *Herramientas* se ajusta a la unidad: lo que no aplica sale apagado **y con el motivo escrito** (tooltip + `HelpText`), en vez de aceptarse y rechazarse en un diálogo. Las condiciones son las guardas de `Operations.cs` copiadas una a una, y esas guardas **se quedan**: entre abrir el menú y pulsar, la unidad puede cambiar. chkdsk y benchmark no se apagan —el primero corre en solo lectura sobre el disco de sistema—. +1 UI test sobre el disco de sistema, que comprueba también que ningún ítem apagado se queda sin `HelpText`. |
 | 2026-08-25 | **T7-05** | El buscador del historial pasa a `AutoSuggestBox` (botón de limpiar de serie, sugerencias apagadas) con nombre accesible propio en vez del placeholder —`T6-02`— y recuento «12 de 340», oculto con el historial vacío porque ahí el estado vacío ya habla. Los números se formatean con `L.Culture` **antes** de entrar en `L.T`: `string.Format` usa la cultura de Windows y por ahí volvía `T6-12`. +2 unitarias. |
