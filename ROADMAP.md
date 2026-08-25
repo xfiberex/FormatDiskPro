@@ -16,13 +16,15 @@
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
 > | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
 >
-> Al final de la Parte 2 hay además dos tiers que **no** son parte de la auditoría (que sigue siendo de
+> Al final de la Parte 2 hay además tres tiers que **no** son parte de la auditoría (que sigue siendo de
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
-> entregado, y **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también.
+> entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, y **Tier 7 — Consistencia
+> y descubribilidad de la UI** (`T7-01`–`T7-06`), **el único abierto**, con una sola tarea viva.
 
 ## 🏁 Estado
 
-> **Todo lo que hay aquí es registro: no queda nada abierto.** Lo que
+> **Casi todo lo que hay aquí es registro.** Lo único abierto es el
+> **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (5 de 6). Lo que
 > queda fuera está fuera a propósito, y su porqué está en
 > *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
 
@@ -51,6 +53,15 @@ confirmación mostrando la letra que hay que teclear, y una velocidad de rotaci�
 app por falta de terminal elevada. Al ejecutarla (`T6-11`, galería completa en ambos temas) aparecieron
 **tres hallazgos más** que la primera ronda no podía ver, así que el tier cerró en **15**. Ver
 **[Tier 6](#-tier-6--refinado-de-uxui)**.
+
+**Tier 7 — consistencia y descubribilidad: ABIERTO (2026-08-25), 5/6.** Con el Tier 6 cerrado, una
+revisión sobre el **código** de la UI —no sobre capturas— buscó lo que una galería no enseña: qué pasa al
+pulsar y qué se ofrece para negarse después. **6 hallazgos, ninguno un defecto de corrección**: borrar un
+preset no confirmaba mientras vaciar el historial sí (`T7-01`), *Herramientas* ofrece operaciones que
+después rechaza en un diálogo (`T7-02`), el campo más esotérico era el único sin ayuda (`T7-03`), la app
+tiene un solo atajo de teclado (`T7-04`), la búsqueda del historial no dice cuánto oculta (`T7-05`) y
+quedan dos preguntas que solo se contestan con la app en marcha (`T7-06`). Hechas todas menos `T7-06`, que **exige la app en marcha y las manos encima**: es la misma
+tarea que `T6-11`, y aquella abrió tres hallazgos que la revisión sobre código no podía ver. Ver **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)**.
 
 | Tier | Tema | Versión |
 |---|---|---|
@@ -1492,10 +1503,156 @@ defectos** —la interfaz afirma algo que no es cierto— **y 7 son refinamiento
 
 ---
 
+## 🧭 Tier 7 — Consistencia y descubribilidad de la UI
+
+> **Ni auditoría ni Tier 6.** El [Tier 6](#-tier-6--refinado-de-uxui) cerró la clase de fallos «la
+> interfaz **afirma algo que no es cierto**»: títulos equivocados, datos en crudo, un valor que mentía.
+> Lo que abre este tier es de otra naturaleza y no se ve en una captura: **acciones destructivas que no
+> se comportan igual entre sí**, opciones que se ofrecen para rechazarse después, y trabajo que la
+> interfaz obliga a hacer a mano. Nada de esto es un defecto de corrección; todo es la app pidiendo al
+> usuario más atención de la que su tarea merece.
+
+**Origen (2026-08-25):** revisión de UX/UI sobre el código de `src/FormatDiskPro/UI/` con el Tier 6 ya
+cerrado, buscando expresamente lo que una galería de capturas **no** enseña: qué pasa al pulsar, qué se
+ofrece y luego se niega, y qué hay que repetir a mano.
+
+- [x] **[T7-01] Borrar un preset no pide confirmación ni se puede deshacer** — **hecho (2026-08-25)**
+  - **Área:** UI / consistencia de las acciones destructivas
+  - **Ubicación:** `src/FormatDiskPro/UI/PresetsDialog.xaml`, `PresetsDialog.xaml.cs`, `Localization.cs`
+  - **Qué hacer:** `DeleteBtn_Click` hacía `Remove` + `Persist()` en **un clic**, sin confirmar y sin
+    deshacer, en una fila de cuatro botones de icono donde la papelera está pegada a «Editar». En el
+    mismo producto, *Vaciar historial* —la otra acción destructiva sin deshacer— sí confirma. Reusar ahí
+    el patrón que ya existe: un `Flyout` dentro del contenido, porque un `ContentDialog` no puede abrir
+    otro.
+  - **Por qué:** no es pérdida de datos del disco, pero sí de configuración que el usuario escribió a
+    mano; y sobre todo, **dos acciones igual de irreversibles no pueden pedir cosas distintas**.
+  - **Hecho:** flyout de confirmación con el **nombre del preset dentro** (`preset.deleteConfirm` × 5
+    idiomas) — en una lista de papeleras idénticas, «¿Eliminar?» a secas no dice cuál se va a perder. El
+    flyout se guarda al abrirse (`Opening`) porque su contenido vive en un `Popup` y desde el botón que
+    confirma no se sube hasta él por el árbol visual. +2 unitarias (el marcador `{0}` en los cinco).
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T7-03] El campo más esotérico es el único sin ayuda** — **hecho (2026-08-25)**
+  - **Área:** UI / prevención de errores
+  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml`, `MainWindow.Preferences.cs`, `Localization.cs`
+  - **Qué hacer:** el sistema de archivos lleva descripción bajo su combo desde `T1-05` (`fs.desc.*`,
+    cinco idiomas). *Tamaño de unidad de asignación* no llevaba ninguna, y es el que menos gente sabe
+    elegir. Una pista con el mismo `HintTextStyle`, en el mismo sitio.
+  - **Por qué:** la ayuda está donde no hace falta y falta donde sí. Quien no sabe qué es un clúster no
+    tiene forma de averiguarlo desde la app.
+  - **Hecho:** `alloc.hint` × 5 idiomas bajo `AllocUnitPicker`. **No nombra ninguna opción de la lista**:
+    el combo se puebla con tamaños concretos (`4 KB`, `64 KB`) y el recomendado llega *preseleccionado*,
+    así que no hay ningún elemento «Predeterminado» al que mandar al usuario — una prueba barre las cinco
+    traducciones y falla si alguna lo inventa.
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T7-05] La búsqueda del historial no dice cuánto está ocultando** — **hecho (2026-08-25)**
+  - **Área:** UI / historial
+  - **Ubicación:** `src/FormatDiskPro/UI/HistoryDialog.xaml`, `HistoryDialog.xaml.cs`, `Localization.cs`
+  - **Qué hacer:** el buscador era un `TextBox` sin botón de limpiar, con dos filtros más al lado y sin
+    ningún recuento. Es fácil quedarse con una lista corta sin saber por qué.
+  - **Por qué:** el estado vacío ya distingue *sin historial* de *sin coincidencias* (`T6-05`), que es la
+    mitad difícil; lo que faltaba es el caso intermedio — hay resultados, pero no todos.
+  - **Hecho:** `AutoSuggestBox` (trae el botón de limpiar; se le apaga la lista de sugerencias, que no
+    tiene qué sugerir) con **nombre accesible propio**, no el placeholder — la lección de `T6-02` —, y un
+    recuento «12 de 340» que se oculta con el historial vacío, porque ahí el estado vacío ya lo dice con
+    palabras. Los dos números se formatean con `L.Culture` y llegan ya formateados a `L.T`: `string.Format`
+    los pondría en la cultura de Windows y volvería a mezclar separadores ingleses con texto español
+    (`T6-12`). +2 unitarias (los marcadores `{0}`/`{1}` en los cinco idiomas).
+  - *Esfuerzo: bajo · Depende de: —*
+
+### Hechas en la segunda tanda
+
+- [x] **[T7-02] El menú *Herramientas* ofrecía lo que luego rechazaba** — **hecho (2026-08-25)**
+  - **Área:** UI / prevención de errores
+  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.DriveInfo.cs`, `MainWindow.xaml.cs`, `MainWindow.Preferences.cs`, `Localization.cs`
+  - **Qué hacer:** `SetControlsEnabled` habilitaba `MnuTools` **en bloque**, así que la incompatibilidad se
+    descubría **después** del clic, en un diálogo: reinicializar sobre una unidad no extraíble
+    (`reinit.onlyRemovable`), expulsar un disco fijo, verificar capacidad o quitar la protección sobre una
+    unidad protegida. Decidirlo por unidad y apagar el ítem **diciendo el motivo**.
+  - **Por qué:** el diálogo llega tarde: el usuario ya eligió. Pero **las dos mitades van juntas o no va
+    ninguna** — un ítem gris sin explicación es *peor* que el diálogo, porque deja al usuario sin saber qué
+    hizo mal.
+  - **Hecho:** `UpdateToolsMenuAvailability()` en un solo sitio, con las condiciones copiadas **una a una**
+    de las guardas de `Operations.cs`, que **siguen ahí**: entre abrir el menú y pulsar, la unidad puede
+    cambiar (`WM_DEVICECHANGE`). Se recalcula al cambiar de unidad, al terminar una operación y **al
+    cambiar de idioma** (los motivos se escriben en el ítem, así que si no se reescriben se quedan en el
+    idioma anterior). *Comprobar errores* y *Benchmark* no se apagan nunca con una unidad seleccionada:
+    chkdsk en solo lectura sí corre sobre el disco de sistema —lo que no se ofrece allí es la reparación—
+    y el benchmark no escribe fuera de su archivo temporal. +1 UI test sobre el disco de sistema (la única
+    unidad que hay en cualquier máquina, así que no necesita la USB) que comprueba las dos listas **y** que
+    ningún ítem apagado se queda sin `HelpText`.
+  - **Ojo, lo que NO está verificado:** el motivo va en `ToolTipService` **y** en `HelpText`. El `HelpText`
+    está comprobado por el test (es lo que lee un lector de pantalla); que WinUI **pinte** el tooltip sobre
+    un `MenuFlyoutItem` deshabilitado no se ha podido confirmar — una sonda con FlaUI no detectó tooltip
+    tampoco sobre un control habilitado que sí lo tiene, así que la sonda no vale como prueba de nada. Va a
+    `T7-06`, que es la tarea de mirar la app con las manos.
+  - *Esfuerzo: medio · Depende de: —*
+
+- [x] **[T7-04] La app tenía un solo atajo de teclado** — **hecho (2026-08-25)**
+  - **Área:** UI / eficiencia
+  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.xaml`, `MainWindow.Preferences.cs`, `MainWindow.HelpAndUpdates.cs`, `HistoryDialog.xaml`
+  - **Qué hacer:** `F5` (actualizar la lista) era el único `KeyboardAccelerator` de la app; los menús tienen
+    `AccessKey` y ahí se acababa. Añadir atajos a lo que se usa a diario, **visibles** donde se aprenden.
+  - **Por qué:** un atajo que no se anuncia no existe.
+  - **Hecho:** `Ctrl+I` salud, `Ctrl+B` benchmark, `Ctrl+H` historial y `Ctrl+E` exportar CSV dentro del
+    historial. **Solo diagnósticos que no escriben nada**: formatear, reinicializar, verificar capacidad y
+    borrado seguro no llevan atajo a propósito — una combinación mal pulsada no puede ser el primer paso de
+    algo que borra datos. No hizo falta `KeyboardAcceleratorTextOverride`: el `MenuFlyoutItem` pinta solo el
+    texto del acelerador cuando hay uno de verdad (el *override* es para anunciar uno que no existe). El F5
+    sí va escrito a mano en su tooltip, porque con un `ToolTip` explícito WinUI ya no añade el suyo.
+  - **Y una consecuencia que había que atender:** `MnuHistory_Click` no comprobaba `_isBusy` —le bastaba con
+    que el menú entero se deshabilitara durante una operación—, y `Ctrl+H` llega ahí **sin pasar por el
+    menú**. Guarda explícita: un `ContentDialog` modal encima de un formateo tapa el progreso y el botón de
+    cancelar.
+  - **Verificado por reversión** sobre el `.exe` real: el UI test nuevo pulsa `Ctrl+H` **sin abrir el menú**
+    y espera el diálogo; quitando el acelerador, falla. No era una obviedad — los `MenuFlyoutItem` de un
+    `MenuBar` viven en un flyout que puede no haberse desplegado nunca.
+  - *Esfuerzo: bajo · Depende de: —*
+
+### Abierta
+
+- [ ] **[T7-06] Rehacer la revisión con la app en ejecución** — *preparada, pendiente de ejecutar*
+  - **Área:** UI / QA
+  - **Ubicación:** `tests/FormatDiskPro.UiTests/T706Probe.cs` (sonda), `tools/capture-screenshots.ps1`
+  - **Qué hacer:** contestar lo que **no se resuelve leyendo código**, con la app delante:
+    1. **Teclado en los `ListView`.** Historial y presets usan `SelectionMode="None"` con `MaxHeight`.
+       ¿Se llega a la lista tabulando? ¿Se desplaza con ↓/AvPág sin ratón? Si no, hay que darle
+       `IsTabStop`/`TabNavigation` o repensar el modo de selección.
+    2. **Foco inicial y orden de tabulación** de cada diálogo, tras `T6-07`/`T6-14` y con los flyouts
+       nuevos de `T7-01`: dónde cae el foco al abrir, y si el recorrido pasa por los botones de icono de
+       cada fila de presets en un orden que se entienda.
+    3. **El tooltip de un ítem de menú deshabilitado** (`T7-02`): ¿lo pinta WinUI? El `HelpText` ya está
+       probado —es lo que lee un lector de pantalla—, pero si el tooltip no aparece, el motivo **no se ve**
+       y hay que llevarlo a otro sitio (la `InfoBar` de la ventana, como hace `ProtectedBar`).
+    4. **Galería en los dos temas** con `tools/capture-screenshots.ps1`, incluyendo lo que el Tier 7 tocó:
+       el flyout de borrado de un preset, la pista del tamaño de asignación, el recuento del historial y
+       los atajos visibles en el menú.
+  - **Por qué:** es la misma tarea que `T6-11`, y aquella abrió **tres hallazgos** que la revisión sobre
+    código no podía ver. Que las cinco tareas anteriores estén hechas no cierra el tier: cierra la mitad
+    que se puede leer.
+  - **Cómo:** la sonda `T706Probe` responde a los puntos 1 y 2 sin criterio propio —no afirma nada, solo
+    **cuenta lo que ve**— y con su salida delante hay que **convertirla en asserts o borrarla**; dejarla
+    como está es ruido verde. Exige **terminal elevada**: la app es `requireAdministrator` y tanto FlaUI
+    como el script de capturas abortan por diseño sin ella.
+
+    ```
+    dotnet test tests\FormatDiskPro.UiTests\FormatDiskPro.UiTests.csproj --filter "FullyQualifiedName~T706Probe" -v n
+    ```
+  - *Esfuerzo: medio · Depende de: T7-01 y T7-02 (sus flyouts y sus ítems apagados entran en la revisión)*
+
+---
+
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-25 | **T7-04** | Atajos para los tres diagnósticos que no escriben nada (`Ctrl+I` salud, `Ctrl+B` benchmark, `Ctrl+H` historial) y `Ctrl+E` para exportar dentro del historial. Formatear/reinicializar/verificar **no llevan atajo a propósito**. Sin `KeyboardAcceleratorTextOverride`: el `MenuFlyoutItem` pinta solo el texto cuando el acelerador existe de verdad. Sacó a la luz que `MnuHistory_Click` no comprobaba `_isBusy` —le bastaba con que el menú se deshabilitara— y `Ctrl+H` llega sin pasar por el menú. **Verificado por reversión** con un UI test que pulsa el atajo sin abrir el menú. |
+| 2026-08-25 | **T7-02** | *Herramientas* se ajusta a la unidad: lo que no aplica sale apagado **y con el motivo escrito** (tooltip + `HelpText`), en vez de aceptarse y rechazarse en un diálogo. Las condiciones son las guardas de `Operations.cs` copiadas una a una, y esas guardas **se quedan**: entre abrir el menú y pulsar, la unidad puede cambiar. chkdsk y benchmark no se apagan —el primero corre en solo lectura sobre el disco de sistema—. +1 UI test sobre el disco de sistema, que comprueba también que ningún ítem apagado se queda sin `HelpText`. |
+| 2026-08-25 | **T7-05** | El buscador del historial pasa a `AutoSuggestBox` (botón de limpiar de serie, sugerencias apagadas) con nombre accesible propio en vez del placeholder —`T6-02`— y recuento «12 de 340», oculto con el historial vacío porque ahí el estado vacío ya habla. Los números se formatean con `L.Culture` **antes** de entrar en `L.T`: `string.Format` usa la cultura de Windows y por ahí volvía `T6-12`. +2 unitarias. |
+| 2026-08-25 | **T7-03** | Pista bajo *Tamaño de unidad de asignación*, el único campo esotérico sin ayuda mientras el sistema de archivos —que casi todo el mundo sabe elegir— tenía la suya desde `T1-05`. No nombra ninguna opción: el combo lleva tamaños concretos y el recomendado llega **preseleccionado**, no hay un elemento «Predeterminado»; una prueba barre los cinco idiomas y falla si alguna traducción lo inventa. |
+| 2026-08-25 | **T7-01** | Borrar un preset ya no es un clic irreversible: flyout de confirmación con **el nombre dentro** (en una fila de papeleras idénticas, «¿Eliminar?» no dice cuál). Mismo patrón que *Vaciar historial*, que es lo que hacía la inconsistencia. El flyout se captura en `Opening` porque su contenido vive en un `Popup` y no se sube hasta él por el árbol visual. +2 unitarias sobre el marcador `{0}` en los cinco idiomas. |
+| 2026-08-25 | — | Revisión de UX/UI sobre el **código** de la UI (no sobre capturas), con el Tier 6 ya cerrado: **Tier 7 abierto** con 6 tareas, ninguna un defecto de corrección. |
 | 2026-08-17 | **T6-14** | Los textos legales caben: `NoWrap` + ancho propio (430, la única excepción declarada al común de `T6-07`) + cuerpo a 10 px, que es una medida —a 10 px de Consolas entran ~78 columnas, y `LICENSE` mide 78— no un gusto. El primer intento (11 px) **truncaba** el texto sin barra visible: peor que el fallo, y lo cazó la captura. Las 3 líneas que aún no cabían eran de nuestro propio fichero de atribución; el texto MIT y la GPL no se tocaron. |
 | 2026-08-17 | **T6-15** | Fuera el salto de maquetación de los 15 resúmenes de reinicialización. La prueba recorre cada `
 ` de los tres textos en cinco idiomas en vez de anclar las cadenas: caza también el que se cuele en una traducción futura. |

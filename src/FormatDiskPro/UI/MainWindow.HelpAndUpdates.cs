@@ -28,6 +28,11 @@ public sealed partial class MainWindow
 {
     private async void MnuHistory_Click(object sender, RoutedEventArgs e)
     {
+        // Hasta T7-04 bastaba con que el menú entero se deshabilitara durante una operación. Ahora hay
+        // un atajo (Ctrl+H) que llega aquí sin pasar por el menú, así que la guarda se hace explícita:
+        // un ContentDialog modal encima de un formateo en marcha tapa el progreso y el botón de cancelar.
+        if (_isBusy) return;
+
         var dlg = new HistoryDialog(_darkMode, WinRT.Interop.WindowNative.GetWindowHandle(this), _services.History)
         {
             XamlRoot = Content.XamlRoot,

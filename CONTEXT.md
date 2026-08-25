@@ -11,12 +11,12 @@
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Versión publicada** | **1.23.0** (2026-08-17) |
-| **Estado** | Producto (Tiers 1–9), auditoría de calidad, Tier 5 «Ocurrencias» y **Tier 6 — refinado de UX/UI** (15/15, 2026-08-17): **todos cerrados**. Sin tareas abiertas |
+| **Estado** | Producto (Tiers 1–9), auditoría de calidad, Tier 5 «Ocurrencias» y **Tier 6 — refinado de UX/UI** (15/15): **cerrados**. Abierto: **Tier 7 — consistencia y descubribilidad de la UI** (5/6, desde 2026-08-25) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **563** unitarias (`Core/` al 97,9 %) · **28** de UI sobre la app real — **25 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-16 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — sin tareas abiertas · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-17 (**v1.23.0 publicada y verificada** · **Tier 6 cerrado**, 15/15: la revisión de UX/UI abrió 11 tareas y su propia tarea de cobertura (`T6-11`) descubrió 3 más) |
+| **Pruebas** | **588** unitarias (`Core/` al 97,9 %) · **30** de UI sobre la app real — **26 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-17 |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — 1 tarea abierta (`T7-06`, preparada y pendiente de ejecutar con la app delante) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | 2026-08-25 (**Tier 7**: revisión de UX/UI sobre el código de `UI/`, 6 hallazgos y ninguno un defecto de corrección; hechas 5 — queda `T7-06`, que exige la app en marcha. Sin publicar todavía) |
 
 ---
 
@@ -144,13 +144,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **585 / 585** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12`) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **30** en total (+1 de `T6-01`, +1 de `T6-02`) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten · el corte usa ese mismo filtro y **dice qué dejó fuera** |
+| Unitarias | **588 / 588** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| UI tests | **32** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-25, sin ninguna y ya con las dos del Tier 7, fueron **17 pasan / 14 se omiten / 0 fallan** — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.23.0** (2026-08-17) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **0**. El **Tier 6 (refinado de UX/UI)** se abrió y se cerró el 2026-08-17, 15/15: 11 de la revisión inicial, `T6-12` salida de hacer `T6-04`, y `T6-13`/`T6-14`/`T6-15` de la revisión completa (`T6-11`). Producto, auditoría y Tier 5: cerrados |
+| Tareas abiertas | **1**: `T7-06` — rehacer la revisión **con la app en marcha** (desplazamiento por teclado de los `ListView`, foco inicial y orden de tabulación, y si WinUI pinta el tooltip de un ítem de menú deshabilitado). Del **Tier 7** (abierto el 2026-08-25 con 6 hallazgos, ninguno un defecto de corrección) están hechas `T7-01`, `T7-02`, `T7-03`, `T7-04` y `T7-05`. El **Tier 6** se abrió y se cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
 > quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
@@ -340,9 +340,9 @@ commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su 
 
 ## 6. Qué queda fuera, y por qué
 
-**No hay tareas abiertas** (el estado vivo está en §3; esta sección es solo el alcance). Los tres frentes
-del proyecto están cerrados: producto (Tiers 1–9, 2026-07-13), auditoría de calidad (2026-08-16) y Tier 5
-«Ocurrencias» (2026-08-16).
+**La única tarea abierta es `T7-06`** —verificar la UI con la app en marcha, no una característica nueva;
+el estado vivo está en §3, esta sección es solo el alcance—. Los tres frentes del proyecto están cerrados:
+producto (Tiers 1–9, 2026-07-13), auditoría de calidad (2026-08-16) y Tier 5 «Ocurrencias» (2026-08-16).
 
 Lo que falta, falta **a propósito**. Las decisiones y su porqué viven en §4 y en *Decisiones cerradas* del
 [`ROADMAP.md`](ROADMAP.md); en resumen: la app corre **siempre elevada** (`asInvoker` descartado), la
@@ -402,6 +402,84 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-25 — Tier 7: cinco de seis (`T7-01` a `T7-05`)
+
+**Por qué hay otro tier de UI con el Tier 6 recién cerrado.** El Tier 6 nació de las **capturas** y cerró
+la clase «la interfaz afirma algo que no es cierto». Esta revisión partió del **código** de `UI/` y buscó
+lo que una galería no puede enseñar: qué ocurre **al pulsar**, qué se ofrece para negarse después, y qué
+obliga a hacer a mano. Los seis hallazgos son de esa naturaleza —consistencia, prevención de errores y
+eficiencia—, **ninguno es un defecto de corrección**. Que la segunda revisión encuentre cosas distintas a
+la primera no es que la primera fuera mala: es que miraba otra superficie, igual que `T6-11` encontró tres
+cosas que la ronda sobre capturas no podía ver.
+
+**`T7-01` — el hallazgo era una comparación, no un juicio.** Borrar un preset hacía `Remove` + `Persist()`
+en un clic, sin confirmar ni deshacer, con la papelera pegada a «Editar» en una fila de cuatro iconos.
+Aisladamente se puede defender (no es dato del disco). Lo que no se puede defender es que en el **mismo
+producto** *Vaciar historial* sí confirme: dos acciones igual de irreversibles pidiendo cosas distintas.
+Por eso el arreglo no inventa un patrón — reusa el `Flyout` dentro del contenido que ya existía allí,
+que a su vez existe porque **un `ContentDialog` no puede abrir otro**.
+
+Dos detalles que salieron al hacerlo: la pregunta lleva **el nombre del preset dentro** (en una lista de
+papeleras idénticas, «¿Eliminar?» no dice cuál se pierde), y el flyout hay que **capturarlo en `Opening`**
+para poder cerrarlo: su contenido vive en un `Popup`, así que desde el botón que confirma no se sube hasta
+él por el árbol visual. Solo puede haber uno abierto a la vez, de modo que un campo basta.
+
+**`T7-03` — la ayuda estaba donde no hacía falta.** El sistema de archivos tiene descripción bajo su combo
+desde `T1-05`; *Tamaño de unidad de asignación* —el campo que menos gente sabe elegir— no tenía ninguna. Al
+redactarla apareció la trampa: el borrador decía «Predeterminado sirve para casi todo», pero **no existe
+ninguna opción llamada así**: `UpdateAllocationUnits` puebla el combo con tamaños concretos (`4 KB`,
+`64 KB`) y el recomendado llega *preseleccionado*. Habría sido justo el fallo del Tier 6 —la interfaz
+afirmando algo que no es cierto— en una cadena nueva. La prueba barre los cinco idiomas y falla si alguna
+traducción futura vuelve a inventarse la opción.
+
+**`T7-05` — el caso intermedio.** El estado vacío del historial ya distinguía *sin historial* de *sin
+coincidencias*; lo que no había forma de saber es cuándo **hay** resultados pero no todos. Ahora el
+buscador es un `AutoSuggestBox` (por el botón de limpiar; sugerencias apagadas, no hay corpus que sugerir)
+con **nombre accesible propio** —apoyarse en el placeholder como nombre es lo que falló en `T6-02`— y
+debajo un «12 de 340» que se oculta con el historial vacío, porque ahí el estado vacío ya lo dice con
+palabras. Los dos números se formatean con `L.Culture` **antes** de entrar en `L.T`: `string.Format` usa
+`CurrentCulture`, es decir la de Windows, y por ahí volvía `T6-12`.
+
+**`T7-04` — el atajo que había que probar, no razonar.** `Ctrl+I` (salud), `Ctrl+B` (benchmark), `Ctrl+H`
+(historial) y `Ctrl+E` (exportar, dentro del historial). Formatear, reinicializar, verificar capacidad y
+borrado seguro **no llevan atajo a propósito**: una combinación mal pulsada no puede ser el primer paso de
+algo que borra datos, y la confirmación reforzada existe justamente para que llegar ahí cueste.
+
+Lo que no era obvio: los `MenuFlyoutItem` de un `MenuBar` viven en un flyout que puede no haberse
+desplegado **nunca**, así que un `KeyboardAccelerator` puesto ahí bien podía no registrarse. Hay un UI test
+que pulsa `Ctrl+H` **sin abrir el menú** contra el `.exe` real, y está **verificado por reversión**:
+quitando el acelerador, falla. Tampoco hizo falta `KeyboardAcceleratorTextOverride` —el ítem pinta solo el
+texto cuando el acelerador existe de verdad; el *override* es para anunciar uno que no existe—, y el F5 sí
+va escrito a mano en su tooltip porque con un `ToolTip` explícito WinUI ya no añade el suyo.
+
+Y una consecuencia que hubo que atender: `MnuHistory_Click` **no comprobaba `_isBusy`**. No hacía falta
+mientras el único camino fuera el menú, que se deshabilita entero durante una operación; con un atajo
+global sí, y un `ContentDialog` modal encima de un formateo tapa el progreso y el botón de cancelar.
+**Añadir un atajo no es solo añadir una tecla: es añadir un camino nuevo a un handler.**
+
+**`T7-02` — apagar sin decir por qué habría sido peor.** *Herramientas* se ajusta ahora a la unidad
+seleccionada, con las condiciones copiadas **una a una** de las guardas de `Operations.cs` — que **siguen
+ahí**: entre abrir el menú y pulsar, la unidad puede cambiar (`WM_DEVICECHANGE` existe para eso). El menú
+es la primera línea; aquellas son la red. *Comprobar errores* y *Benchmark* no se apagan nunca con una
+unidad seleccionada: chkdsk en solo lectura sí corre sobre el disco de sistema —lo que no se ofrece allí es
+la reparación— y el benchmark no escribe fuera de su archivo temporal.
+
+El motivo va en el ítem (tooltip **y** `HelpText`) y se reescribe al cambiar de idioma, o se quedaría en el
+anterior. **Lo que no está verificado, y va a `T7-06`:** el `HelpText` sí lo comprueba un test —es lo que
+lee un lector de pantalla—, pero que WinUI **pinte** el tooltip sobre un `MenuFlyoutItem` deshabilitado no
+se ha podido confirmar. Una sonda con FlaUI no encontró tooltip ninguno… tampoco sobre un control
+habilitado que sí lo tiene, así que la sonda no prueba nada. Se deja escrito como pregunta abierta en vez
+de como hecho, que es la diferencia entre `T6-11` y la ronda que la precedió.
+
+**Lo que queda abierto** es `T7-06`, en el [`ROADMAP.md`](ROADMAP.md), con los cuatro puntos escritos uno
+a uno: teclado en los `ListView`, foco inicial y orden de tabulación, el tooltip de arriba y la galería en
+los dos temas. Queda **preparada, no hecha**: hay una sonda (`tests/FormatDiskPro.UiTests/T706Probe.cs`) que
+recorre los puntos 1 y 2 y **no afirma nada** —solo cuenta lo que ve—, porque afirmar sin haber mirado es
+justo lo que esta tarea existe para evitar. Con su salida delante hay que **convertirla en asserts o
+borrarla**: una prueba que no puede fallar es ruido verde. No se ha podido ejecutar en la sesión en que se
+escribió —la terminal dejó de estar elevada a mitad, y sin elevación FlaUI no automatiza una app
+`requireAdministrator`—, así que **no está verificada ni siquiera como sonda**.
 
 ### 2026-08-17 — `T6-12` a `T6-15`: se cierra el Tier 6 (15/15)
 

@@ -207,6 +207,41 @@ public sealed class LocalizationTests
         }
     }
 
+    /// <summary>
+    /// `T7-01` y `T7-05`: las dos cadenas nuevas llevan dentro el dato que las hace útiles —el nombre
+    /// del preset que se va a borrar, y cuántas entradas se ven de cuántas hay—. Una traducción que se
+    /// deje un marcador fuera no rompe nada (<c>string.Format</c> ignora los sobrantes): simplemente
+    /// pregunta «¿Eliminar?» sin decir cuál, que es el fallo que la confirmación venía a evitar.
+    /// </summary>
+    [Theory]
+    [InlineData("preset.deleteConfirm", 1)]
+    [InlineData("history.count", 2)]
+    public void ParameterizedStrings_KeepEveryPlaceholder_InEveryLanguage(string key, int placeholders)
+    {
+        Assert.True(L.Map.ContainsKey(key), $"Falta la clave '{key}'.");
+
+        foreach ((string text, int i) in L.Map[key].Select((t, i) => (t, i)))
+            for (int n = 0; n < placeholders; n++)
+                Assert.True(text.Contains($"{{{n}}}", StringComparison.Ordinal),
+                    $"'{key}' en {(AppLang)i} no usa el marcador {{{n}}}: '{text}'");
+    }
+
+    /// <summary>
+    /// `T7-03`: la pista del tamaño de asignación no puede nombrar una opción que no existe. El combo se
+    /// puebla con tamaños concretos («4 KB», «64 KB») y el recomendado llega <b>preseleccionado</b>: no
+    /// hay ningún elemento llamado «Predeterminado» al que mandar al usuario.
+    /// </summary>
+    [Fact]
+    public void AllocationHint_DoesNotNameANonexistentOption()
+    {
+        Assert.True(L.Map.ContainsKey("alloc.hint"), "Falta la clave 'alloc.hint'.");
+
+        string[] ghosts = ["Predeterminado", "Default", "Padrão", "Par défaut", "Predefinito"];
+        foreach ((string text, int i) in L.Map["alloc.hint"].Select((t, i) => (t, i)))
+            Assert.All(ghosts, ghost => Assert.False(text.Contains(ghost, StringComparison.OrdinalIgnoreCase),
+                $"alloc.hint en {(AppLang)i} nombra «{ghost}», que no es una opción del selector."));
+    }
+
     [Fact]
     public void T_ReturnsActiveLanguageString()
     {

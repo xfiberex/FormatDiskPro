@@ -14,13 +14,23 @@
     <Grid MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="12">
 
         <StackPanel Grid.Row="0" Spacing="8">
-            <TextBox x:Name="SearchBox" PlaceholderText="Buscar…" TextChanged="Search_Changed" />
+            <!-- T7-05: AutoSuggestBox por el botón de limpiar que trae de serie (un TextBox obligaba a
+                 borrar a mano lo tecleado). No sugiere nada —no hay corpus que sugerir—, así que se le
+                 apaga la lista desplegable; el nombre accesible se fija en el constructor, para no
+                 depender del placeholder como nombre (la lección de T6-02). -->
+            <AutoSuggestBox x:Name="SearchBox" PlaceholderText="Buscar…" QueryIcon="Find"
+                            IsSuggestionListOpen="False" TextChanged="Search_Changed" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <ComboBox x:Name="CategoryFilter" Grid.Column="0" HorizontalAlignment="Stretch"
                           SelectionChanged="Filter_Changed" />
                 <ComboBox x:Name="ResultFilter" Grid.Column="1" HorizontalAlignment="Stretch"
                           SelectionChanged="Filter_Changed" />
             </Grid>
+            <!-- Cuántas entradas se ven de cuántas hay: con dos filtros y una búsqueda encima, una
+                 lista corta no dice por sí sola si el historial está vacío o si lo está ocultando.
+                 Polite: cambia con cada tecleo, y no debe interrumpir lo que se está escribiendo. -->
+            <TextBlock x:Name="CountText" FontSize="12" Opacity="0.6" HorizontalAlignment="Right"
+                       AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
 
         <ListView x:Name="EntriesList" Grid.Row="1" MaxHeight="320" SelectionMode="None">
@@ -49,7 +59,13 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
             <Button x:Name="OpenFileButton" Content="Abrir archivo" Click="OpenFile_Click" />
-            <Button x:Name="ExportButton" Content="Exportar CSV" Click="Export_Click" />
+            <!-- Ctrl+E dentro del diálogo (T7-04). Aquí el ToolTip lo pone WinUI solo, con el texto del
+                 acelerador, porque el botón no tiene ninguno propio que lo desplace. -->
+            <Button x:Name="ExportButton" Content="Exportar CSV" Click="Export_Click">
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Modifiers="Control" Key="E" />
+                </Button.KeyboardAccelerators>
+            </Button>
             <Button x:Name="ClearButton" Content="Vaciar historial">
                 <Button.Flyout>
                     <Flyout x:Name="ClearFlyout">

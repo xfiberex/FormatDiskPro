@@ -44,6 +44,7 @@ public sealed partial class MainWindow
             SmallFat32Check.IsChecked      = false;
             SmallFat32SizePanel.Visibility = Visibility.Collapsed;
             UpdateSmallFat32Hint();
+            UpdateToolsMenuAvailability();
             return;
         }
 
@@ -168,6 +169,64 @@ public sealed partial class MainWindow
             InfoHealthText.Foreground = HealthDialog.LevelBrush(level, _darkMode);
     }
 
+    /// <summary>
+    /// Ajusta el menú <i>Herramientas</i> a la unidad seleccionada (<c>T7-02</c>): lo que esa unidad no
+    /// admite se ve apagado en vez de aceptarse y rechazarse después en un diálogo.
+    ///
+    /// <para><b>El motivo va escrito en cada ítem</b> —tooltip y <c>HelpText</c> de automatización—,
+    /// porque un ítem gris y mudo es peor que el diálogo que sustituye: deja al usuario sin saber qué
+    /// hizo mal. Las condiciones son EXACTAMENTE las guardas de cada handler en
+    /// <c>MainWindow.Operations.cs</c>, que <b>siguen ahí</b>: el estado de la unidad puede cambiar
+    /// entre que se abre el menú y se pulsa (para eso está <c>WM_DEVICECHANGE</c>), así que esto es la
+    /// primera línea y aquellas son la red.</para>
+    ///
+    /// <para><i>Comprobar errores</i> y <i>Benchmark</i> no se apagan nunca con una unidad seleccionada:
+    /// chkdsk en modo solo lectura sí corre sobre el disco de sistema —lo que no se ofrece allí es la
+    /// reparación— y el benchmark no escribe fuera de su propio archivo temporal.</para>
+    /// </summary>
+    private void UpdateToolsMenuAvailability()
+    {
+        var item = DrivePicker.SelectedItem as DriveViewModel;
+        bool hasDrive  = item is not null;
+        bool blocked   = item is null || item.IsProtected || IsSystemDrive(item.Letter);
+        bool removable = item?.Info.DriveType == DriveType.Removable;
+
+        // El motivo más específico primero: sin unidad no hay nada que explicar sobre protecciones.
+        string noDrive   = L.T("menu.whyNoDrive");
+        string protectedWhy = L.T("menu.whyProtected");
+        string removableWhy = L.T("menu.whyRemovable");
+
+        SetMenuItemAvailability(MnuVerify,    hasDrive && !blocked, !hasDrive ? noDrive : protectedWhy);
+        SetMenuItemAvailability(MnuHealth,    hasDrive,             noDrive);
+        SetMenuItemAvailability(MnuCheck,     hasDrive,             noDrive);
+        SetMenuItemAvailability(MnuBenchmark, hasDrive,             noDrive);
+        SetMenuItemAvailability(MnuUnlock,    hasDrive && !blocked, !hasDrive ? noDrive : protectedWhy);
+        SetMenuItemAvailability(MnuReinit,    hasDrive && removable && !blocked,
+                                !hasDrive ? noDrive : !removable ? removableWhy : protectedWhy);
+        SetMenuItemAvailability(MnuEject,     hasDrive && removable, !hasDrive ? noDrive : removableWhy);
+    }
+
+    /// <summary>
+    /// Habilita o apaga un ítem del menú, poniéndole el motivo cuando queda apagado y quitándoselo
+    /// cuando vuelve. El motivo va en el tooltip <b>y</b> en <c>HelpText</c>: un lector de pantalla
+    /// anuncia el ítem como no disponible, pero no sabría decir por qué.
+    /// </summary>
+    private static void SetMenuItemAvailability(MenuFlyoutItem menuItem, bool enabled, string reason)
+    {
+        menuItem.IsEnabled = enabled;
+
+        if (enabled)
+        {
+            ToolTipService.SetToolTip(menuItem, null);
+            AutomationProperties.SetHelpText(menuItem, "");
+        }
+        else
+        {
+            ToolTipService.SetToolTip(menuItem, reason);
+            AutomationProperties.SetHelpText(menuItem, reason);
+        }
+    }
+
     private void ApplyProtection()
     {
         if (_isDriveProtected)
@@ -198,6 +257,7 @@ public sealed partial class MainWindow
             StatusText.Text = "";
         }
         UpdateWipePassesEnabled();
+        UpdateToolsMenuAvailability();
     }
 
     // Una unidad protegida es la misma señal que una salud crítica, así que lleva el mismo color: se

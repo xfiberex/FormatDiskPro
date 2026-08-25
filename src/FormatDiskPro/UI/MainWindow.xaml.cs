@@ -757,6 +757,9 @@ public sealed partial class MainWindow : Window
         SetSubOptionEnabled(canFormat, [RestFsLbl, RestLabelLbl], RestFsPicker, RestLabelBox);
         UpdateWipePassesEnabled();
         UpdateSmallFat32SizeEnabled();   // gobierna también RestPicker (ver UpdateSmallFat32SizeEnabled)
+        // El menú vuelve habilitado tras una operación, pero cada ítem manda sobre sí mismo: lo que la
+        // unidad seleccionada no admite tiene que seguir apagado (T7-02).
+        if (enabled) UpdateToolsMenuAvailability();
     }
 
     private long GetSelectedAllocBytes() =>

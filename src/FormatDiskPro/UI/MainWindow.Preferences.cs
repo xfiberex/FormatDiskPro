@@ -169,6 +169,7 @@ public sealed partial class MainWindow
         FormatGroupLbl.Text     = L.T("section.format");
         FileSystemPicker.Header = L.T("fs.label");
         AllocUnitPicker.Header  = L.T("alloc.label");
+        AllocHintText.Text      = L.T("alloc.hint");
         VolumeLabelBox.Header   = L.T("label.label");
         OptionsGroupLbl.Text = L.T("options.group");
         QuickFormatCheck.Content = L.T("opt.quick");
@@ -188,7 +189,9 @@ public sealed partial class MainWindow
         RestoreButton.Content    = L.T("btn.restore");
         StartButton.Content      = L.T("btn.start");
         if (!_isBusy) CloseButton.Content = L.T("btn.close");
-        RefreshTooltip.Content   = L.T("tip.refresh");
+        // El atajo va en el tooltip, no traducido: «F5» se llama igual en los cinco idiomas, y con un
+        // ToolTip explícito WinUI ya no añade por su cuenta el texto del KeyboardAccelerator (T7-04).
+        RefreshTooltip.Content   = $"{L.T("tip.refresh")} (F5)";
         // Solo visible cuando no hay unidades elegibles (sin selección): explica el estado vacío.
         DrivePicker.PlaceholderText = L.T("drive.none");
         AutomationProperties.SetName(RefreshButton, L.T("tip.refresh"));
@@ -224,6 +227,10 @@ public sealed partial class MainWindow
 
         if (_isDriveProtected)
             ProtectedBar.Message = L.T("protected.status");
+
+        // Los motivos de los ítems apagados quedan escritos en el propio ítem (T7-02), así que al
+        // cambiar de idioma hay que reescribirlos: si no, se quedan en el idioma anterior.
+        UpdateToolsMenuAvailability();
     }
 
     private bool IsSystemDark()

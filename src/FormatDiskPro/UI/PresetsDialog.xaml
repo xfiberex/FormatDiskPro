@@ -51,9 +51,24 @@
                                     Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="4">
                                 <FontIcon Glyph="&#xE70F;" FontSize="14" />
                             </Button>
-                            <Button x:Name="DeletePresetBtn" Grid.Column="4" Tag="{x:Bind}" Click="DeleteBtn_Click" Loaded="IconBtn_Loaded"
+                            <!-- T7-01: borrar un preset era irreversible y de un solo clic, mientras
+                                 «Vaciar historial» —la otra acción destructiva sin deshacer de la app—
+                                 sí confirmaba. Mismo patrón que allí: flyout dentro del contenido,
+                                 porque un ContentDialog no puede abrir otro. -->
+                            <Button x:Name="DeletePresetBtn" Grid.Column="4" Tag="{x:Bind}" Loaded="IconBtn_Loaded"
                                     Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="4">
                                 <FontIcon Glyph="&#xE74D;" FontSize="14" />
+                                <Button.Flyout>
+                                    <Flyout Opening="DeleteFlyout_Opening">
+                                        <StackPanel Spacing="10" MinWidth="200">
+                                            <TextBlock x:Name="DeleteConfirmText" TextWrapping="Wrap"
+                                                       Loaded="DeleteConfirmText_Loaded" Tag="{x:Bind}" />
+                                            <Button x:Name="DeleteConfirmBtn" Tag="{x:Bind}"
+                                                    HorizontalAlignment="Right" CornerRadius="4"
+                                                    Loaded="DeleteConfirmBtn_Loaded" Click="DeleteConfirm_Click" />
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
                             </Button>
                         </Grid>
                     </DataTemplate>

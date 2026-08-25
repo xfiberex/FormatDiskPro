@@ -1,5 +1,7 @@
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
+using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
 
 namespace FormatDiskPro.UiTests;
 
@@ -82,6 +84,29 @@ public sealed class MenuDialogsTests(AppFixture fixture)
     public void HistoryDialog_OpensAndCloses()
     {
         MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuHistory");
+        var dialog = DialogHelper.WaitForDialog(fixture);
+        try
+        {
+            DialogHelper.WaitForChild(dialog, "SearchBox");
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
+
+    /// <summary>
+    /// `T7-04`: el atajo tiene que funcionar <b>sin abrir el menú</b>, que es de lo que se trata. No es
+    /// una obviedad de WinUI: los <c>MenuFlyoutItem</c> de un <c>MenuBar</c> viven en un flyout que no se
+    /// ha desplegado nunca, así que un <c>KeyboardAccelerator</c> puesto ahí bien podía no registrarse.
+    /// Esta prueba lo ejerce contra el .exe real; si deja de estar registrado, no se abre nada y falla.
+    /// </summary>
+    [Fact]
+    public void HistoryDialog_OpensWithItsKeyboardShortcut_WithoutOpeningTheMenu()
+    {
+        Window.Focus();
+        Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_H);
+
         var dialog = DialogHelper.WaitForDialog(fixture);
         try
         {

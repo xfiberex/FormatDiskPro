@@ -1,4 +1,5 @@
 ﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
@@ -36,6 +37,9 @@ public sealed partial class HistoryDialog : ContentDialog
         Title                      = L.T("history.title");
         CloseButtonText            = L.T("btn.close");
         SearchBox.PlaceholderText  = L.T("history.search");
+        // Nombre propio, no el placeholder: WinUI lo usa como nombre accesible cuando no hay otro, y
+        // apoyarse en eso fue justo lo que falló en T6-02.
+        AutomationProperties.SetName(SearchBox, L.T("history.search"));
         OpenFileButton.Content     = L.T("history.open");
         ExportButton.Content       = L.T("history.export");
         ClearButton.Content        = L.T("history.clear");
@@ -90,9 +94,20 @@ public sealed partial class HistoryDialog : ContentDialog
         EmptyText.Text         = _all.Count == 0 ? L.T("history.empty") : L.T("history.noMatch");
         ClearButton.IsEnabled  = _all.Count > 0;
         ExportButton.IsEnabled = any;
+
+        // «12 de 340» mientras haya historial; con el historial vacío el recuento sobra, porque el
+        // estado vacío ya lo dice con palabras. Los números se formatean con L.Culture (T6-12): van
+        // dentro de una frase traducida, y string.Format los pondría en la cultura de Windows.
+        CountText.Visibility = _all.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        CountText.Text = _all.Count > 0
+            ? L.T("history.count", _rows.Count.ToString(L.Culture), _all.Count.ToString(L.Culture))
+            : "";
     }
 
-    private void Search_Changed(object sender, TextChangedEventArgs e) { if (_ready) ApplyFilter(); }
+    private void Search_Changed(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs e)
+    {
+        if (_ready) ApplyFilter();
+    }
     private void Filter_Changed(object sender, SelectionChangedEventArgs e) { if (_ready) ApplyFilter(); }
 
     private async void Export_Click(object sender, RoutedEventArgs e)

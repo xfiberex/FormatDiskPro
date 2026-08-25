@@ -145,8 +145,30 @@ public sealed partial class PresetsDialog : ContentDialog
         if (i >= 0 && i < _userPresets.Count - 1) { _userPresets.Move(i, i + 1); Persist(); }
     }
 
-    private void DeleteBtn_Click(object sender, RoutedEventArgs e)
+    /// <summary>Pregunta del flyout de borrado, con el nombre del preset que está a punto de perderse.</summary>
+    private void DeleteConfirmText_Loaded(object sender, RoutedEventArgs e)
     {
+        if (sender is TextBlock { Tag: FormatPreset preset } text)
+            text.Text = L.T("preset.deleteConfirm", preset.Name);
+    }
+
+    /// <summary>Etiqueta del botón que confirma el borrado (el de la papelera solo abre el flyout).</summary>
+    private void DeleteConfirmBtn_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b) b.Content = L.T("preset.delete");
+    }
+
+    // El flyout se guarda al abrirse porque después no hay forma cómoda de alcanzarlo: su contenido vive
+    // en un Popup, así que desde el botón que confirma no se sube hasta él por el árbol visual. Solo
+    // puede haber uno abierto a la vez, de modo que un único campo basta.
+    private Flyout? _openDeleteFlyout;
+
+    private void DeleteFlyout_Opening(object? sender, object e) => _openDeleteFlyout = sender as Flyout;
+
+    private void DeleteConfirm_Click(object sender, RoutedEventArgs e)
+    {
+        _openDeleteFlyout?.Hide();
+        _openDeleteFlyout = null;
         if (sender is not FrameworkElement { Tag: FormatPreset preset }) return;
         ExitEditMode();
         _userPresets.Remove(preset);

@@ -120,6 +120,10 @@ public static class L
         ["fs.desc.fat32"]    = ["Alta compatibilidad con dispositivos y consolas. Límite máximo de 4 GB por archivo.", "High compatibility with devices and consoles. Maximum 4 GB per file.", "Alta compatibilidade com dispositivos e consoles. Limite máximo de 4 GB por arquivo.", "Grande compatibilité avec les appareils et les consoles. Limite de 4 Go par fichier.", "Elevata compatibilità con dispositivi e console. Limite massimo di 4 GB per file."],
         ["fs.desc.fat"]      = ["Sistema heredado para unidades muy pequeñas (< 2 GB). Compatibilidad máxima con hardware antiguo.", "Legacy system for very small drives (< 2 GB). Maximum compatibility with old hardware.", "Sistema legado para unidades muito pequenas (< 2 GB). Compatibilidade máxima com hardware antigo.", "Système hérité pour les très petits lecteurs (< 2 Go). Compatibilité maximale avec le matériel ancien.", "Sistema legacy per unità molto piccole (< 2 GB). Massima compatibilità con hardware datato."],
         ["alloc.label"]      = ["Tamaño de unidad de asignación", "Allocation unit size", "Tamanho da unidade de alocação", "Taille d'unité d'allocation", "Dimensione unità di allocazione"],
+        // Pista bajo el selector de unidad de asignación (T7-03). No nombra ninguna opción de la lista:
+        // el combo se puebla con tamaños ("4 KB", "64 KB"), no con un elemento «Predeterminado» — lo que
+        // hay es un valor PRESELECCIONADO por sistema de archivos (ver UpdateAllocationUnits).
+        ["alloc.hint"]       = ["El valor preseleccionado es el recomendado para este sistema de archivos. Un clúster grande favorece los archivos grandes; uno pequeño desperdicia menos espacio con muchos archivos pequeños.", "The preselected value is the recommended one for this file system. A large cluster favours large files; a small one wastes less space with many small files.", "O valor pré-selecionado é o recomendado para este sistema de arquivos. Um cluster grande favorece arquivos grandes; um pequeno desperdiça menos espaço com muitos arquivos pequenos.", "La valeur présélectionnée est celle recommandée pour ce système de fichiers. Un grand cluster favorise les fichiers volumineux ; un petit gaspille moins d'espace avec de nombreux petits fichiers.", "Il valore preselezionato è quello consigliato per questo file system. Un cluster grande favorisce i file di grandi dimensioni; uno piccolo spreca meno spazio con molti file piccoli."],
         // Sin dos puntos (T6-06): es un `Header` de campo, como `fs.label` y `alloc.label` justo encima.
         // Era el único de los tres que puntuaba, y se notaba al verlos en fila.
         ["label.label"]      = ["Etiqueta del volumen", "Volume label", "Rótulo do volume", "Nom de volume", "Etichetta del volume"],
@@ -149,6 +153,13 @@ public static class L
         ["btn.start"]        = ["Iniciar", "Start", "Iniciar", "Démarrer", "Avvia"],
         ["btn.close"]        = ["Cerrar", "Close", "Fechar", "Fermer", "Chiudi"],
         ["btn.cancel"]       = ["Cancelar", "Cancel", "Cancelar", "Annuler", "Annulla"],
+        // Motivos por los que un ítem de *Herramientas* queda apagado (T7-02). Van en el tooltip y en el
+        // HelpText de automatización: un ítem gris que no dice por qué es peor que el diálogo al que
+        // sustituye. Empiezan por «No disponible» porque el ítem ya se ve apagado — la frase completa,
+        // que es lo que lee un lector de pantalla, tiene que decir las dos cosas.
+        ["menu.whyNoDrive"]   = ["No disponible: no hay ninguna unidad seleccionada.", "Not available: no drive is selected.", "Indisponível: nenhuma unidade selecionada.", "Indisponible : aucun lecteur sélectionné.", "Non disponibile: nessuna unità selezionata."],
+        ["menu.whyProtected"] = ["No disponible: la unidad está protegida o es el disco del sistema.", "Not available: the drive is protected or is the system disk.", "Indisponível: a unidade está protegida ou é o disco do sistema.", "Indisponible : le lecteur est protégé ou c'est le disque système.", "Non disponibile: l'unità è protetta o è il disco di sistema."],
+        ["menu.whyRemovable"] = ["No disponible: solo para unidades extraíbles.", "Not available: removable drives only.", "Indisponível: apenas para unidades removíveis.", "Indisponible : uniquement pour les lecteurs amovibles.", "Non disponibile: solo per unità rimovibili."],
         ["tip.refresh"]      = ["Actualizar lista de unidades", "Refresh drive list", "Atualizar lista de unidades", "Actualiser la liste des lecteurs", "Aggiorna elenco unità"],
         ["drive.none"]       = ["No hay unidades — conecta un dispositivo", "No drives — connect a device", "Sem unidades — conecte um dispositivo", "Aucun lecteur — connectez un périphérique", "Nessuna unità — collega un dispositivo"],
 
@@ -218,6 +229,10 @@ public static class L
         ["history.empty"]        = ["Sin operaciones registradas.", "No operations recorded.", "Nenhuma operação registrada.", "Aucune opération enregistrée.", "Nessuna operazione registrata."],
         ["history.noMatch"]      = ["Ninguna operación coincide con el filtro.", "No operations match the filter.", "Nenhuma operação corresponde ao filtro.", "Aucune opération ne correspond au filtre.", "Nessuna operazione corrisponde al filtro."],
         ["history.search"]       = ["Buscar…", "Search…", "Pesquisar…", "Rechercher…", "Cerca…"],
+        // Recuento de lo que se está viendo tras buscar/filtrar (T7-05): «12 de 340». Los dos números
+        // llegan YA formateados con L.Culture desde el diálogo — string.Format usaría la cultura de
+        // Windows y volvería a mezclar separadores ingleses con texto en español (T6-12).
+        ["history.count"]        = ["{0} de {1}", "{0} of {1}", "{0} de {1}", "{0} sur {1}", "{0} di {1}"],
         ["history.filter.allCat"]= ["Todas las categorías", "All categories", "Todas as categorias", "Toutes les catégories", "Tutte le categorie"],
         ["history.filter.allRes"]= ["Todos los resultados", "All results", "Todos os resultados", "Tous les résultats", "Tutti i risultati"],
         ["history.export"]       = ["Exportar CSV", "Export CSV", "Exportar CSV", "Exporter CSV", "Esporta CSV"],
@@ -424,6 +439,9 @@ public static class L
         ["preset.moveDown"]  = ["Bajar", "Move down", "Descer", "Descendre", "Sposta giù"],
         ["preset.edit"]      = ["Editar", "Edit", "Editar", "Modifier", "Modifica"],
         ["preset.delete"]    = ["Eliminar", "Delete", "Excluir", "Supprimer", "Elimina"],
+        // Confirmación de borrado de un preset (T7-01). Lleva el nombre dentro: en una lista de botones
+        // de papelera idénticos, «¿Eliminar?» a secas no dice CUÁL se está a punto de perder.
+        ["preset.deleteConfirm"] = ["¿Eliminar «{0}»?", "Delete “{0}”?", "Excluir «{0}»?", "Supprimer « {0} » ?", "Eliminare «{0}»?"],
 
         ["update.checking"]  = ["Buscando actualizaciones…", "Checking for updates…", "Procurando atualizações…", "Recherche de mises à jour…", "Ricerca aggiornamenti…"],
         ["update.uptodate"]  = ["Ya tienes la última versión ({0}).", "You already have the latest version ({0}).", "Você já tem a versão mais recente ({0}).", "Vous avez déjà la dernière version ({0}).", "Hai già l'ultima versione ({0})."],

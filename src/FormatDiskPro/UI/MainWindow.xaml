@@ -23,19 +23,41 @@
             </StackPanel>
         </Grid>
 
-        <!-- Row 1: MenuBar -->
+        <!-- Row 1: MenuBar
+
+             Atajos (T7-04): SOLO los tres diagnósticos que no escriben nada —salud, benchmark e
+             historial—, más el F5 de la lista de unidades. Formatear, reinicializar, verificar
+             capacidad y borrado seguro NO llevan atajo a propósito: una combinación de teclas mal
+             pulsada no puede ser el primer paso de una operación que borra datos, y su confirmación
+             reforzada (escribir la letra) existe precisamente para que llegar ahí cueste.
+
+             El texto del atajo lo pinta el propio MenuFlyoutItem al haber un KeyboardAccelerator: no
+             hace falta KeyboardAcceleratorTextOverride, que es para cuando NO hay acelerador real y se
+             quiere anunciar uno igualmente. -->
         <MenuBar Grid.Row="1">
             <MenuBarItem x:Name="MnuTools" Title="Herramientas">
                 <MenuFlyoutItem x:Name="MnuVerify" Text="Verificar capacidad real…" Click="MnuVerify_Click" />
-                <MenuFlyoutItem x:Name="MnuHealth" Text="Salud del disco (S.M.A.R.T.)…" Click="MnuHealth_Click" />
+                <MenuFlyoutItem x:Name="MnuHealth" Text="Salud del disco (S.M.A.R.T.)…" Click="MnuHealth_Click">
+                    <MenuFlyoutItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Modifiers="Control" Key="I" />
+                    </MenuFlyoutItem.KeyboardAccelerators>
+                </MenuFlyoutItem>
                 <MenuFlyoutItem x:Name="MnuCheck"  Text="Comprobar errores (chkdsk)…" Click="MnuCheck_Click" />
-                <MenuFlyoutItem x:Name="MnuBenchmark" Text="Benchmark rápido (lectura/escritura)…" Click="MnuBenchmark_Click" />
+                <MenuFlyoutItem x:Name="MnuBenchmark" Text="Benchmark rápido (lectura/escritura)…" Click="MnuBenchmark_Click">
+                    <MenuFlyoutItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Modifiers="Control" Key="B" />
+                    </MenuFlyoutItem.KeyboardAccelerators>
+                </MenuFlyoutItem>
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="MnuUnlock" Text="Quitar protección de escritura…" Click="MnuUnlock_Click" />
                 <MenuFlyoutItem x:Name="MnuReinit" Text="Reinicializar unidad…"     Click="MnuReinit_Click" />
                 <MenuFlyoutItem x:Name="MnuEject"  Text="Expulsar unidad"           Click="MnuEject_Click" />
                 <MenuFlyoutSeparator />
-                <MenuFlyoutItem x:Name="MnuHistory" Text="Ver historial"            Click="MnuHistory_Click" />
+                <MenuFlyoutItem x:Name="MnuHistory" Text="Ver historial"            Click="MnuHistory_Click">
+                    <MenuFlyoutItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Modifiers="Control" Key="H" />
+                    </MenuFlyoutItem.KeyboardAccelerators>
+                </MenuFlyoutItem>
             </MenuBarItem>
             <MenuBarItem x:Name="MnuConfig" Title="Configuración">
                 <MenuFlyoutSubItem x:Name="MnuLang" Text="Idioma">
@@ -179,6 +201,10 @@
 
                         <ComboBox x:Name="AllocUnitPicker" HorizontalAlignment="Stretch"
                                   Header="Tamaño de unidad de asignación" Margin="0,2,0,0" />
+                        <!-- T7-03: era el único campo esotérico sin ayuda, mientras el sistema de
+                             archivos —que casi todo el mundo sabe elegir— sí la tenía. Misma pista y
+                             mismo estilo que FsDescText, justo debajo de su combo. -->
+                        <TextBlock x:Name="AllocHintText" Style="{StaticResource HintTextStyle}" Margin="2,0,0,0" />
 
                         <TextBox x:Name="VolumeLabelBox" MaxLength="32" HorizontalAlignment="Stretch"
                                  Header="Etiqueta del volumen" Margin="0,2,0,0"
