@@ -13,6 +13,86 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
+## [1.25.0] — 2026-08-26
+
+**Nada de esto salió de un informe de fallo: salió de auditar la aplicación entera con ella en marcha.**
+Doce áreas revisadas ejecutando, no leyendo: la compilación, las pruebas unitarias con su cobertura, los
+tests de interfaz conduciendo la app real contra una unidad física, la galería completa de capturas, y el
+arranque y el contraste medidos. Veinte hallazgos. Los que se ven desde fuera están aquí abajo; los otros
+viven en el instalador, en las pruebas y en el guion de publicación, y se resumen en *Interno*.
+
+### Corregido
+
+- **La fecha del historial podía escribirse en otro calendario.** Se registraba con la configuración
+  regional de Windows, y con ella su **calendario**: en un Windows tailandés la entrada se guardaba con el
+  año **2569** en lugar de 2026, y en árabe con el año hégira. Como al releerlas se interpretan siempre
+  igual, esas entradas no se rechazaban: quedaban 543 años en el futuro y **encabezaban la lista**. Ahora
+  la fecha se escribe siempre en calendario gregoriano, igual que ya se leía. Afecta también al nombre del
+  archivo CSV exportado.
+- **El estado de salud del disco salía en inglés.** La tarjeta de la unidad decía «Salud: *Healthy*» en
+  los cinco idiomas, y el diálogo S.M.A.R.T. mostraba «*Healthy* — Normal», el término en inglés junto a
+  su propia traducción. La traducción ya existía y solo se usaba para elegir el color. Si el disco informa
+  de algo que no se reconoce, se sigue mostrando tal cual: ahí no hay nada que traducir.
+- **Un archivo de preferencias ilegible se llevaba por delante los presets.** Si `settings.json` se
+  corrompía —un apagón a media escritura basta—, la app arrancaba con los valores de fábrica y el primer
+  guardado lo sobrescribía, y con él los presets de formateo, que es lo único que la aplicación no sabe
+  reconstruir. Ahora el archivo dañado se aparta como `settings.corrupt.json` y queda anotado en el
+  historial, para poder rescatar de él lo que haga falta.
+- **Dos mensajes de la barra de estado escribían tres puntos** donde las otras 156 cadenas de la
+  aplicación —incluidas sus vecinas de esa misma barra— usan el carácter de puntos suspensivos.
+
+### Añadido
+
+- **La comprobación de actualizaciones al arrancar ya se puede desactivar.** Es la única conexión a
+  Internet que hace la aplicación, y ocurría en cada arranque sin preguntar. Hay una nueva opción en el
+  menú *Configuración*, activada por defecto y en los cinco idiomas. Apagarla no deja la app sin
+  actualizar: *Ayuda → Buscar actualizaciones…* sigue estando, con su verificación por SHA-256 del
+  instalador descargado. El texto de privacidad ahora explica que la comprobación es automática y cómo
+  apagarla.
+- **Al desinstalar se ofrece borrar tus datos.** Las preferencias y el historial viven en
+  `%AppData%\FormatDiskPro`, fuera de la carpeta de instalación, así que la desinstalación no los tocaba y
+  quedaban en el disco sin que nadie lo mencionara — y el historial es un registro fechado de qué unidades
+  se formatearon. Se **pregunta**, con *No* como respuesta por defecto: son tus presets y tu historial, y
+  perderlos por reinstalar sería peor que dejarlos. En una desinstalación silenciosa se conservan.
+
+### Cambiado
+
+- **El instalador ya no ofrece elegir la carpeta de instalación.** No es una simplificación: antes de
+  copiar, el instalador **vacía esa carpeta entera**, cosa necesaria para actualizar entre versiones con
+  distinto conjunto de archivos. Con la página de destino visible, apuntar a una carpeta ya en uso
+  —`D:\Herramientas`, un pendrive, la raíz de una unidad— borraba su contenido sin ningún aviso. Aquí no
+  había nada que elegir: la app no guarda datos junto al ejecutable.
+- **Los avisos de terceros declaran su criterio y lo cumplen.** Ahora distinguen lo que se **redistribuye**
+  con la aplicación de lo que solo se usa para construirla y probarla, e incluyen los que faltaban en ese
+  segundo grupo: xUnit, FlaUI y coverlet.
+
+### Interno
+
+- **El corte de versión no comprobaba los archivos modificados**, solo los que no estaban rastreados. Como
+  el instalador se compila desde el árbol de trabajo, **el binario publicado podía no corresponder al
+  commit etiquetado**. Ahora se comprueban los dos casos, ambos bajo `-AllowDirty`, que es lo que su
+  propia ayuda ya prometía.
+- **Nuevo `-ResumeRelease`** para retomar un corte que muere después de etiquetar. Antes el mensaje de
+  error aconsejaba reintentar y la validación de la cabecera abortaba con «el tag ya existe»: el consejo y
+  la guarda se contradecían justo cuando el corte está a medias. Además, `$env:GH_TOKEN` se limpia al
+  terminar si lo puso el guion.
+- **La galería de capturas perdía cuatro de sus veintiséis tomas en silencio.** Usaba la misma unidad para
+  todas, así que con un disco fijo grande las tomas de FAT32 y de reinicialización **no podían existir**
+  —entre ellas la del diálogo destructivo— y la corrida terminaba diciendo «completada». Ahora cada toma
+  declara qué unidad necesita, se le busca una que la cumpla, el resumen final distingue guardada de
+  omitida, y una galería incompleta termina en error. También comprueba que la ventana que fotografía sea
+  la aplicación y no el diálogo de «instala .NET».
+- **Las dos funciones que construyen la orden de formateo validan por su cuenta** la letra de unidad y el
+  sistema de archivos, como ya hacían sus llamantes. No cierra ningún agujero abierto —se persiguió la
+  ruta y estaba cerrada—: evita que la seguridad de la orden que formatea dependa de que todos los
+  llamantes validen antes.
+- **El formateo de textos traducidos usa el idioma de la aplicación**, no el del sistema. Hoy no cambia
+  ninguna cadena; cambia quién sostiene la regla, que hasta ahora era la disciplina de quien llama.
+- **623 pruebas** (eran 607), y `CONTEXT.md` deja de repetir en su cabecera un estado que ya vivía —y se
+  quedaba atrás— en su propio cuerpo.
+
+---
+
 ## [1.24.1] — 2026-08-26
 
 **La v1.24.0 se publicó bien y se contó mal.** Su página de descarga salió con un texto genérico que no
@@ -535,6 +615,7 @@ cambian lo que la app **cuenta** cuando algo va mal.
 ---
 
 [Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.24.1...HEAD
+[1.25.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.25.0
 [1.24.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.1
 [1.24.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.0
 [1.23.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.23.0
