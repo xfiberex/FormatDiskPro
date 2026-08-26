@@ -28,8 +28,17 @@ public sealed partial class AboutDialog : ContentDialog
         if (!string.IsNullOrEmpty(AppInfo.DonateUrl))
             PrimaryButtonText = L.T("about.donate");
 
-        // Abrir enlaces sin cerrar el diálogo (Cancel = true).
-        PrimaryButtonClick   += (_, args) => { args.Cancel = true; updates.OpenUrl(AppInfo.DonateUrl); };
-        SecondaryButtonClick += (_, args) => { args.Cancel = true; updates.OpenUrl(AppInfo.RepoUrl); };
+        // Abrir enlaces sin cerrar el diálogo (Cancel = true). Si el shell no puede abrir el
+        // navegador, se enseña la dirección en vez de no hacer nada — ver LinkBar en el XAML.
+        PrimaryButtonClick   += (_, args) => { args.Cancel = true; Open(updates, AppInfo.DonateUrl); };
+        SecondaryButtonClick += (_, args) => { args.Cancel = true; Open(updates, AppInfo.RepoUrl); };
+    }
+
+    private void Open(IUpdateService updates, string url)
+    {
+        LinkBar.IsOpen = false;
+        if (updates.OpenUrl(url)) return;
+        LinkBar.Message = L.T("link.failed", url);
+        LinkBar.IsOpen  = true;
     }
 }

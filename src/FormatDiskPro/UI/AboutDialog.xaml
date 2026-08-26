@@ -23,6 +23,10 @@
     <ScrollViewer MaxHeight="460" VerticalScrollBarVisibility="Auto"
                   HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="8" Padding="{StaticResource DialogContentPadding}" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
+            <!-- El enlace se abre en el navegador; si el shell no puede, la dirección se enseña aquí para
+                 poder copiarla. Antes ese fallo se tragaba y el botón simplemente no hacía nada. -->
+            <InfoBar x:Name="LinkBar" Severity="Warning" IsClosable="True" IsOpen="False"
+                     IsTabStop="True" />
             <TextBlock Text="FormatDiskPro" FontWeight="SemiBold" FontSize="18"
                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
             <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="12" />

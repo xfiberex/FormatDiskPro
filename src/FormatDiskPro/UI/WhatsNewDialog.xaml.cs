@@ -30,6 +30,16 @@ public sealed partial class WhatsNewDialog : ContentDialog
         string plain = ReleaseNotes.ToPlainText(notesMarkdown);
         NotesText.Text = string.IsNullOrWhiteSpace(plain) ? L.T("whatsnew.empty") : plain;
 
-        PrimaryButtonClick += (_, _) => updates.OpenUrl(_url);
+        // Si el navegador abre, el diálogo se cierra —que es lo que se espera de «Ver en GitHub»—. Solo
+        // se queda abierto cuando NO abre, y entonces para algo: enseñar la dirección, que antes se
+        // perdía en un catch vacío junto con cualquier señal de que el botón había hecho algo.
+        PrimaryButtonClick += (_, args) =>
+        {
+            LinkBar.IsOpen = false;
+            if (updates.OpenUrl(_url)) return;
+            args.Cancel     = true;
+            LinkBar.Message = L.T("link.failed", _url);
+            LinkBar.IsOpen  = true;
+        };
     }
 }

@@ -47,7 +47,7 @@ public interface IUpdateService
     void LaunchInstaller(string installerPath, bool silent = false);
 
     /// <inheritdoc cref="UpdateService.OpenUrl"/>
-    void OpenUrl(string url);
+    bool OpenUrl(string url);
 }
 
 /// <summary>
@@ -527,9 +527,24 @@ public sealed class UpdateService : IUpdateService
         Process.Start(psi);
     }
 
-    /// <summary>Abre una URL en el navegador predeterminado.</summary>
-    public void OpenUrl(string url)
+    /// <summary>
+    /// Abre una URL en el navegador predeterminado.
+    /// </summary>
+    /// <param name="url">Dirección a abrir.</param>
+    /// <returns><see langword="true"/> si el shell aceptó abrirla.</returns>
+    /// <remarks>
+    /// Sigue sin lanzar —un enlace roto no puede tumbar un diálogo—, pero ahora <b>contesta</b>: antes
+    /// devolvía <c>void</c> y se tragaba el fallo, así que pulsar «Apoyar el proyecto» sin navegador
+    /// asociado no hacía nada en absoluto y el usuario se quedaba pulsando. Quien llama decide cómo
+    /// contarlo; aquí solo se sabe si salió o no.
+    /// </remarks>
+    public bool OpenUrl(string url)
     {
-        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            return true;
+        }
+        catch { return false; }
     }
 }

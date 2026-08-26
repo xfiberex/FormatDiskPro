@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace FormatDiskPro;
 
@@ -63,20 +63,25 @@ public sealed class History(string? path = null) : IHistory
     /// <summary>Vacía el historial dejándolo con la cabecera. Defensivo: nunca lanza.</summary>
     public void Clear() => ClearAt(FilePath);
 
-    /// <summary>Abre el archivo de historial en el editor predeterminado (lo crea si no existe).</summary>
+    /// <summary>
+    /// Abre el archivo de historial en el editor predeterminado (lo crea si no existe).
+    ///
+    /// <para><b>Deja salir la excepción a propósito.</b> Antes la atrapaba y no hacía nada, así que
+    /// pulsar <i>Abrir archivo</i> sin un editor asociado a <c>.log</c> —o con el archivo bloqueado— no
+    /// producía absolutamente ningún efecto: ni ventana, ni aviso, ni rastro. Es el mismo fallo silencioso
+    /// que ya se corrigió en la exportación del CSV, y quien puede contarlo es la UI, que tiene dónde
+    /// escribirlo; un servicio no.</para>
+    /// </summary>
+    /// <exception cref="Exception">Lo que falle al crear el archivo o al pedirle al shell que lo abra.</exception>
     public void Open()
     {
-        try
+        string path = FilePath;
+        if (!File.Exists(path))
         {
-            string path = FilePath;
-            if (!File.Exists(path))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllText(path, Header);
-            }
-            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, Header);
         }
-        catch { /* ignorar */ }
+        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
     }
 
     // ── Implementación sobre una ruta dada ────────────────────────────────────────────────────

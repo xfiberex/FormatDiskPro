@@ -16,6 +16,10 @@
     </ContentDialog.CloseButtonStyle>
 
     <StackPanel Spacing="10" Padding="{StaticResource DialogContentPadding}" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
+        <!-- El enlace se abre en el navegador; si el shell no puede, la dirección se enseña aquí para
+             poder copiarla. Antes ese fallo se tragaba y el botón simplemente no hacía nada. -->
+        <InfoBar x:Name="LinkBar" Severity="Warning" IsClosable="True" IsOpen="False"
+                 IsTabStop="True" />
         <TextBlock x:Name="VersionText" FontWeight="SemiBold"
                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
         <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto"

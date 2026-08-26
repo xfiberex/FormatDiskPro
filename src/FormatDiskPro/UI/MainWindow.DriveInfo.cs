@@ -94,7 +94,7 @@ public sealed partial class MainWindow
         {
             // Igual que en LoadHealthAsync: al no ser `async void`, la excepción moriría en una Task que
             // nadie observa. Se cuenta en el historial y la opción se queda con el tope conservador.
-            _services.History.Log($"DISKSIZE ERROR {letter}: {ex.Message}");
+            _services.History.Log($"DISKSIZE ERROR {letter}: {ErrorText.Describe(ex)}");
             return;
         }
 
@@ -134,7 +134,7 @@ public sealed partial class MainWindow
             // una Task que nadie observa, es decir, en silencio. Se atrapa y se cuenta — la salud pasa a
             // "no disponible", que es exactamente lo que el usuario necesita saber.
             if (_healthLetter == letter) RenderHealth(null);
-            _services.History.Log($"HEALTH ERROR {letter}: {ex.Message}");
+            _services.History.Log($"HEALTH ERROR {letter}: {ErrorText.Describe(ex)}");
             return;
         }
 

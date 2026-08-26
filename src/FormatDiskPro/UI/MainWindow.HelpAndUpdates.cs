@@ -104,7 +104,7 @@ public sealed partial class MainWindow
     {
         ReleaseInfo? rel = null;
         try { rel = await _services.Updates.GetReleaseByTagAsync("v" + AppInfo.VersionString) ?? await _services.Updates.GetLatestAsync(); }
-        catch (Exception ex) { _services.History.Log($"WHATSNEW ERROR: {ex.Message}"); }
+        catch (Exception ex) { _services.History.Log($"WHATSNEW ERROR: {ErrorText.Describe(ex)}"); }
 
         var dlg = new WhatsNewDialog(
             rel?.Version ?? AppInfo.VersionString,
@@ -132,11 +132,11 @@ public sealed partial class MainWindow
         try { rel = await _services.Updates.CheckForUpdateAsync(); }
         catch (Exception ex)
         {
-            _services.History.Log($"UPDATE CHECK ERROR: {ex.Message}");
+            _services.History.Log($"UPDATE CHECK ERROR: {ErrorText.Describe(ex)}");
             if (manual)
             {
                 StatusText.Text = "";
-                await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ex.Message));
+                await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ErrorText.Describe(ex)));
             }
             return;
         }
@@ -158,7 +158,10 @@ public sealed partial class MainWindow
         if (string.IsNullOrEmpty(rel.AssetUrl))
         {
             await ShowInfoAsync(L.T("update.availTitle"), L.T("update.noasset", rel.Version));
-            _services.Updates.OpenUrl(rel.HtmlUrl);
+            // Si el navegador no abre, se dice la dirección: mandar al usuario a una página que nunca
+            // apareció, sin decirle cuál era, es peor que no ofrecerla.
+            if (!_services.Updates.OpenUrl(rel.HtmlUrl))
+                await ShowInfoAsync(L.T("menu.updates"), L.T("link.failed", rel.HtmlUrl));
             return;
         }
 
@@ -248,8 +251,8 @@ public sealed partial class MainWindow
             FormatProgress.Value = 0;
             _lastOperationFailed = true;
             StatusText.Text = "";
-            _services.History.Log($"UPDATE DOWNLOAD ERROR {rel.Version}: {ex.Message}");
-            await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ex.Message));
+            _services.History.Log($"UPDATE DOWNLOAD ERROR {rel.Version}: {ErrorText.Describe(ex)}");
+            await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ErrorText.Describe(ex)));
         }
         finally
         {

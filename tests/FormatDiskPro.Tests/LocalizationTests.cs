@@ -216,6 +216,7 @@ public sealed class LocalizationTests
     [Theory]
     [InlineData("preset.deleteConfirm", 1)]
     [InlineData("history.count", 2)]
+    [InlineData("link.failed", 1)]
     public void ParameterizedStrings_KeepEveryPlaceholder_InEveryLanguage(string key, int placeholders)
     {
         Assert.True(L.Map.ContainsKey(key), $"Falta la clave '{key}'.");

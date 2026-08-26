@@ -168,6 +168,10 @@ public static class L
         ["menu.tagNoDrive"]   = ["(sin unidad)", "(no drive)", "(sem unidade)", "(aucun lecteur)", "(nessuna unità)"],
         ["menu.tagProtected"] = ["(unidad protegida)", "(drive protected)", "(unidade protegida)", "(lecteur protégé)", "(unità protetta)"],
         ["menu.tagRemovable"] = ["(solo extraíbles)", "(removable only)", "(apenas removíveis)", "(amovibles seulement)", "(solo rimovibili)"],
+        // Cuando el shell no abre el navegador, el enlace se enseña para que se pueda copiar a mano. La
+        // dirección va dentro del texto: decir "no se pudo abrir" y ocultar adónde iba no sirve de nada.
+        ["link.failed"]      = ["No se pudo abrir el navegador. La dirección es: {0}", "The browser could not be opened. The address is: {0}", "Não foi possível abrir o navegador. O endereço é: {0}", "Impossible d'ouvrir le navigateur. L'adresse est : {0}", "Impossibile aprire il browser. L'indirizzo è: {0}"],
+        ["history.openFailed"] = ["No se pudo abrir el archivo del historial", "The history file could not be opened", "Não foi possível abrir o arquivo do histórico", "Impossible d'ouvrir le fichier d'historique", "Impossibile aprire il file della cronologia"],
         ["tip.refresh"]      = ["Actualizar lista de unidades", "Refresh drive list", "Atualizar lista de unidades", "Actualiser la liste des lecteurs", "Aggiorna elenco unità"],
         ["drive.none"]       = ["No hay unidades — conecta un dispositivo", "No drives — connect a device", "Sem unidades — conecte um dispositivo", "Aucun lecteur — connectez un périphérique", "Nessuna unità — collega un dispositivo"],
 
@@ -248,6 +252,9 @@ public static class L
         ["history.export"]       = ["Exportar CSV", "Export CSV", "Exportar CSV", "Exporter CSV", "Esporta CSV"],
         ["history.open"]         = ["Abrir archivo", "Open file", "Abrir arquivo", "Ouvrir le fichier", "Apri file"],
         ["history.clear"]        = ["Vaciar historial", "Clear history", "Limpar histórico", "Effacer l'historique", "Cancella cronologia"],
+        // Nombre del tipo de archivo en el diálogo «Guardar como». Lleva la extensión dentro porque es
+        // lo que hace Windows en su propio selector: «CSV (*.csv)», no «CSV» a secas.
+        ["history.exportType"]   = ["CSV (*.csv)", "CSV (*.csv)", "CSV (*.csv)", "CSV (*.csv)", "CSV (*.csv)"],
         ["history.exportFailed"] = ["No se pudo exportar el CSV", "The CSV could not be exported", "Não foi possível exportar o CSV", "Impossible d'exporter le CSV", "Impossibile esportare il CSV"],
         ["history.clearConfirm"] =["¿Vaciar el historial?", "Clear the history?", "Limpar o histórico?", "Effacer l'historique ?", "Cancellare la cronologia?"],
         ["history.cat.format"]   = ["Formato", "Format", "Formatação", "Formatage", "Formattazione"],

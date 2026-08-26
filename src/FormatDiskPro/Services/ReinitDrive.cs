@@ -156,7 +156,9 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
         }
         catch (Exception ex)
         {
-            return new ReinitResult(false, null, ex.Message);
+            // ErrorText y no ex.Message a secas: este detalle es lo ÚNICO que el usuario va a leer
+            // sobre por qué se quedó sin unidad, y una Message vacía lo dejaría sin nada.
+            return new ReinitResult(false, null, ErrorText.Describe(ex));
         }
     }
 }

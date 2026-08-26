@@ -1,4 +1,4 @@
-namespace FormatDiskPro;
+﻿namespace FormatDiskPro;
 
 /// <summary>
 /// Cómo se registra el fallo de una operación en el historial. Vivía dentro de
@@ -16,5 +16,5 @@ public static class OperationFailure
     /// <param name="letter">Letra de la unidad; se normaliza con <see cref="DriveLetter"/>.</param>
     /// <param name="ex">La excepción que abortó la operación.</param>
     public static string LogLine(string operation, char letter, Exception ex) =>
-        HistoryEntry.SanitizeDetail($"{operation} ERROR {DriveLetter.Normalize(letter)}: {ex.Message}");
+        HistoryEntry.SanitizeDetail($"{operation} ERROR {DriveLetter.Normalize(letter)}: {ErrorText.Describe(ex)}");
 }

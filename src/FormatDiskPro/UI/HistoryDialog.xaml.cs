@@ -5,8 +5,7 @@ using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
-using Windows.Storage;
-using Windows.Storage.Pickers;
+using System.Text;
 using Windows.UI;
 
 namespace FormatDiskPro.UI;
@@ -130,31 +129,44 @@ public sealed partial class HistoryDialog : ContentDialog
 
     private void Filter_Changed(object sender, SelectionChangedEventArgs e) { if (_ready) ApplyFilter(); }
 
+    /// <summary>
+    /// Exporta a CSV lo que los filtros dejan ver, preguntando antes dónde guardarlo.
+    ///
+    /// <para>El diálogo es el de Windows por COM (<see cref="SaveFileDialog"/>) y <b>no</b> el
+    /// <c>FileSavePicker</c> de WinRT, que en esta app —elevada siempre— fallaba en el acto sin llegar a
+    /// abrirse. El porqué completo está en <see cref="SaveFileDialog"/>.</para>
+    ///
+    /// <para>Sigue siendo <c>async</c> por la escritura: el CSV de un historial rotado son cientos de
+    /// líneas y el diálogo no debe congelarse mientras se guardan. El que ya no es asíncrono es el
+    /// diálogo del sistema, que es modal por naturaleza y bombea su propio bucle de mensajes.</para>
+    /// </summary>
     private async void Export_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FileSavePicker
-        {
-            SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
-            SuggestedFileName = $"FormatDiskPro-historial-{DateTime.Now:yyyyMMdd-HHmmss}",
-        };
-        picker.FileTypeChoices.Add("CSV", new List<string> { ".csv" });
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, _hwnd);
-
         ExportErrorBar.IsOpen = false;
         try
         {
-            var file = await picker.PickSaveFileAsync();
-            if (file is null) return;
-            await FileIO.WriteTextAsync(file, HistoryEntry.ToCsv(FilteredEntries()));
+            string? path = SaveFileDialog.Show(
+                _hwnd,
+                L.T("history.export"),
+                $"FormatDiskPro-historial-{DateTime.Now:yyyyMMdd-HHmmss}",
+                L.T("history.exportType"),
+                ".csv",
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            if (path is null) return;
+
+            // UTF-8 CON BOM, como escribía FileIO.WriteTextAsync: sin él, Excel abre el CSV en la página
+            // de códigos del sistema y destroza los acentos de los detalles ("Formato rápido").
+            await File.WriteAllTextAsync(path, HistoryEntry.ToCsv(FilteredEntries()), new UTF8Encoding(true));
         }
         catch (Exception ex)
         {
             // Se mantiene el "no romper el diálogo" —el historial sigue abierto y utilizable— pero SIN
             // callar: un fallo silencioso aquí deja al usuario convencido de que tiene su CSV.
+            string detail = ErrorText.Describe(ex);
             ExportErrorBar.Title   = L.T("history.exportFailed");
-            ExportErrorBar.Message = ex.Message;
+            ExportErrorBar.Message = detail;
             ExportErrorBar.IsOpen  = true;
-            _history.Log($"EXPORT ERROR: {ex.Message}");
+            _history.Log($"EXPORT ERROR: {detail}");
         }
     }
 
@@ -172,7 +184,26 @@ public sealed partial class HistoryDialog : ContentDialog
                               new SolidColorBrush(ColorFor(e.Result, _dark)));
     }
 
-    private void OpenFile_Click(object sender, RoutedEventArgs e) => _history.Open();
+    /// <summary>
+    /// Abre <c>history.log</c> en el editor asociado, y <b>dice si no puede</b>.
+    ///
+    /// <para><c>History.Open</c> se tragaba la excepción, así que sin un editor asociado a <c>.log</c>
+    /// este botón no producía ningún efecto visible: ni ventana, ni aviso. Se reusa la misma
+    /// <c>InfoBar</c> del error de exportación — el diálogo ya tiene dónde contar sus fallos, y dos
+    /// barras compitiendo por el mismo hueco sería peor.</para>
+    /// </summary>
+    private void OpenFile_Click(object sender, RoutedEventArgs e)
+    {
+        ExportErrorBar.IsOpen = false;
+        try { _history.Open(); }
+        catch (Exception ex)
+        {
+            ExportErrorBar.Title   = L.T("history.openFailed");
+            ExportErrorBar.Message = ErrorText.Describe(ex);
+            ExportErrorBar.IsOpen  = true;
+            _history.Log($"HISTORY OPEN ERROR: {ErrorText.Describe(ex)}");
+        }
+    }
 
     private void ClearConfirm_Click(object sender, RoutedEventArgs e)
     {

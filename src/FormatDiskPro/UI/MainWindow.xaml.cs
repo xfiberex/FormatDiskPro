@@ -267,7 +267,7 @@ public sealed partial class MainWindow : Window
         _lastOperationFailed = true;
         StatusText.Text = L.T("status.unexpected");
         _services.History.Log(OperationFailure.LogLine(operation, letter, ex));
-        await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ex.Message}");
+        await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ErrorText.Describe(ex)}");
     }
 
     private async Task ShowDialogAsync(string title, string message,
@@ -573,9 +573,9 @@ public sealed partial class MainWindow : Window
             FormatProgress.Value = 0;
             _lastOperationFailed = true;
             StatusText.Text = _cancelRequested ? L.T("status.cancelled") : L.T("status.unexpected");
-            _services.History.Log($"FORMAT ERROR {driveLetter}: {ex.Message}");
+            _services.History.Log($"FORMAT ERROR {driveLetter}: {ErrorText.Describe(ex)}");
             if (!_cancelRequested)
-                await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ex.Message}");
+                await ShowInfoAsync(L.T("msg.error"), $"{L.T("status.unexpected")}\n{ErrorText.Describe(ex)}");
         }
         finally
         {
