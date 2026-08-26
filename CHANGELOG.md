@@ -35,6 +35,10 @@ cuenta al usuario qué acaba de instalar.
   release no mencionaba nada de lo que traía. La sección del CHANGELOG ya era obligatoria para poder
   cortar, así que ahora es de ahí de donde salen. Se escriben sin marca de orden de bytes, que es lo que
   causaba el fallo de *Novedades*.
+- **La medición de cobertura ya no falla al azar.** El corte abortaba con «se pidió cobertura y no se
+  obtuvo informe» siempre que había código sin compilar — es decir, casi siempre, porque se corta justo
+  después de tocar código. La herramienta instrumentaba los ensamblados y la compilación los sobrescribía
+  acto seguido, dejando el informe vacío. Ahora se compila antes de medir.
 
 ---
 

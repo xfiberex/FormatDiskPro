@@ -20,13 +20,13 @@
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
 > entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, y **Tier 7 — Consistencia
 > y descubribilidad de la UI** (`T7-01`–`T7-09`) y **Tier 8 — Lo que solo se ve usando la app**
-> (`T8-01`–`T8-05`), ambos cerrados el 2026-08-26. **No queda ninguna tarea abierta.**
+> (`T8-01`–`T8-06`), ambos cerrados el 2026-08-26. **No queda ninguna tarea abierta.**
 
 ## 🏁 Estado
 
 > **Todo lo que hay aquí es registro.** Los dos últimos tiers
 > —**[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (9/9) y
-> **[Tier 8](#-tier-8--lo-que-solo-se-ve-usando-la-app)** (5/5)— cerraron el **2026-08-26**: no
+> **[Tier 8](#-tier-8--lo-que-solo-se-ve-usando-la-app)** (6/6)— cerraron el **2026-08-26**: no
 > queda ninguna tarea pendiente. Lo que
 > queda fuera está fuera a propósito, y su porqué está en
 > *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
@@ -1825,12 +1825,33 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Verificado por reversión:** quitando el reemplazo, caen las tres pruebas nuevas.
   - *Esfuerzo: bajo · Depende de: T8-04*
 
+- [x] **[T8-06] La cobertura fallaba «al azar», y no era al azar** — **hecho (2026-08-26)**
+  - **Área:** Publicación / `release.ps1`
+  - **Ubicación:** `release.ps1` (bloque de pruebas)
+  - **Qué pasaba:** el corte moría con «Se pidió cobertura y no se obtuvo informe. […] revisa que
+    coverlet.collector siga referenciado», que apunta a un paquete que falta — y no faltaba nada. El
+    informe estaba ahí y estaba **vacío**: 235 bytes con `<packages />`. Cuando la compilación no está al
+    día, coverlet instrumenta los ensamblados que encuentra y **MSBuild los sobrescribe acto seguido** con
+    los recién compilados, así que no queda nada instrumentado que medir.
+  - **Y no era «al azar»:** pasa **siempre** que hay código sin compilar, que es exactamente la situación
+    de cualquier corte real —se publica justo después de tocar código—. Medido: informe vacío 2 de 2 veces
+    con cambios sin compilar, 1,6 MB 4 de 4 con la compilación al día. La primera vez se descartó como
+    transitorio porque al repetir salió bien; lo que pasaba es que la primera corrida había dejado la
+    compilación hecha.
+  - **Hecho:** `dotnet build` de la solución **antes** de medir, y `dotnet test --no-build` después.
+  - **Verificado bajo la condición que fallaba:** se tocó una fuente a propósito para desactualizar la
+    compilación y el ensayo pasó con 98,1 %.
+  - **Por qué importa más de lo que parece:** el mensaje culpaba al paquete equivocado. Un fallo de
+    herramienta que señala mal se arregla dos veces: una buscando donde no es, y otra donde sí.
+  - *Esfuerzo: bajo · Depende de: —*
+
 ---
 
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-26 | **T8-06** | El corte abortaba con «se pidió cobertura y no se obtuvo informe» **siempre que había código sin compilar** —o sea, en cualquier corte real—: coverlet instrumentaba y MSBuild sobrescribía, dejando un informe de 235 bytes. El mensaje culpaba a un paquete que no faltaba. Se compila antes de medir (`dotnet build` + `dotnet test --no-build`). **Verificado desactualizando la compilación a propósito.** |
 | 2026-08-26 | **T8-05** | *Novedades* enseñaba «## FormatDiskPro v1.24.0» con las almohadillas: el cuerpo del release empezaba por una **marca de orden de bytes** (`U+FEFF`) y con ella delante el `#` no estaba al principio de su línea. `U+FEFF` **no es espacio en blanco** para .NET (categoría `Cf`), así que ni `\s` ni `Trim()` lo quitan. Se elimina antes de nada. **Verificado por reversión** + 3 unitarias. |
 | 2026-08-26 | **T8-04** | El corte de la v1.24.0 salió **en verde** y publicó una **plantilla genérica** como notas: sin `-NotesFile`, el script no leía el CHANGELOG. Ahora las notas salen de la sección de esa versión —que el propio script ya exige que exista— y se escriben **sin BOM**, que es lo que causó `T8-05`. El `-DryRun` dice de dónde saldrán. |
 | 2026-08-26 | **T8-03** | Dos `catch` vacíos más de la misma familia: *Abrir archivo* del historial y los enlaces a GitHub/donación no producían **ningún** efecto visible al fallar. `History.Open()` deja salir la excepción y el diálogo la cuenta; `OpenUrl()` devuelve `bool` y quien llama enseña la dirección. *Ver en GitHub* solo se queda abierto si el navegador NO abrió. |

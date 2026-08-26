@@ -355,8 +355,20 @@ try {
         $covDir = Join-Path $env:TEMP "FormatDiskPro_coverage"
         if (Test-Path $covDir) { Remove-Item $covDir -Recurse -Force -ErrorAction SilentlyContinue }
 
+        # Compilar ANTES de medir, y no dejar que lo haga `dotnet test`. Cuando la compilación NO está al
+        # día, coverlet instrumenta los ensamblados que encuentra y acto seguido MSBuild los sobrescribe
+        # con los recién compilados: el informe sale vacío —235 bytes, `<packages />`— y el corte muere en
+        # "Se pidió cobertura y no se obtuvo informe", que suena a que falta el paquete y no es eso.
+        #
+        # No es una sospecha: medido dos veces seguidas. Con cambios sin compilar, informe vacío (2 de 2);
+        # con la compilación al día, 1,6 MB (4 de 4). Y es justo lo que pasa SIEMPRE en un corte de verdad,
+        # porque se corta después de tocar código.
+        Info "Compilando la solución antes de medir cobertura..."
+        & dotnet build $solution --nologo -v q
+        if ($LASTEXITCODE -ne 0) { Die "La compilación de la solución falló. Release abortado." }
+
         Info "Ejecutando pruebas unitarias (con cobertura)..."
-        & dotnet test $solution --nologo --collect:"XPlat Code Coverage" --results-directory $covDir
+        & dotnet test $solution --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $covDir
         if ($LASTEXITCODE -ne 0) { Die "Las pruebas unitarias fallaron. Release abortado." }
         Ok "Pruebas unitarias correctas."
 

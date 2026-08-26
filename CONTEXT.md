@@ -15,7 +15,7 @@
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **588** unitarias (`Core/` al 97,9 %) · **30** de UI sobre la app real — **26 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-17 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **sin tareas abiertas** (Tiers 7 y 8 cerrados el 2026-08-26, 9/9 y 5/5) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **sin tareas abiertas** (Tiers 7 y 8 cerrados el 2026-08-26, 9/9 y 6/6) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
 | **Última actualización** | 2026-08-26 (**Tiers 7 y 8 cerrados**, publicados en la **v1.24.0** y la **v1.24.1**. El 7 acabó en el foco recortado de los diálogos (`T7-09`); el 8 salió de una captura del historial en uso y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), y luego que el propio corte publicaba unas notas vacías (`T8-04`)) |
 
 ---
@@ -150,7 +150,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Publicado | **v1.24.1** (2026-08-26) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **Ninguna.** El **Tier 8** cerró el **2026-08-26**, 5/5: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
+| Tareas abiertas | **Ninguna.** El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
 > quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
@@ -368,7 +368,7 @@ ni mueve datos).
 
 | Versión | Qué trajo |
 |---|---|
-| **1.24.1** | **La v1.24.0 se publicó bien y se contó mal.** Su página de descarga salió con un texto genérico —`release.ps1` no leía el CHANGELOG sin `-NotesFile`— y la pantalla de *Novedades* enseñaba las almohadillas del Markdown, porque el cuerpo del release empezaba por una marca de orden de bytes que dejaba el `#` sin estar al principio de su línea. Arreglado en los dos sitios: el script toma las notas de la sección obligatoria del CHANGELOG y las escribe sin BOM, y el conversor quita esa marca venga de donde venga. |
+| **1.24.1** | **La v1.24.0 se publicó bien y se contó mal.** Su página de descarga salió con un texto genérico —`release.ps1` no leía el CHANGELOG sin `-NotesFile`— y la pantalla de *Novedades* enseñaba las almohadillas del Markdown, porque el cuerpo del release empezaba por una marca de orden de bytes que dejaba el `#` sin estar al principio de su línea. Arreglado en los dos sitios: el script toma las notas de la sección obligatoria del CHANGELOG y las escribe sin BOM, y el conversor quita esa marca venga de donde venga. De paso, la medición de cobertura deja de fallar siempre que hay código sin compilar. |
 | **1.24.0** | **Tiers 7 y 8.** *Exportar CSV* **nunca funcionó en una versión publicada**: el selector de archivos de WinRT rechaza a los procesos elevados y la app siempre lo es, así que fallaba sin abrir ninguna ventana — y lo tapaba un segundo fallo, el mensaje de error llegaba vacío. Detrás cayeron dos `catch` vacíos más (*Abrir archivo* y los enlaces), el motivo de un ítem de menú apagado —que solo recibía un lector de pantalla, porque WinUI no pinta el tooltip de un control deshabilitado— y el marco de foco recortado en los seis diálogos. +19 pruebas (585 → 604). |
 | **1.23.0** | **Tier 6 cerrado: refinado de UX/UI.** Tres cosas que la interfaz afirmaba y no eran ciertas —«Reinicializar unidad» confirmándose bajo el título «Confirmar formato», el campo de confirmación regalando la letra a teclear (y cantándola un lector de pantalla), y una velocidad de rotación cuyo valor era «SSD»— más los sitios donde el dato salía en crudo: bytes en el historial, horas de encendido sin equivalencia, Markdown a la vista en *Novedades* y textos legales que no cabían. Los números pasan a seguir al idioma de la app, no al de Windows. +64 pruebas (521 → 585). |
 | **1.22.0** | **Tier 5 completo.** El espacio sobrante de *FAT32 pequeña* deja de morir sin asignar: se puede crear una segunda partición (exFAT/NTFS) en la misma operación, con la FAT32 siempre primera. La opción aparece por fin en unidades de menos de 32 GB, donde llevaba escondida desde la 1.14.0 — y con ella se arreglaron un selector que ofrecía tamaños que no caben y un tope medido sobre el volumen en vez del disco. El fallo a mitad ya informa de qué particiones quedaron, sin revertir nada. +88 pruebas (433 → 521). |
@@ -404,7 +404,7 @@ ni mueve datos).
 
 ---
 
-### 2026-08-26 — `T8-04` y `T8-05`: el corte salió en verde y publicó unas notas vacías
+### 2026-08-26 — `T8-04` a `T8-06`: el corte salió en verde y publicó unas notas vacías
 
 **La v1.24.0 se publicó bien y contó mal.** El corte terminó impecable —604 pruebas, 98,1 % de cobertura,
 34 UI tests sobre la app real, instalador y `.sha256` subidos— y el cuerpo del release era una **plantilla
@@ -433,9 +433,25 @@ release puede venir de cualquier editor.
 El release de la v1.24.0 se reeditó con las notas de verdad, así que la pantalla de *Novedades* de la
 versión ya publicada también se ve bien: el texto lo pide a la API cada vez, no lo lleva dentro.
 
-**Lo que este par deja escrito:** el Tier 8 salió de mirar la app en uso, y estos dos salieron de mirar
+**`T8-06` — y la cobertura fallaba «al azar», que tampoco era al azar.** Dos veces abortó el corte con
+«Se pidió cobertura y no se obtuvo informe. […] revisa que coverlet.collector siga referenciado». No
+faltaba ningún paquete: el informe estaba ahí y estaba **vacío**, 235 bytes con `<packages />`. Cuando la
+compilación no está al día, coverlet instrumenta los ensamblados que encuentra y **MSBuild los sobrescribe
+acto seguido** con los recién compilados; no queda nada instrumentado que medir.
+
+La primera vez se descartó como transitorio —al repetir salió bien—, y ese razonamiento era **malo**: salió
+bien porque la corrida anterior había dejado la compilación hecha. A la segunda se midió en vez de suponer:
+informe vacío 2 de 2 con cambios sin compilar, 1,6 MB 4 de 4 con la compilación al día. Es decir, falla
+**siempre** en la situación de cualquier corte real, porque se publica justo después de tocar código.
+`dotnet build` antes de medir y `dotnet test --no-build` después, verificado desactualizando la compilación
+a propósito.
+
+Lo que más costó aquí fue el mensaje: culpaba a un paquete que estaba perfectamente puesto. Un fallo de
+herramienta que señala mal se arregla dos veces, una buscando donde no es.
+
+**Lo que este trío deja escrito:** el Tier 8 salió de mirar la app en uso, y estos tres salieron de mirar
 **el resultado de publicarla**. Un corte en verde dice que el código está bien, no que lo publicado esté
-completo.
+completo — y un corte en rojo no siempre acusa a quien tiene la culpa.
 
 ### 2026-08-26 — Tier 8: lo que solo se ve usando la app (`T8-01` a `T8-03`)
 
