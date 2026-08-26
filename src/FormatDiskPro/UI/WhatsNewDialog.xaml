@@ -1,4 +1,4 @@
-<ContentDialog
+﻿<ContentDialog
     x:Class="FormatDiskPro.UI.WhatsNewDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -15,7 +15,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <StackPanel Spacing="10" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
+    <StackPanel Spacing="10" Padding="{StaticResource DialogContentPadding}" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
         <TextBlock x:Name="VersionText" FontWeight="SemiBold"
                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
         <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto"

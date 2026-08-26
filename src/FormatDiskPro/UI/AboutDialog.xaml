@@ -1,4 +1,4 @@
-<ContentDialog
+﻿<ContentDialog
     x:Class="FormatDiskPro.UI.AboutDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -22,7 +22,7 @@
 
     <ScrollViewer MaxHeight="460" VerticalScrollBarVisibility="Auto"
                   HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Spacing="8" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
+        <StackPanel Spacing="8" Padding="{StaticResource DialogContentPadding}" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
             <TextBlock Text="FormatDiskPro" FontWeight="SemiBold" FontSize="18"
                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
             <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="12" />

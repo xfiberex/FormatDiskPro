@@ -1,4 +1,4 @@
-<ContentDialog
+﻿<ContentDialog
     x:Class="FormatDiskPro.UI.ConfirmDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -15,7 +15,7 @@
         </Style>
     </ContentDialog.CloseButtonStyle>
 
-    <StackPanel Spacing="12" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
+    <StackPanel Spacing="12" Padding="{StaticResource DialogContentPadding}" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
         <ScrollViewer MaxHeight="180">
             <TextBlock x:Name="SummaryText" TextWrapping="Wrap" FontSize="12.5"
                        FontFamily="Consolas" Margin="2,0" />
