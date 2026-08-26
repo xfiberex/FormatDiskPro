@@ -1,4 +1,4 @@
-using FormatDiskPro;
+﻿using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -99,4 +99,28 @@ public sealed class ReleaseNotesTests
     [Fact]
     public void ToPlainText_RespectsAnExplicitHardBreak()
         => Assert.Equal("primera\nsegunda", ReleaseNotes.ToPlainText("primera  \nsegunda"));
+
+    /// <summary>
+    /// Una marca de orden de bytes al principio no puede dejar el encabezado en crudo. Pasó de verdad: el
+    /// cuerpo del release de la v1.24.0 empezaba por <c>U+FEFF</c> —PowerShell 5.1 la escribe con
+    /// <c>Out-File -Encoding utf8</c> y viaja intacta hasta la API de GitHub— y la pantalla de
+    /// <i>Novedades</i> enseñaba «## FormatDiskPro v1.24.0» con las almohadillas a la vista.
+    ///
+    /// <para>Lo traicionero es que <c>U+FEFF</c> <b>no</b> es espacio en blanco para .NET (es categoría
+    /// Cf, no Zs): ni <c>\s</c> ni <c>Trim()</c> lo tocan, así que un texto que se ve idéntico se comporta
+    /// distinto. Por eso hay que nombrarlo, y por eso esta prueba existe.</para>
+    /// </summary>
+    [Fact]
+    public void ToPlainText_StripsAByteOrderMarkBeforeTheHeading()
+        => Assert.Equal("FormatDiskPro v1.24.0", ReleaseNotes.ToPlainText("\uFEFF## FormatDiskPro v1.24.0"));
+
+    /// <summary>Y también la que aparece a mitad de texto, al pegar notas de varias fuentes.</summary>
+    [Fact]
+    public void ToPlainText_StripsAByteOrderMarkAnywhere()
+        => Assert.Equal("Novedades\ntexto", ReleaseNotes.ToPlainText("## Novedades\n\uFEFFtexto"));
+
+    /// <summary>Una entrada que solo trae la marca es, a efectos prácticos, una entrada vacía.</summary>
+    [Fact]
+    public void ToPlainText_OnlyAByteOrderMark_IsEmpty()
+        => Assert.Equal("", ReleaseNotes.ToPlainText("\uFEFF"));
 }

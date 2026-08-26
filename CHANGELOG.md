@@ -13,6 +13,26 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
+## [Sin publicar]
+
+### Corregido
+
+- **La pantalla de *Novedades* enseñaba las almohadillas del encabezado**: «`## FormatDiskPro v1.24.0`».
+  El texto que llega de GitHub empezaba por un carácter invisible —una marca de orden de bytes— y con ella
+  delante el marcador de encabezado dejaba de estar al principio de su línea, así que no se quitaba. Ahora
+  se elimina venga donde venga. El release de la v1.24.0 ya se corrigió por su lado, así que esa pantalla
+  se ve bien también en la versión publicada.
+
+### Interno
+
+- **El script de publicación toma las notas del CHANGELOG.** Sin `-NotesFile` generaba una plantilla
+  genérica que no contaba ningún cambio, y así se publicó la v1.24.0: el corte terminó en verde y el
+  release no mencionaba nada de lo que traía. La sección del CHANGELOG ya era obligatoria para poder
+  cortar, así que ahora es de ahí de donde salen. Se escriben sin marca de orden de bytes, que es lo que
+  causaba el fallo de *Novedades*.
+
+---
+
 ## [1.24.0] — 2026-08-26
 
 **Exportar el historial a CSV no funcionaba.** En ninguna versión publicada. El botón estaba, se pulsaba y

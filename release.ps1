@@ -28,7 +28,9 @@
     Versión a publicar (X.Y.Z). Si se omite, usa la del .csproj.
 
 .PARAMETER NotesFile
-    Ruta a un archivo Markdown con las notas del release. Si se omite, se genera una plantilla.
+    Ruta a un archivo Markdown con las notas del release. Si se omite, las notas se toman de la sección
+    del CHANGELOG de esa versión (que este script ya exige que exista), más el pie con el instalador y el
+    .sha256. Antes se generaba una plantilla genérica que no contaba ningún cambio, y así salió la v1.24.0.
 
 .PARAMETER SkipTests
     Omite la ejecución de pruebas (unitarias y de UI) — y con ellas, la medición de cobertura.
@@ -425,22 +427,50 @@ try {
     }
 
     # ── Notas del release ──────────────────────────────────────────────────────
+    # Sin -NotesFile, las notas salen del CHANGELOG. Antes salía una PLANTILLA GENÉRICA —"Instalador
+    # self-contained para Windows x64…" y nada más—, y así se publicó la v1.24.0: el corte fue impecable y
+    # el release no contaba ni uno de sus cambios. Es un fallo que no avisa, porque el script termina en
+    # verde. La sección del CHANGELOG es OBLIGATORIA aquí arriba, así que ya está escrita y revisada: usarla
+    # convierte "olvidarse las notas" en algo que no puede pasar.
+    #
+    # -NotesFile sigue existiendo y sigue mandando: el CHANGELOG es un registro por versión y unas notas de
+    # publicación pueden querer contar lo mismo de otra forma.
     $notesPath = $NotesFile
     $tempNotes = $null
     if (-not $notesPath) {
+        # De "## [X.Y.Z]" hasta el siguiente "## " (la siguiente versión) o el final.
+        $lines = $changelogRaw -split "`r?`n"
+        $start = -1; $end = $lines.Count
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^##\s*\[$([regex]::Escape($Version))\]") { $start = $i + 1; continue }
+            if ($start -ge 0 -and $lines[$i] -match '^##\s') { $end = $i; break }
+        }
+        $body = if ($start -ge 0) { ($lines[$start..($end - 1)] -join "`n").Trim().TrimEnd('-').Trim() } else { "" }
+        if (-not $body) {
+            Die "No se pudo extraer la sección de la $Version del CHANGELOG. Revísala o pasa -NotesFile."
+        }
+
+        $notes = @"
+## FormatDiskPro v$Version
+
+$body
+
+---
+
+Instalador self-contained para Windows x64 (no requiere instalar .NET).
+
+Descarga ``FormatDiskPro-$Version-setup.exe`` y ejecútalo (requiere privilegios de administrador).
+
+El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la app verifica la descarga antes de ejecutarla.
+"@
+
+        # SIN BOM ($false). Out-File -Encoding utf8 en PS 5.1 lo pone, y ese BOM viaja hasta el cuerpo del
+        # release en GitHub: el diálogo de *Novedades* enseñaba entonces "## FormatDiskPro v1.24.0" con las
+        # almohadillas a la vista, porque el marcador de encabezado ya no estaba al principio de la línea.
         $tempNotes = Join-Path $env:TEMP "fdp_release_$Version.md"
-        @(
-            "## FormatDiskPro v$Version",
-            "",
-            "Instalador self-contained para Windows x64 (no requiere instalar .NET).",
-            "",
-            "Descarga ``FormatDiskPro-$Version-setup.exe`` y ejecútalo (requiere privilegios de administrador).",
-            "",
-            "La app comprueba actualizaciones automáticamente desde *Ayuda → Buscar actualizaciones…*.",
-            "",
-            "El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la app verifica la descarga antes de ejecutarla."
-        ) | Out-File -FilePath $tempNotes -Encoding utf8
+        [System.IO.File]::WriteAllText($tempNotes, $notes, (New-Object System.Text.UTF8Encoding($false)))
         $notesPath = $tempNotes
+        Ok "Notas tomadas del CHANGELOG ($($body.Length) caracteres)."
     }
     if (-not (Test-Path $notesPath)) { Die "No se encontró el archivo de notas: $notesPath" }
 
@@ -457,6 +487,8 @@ try {
         Write-Host "    4. git push origin $branch" -ForegroundColor DarkGray
         Write-Host "       git push origin $tag" -ForegroundColor DarkGray
         Write-Host "    5. gh release create $tag (assets: FormatDiskPro-$Version-setup.exe + .sha256)" -ForegroundColor DarkGray
+        $notesOrigin = if ($NotesFile) { "-NotesFile $NotesFile" } else { "la sección [$Version] del CHANGELOG" }
+        Write-Host "       Notas del release: $notesOrigin" -ForegroundColor DarkGray
         if (-not $SkipTests) {
             $uiNote = if ($UiTests) { "unitarias + UI tests (app real)" } else { "solo unitarias (sin -UiTests)" }
             Write-Host "    Pruebas ya ejecutadas en este dry run: $uiNote" -ForegroundColor DarkGray

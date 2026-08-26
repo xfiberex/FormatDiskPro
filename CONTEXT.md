@@ -15,7 +15,7 @@
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **588** unitarias (`Core/` al 97,9 %) · **30** de UI sobre la app real — **26 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-17 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **sin tareas abiertas** (Tiers 7 y 8 cerrados el 2026-08-26, 9/9 y 3/3) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **sin tareas abiertas** (Tiers 7 y 8 cerrados el 2026-08-26, 9/9 y 5/5) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
 | **Última actualización** | 2026-08-26 (**Tiers 7 y 8 cerrados**. El 7 acabó en el foco recortado de los diálogos (`T7-09`); el 8 salió de una captura del historial en uso y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`). Sin publicar todavía) |
 
 ---
@@ -144,13 +144,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **604 / 604** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **607 / 607** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.23.0** (2026-08-17) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **Ninguna.** El **Tier 8** cerró el **2026-08-26**, 3/3: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
+| Tareas abiertas | **Ninguna.** El **Tier 8** cerró el **2026-08-26**, 5/5: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
 > quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
@@ -401,6 +401,39 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-26 — `T8-04` y `T8-05`: el corte salió en verde y publicó unas notas vacías
+
+**La v1.24.0 se publicó bien y contó mal.** El corte terminó impecable —604 pruebas, 98,1 % de cobertura,
+34 UI tests sobre la app real, instalador y `.sha256` subidos— y el cuerpo del release era una **plantilla
+genérica**: «Instalador self-contained para Windows x64…» y nada de lo que traía la versión. Se lanzó
+`release.ps1` sin `-NotesFile`, y sin ese parámetro el script no leía el CHANGELOG: se inventaba un texto.
+
+Es la peor forma de fallo para un script de publicación, porque **no avisa**. La sección del CHANGELOG es
+obligatoria —el script aborta si falta— así que estaba escrita, revisada y a mano; simplemente no se usaba.
+Ahora es de ahí de donde salen las notas cuando no se pasa `-NotesFile`, que sigue mandando cuando se pasa:
+un registro por versión y unas notas de publicación pueden querer contar lo mismo de otra forma. Y el plan
+del `-DryRun` dice de dónde van a salir, que es justo donde se habría visto antes de publicar.
+
+**`T8-05` — y la plantilla arrastraba un carácter invisible.** La pantalla de *Novedades* mostraba
+«`## FormatDiskPro v1.24.0`» con las almohadillas a la vista, aunque `ToPlainText` quita encabezados desde
+siempre. El cuerpo del release empezaba por una **marca de orden de bytes** (`U+FEFF`): `Out-File
+-Encoding utf8` de PowerShell 5.1 la escribe, y viaja intacta hasta la API de GitHub. Con ella delante, el
+`#` ya no estaba al principio de su línea y la expresión regular no lo veía.
+
+Lo traicionero es que **`U+FEFF` no es espacio en blanco para .NET** —categoría `Cf`, no `Zs`—, así que ni
+`\s` ni `Trim()` lo tocan: hay que nombrarlo. Se quita antes de cualquier otra cosa, y se quitan todas y no
+solo la primera, porque al pegar notas de varias fuentes puede aparecer a mitad del texto. El origen queda
+arreglado en `T8-04` (ya escribe sin BOM), pero el conversor no puede fiarse de eso: el cuerpo de un
+release puede venir de cualquier editor.
+
+**Verificado por reversión:** quitando el reemplazo caen las tres pruebas nuevas, y con él vuelven a verde.
+El release de la v1.24.0 se reeditó con las notas de verdad, así que la pantalla de *Novedades* de la
+versión ya publicada también se ve bien: el texto lo pide a la API cada vez, no lo lleva dentro.
+
+**Lo que este par deja escrito:** el Tier 8 salió de mirar la app en uso, y estos dos salieron de mirar
+**el resultado de publicarla**. Un corte en verde dice que el código está bien, no que lo publicado esté
+completo.
 
 ### 2026-08-26 — Tier 8: lo que solo se ve usando la app (`T8-01` a `T8-03`)
 

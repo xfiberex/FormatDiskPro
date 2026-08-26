@@ -20,13 +20,13 @@
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
 > entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, y **Tier 7 — Consistencia
 > y descubribilidad de la UI** (`T7-01`–`T7-09`) y **Tier 8 — Lo que solo se ve usando la app**
-> (`T8-01`–`T8-03`), ambos cerrados el 2026-08-26. **No queda ninguna tarea abierta.**
+> (`T8-01`–`T8-05`), ambos cerrados el 2026-08-26. **No queda ninguna tarea abierta.**
 
 ## 🏁 Estado
 
 > **Todo lo que hay aquí es registro.** Los dos últimos tiers
 > —**[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (9/9) y
-> **[Tier 8](#-tier-8--lo-que-solo-se-ve-usando-la-app)** (3/3)— cerraron el **2026-08-26**: no
+> **[Tier 8](#-tier-8--lo-que-solo-se-ve-usando-la-app)** (5/5)— cerraron el **2026-08-26**: no
 > queda ninguna tarea pendiente. Lo que
 > queda fuera está fuera a propósito, y su porqué está en
 > *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
@@ -1791,12 +1791,48 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     ninguna forma de saber si el problema es suyo, del programa o del clic.
   - *Esfuerzo: bajo · Depende de: T8-02*
 
+### Abiertas por la publicación de la v1.24.0
+
+- [x] **[T8-04] El corte publicó unas notas que no contaban nada** — **hecho (2026-08-26)**
+  - **Área:** Publicación / `release.ps1`
+  - **Ubicación:** `release.ps1` (bloque *Notas del release*)
+  - **Qué pasaba:** sin `-NotesFile`, el script generaba una **plantilla genérica** —«Instalador
+    self-contained para Windows x64…» y poco más— y la publicaba como cuerpo del release. Así salió la
+    v1.24.0: el corte terminó **en verde**, con sus 604 pruebas y su 98,1 % de cobertura, y el release no
+    mencionaba ni uno solo de sus cambios. Es la peor clase de fallo de un script de publicación: no
+    avisa.
+  - **Hecho:** sin `-NotesFile`, las notas salen de **la sección del CHANGELOG de esa versión**, más el
+    pie del instalador y el `.sha256`. Esa sección ya es **obligatoria** —el script aborta si falta—, así
+    que está escrita y revisada: olvidarse las notas deja de ser posible. `-NotesFile` sigue mandando
+    cuando se pasa, porque un registro por versión y unas notas de publicación pueden querer contar lo
+    mismo de otra forma.
+  - **Y el plan del `-DryRun` dice de dónde saldrán**, que es donde se habría visto antes de publicar.
+  - *Esfuerzo: bajo · Depende de: —*
+
+- [x] **[T8-05] *Novedades* enseñaba las almohadillas del encabezado** — **hecho (2026-08-26)**
+  - **Área:** Corrección / novedades
+  - **Ubicación:** `src/FormatDiskPro/Core/ReleaseNotes.cs`
+  - **Qué pasaba:** la pantalla de *Novedades* de la v1.24.0 mostraba «`## FormatDiskPro v1.24.0`» con las
+    almohadillas a la vista, pese a que `ToPlainText` quita los encabezados desde siempre. La culpa era de
+    un carácter invisible: el cuerpo del release empezaba por una **marca de orden de bytes** (`U+FEFF`),
+    que `Out-File -Encoding utf8` de PowerShell 5.1 escribe y que viaja intacta hasta la API de GitHub.
+    Con ella delante, el `#` ya no estaba al principio de su línea y la expresión regular no lo veía.
+  - **Lo traicionero:** `U+FEFF` **no es espacio en blanco** para .NET —es categoría `Cf`, no `Zs`—, así
+    que ni `\s` ni `Trim()` lo tocan. Un texto que se ve idéntico se comporta distinto.
+  - **Hecho:** se quita la marca —**todas**, no solo la primera— antes de cualquier otra cosa. Arreglado
+    también el origen (`T8-04` escribe ya sin BOM), pero el conversor no puede fiarse de eso: el cuerpo de
+    un release puede venir de cualquier sitio, incluido un editor que lo guarde con marca.
+  - **Verificado por reversión:** quitando el reemplazo, caen las tres pruebas nuevas.
+  - *Esfuerzo: bajo · Depende de: T8-04*
+
 ---
 
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-26 | **T8-05** | *Novedades* enseñaba «## FormatDiskPro v1.24.0» con las almohadillas: el cuerpo del release empezaba por una **marca de orden de bytes** (`U+FEFF`) y con ella delante el `#` no estaba al principio de su línea. `U+FEFF` **no es espacio en blanco** para .NET (categoría `Cf`), así que ni `\s` ni `Trim()` lo quitan. Se elimina antes de nada. **Verificado por reversión** + 3 unitarias. |
+| 2026-08-26 | **T8-04** | El corte de la v1.24.0 salió **en verde** y publicó una **plantilla genérica** como notas: sin `-NotesFile`, el script no leía el CHANGELOG. Ahora las notas salen de la sección de esa versión —que el propio script ya exige que exista— y se escriben **sin BOM**, que es lo que causó `T8-05`. El `-DryRun` dice de dónde saldrán. |
 | 2026-08-26 | **T8-03** | Dos `catch` vacíos más de la misma familia: *Abrir archivo* del historial y los enlaces a GitHub/donación no producían **ningún** efecto visible al fallar. `History.Open()` deja salir la excepción y el diálogo la cuenta; `OpenUrl()` devuelve `bool` y quien llama enseña la dirección. *Ver en GitHub* solo se queda abierto si el navegador NO abrió. |
 | 2026-08-26 | **T8-02** | Los errores podían salir **vacíos**: el mensaje de una excepción venida de WinRT es la cadena vacía cuando su `IRestrictedErrorInfo` no trae descripción. `ErrorText.Describe(ex)` respalda con tipo + `HRESULT`, y lo usan los once sitios que enseñan o registran un error. Una prueba barre las fuentes y falla si vuelve a aparecer el mensaje en crudo. Fue lo que diagnosticó `T8-01`. +6 unitarias. |
 | 2026-08-26 | **T8-01** | ***Exportar CSV* nunca funcionó en una versión publicada.** El `FileSavePicker` de WinRT rechaza a los procesos elevados y la app siempre lo es: `COMException 0x80004005` en el acto, sin abrir ninguna ventana. Sustituido por el diálogo «Guardar como» de Windows por COM (`IFileSaveDialog`). **Medido con una sonda de UI** contra el .exe real —antes, ninguna ventana nueva; después, la ventana `Exportar CSV` de clase `#32770`—, convertida luego en prueba de regresión. No había NINGUNA prueba de la exportación: por ahí viajó el fallo. |
