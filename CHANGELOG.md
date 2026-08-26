@@ -13,7 +13,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
-## [Sin publicar]
+## [1.24.1] — 2026-08-26
+
+**La v1.24.0 se publicó bien y se contó mal.** Su página de descarga salió con un texto genérico que no
+mencionaba ninguno de sus cambios, y la pantalla de *Novedades* enseñaba encima las almohadillas del
+Markdown. Nada de eso afectaba a lo que hace la aplicación con tus unidades — pero sí a lo único que le
+cuenta al usuario qué acaba de instalar.
 
 ### Corregido
 
@@ -525,7 +530,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.24.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.24.1...HEAD
+[1.24.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.1
 [1.24.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.0
 [1.23.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.23.0
 [1.22.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.22.0
