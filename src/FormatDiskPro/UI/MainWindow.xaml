@@ -75,6 +75,7 @@
                 <MenuFlyoutSubItem x:Name="MnuPresets" Text="Presets" />
                 <MenuFlyoutSeparator />
                 <ToggleMenuFlyoutItem x:Name="MnuNotify" Text="Avisar al terminar" Click="MnuNotify_Click" />
+                <ToggleMenuFlyoutItem x:Name="MnuCheckUpdatesOnStartup" Text="Buscar actualizaciones al iniciar" Click="MnuCheckUpdatesOnStartup_Click" />
             </MenuBarItem>
             <MenuBarItem x:Name="MnuHelp" Title="Ayuda">
                 <MenuFlyoutItem x:Name="MnuUpdates" Text="Buscar actualizaciones…" Click="MnuUpdates_Click" />

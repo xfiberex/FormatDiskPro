@@ -52,6 +52,20 @@ public sealed partial class MainWindow
         _settings.Save();
     }
 
+    /// <summary>
+    /// Activa o desactiva la comprobación de actualizaciones al arrancar (`T9-18`).
+    /// </summary>
+    /// <remarks>
+    /// Solo afecta a la comprobación <b>automática</b>: <i>Ayuda → Buscar actualizaciones…</i> sigue
+    /// disponible y sigue verificando el instalador por SHA-256. Desactivarlo no deja la app sin
+    /// actualizar, la deja sin salir a la red por su cuenta.
+    /// </remarks>
+    private void MnuCheckUpdatesOnStartup_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.CheckUpdatesOnStartup = MnuCheckUpdatesOnStartup.IsChecked;
+        _settings.Save();
+    }
+
     // ── Secure-wipe passes (#14) ──────────────────────────────────
 
     /// <summary>Sincroniza el selector de pasadas con la preferencia persistida (validada a 1/3/7) y su estado.</summary>
@@ -155,6 +169,7 @@ public sealed partial class MainWindow
         MnuThemeDark.Text   = L.T("menu.theme.dark");
         MnuPresets.Text  = L.T("menu.presets");
         MnuNotify.Text   = L.T("menu.notify");
+        MnuCheckUpdatesOnStartup.Text = L.T("menu.checkUpdatesOnStartup");
         MnuHelp.Title    = L.T("menu.help");
         MnuUpdates.Text  = L.T("menu.updates");
         MnuWhatsNew.Text = L.T("menu.whatsnew");

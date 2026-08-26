@@ -181,4 +181,79 @@ public sealed class AppSettingsTests : IDisposable
         Assert.False(fresh.CreateSecondPartition);
         Assert.Equal("exFAT", fresh.SecondPartitionFileSystem);
     }
+
+    /// <summary>
+    /// Un <c>settings.json</c> ilegible se <b>aparta</b>, no se pierde (`T9-08`).
+    ///
+    /// <para><b>El fallo que fija:</b> cargar era defensivo —ante un JSON roto se arrancaba con los
+    /// valores por defecto, que es lo correcto— pero el archivo se quedaba donde estaba, y las
+    /// preferencias se guardan al salir. El primer <see cref="AppSettings.Save"/> lo sobrescribía y con
+    /// él se iban los <b>presets del usuario</b>, que son el único dato que la app no sabe reconstruir.
+    /// Un fallo de lectura no puede destruir el dato que no se pudo leer.</para>
+    ///
+    /// <para>Se comprueba lo que importa: que la app arranque, que el contenido original siga existiendo
+    /// con otro nombre, y que <see cref="AppSettings.PreservedUnreadablePath"/> lo diga — es lo que la
+    /// ventana principal usa para dejar constancia en el historial.</para>
+    /// </summary>
+    [Fact]
+    public void Load_UnreadableFile_IsPreservedInsteadOfOverwritten()
+    {
+        Directory.CreateDirectory(_dir);
+        const string original = """{"UserPresets": [{"Name": "El mío", "Fi""";   // truncado a la mitad
+        File.WriteAllText(_path, original);
+
+        var settings = AppSettings.Load(_path);
+
+        // Arranca, y con los valores por defecto.
+        Assert.False(settings.LoadedFromFile);
+        Assert.Empty(settings.UserPresets);
+
+        // El archivo ilegible ya no ocupa la ruta que el próximo Save() pisaría...
+        Assert.False(File.Exists(_path));
+
+        // ...sino que sigue existiendo, íntegro, con su nombre nuevo.
+        string preserved = AppSettings.UnreadablePathFor(_path);
+        Assert.Equal(preserved, settings.PreservedUnreadablePath);
+        Assert.True(File.Exists(preserved));
+        Assert.Equal(original, File.ReadAllText(preserved));
+
+        // Y guardar encima ya no puede llevárselo por delante.
+        settings.Save(_path);
+        Assert.Equal(original, File.ReadAllText(preserved));
+    }
+
+    /// <summary>
+    /// La comprobación de actualizaciones al arrancar viene <b>activada</b> y se puede apagar (`T9-18`).
+    ///
+    /// <para>El valor por defecto importa: es la única conexión a Internet de la app, y desactivarla de
+    /// serie dejaría sin actualizaciones —ni avisos de seguridad— a quien nunca abra el menú. Lo que hacía
+    /// falta no era apagarla, sino que se <b>pudiera</b> apagar; antes no había forma.</para>
+    ///
+    /// <para>Se comprueba también que persista: una preferencia de privacidad que se olvida al reiniciar
+    /// no es una preferencia.</para>
+    /// </summary>
+    [Fact]
+    public void CheckUpdatesOnStartup_DefaultsToOn_AndPersistsWhenTurnedOff()
+    {
+        Assert.True(new AppSettings().CheckUpdatesOnStartup);
+
+        Directory.CreateDirectory(_dir);
+        new AppSettings { CheckUpdatesOnStartup = false }.Save(_path);
+
+        Assert.False(AppSettings.Load(_path).CheckUpdatesOnStartup);
+    }
+
+    /// <summary>Un archivo legible no se aparta: la ruta de rescate solo se activa cuando hace falta.</summary>
+    [Fact]
+    public void Load_ValidFile_IsNotPreserved()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(_path, """{"Language": "fr"}""");
+
+        var settings = AppSettings.Load(_path);
+
+        Assert.Null(settings.PreservedUnreadablePath);
+        Assert.True(File.Exists(_path));
+        Assert.False(File.Exists(AppSettings.UnreadablePathFor(_path)));
+    }
 }

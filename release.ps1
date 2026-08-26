@@ -55,6 +55,19 @@
 .PARAMETER DryRun
     Valida y muestra el plan, pero no modifica nada (ni build, ni git, ni GitHub).
 
+.PARAMETER ResumeRelease
+    Retoma un corte que murió DESPUÉS de etiquetar: crea solo el GitHub Release, con el tag y el
+    instalador que ya existen.
+
+    Existe porque el consejo y la guarda se contradecían. Si `gh release create` fallaba, el mensaje decía
+    "el tag ya está publicado; puedes reintentar el release" — pero al reintentar, la validación de arriba
+    abortaba con "El tag vX.Y.Z ya existe localmente". Seguir el consejo al pie de la letra no llevaba a
+    ningún sitio, justo en el momento en que el corte está a medias y hay prisa.
+
+    Con este flag se omiten las pruebas, el bump, la compilación, el commit y el tag —todo eso ya ocurrió—
+    y se comprueba que estén el instalador y su .sha256 en installer\Output. Si el tag aún no está en
+    origin, se sube.
+
 .EXAMPLE
     .\release.ps1 -Version 1.2.0
     .\release.ps1 -Version 1.2.0 -UiTests   # recomendado: ejerce también la app real
@@ -69,6 +82,7 @@ param(
     [switch]$UiTests,
     [switch]$AllowDirty,
     [switch]$DryRun,
+    [switch]$ResumeRelease,
     # Firma de código (opcional): se reenvían a build-installer.ps1.
     [string]$CertThumbprint,
     [string]$CertFile,
@@ -332,9 +346,32 @@ try {
 
     # ¿Tag ya existe? (local o remoto)
     $localTag  = (& git tag --list $tag)
-    if ($localTag) { Die "El tag $tag ya existe localmente. Usa otra versión o bórralo antes." }
     $remoteTag = (& git ls-remote --tags origin $tag 2>$null)
-    if ($remoteTag) { Die "El tag $tag ya existe en origin. Usa otra versión." }
+
+    if ($ResumeRelease) {
+        # Retomando: el tag TIENE que existir ya; es lo que se está reaprovechando.
+        if (-not $localTag) {
+            Die "-ResumeRelease necesita que el tag $tag ya exista localmente, y no existe. Si el corte no llegó a etiquetar, lánzalo normal (sin -ResumeRelease)."
+        }
+        Info "Retomando el release de $tag (se omiten pruebas, bump, compilación, commit y tag)."
+    }
+    else {
+        if ($localTag) {
+            Die @"
+El tag $tag ya existe localmente.
+
+Si un corte anterior murió DESPUÉS de etiquetar y solo falta publicar el release:
+
+    .\release.ps1 -Version $Version -ResumeRelease
+
+Si lo que quieres es rehacer el corte entero, borra el tag primero:
+
+    git tag -d $tag
+    git push origin :refs/tags/$tag   # solo si llegó a subirse
+"@
+        }
+        if ($remoteTag) { Die "El tag $tag ya existe en origin. Usa otra versión, o retoma con -ResumeRelease si solo falta publicar el release." }
+    }
 
     # ── Estado del árbol de trabajo ──────────────────────────────────────────
     # Se miran las DOS cosas, y son problemas distintos:
@@ -354,7 +391,11 @@ try {
     $untracked = @($status | Where-Object { $_ -match '^\?\?' })
     $modified  = @($status | Where-Object { $_ -notmatch '^\?\?' })
 
-    if ($modified -and -not $AllowDirty) {
+    # Al retomar no se commitea ni se compila nada, así que un árbol sucio es irrelevante: lo que se va a
+    # publicar es el instalador que ya existe.
+    if ($ResumeRelease -and $modified) {
+        Info "Árbol sucio, irrelevante al retomar: no se commitea ni se recompila nada ($($modified.Count) archivos modificados)."
+    } elseif ($modified -and -not $AllowDirty) {
         Warn "El árbol de trabajo tiene cambios sin commitear, y 'git add -u' los incluiría TODOS en el commit del release:"
         $modified | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
         Die "Commitea o revierte estos cambios y reintenta, o usa -AllowDirty si de verdad quieres publicarlos con el release."
@@ -375,7 +416,9 @@ try {
     # ── Pruebas ──────────────────────────────────────────────────────────────
     $uiSummary = $null   # cobertura real de UI de este corte; se repite en el resumen final
     $coverage  = $null   # cobertura de línea de Core/ (T2-04)
-    if ($SkipTests) {
+    if ($ResumeRelease) {
+        Warn "Pruebas omitidas (-ResumeRelease): ya se ejecutaron en el corte que dejó este tag."
+    } elseif ($SkipTests) {
         Warn "Pruebas omitidas (-SkipTests)."
     } else {
         # Se mide la cobertura en la misma pasada (T2-04): un corte no debe poder afirmar "389 pruebas"
@@ -519,18 +562,31 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         Write-Host ""
         Warn "DRY RUN — no se modificará nada. Plan:"
         $signNote = if ($CertThumbprint -or $CertFile) { " (firmando con Authenticode)" } else { " (SIN firmar — la app verificará por el .sha256)" }
-        Write-Host "    1. Actualizar <Version> a $Version en el .csproj" -ForegroundColor DarkGray
-        Write-Host "    2. build-installer.ps1 -Version $Version$signNote" -ForegroundColor DarkGray
-        $dirtyNote = if ($modified.Count -gt 0) { " — AHORA MISMO son $($modified.Count), listados arriba" } else { " — ahora mismo no hay ninguno" }
-        Write-Host "    3. git add -u  (todos los archivos rastreados modificados$dirtyNote)" -ForegroundColor DarkGray
-        Write-Host "       git commit -m 'release: v$Version'" -ForegroundColor DarkGray
-        Write-Host "       git tag -a $tag" -ForegroundColor DarkGray
-        Write-Host "    4. git push origin $branch" -ForegroundColor DarkGray
-        Write-Host "       git push origin $tag" -ForegroundColor DarkGray
-        Write-Host "    5. gh release create $tag (assets: FormatDiskPro-$Version-setup.exe + .sha256)" -ForegroundColor DarkGray
+
+        # El plan tiene que decir lo que va a pasar DE VERDAD. Con -ResumeRelease casi todo se salta, y
+        # listar los pasos completos sería la misma clase de mentira que el corte que publicaba una
+        # plantilla genérica como notas (`T8-04`).
+        if ($ResumeRelease) {
+            Write-Host "    (-ResumeRelease: se OMITEN pruebas, bump, compilación, commit y tag)" -ForegroundColor DarkGray
+            $tagNote = if ($remoteTag) { "ya está en origin" } else { "solo en local: se subirá" }
+            Write-Host "    1. Reutilizar el tag $tag ($tagNote)" -ForegroundColor DarkGray
+            Write-Host "    2. Reutilizar installer\Output\FormatDiskPro-$Version-setup.exe y su .sha256" -ForegroundColor DarkGray
+            Write-Host "    3. gh release create $tag (assets: FormatDiskPro-$Version-setup.exe + .sha256)" -ForegroundColor DarkGray
+        }
+        else {
+            Write-Host "    1. Actualizar <Version> a $Version en el .csproj" -ForegroundColor DarkGray
+            Write-Host "    2. build-installer.ps1 -Version $Version$signNote" -ForegroundColor DarkGray
+            $dirtyNote = if ($modified.Count -gt 0) { " — AHORA MISMO son $($modified.Count), listados arriba" } else { " — ahora mismo no hay ninguno" }
+            Write-Host "    3. git add -u  (todos los archivos rastreados modificados$dirtyNote)" -ForegroundColor DarkGray
+            Write-Host "       git commit -m 'release: v$Version'" -ForegroundColor DarkGray
+            Write-Host "       git tag -a $tag" -ForegroundColor DarkGray
+            Write-Host "    4. git push origin $branch" -ForegroundColor DarkGray
+            Write-Host "       git push origin $tag" -ForegroundColor DarkGray
+            Write-Host "    5. gh release create $tag (assets: FormatDiskPro-$Version-setup.exe + .sha256)" -ForegroundColor DarkGray
+        }
         $notesOrigin = if ($NotesFile) { "-NotesFile $NotesFile" } else { "la sección [$Version] del CHANGELOG" }
         Write-Host "       Notas del release: $notesOrigin" -ForegroundColor DarkGray
-        if (-not $SkipTests) {
+        if (-not $SkipTests -and -not $ResumeRelease) {
             $uiNote = if ($UiTests) { "unitarias + UI tests (app real)" } else { "solo unitarias (sin -UiTests)" }
             Write-Host "    Pruebas ya ejecutadas en este dry run: $uiNote" -ForegroundColor DarkGray
             if ($coverage) {
@@ -544,6 +600,28 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     }
 
     # ── 1. Bump de versión ───────────────────────────────────────────────────
+    if ($ResumeRelease) {
+        # Nada de esto se rehace: ya ocurrió en el corte que dejó el tag. Solo se comprueba que los dos
+        # assets sigan donde los dejó, porque sin ellos no hay release que publicar.
+        $setup     = Join-Path $outputDir "FormatDiskPro-$Version-setup.exe"
+        $setupHash = "$setup.sha256"
+        if (-not (Test-Path $setup)) {
+            Die "-ResumeRelease no encuentra el instalador de la $Version en $setup. Si ya no está, rehaz el corte: borra el tag ('git tag -d $tag', y 'git push origin :refs/tags/$tag' si llegó a subirse) y vuelve a lanzarlo."
+        }
+        if (-not (Test-Path $setupHash)) { Die "-ResumeRelease no encuentra el checksum esperado: $setupHash" }
+        $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
+        Ok "Instalador reutilizado: $setup ($sizeMB MB)"
+        Ok "Checksum reutilizado:   $setupHash"
+
+        # El tag puede estar solo en local si lo que falló fue su push.
+        if (-not $remoteTag) {
+            Info "El tag $tag aún no está en origin; subiéndolo..."
+            if ((Invoke-Git push origin $tag) -ne 0) { Die "git push del tag falló." }
+            Ok "Tag publicado."
+        }
+    }
+    else {
+
     if ($currentVersion -ne $Version) {
         Info "Actualizando <Version> en el .csproj..."
         $newRaw = $csprojRaw -replace '<Version>.*?</Version>', "<Version>$Version</Version>"
@@ -597,8 +675,12 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     # dejando el release a medias (sin tag ni GitHub Release). Ver la nota de Invoke-Git.
     Info "Push de la rama y el tag a origin..."
     if ((Invoke-Git push origin $branch) -ne 0) { Die "git push de la rama falló." }
-    if ((Invoke-Git push origin $tag) -ne 0) { Die "git push del tag falló. La rama YA está subida; reintenta." }
+    if ((Invoke-Git push origin $tag) -ne 0) {
+        Die "git push del tag falló. La rama YA está subida y el tag existe en local: cuando lo arregles, retoma con  .\release.ps1 -Version $Version -ResumeRelease"
+    }
     Ok "Rama y tag publicados."
+
+    }   # fin del bloque que -ResumeRelease se salta
 
     # ── 5. GitHub Release ────────────────────────────────────────────────────
     $gh = @(
@@ -635,7 +717,9 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
 
     Info "Creando el GitHub Release..."
     & $gh release create $tag --title "FormatDiskPro $tag" --notes-file $notesPath $setup $setupHash
-    if ($LASTEXITCODE -ne 0) { Die "gh release create falló (el tag ya está publicado; puedes reintentar el release)." }
+    if ($LASTEXITCODE -ne 0) {
+        Die "gh release create falló. El tag y el instalador ya están: cuando lo arregles, retoma SOLO este paso con  .\release.ps1 -Version $Version -ResumeRelease"
+    }
 
     if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
     Write-Host ""

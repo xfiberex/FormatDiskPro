@@ -10,13 +10,20 @@
 | | |
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
-| **Versión publicada** | **1.24.1** (2026-08-26) |
-| **Estado** | Producto (Tiers 1–9), auditoría de calidad y Tiers 5–8: **cerrados**. Abierto: **Tier 9 — re-auditoría transversal con la app en marcha** (**8/20**, desde 2026-08-26) — ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
+| **Estado, versión y pruebas** | **No se repiten aquí, a propósito** — viven en [§3 *Estado actual*](#3-estado-actual), que es su única fuente |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **611** unitarias — **610 pasan / 1 se omite / 0 fallan**, `Core/` al **97,9 %** · **38** de UI sobre la app real — con la USB y `Category!=Slow`: **34 pasan / 3 se omiten** (solo los opt-in) **/ 0 fallan** de 37, en 2 min. Todo **medido el 2026-08-26** |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **12 tareas abiertas**, todas del Tier 9 (8/20 completadas, incluida la única Alta) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-26 (**re-auditoría transversal de las 12 áreas aplicables, ejecutada sobre la máquina**: abre el **Tier 9** con 20 tareas, de las que **8 se aplicaron el mismo día**. La más grave no estaba en la app sino en el corte —`release.ps1` no comprobaba el árbol sucio, `T9-01`, ya arreglado—, y la más reveladora es que la propia galería de capturas pierde en silencio 4 de sus 26 tomas, incluida la del diálogo destructivo (`T9-04`/`T9-05`, abiertas). Antes, ese mismo día, se cerraron los **Tiers 7 y 8** en la **v1.24.0** y la **v1.24.1**) |
+| **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — lo pendiente, por tiers · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | **2026-08-26** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
+
+> **Esta tabla no lleva estado, y es deliberado (`T9-14`).** Llevaba versión publicada, recuento de pruebas
+> y tiers abiertos —todo duplicado de §3 y del [`ROADMAP.md`](ROADMAP.md)—, y llegó a contradecir a la fila
+> de al lado: decía «Abierto: Tier 7 (7/8)» mientras dos líneas más abajo decía «sin tareas abiertas», y
+> «588 unitarias» cuando ya eran 607. Es la **segunda vez** que pasa por el mismo motivo: §3 ya explica que
+> la tabla de tiers «vivía aquí duplicada del `ROADMAP.md`, y se quedó desactualizada por serlo».
+>
+> Lo que hay aquí es lo que **no cambia con el trabajo diario**: qué es el proyecto y dónde está cada cosa.
+> Si añades una fila y su valor caduca, va en §3 y aquí un enlace.
 
 ---
 
@@ -144,13 +151,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **611 / 611** (610 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 4 del Tier 9: `T9-07`, `T9-10`, `T9-11` y `T9-12`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **623 / 623** (622 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`)) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.24.1** (2026-08-26) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **12, todas del Tier 9** (abierto el 2026-08-26 por la re-auditoría transversal; **8 de sus 20 ya completadas**, incluida la única **Alta** —`T9-01`, el corte que podía publicar un instalador sin correspondencia con el commit etiquetado—). Lo abierto: los tres puntos ciegos de la galería de capturas (`T9-04`–`T9-06`), dos defectos de corrección (`T9-02` reintento imposible tras fallo del release, `T9-08` `settings.json` corrupto sobrescrito en silencio), `T9-09`, `T9-13`, `T9-14`, el borrado del directorio de destino del instalador (`T9-17`) y las tres de cumplimiento (`T9-18`–`T9-20`). **Ninguna es un fallo de las operaciones de disco.** Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
+| Tareas abiertas | **Ninguna.** El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
@@ -404,6 +411,45 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-26 — Tier 9 CERRADO (20/20): las doce restantes
+
+Aplicadas las doce que quedaban tras los *quick wins*: `T9-02`, `T9-04`, `T9-05`, `T9-06`, `T9-08`,
+`T9-09`, `T9-13`, `T9-14`, `T9-17`, `T9-18`, `T9-19` y `T9-20`. **El Tier 9 se abre y se cierra el mismo
+día.** Build **0/0**, **622 pasan / 1 omitida** (623, eran 611).
+
+**Lo que merece recordarse:**
+
+- **La galería vuelve a ser una herramienta fiable de auditoría.** Cada toma declara su precondición y se
+  le busca una unidad que la cumpla (`T9-04`); si no la hay se **omite declarando el motivo**, y al final
+  hay recuento y **código de salida** (`T9-05`). **Verificado: 26/26 sin `-Drive`**, cuando antes salían
+  22 y decía «completada». Además comprueba que la ventana abierta **es la app** y no el diálogo de error
+  de .NET (`T9-06`), que es lo que fotografiaba en silencio tras un `dotnet build` plano.
+- **El corte deja de dar consejos imposibles.** `-ResumeRelease` (`T9-02`) retoma un corte muerto después
+  de etiquetar reutilizando tag e instalador. Antes el mensaje decía «reintenta» y la validación de
+  arriba abortaba con «el tag ya existe». Y el `-DryRun` en ese modo enseña el plan **real**: listar los
+  pasos que se salta sería la misma clase de mentira que las notas genéricas de `T8-04`.
+- **Un fallo de lectura ya no destruye lo que no se pudo leer.** Un `settings.json` ilegible se aparta a
+  `.corrupt.json` en vez de esperar a que el primer `Save()` lo pise con los presets dentro (`T9-08`).
+- **La cabecera de este archivo ya no lleva estado** (`T9-14`). Es la segunda vez que la duplicación con
+  §3 y el ROADMAP la envejece hasta contradecirse; ahora solo lleva lo que no caduca, y la regla está
+  escrita dentro de la propia tabla.
+
+**Dos trampas nuevas, las dos encontradas al VALIDAR y no al escribir:**
+
+1. **Un comentario `{ … }` de Pascal en un `.iss` se cierra con la PRIMERA llave de cierre.** El
+   comentario que documentaba `T9-20` contenía `{app}`, así que terminaba a mitad y el resto se compilaba
+   como código: *«'BEGIN' expected. Compile aborted.»*. No lo habría visto nadie hasta el siguiente corte
+   —el instalador solo se compila ahí—. Se detectó porque **se compiló el `.iss` a propósito** para
+   validarlo. Queda anotado en el propio archivo.
+2. **Los textos legales embebidos se truncan por encima de 78 columnas.** `T6-14` fijó el ancho del visor
+   (430 px, cuerpo a 10 px, `NoWrap`) pero nada vigilaba el **contenido**, y al ampliar los avisos de
+   terceros cinco líneas se pasaron. Con `NoWrap` y sin barra visible el texto **se pierde**, que es peor
+   que verlo mal. Ahora hay una prueba que barre `LICENSE` y `THIRD-PARTY-NOTICES.txt`.
+
+**Y una decisión de producto, pequeña pero con criterio:** la comprobación de actualizaciones al arrancar
+se puede desactivar (`T9-18`), pero viene **activada**. Apagarla de serie dejaría sin avisos de seguridad
+a quien nunca abra el menú; lo que faltaba no era apagarla, era poder hacerlo.
 
 ### 2026-08-26 — Tier 9: los ocho *quick wins* (`T9-01`, `T9-03`, `T9-07`, `T9-10`, `T9-11`, `T9-12`, `T9-15`, `T9-16`)
 

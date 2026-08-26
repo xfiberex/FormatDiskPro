@@ -126,21 +126,65 @@ function Resolve-Exe {
 
 function Get-SettingsPath { Join-Path $env:APPDATA 'FormatDiskPro\settings.json' }
 
-# La unidad del sistema aparece como "[Protegido] C:" con TODOS los controles de formato deshabilitados:
-# es una foto pésima del producto. Se elige la primera unidad lista que no sea esa.
+# Unidades utilizables para una captura: listas, fijas o extraíbles, y NUNCA la del sistema — esa sale
+# como "[Protegido] C:" con todos los controles de formato deshabilitados, que es una foto pésima del
+# producto.
+function Get-CandidateDrives {
+    $systemLetter = ([System.IO.Path]::GetPathRoot($env:SystemRoot))[0]
+    return @([System.IO.DriveInfo]::GetDrives() |
+        Where-Object { $_.IsReady -and $_.Name[0] -ne $systemLetter -and $_.DriveType -in 'Fixed', 'Removable' })
+}
+
 function Resolve-CaptureDrive {
     if ($Drive) { return $Drive.TrimEnd(':').ToUpperInvariant() }
 
-    $systemLetter = ([System.IO.Path]::GetPathRoot($env:SystemRoot))[0]
-    $candidate = [System.IO.DriveInfo]::GetDrives() |
-        Where-Object { $_.IsReady -and $_.Name[0] -ne $systemLetter -and $_.DriveType -in 'Fixed', 'Removable' } |
-        Select-Object -First 1
-
+    $candidate = Get-CandidateDrives | Select-Object -First 1
     if (-not $candidate) {
         Write-Warning "No hay ninguna unidad distinta de la del sistema: la captura saldrá con la unidad [Protegido]."
         return $null
     }
     return $candidate.Name[0]
+}
+
+<#
+.SYNOPSIS
+    Unidad que cumple la precondición de una toma concreta, o $null si no hay ninguna.
+
+.DESCRIPTION
+    `T9-04`. Antes TODAS las tomas usaban la misma unidad: la primera no-sistema que apareciera. En una
+    máquina normal esa es un disco fijo grande, y sobre él hay dos tomas que NO PUEDEN EXISTIR:
+
+      - `main-fat32`: Windows no deja crear volúmenes FAT32 de más de 32 GB, así que la app oculta FAT32
+        del selector en discos grandes. Seleccionarlo lanzaba "no se encontró el ítem 'FAT32'".
+      - `reinit`: *Reinicializar unidad* solo se ofrece para extraíbles (la guarda de `T7-02`), así que
+        sobre un disco fijo el ítem del menú sale deshabilitado y no se puede invocar.
+
+    Resultado: la galería salía con 22 PNG de 26 y decía "completada". Faltaba, entre otras, la del
+    diálogo DESTRUCTIVO — justo la que más importa revisar. Ahora cada toma declara qué necesita y se le
+    busca una unidad que lo cumpla; si no la hay, se OMITE declarando el motivo (ver el resumen final).
+
+    `-Drive` sigue mandando por encima de todo: si la persona eligió unidad, es la suya.
+#>
+function Resolve-DriveFor([string]$need) {
+    if ($Drive) { return $Drive.TrimEnd(':').ToUpperInvariant() }
+
+    $candidates = Get-CandidateDrives
+    $match = switch ($need) {
+        'removable' { $candidates | Where-Object { $_.DriveType -eq 'Removable' } | Select-Object -First 1 }
+        'fat32'     { $candidates | Where-Object { $_.TotalSize -le 32GB }        | Select-Object -First 1 }
+        default     { $candidates | Select-Object -First 1 }
+    }
+    if ($match) { return $match.Name[0] }
+    return $null
+}
+
+# Por qué una toma no se pudo hacer, en el idioma de quien mira el resumen.
+function Get-NeedDescription([string]$need) {
+    switch ($need) {
+        'removable' { 'requiere una unidad EXTRAÍBLE (Reinicializar solo se ofrece para extraíbles)' }
+        'fat32'     { 'requiere una unidad de 32 GB o menos (Windows no crea volúmenes FAT32 mayores)' }
+        default     { 'requiere una unidad distinta de la del sistema' }
+    }
 }
 
 # settings.json a medida: tema, idioma y unidad fijos, y LastVersionSeen = versión del .exe para que NO
@@ -173,10 +217,47 @@ function Find-MainWindow([int]$processId, [int]$timeoutSec = 40) {
         [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $processId)
     while ((Get-Date) -lt $deadline) {
         $w = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
-        if ($w -and $w.Current.BoundingRectangle.Width -gt 0) { return $w }
+        if ($w -and $w.Current.BoundingRectangle.Width -gt 0) {
+            Assert-IsTheApp $w
+            return $w
+        }
         Start-Sleep -Milliseconds 300
     }
     throw "La ventana principal no apareció en $timeoutSec s."
+}
+
+<#
+.SYNOPSIS
+    Comprueba que la ventana encontrada es la de FormatDiskPro y no otra cosa (`T9-06`).
+
+.DESCRIPTION
+    La captura copia LITERALMENTE lo que hay en pantalla, así que fotografía sin rechistar cualquier
+    ventana que el proceso abra. Y hay una que aparece muy fácilmente: el apphost de un
+    `dotnet build -c Release` es framework-dependent, y en una máquina sin ese runtime instalado NO
+    arranca — muestra el diálogo "You must install or update .NET". El script prefiere `bin\Release` por
+    defecto, así que tras un build plano se dedicaba a retratar el diálogo de error creyendo que era la
+    app, y las capturas salían "bien" (ficheros PNG del tamaño esperado, cero avisos).
+
+    La mitigación vivía solo en la prosa de CONTEXT.md §4 —"publica primero y pasa -Exe"—, que es
+    precisamente el tipo de regla que no se cumple sola. Aquí se comprueba: si el árbol UIA no tiene el
+    selector de unidades, esto no es FormatDiskPro, y se dice por qué y qué hacer.
+#>
+function Assert-IsTheApp($window) {
+    $cond = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'DrivePicker')
+
+    $deadline = (Get-Date).AddSeconds(25)
+    while ((Get-Date) -lt $deadline) {
+        if ($window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)) { return }
+        Start-Sleep -Milliseconds 300
+    }
+
+    $title = try { $window.Current.Name } catch { '(sin título)' }
+    throw ("La ventana abierta NO es FormatDiskPro (título: '$title'): no tiene el selector de unidades. " +
+           "Lo más probable es que sea el diálogo 'You must install or update .NET', porque el apphost de " +
+           "'dotnet build' es framework-dependent y aquí no hay ese runtime. Publica self-contained y pasa " +
+           "-Exe: dotnet publish src\FormatDiskPro\FormatDiskPro.csproj -c Release -r win-x64 " +
+           "--self-contained true -o `$env:TEMP\FormatDiskPro-publish")
 }
 
 function Find-ByAutomationId($parent, [string]$automationId, [int]$timeoutSec = 20) {
@@ -278,6 +359,56 @@ function Capture-Theme([string]$exePath, [string]$themeName, [string]$driveLette
 }
 
 # ══ Modo GALERÍA ══════════════════════════════════════════════════════════════════
+
+<#
+.SYNOPSIS
+    Contabilidad de la galería: qué tomas salieron, cuáles se omitieron y por qué (`T9-05`).
+
+.DESCRIPTION
+    Antes una toma que fallaba emitía un aviso y la corrida seguía hasta "Galería completada", sin
+    recuento y devolviendo éxito. Quien usa la galería para AUDITAR recibía 22 PNG y no tenía forma de
+    saber que faltaban 4 salvo contándolos a mano — y entre los que faltaban estaba el diálogo
+    destructivo.
+
+    Es exactamente la lección de `T2-12` en el otro extremo del proyecto: allí el corte aprendió a no
+    llamar "verde" a una cobertura que no ejerció, leyendo del .trx cuántas pruebas se omitieron y por
+    qué. Una galería incompleta que se anuncia como completa miente igual.
+#>
+$script:ShotResults = @()
+
+function Add-ShotResult([string]$name, [string]$theme, [string]$status, [string]$reason) {
+    $script:ShotResults += [pscustomobject]@{
+        Name = $name; Theme = $theme; Status = $status; Reason = $reason
+    }
+}
+
+# Devuelve $true si la galería quedó completa. Es lo que decide el código de salida.
+function Show-GallerySummary {
+    $ok      = @($script:ShotResults | Where-Object { $_.Status -eq 'ok' })
+    $skipped = @($script:ShotResults | Where-Object { $_.Status -eq 'skipped' })
+    $failed  = @($script:ShotResults | Where-Object { $_.Status -eq 'failed' })
+    $total   = $script:ShotResults.Count
+
+    Write-Host ""
+    Write-Host "Galería: $($ok.Count)/$total tomas guardadas en $OutDir" -ForegroundColor Cyan
+
+    if ($skipped.Count -gt 0) {
+        Write-Warning "$($skipped.Count) OMITIDAS por precondición ausente (no es un fallo, pero NO están en la galería):"
+        $skipped | ForEach-Object { Write-Host "    - $($_.Name)-$($_.Theme): $($_.Reason)" -ForegroundColor DarkGray }
+    }
+    if ($failed.Count -gt 0) {
+        Write-Warning "$($failed.Count) FALLIDAS:"
+        $failed | ForEach-Object { Write-Host "    - $($_.Name)-$($_.Theme): $($_.Reason)" -ForegroundColor DarkGray }
+    }
+
+    if ($skipped.Count -eq 0 -and $failed.Count -eq 0) {
+        Write-Host "Galería COMPLETA: ninguna toma omitida ni fallida." -ForegroundColor Green
+        return $true
+    }
+
+    Write-Warning "Esa es la cobertura visual que esta corrida NO tiene. Revisar la UX/UI sobre una galería incompleta da por mirado lo que nunca se fotografió."
+    return $false
+}
 # Selecciona un ítem (por texto) en un ComboBox localizado por AutomationId. Los ítems del
 # FileSystemPicker son strings simples ("NTFS"/"exFAT"/…), así que su Name de automatización es el
 # propio texto. Se busca desde $window (el popup del ComboBox cuelga de la raíz de la app, no siempre
@@ -359,8 +490,10 @@ function Capture-GalleryShot([string]$exePath, [string]$themeName, [string]$driv
         $app = Start-AppInstance $exePath
         if ($setup) { & $setup $app.Window $app.Hwnd }
         Save-WindowPng $app.Hwnd $out
+        Add-ShotResult $shotName $themeName 'ok' ''
     } catch {
-        Write-Warning "    Omitida ($shotName-$themeName): $($_.Exception.Message)"
+        Write-Warning "    FALLIDA ($shotName-$themeName): $($_.Exception.Message)"
+        Add-ShotResult $shotName $themeName 'failed' $_.Exception.Message
     } finally {
         Stop-AppInstance $app
     }
@@ -375,7 +508,7 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
     $shots = @(
         @{ Name = 'main';      Setup = $null }
         @{ Name = 'main-exfat'; Setup = { param($w,$h) Select-ComboItem $w 'FileSystemPicker' 'exFAT' } }
-        @{ Name = 'main-fat32'; Setup = { param($w,$h) Select-ComboItem $w 'FileSystemPicker' 'FAT32' } }
+        @{ Name = 'main-fat32'; Needs = 'fat32'; Setup = { param($w,$h) Select-ComboItem $w 'FileSystemPicker' 'FAT32' } }
         @{ Name = 'health';    Setup = { param($w,$h)
                 Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
                 Invoke-Element (Find-ByAutomationId $w 'MnuHealth')
@@ -392,7 +525,7 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
         # antes el numero de disco fisico del objetivo Y el de Windows (dos llamadas a PowerShell) para
         # la guarda de "no es el disco del sistema". Con una espera fija de 1,2 s la foto salia con la
         # ventana principal y sin dialogo; se espera al InputBox de ConfirmDialog, como el resto de tomas.
-        @{ Name = 'reinit';    Setup = { param($w,$h)
+        @{ Name = 'reinit';    Needs = 'removable'; Setup = { param($w,$h)
                 Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
                 Invoke-Element (Find-ByAutomationId $w 'MnuReinit')
                 [void](Find-ByAutomationId $w 'InputBox' 30); Start-Sleep -Milliseconds 800 } }
@@ -432,7 +565,20 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
     foreach ($t in $themes) {
         Write-Host "Galería — tema $t..." -ForegroundColor Cyan
         foreach ($s in $shots) {
-            Capture-GalleryShot $exePath $t $driveLetter $s.Name $s.Setup
+            # Cada toma se hace sobre una unidad que cumpla SU precondición, no sobre la primera que
+            # haya (`T9-04`). Si no hay ninguna, se OMITE declarando el motivo en vez de reventar a
+            # mitad de la navegación con un "no se encontró el ítem X" que no explica nada.
+            $need = if ($s.ContainsKey('Needs')) { $s.Needs } else { '' }
+            $shotDrive = if ($need) { Resolve-DriveFor $need } else { $driveLetter }
+
+            if ($need -and -not $shotDrive) {
+                $why = Get-NeedDescription $need
+                Write-Warning "  [$t] $($s.Name): OMITIDA — $why."
+                Add-ShotResult $s.Name $t 'skipped' $why
+                continue
+            }
+
+            Capture-GalleryShot $exePath $t $shotDrive $s.Name $s.Setup
         }
     }
 }
@@ -456,10 +602,13 @@ if (Test-Path $settingsPath) {
     Write-Host "Respaldo de settings.json: $backup" -ForegroundColor Gray
 }
 
+$galleryComplete = $true
 try {
     if ($Gallery) {
         Invoke-Gallery $exePath $driveLetter
-        Write-Host "`nGalería completada en $OutDir" -ForegroundColor Green
+        # NO se anuncia "completada" sin haberlo comprobado (`T9-05`): el resumen dice cuántas salieron,
+        # cuáles se omitieron y por qué, y decide el código de salida.
+        $galleryComplete = Show-GallerySummary
     } else {
         $themes = if ($Theme -eq 'both') { @('light', 'dark') } else { @($Theme) }
         foreach ($t in $themes) { Capture-Theme $exePath $t $driveLetter }
@@ -476,3 +625,8 @@ try {
         Write-Host "settings.json de captura eliminado (no había uno previo)." -ForegroundColor Gray
     }
 }
+
+# El código de salida responde a "¿está completa esta galería?" (`T9-05`). Una galería incompleta NO es
+# un éxito: quien la use para auditar debe poder enterarse sin contar los PNG a mano, y un script que la
+# invoque debe poder distinguirlo. El respaldo de settings.json ya se ha restaurado en el finally.
+if ($Gallery -and -not $galleryComplete) { exit 1 }

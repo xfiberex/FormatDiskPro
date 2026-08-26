@@ -36,6 +36,25 @@ public sealed class AppSettings
     public bool NotifyOnFinish { get; set; } = true;
 
     /// <summary>
+    /// Comprobar si hay una versión nueva al arrancar. <c>true</c> por defecto (`T9-18`).
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué se puede desactivar.</b> Es la <b>única</b> conexión a Internet que hace la app, y
+    /// hasta ahora ocurría en cada arranque sin preguntar y sin forma de evitarla. Contactar con
+    /// <c>api.github.com</c> transmite la dirección IP a un tercero: la app no recopila nada, pero quien
+    /// no quiera esa conexión tenía que quedarse sin usarla. Con esto es una decisión.</para>
+    ///
+    /// <para>Tiene además un lado práctico: esta es una utilidad de disco que se usa mucho en equipos
+    /// recién montados, en mantenimiento o sin red, donde una comprobación que no puede salir solo añade
+    /// una espera inútil.</para>
+    ///
+    /// <para>Desactivarla NO desactiva las actualizaciones: <i>Ayuda → Buscar actualizaciones…</i> sigue
+    /// funcionando, y sigue verificando el instalador por SHA-256 antes de ejecutarlo. Lo que se
+    /// desactiva es la comprobación <b>automática</b>.</para>
+    /// </remarks>
+    public bool CheckUpdatesOnStartup { get; set; } = true;
+
+    /// <summary>
     /// Número de pasadas del borrado seguro: <c>1</c>, <c>3</c> o <c>7</c> (ver <see cref="SecureWipe.AllowedPasses"/>).
     /// <c>1</c> basta en discos modernos (NIST 800-88). <see cref="Load"/> lo normaliza con
     /// <see cref="SecureWipe.NormalizePasses"/>, así que un valor imposible en el archivo nunca llega vivo.
@@ -72,6 +91,19 @@ public sealed class AppSettings
     [JsonIgnore]
     public bool LoadedFromFile { get; private set; }
 
+    /// <summary>
+    /// Ruta a la que se apartó un <c>settings.json</c> ilegible durante <see cref="Load"/>, o
+    /// <c>null</c> si no hubo ninguno (`T9-08`).
+    /// </summary>
+    /// <remarks>
+    /// Se expone en vez de registrarlo aquí porque esta clase <b>no conoce el historial</b>, y darle esa
+    /// dependencia solo para una línea rompería que la configuración se pueda cargar desde cualquier
+    /// sitio —incluidas las pruebas— sin arrastrar nada más. Quien llama sí tiene dónde escribirlo: es el
+    /// mismo reparto que en <c>History.Open</c>, donde el servicio deja salir el fallo y la UI lo cuenta.
+    /// </remarks>
+    [JsonIgnore]
+    public string? PreservedUnreadablePath { get; private set; }
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     /// <summary>Ruta por defecto del archivo de configuración (mismo directorio que el historial).</summary>
@@ -98,7 +130,21 @@ public sealed class AppSettings
             path ??= DefaultPath;
             if (!File.Exists(path)) return new AppSettings();
             string json = File.ReadAllText(path);
-            var loaded = JsonSerializer.Deserialize<AppSettings>(json);
+
+            AppSettings? loaded;
+            try
+            {
+                loaded = JsonSerializer.Deserialize<AppSettings>(json);
+            }
+            catch (JsonException)
+            {
+                // El archivo existe pero no se puede interpretar. Arrancar con los valores por defecto
+                // es correcto —un settings dañado no puede impedir usar la app—, pero NO se puede dejar
+                // ahí: el primer Save() lo sobrescribe y con él se van los presets del usuario, que son
+                // lo único que la app no sabe reconstruir. Se aparta antes de seguir (`T9-08`).
+                return new AppSettings { PreservedUnreadablePath = PreserveUnreadable(path) };
+            }
+
             if (loaded is null) return new AppSettings();
             loaded.LoadedFromFile = true;
 
@@ -117,6 +163,50 @@ public sealed class AppSettings
         {
             return new AppSettings();
         }
+    }
+
+    /// <summary>
+    /// Sufijo del archivo al que se aparta un <c>settings.json</c> ilegible.
+    /// </summary>
+    public const string UnreadableSuffix = ".corrupt.json";
+
+    /// <summary>
+    /// Ruta a la que se aparta un archivo de configuración ilegible: la misma con
+    /// <see cref="UnreadableSuffix"/> en vez de <c>.json</c>.
+    /// </summary>
+    /// <param name="path">Ruta del archivo de configuración.</param>
+    public static string UnreadablePathFor(string path)
+        => Path.ChangeExtension(path, null) + UnreadableSuffix;
+
+    /// <summary>
+    /// Aparta un <c>settings.json</c> que no se pudo interpretar, en vez de dejar que el siguiente
+    /// <see cref="Save"/> lo pise (`T9-08`).
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué importa.</b> La carga es defensiva a propósito: ante un archivo dañado se arranca
+    /// con los valores por defecto y la app sigue siendo utilizable. Pero eso, combinado con que las
+    /// preferencias se guardan al salir, convertía un archivo <b>recuperable</b> —al que a lo mejor solo
+    /// le falta una llave— en uno <b>perdido</b>, y con él los presets que la persona hubiera creado. Un
+    /// fallo de lectura no debería destruir el dato que no se pudo leer.</para>
+    ///
+    /// <para>Se sobrescribe el <c>.corrupt.json</c> anterior si lo hubiera: dos generaciones no aportan
+    /// nada y la buena es siempre la última que falló.</para>
+    ///
+    /// <para>Defensivo como el resto de esta clase: si apartarlo falla, se sigue con los valores por
+    /// defecto. Perder el archivo es malo; no arrancar es peor.</para>
+    /// </remarks>
+    /// <param name="path">Ruta del archivo ilegible.</param>
+    /// <returns>La ruta a la que se apartó, o <c>null</c> si no se pudo.</returns>
+    private static string? PreserveUnreadable(string path)
+    {
+        string target = UnreadablePathFor(path);
+        try
+        {
+            File.Move(path, target, overwrite: true);
+            return target;
+        }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
     }
 
     /// <summary>

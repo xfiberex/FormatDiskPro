@@ -112,6 +112,62 @@ public sealed class FormatLogicTests : IDisposable
         Assert.Equal(script, decoded);
     }
 
+    /// <summary>
+    /// La codificación se ancla al <b>Base64 concreto</b>, no solo a que <c>DecodeArguments</c> la
+    /// deshaga (`T9-13`).
+    ///
+    /// <para><b>Por qué hace falta las dos cosas.</b> La prueba de ida y vuelta de arriba comprueba que
+    /// dos funciones nuestras son inversas — y eso <b>seguiría pasando</b> si ambas compartieran el mismo
+    /// error, por ejemplo codificando en UTF-8 en vez de en UTF-16LE. Lo que ejecuta el script no es
+    /// <c>DecodeArguments</c>: es <c>powershell.exe -EncodedCommand</c>, que exige <b>Base64 de
+    /// UTF-16LE</b>. Esta prueba compara contra eso, calculado aparte.</para>
+    /// </summary>
+    [Fact]
+    public void EncodeArguments_ProducesBase64OfUtf16LittleEndian()
+    {
+        const string script = "Format-Volume -DriveLetter G";
+        string expected = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+
+        string args = FormatLogic.EncodeArguments(script);
+
+        Assert.EndsWith($"-EncodedCommand {expected}", args, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Los dos constructores de comandos rechazan lo que no está en la lista blanca (`T9-09`).
+    ///
+    /// <para>No cierra un agujero explotable hoy —el valor sale del <c>ComboBox</c> del XAML, y aplicar un
+    /// preset exige que su sistema de archivos coincida con un ítem del selector—, sino que impide que la
+    /// seguridad de la ruta que formatea dependa de que todos los llamantes validen antes. Es la misma
+    /// guarda que <c>DiskService</c> aplica en sus cinco métodos.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("NTFS; Remove-Item C:\\ -Recurse")]
+    [InlineData("ntfs")]                               // la comparación es ordinal: no vale otra caja
+    [InlineData("")]
+    public void CommandBuilders_RejectFileSystemsOutsideTheWhitelist(string fs)
+    {
+        Assert.Throws<ArgumentException>(
+            () => FormatLogic.BuildVolumeScript('G', fs, 4096, "DATA", quickFormat: true, compress: false));
+
+        Assert.Throws<ArgumentException>(
+            () => FormatLogic.BuildComArgumentList('G', fs, 4096, "DATA"));
+    }
+
+    /// <summary>Y tampoco aceptan algo que no sea una letra de unidad.</summary>
+    [Theory]
+    [InlineData(';')]
+    [InlineData('1')]
+    [InlineData(' ')]
+    public void CommandBuilders_RejectNonLetterDrives(char letter)
+    {
+        Assert.Throws<ArgumentException>(
+            () => FormatLogic.BuildVolumeScript(letter, "NTFS", 4096, "DATA", quickFormat: true, compress: false));
+
+        Assert.Throws<ArgumentException>(
+            () => FormatLogic.BuildComArgumentList(letter, "NTFS", 4096, "DATA"));
+    }
+
     // ── BuildComArgumentList ─────────────────────────────────────
 
     [Fact]

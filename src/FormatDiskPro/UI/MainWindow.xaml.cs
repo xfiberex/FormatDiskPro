@@ -147,6 +147,7 @@ public sealed partial class MainWindow : Window
         _pendingInitialLetter = ParseDriveLetter(_settings.LastDriveLetter);
         ApplyThemeMode(_settings.Theme, save: false);
         MnuNotify.IsChecked = _settings.NotifyOnFinish;
+        MnuCheckUpdatesOnStartup.IsChecked = _settings.CheckUpdatesOnStartup;
         InitWipePasses();
         ApplyLanguage();
         LoadDrives();
@@ -221,8 +222,21 @@ public sealed partial class MainWindow : Window
         if (!_firstActivated) return;
         _firstActivated = false;
         Activated -= OnFirstActivated;
+
+        // Si la configuración no se pudo leer, se apartó a un .corrupt.json en vez de dejar que el
+        // primer guardado la pisara (`T9-08`). El servicio no conoce el historial, así que lo registra
+        // quien sí: la persona se encuentra la app con los valores por defecto y sus presets vacíos, y
+        // esta línea es lo único que después explica por qué y dónde quedó el archivo.
+        if (_settings.PreservedUnreadablePath is { } preserved)
+            _services.History.Log($"SETTINGS UNREADABLE: se apartó a {preserved}; se arrancó con los valores por defecto");
+
         await MaybeShowWhatsNewAsync();
-        await CheckForUpdatesAsync(manual: false);
+
+        // La comprobación automática es opcional desde `T9-18`. Es la ÚNICA conexión a Internet de la
+        // app, y hasta ahora salía en cada arranque sin preguntar y sin forma de evitarla. Quien la
+        // desactiva no se queda sin actualizaciones: *Ayuda → Buscar actualizaciones…* sigue ahí.
+        if (_settings.CheckUpdatesOnStartup)
+            await CheckForUpdatesAsync(manual: false);
     }
 
     // ── Dialog helpers ────────────────────────────────────────────

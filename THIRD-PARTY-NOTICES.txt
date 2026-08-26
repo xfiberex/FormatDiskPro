@@ -11,32 +11,72 @@ the LICENSE file). This product includes or depends on the following
 third-party components, each under its own license, reproduced here for
 attribution.
 
+QUÉ SE LISTA AQUÍ / SCOPE OF THIS FILE
+--------------------------------------
+Se listan DOS grupos, y cada entrada dice a cuál pertenece:
+
+  (A) REDISTRIBUIDO — viaja dentro del instalador y llega a la máquina de
+      quien usa la aplicación. Es lo que obliga a atribuir.
+  (B) SOLO CONSTRUCCIÓN / PRUEBAS — se usa para compilar o probar y NO se
+      redistribuye. Se lista por transparencia, no por obligación.
+
+Todas las licencias de (A) son MIT, compatible con la GPLv3 de este proyecto.
+
+Two groups are listed, and each entry states which one it belongs to:
+(A) REDISTRIBUTED, shipped inside the installer; (B) BUILD/TEST ONLY, not
+redistributed. All (A) licenses are MIT, compatible with this project's GPLv3.
+
 ------------------------------------------------------------------------------
-1) .NET Runtime and Libraries
+1) .NET Runtime and Libraries                       [A) REDISTRIBUIDO]
    © Microsoft Corporation and the .NET Foundation.
    Licencia: MIT License.
    https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
+   Se publica self-contained, así que el runtime viaja en el instalador.
 
 ------------------------------------------------------------------------------
-2) Windows App SDK / WinUI 3 (Microsoft.WindowsAppSDK)
+2) Windows App SDK / WinUI 3 (Microsoft.WindowsAppSDK)  [A) REDISTRIBUIDO]
    © Microsoft Corporation.
    Licencia: MIT License.
    https://github.com/microsoft/WindowsAppSDK/blob/main/LICENSE
 
 ------------------------------------------------------------------------------
-3) Segoe Fluent Icons (fuente de iconos)
+3) Segoe Fluent Icons (fuente de iconos)            [NO REDISTRIBUIDO]
    © Microsoft Corporation.
    Fuente de iconos incluida con Windows 10/11 y utilizada por la interfaz.
-   Su uso se rige por los términos de la fuente provista con Windows.
+   NO se distribuye con la aplicación: se usa la que da el sistema. Su
+   uso se rige por los términos de la fuente provista con Windows.
 
 ------------------------------------------------------------------------------
-4) Inno Setup (solo para construir el instalador; no se redistribuye)
+4) Inno Setup                                        [B) SOLO CONSTRUCCIÓN]
    © Jordan Russell. Portions © Martijn Laan.
    Licencia: Inno Setup License (estilo permisivo).
    https://jrsoftware.org/files/is/license.txt
+   Compila el instalador. No se redistribuye.
 
 ------------------------------------------------------------------------------
-Texto de la licencia MIT (componentes 1 y 2)
+5) xUnit.net                                              [B) SOLO PRUEBAS]
+   © .NET Foundation and Contributors.
+   Licencia: Apache License 2.0.
+   https://github.com/xunit/xunit/blob/main/LICENSE
+   Marco de las pruebas unitarias y de UI. No se redistribuye.
+
+------------------------------------------------------------------------------
+6) FlaUI                                                  [B) SOLO PRUEBAS]
+   © Roman Bäriswyl and contributors.
+   Licencia: MIT License.
+   https://github.com/FlaUI/FlaUI/blob/master/LICENSE.txt
+   Conduce la aplicación real por UI Automation en las pruebas de UI.
+   No se redistribuye.
+
+------------------------------------------------------------------------------
+7) coverlet                                               [B) SOLO PRUEBAS]
+   © Toni Solarin-Sodara and contributors.
+   Licencia: MIT License.
+   https://github.com/coverlet-coverage/coverlet/blob/master/LICENSE
+   Mide la cobertura de Core/ en el corte de versión. No se redistribuye.
+
+------------------------------------------------------------------------------
+Texto de la licencia MIT (componentes 1, 2, 6 y 7)
 ------------------------------------------------------------------------------
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

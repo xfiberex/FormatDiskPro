@@ -20,10 +20,35 @@ public static partial class FormatLogic
     /// Construye el script PowerShell <c>Format-Volume</c> (sin codificar).
     /// La etiqueta se escapa para una cadena entre comillas simples de PowerShell.
     /// </summary>
+    /// <remarks>
+    /// <para><b>Valida sus dos entradas interpoladas antes de componer nada</b> (`T9-09`). La letra y el
+    /// sistema de archivos se meten en el script <b>sin comillas</b>, así que son las dos posiciones
+    /// donde un valor inesperado dejaría de ser un dato para pasar a ser sintaxis. Es la misma guarda que
+    /// <see cref="DiskService"/> aplica en sus cinco métodos y que <see cref="ReinitDrive"/> aplica
+    /// revalidando el plan entero; esta era la única función que construía un comando sin ella.</para>
+    ///
+    /// <para><b>Alcance honesto, como en <see cref="UpdateService.SafeAssetFileName"/>:</b> hoy no cierra
+    /// ningún agujero abierto. El sistema de archivos sale siempre del <c>ComboBox</c> del XAML, y la vía
+    /// por la que podría llegar algo de fuera —un preset del <c>settings.json</c>, que vive en
+    /// <c>%AppData%</c>, se escribe <b>sin elevación</b> y lo lee un proceso <b>elevado</b>— está cerrada
+    /// aparte: aplicar un preset exige que su sistema de archivos coincida con un ítem del selector. Lo
+    /// que esto evita es que la seguridad de la ruta que formatea dependa de que <b>todos</b> los
+    /// llamantes, presentes y futuros, se acuerden de validar antes.</para>
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Si la letra no lo es, o si el sistema de archivos no está en
+    /// <see cref="PartitionPlan.SupportedFileSystems"/>.
+    /// </exception>
     public static string BuildVolumeScript(
         char driveLetter, string fs, long allocBytes,
         string label, bool quickFormat, bool compress)
     {
+        if (!char.IsLetter(driveLetter))
+            throw new ArgumentException($"Letra de unidad no válida: '{driveLetter}'.", nameof(driveLetter));
+
+        if (!PartitionPlan.SupportedFileSystems.Contains(fs, StringComparer.Ordinal))
+            throw new ArgumentException($"Sistema de archivos no admitido: '{fs}'.", nameof(fs));
+
         var ps = new StringBuilder("Format-Volume");
         ps.Append($" -DriveLetter {driveLetter}");
         ps.Append($" -FileSystem {fs}");
@@ -42,8 +67,17 @@ public static partial class FormatLogic
         return $"-NonInteractive -NoProfile -EncodedCommand {Convert.ToBase64String(encoded)}";
     }
 
-    /// <summary>Decodifica los argumentos producidos por <see cref="EncodeArguments"/> de vuelta al script original.</summary>
-    public static string DecodeArguments(string arguments)
+    /// <summary>
+    /// Decodifica los argumentos producidos por <see cref="EncodeArguments"/> de vuelta al script original.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>internal</c>, no <c>public</c>: no lo usa la app, solo las pruebas</b> (`T9-13`). Se conserva
+    /// porque hace legible lo que se afirma sobre un Base64 —«el script que se ejecuta es este»— en las
+    /// pruebas que comprueban el escapado de la etiqueta. Lo que NO puede hacer es sostener sola la prueba
+    /// de <see cref="EncodeArguments"/>: una ida y vuelta contra un inverso escrito a medida no falla si
+    /// ambos lados comparten el mismo error, así que esa prueba ancla además el Base64 concreto.
+    /// </remarks>
+    internal static string DecodeArguments(string arguments)
     {
         const string marker = "-EncodedCommand ";
         int i = arguments.IndexOf(marker, StringComparison.Ordinal);
@@ -65,8 +99,20 @@ public static partial class FormatLogic
     /// queda nada que dependa del idioma. También fuerza el desmontaje del volumen si hace falta, que es
     /// lo que uno quiere de una herramienta de formateo.</para>
     /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Si la letra no lo es, o si el sistema de archivos no está en
+    /// <see cref="PartitionPlan.SupportedFileSystems"/>. Aquí el escape por argumento del runtime ya
+    /// impide la inyección; se valida igualmente para que las dos rutas de formateo acepten exactamente
+    /// lo mismo y no haya una más permisiva que la otra (`T9-09`).
+    /// </exception>
     public static IReadOnlyList<string> BuildComArgumentList(char driveLetter, string fs, long allocBytes, string label)
     {
+        if (!char.IsLetter(driveLetter))
+            throw new ArgumentException($"Letra de unidad no válida: '{driveLetter}'.", nameof(driveLetter));
+
+        if (!PartitionPlan.SupportedFileSystems.Contains(fs, StringComparer.Ordinal))
+            throw new ArgumentException($"Sistema de archivos no admitido: '{fs}'.", nameof(fs));
+
         var args = new List<string> { $"{driveLetter}:", $"/FS:{fs}", $"/A:{allocBytes}", "/Y" };
         if (!string.IsNullOrEmpty(label)) args.Add($"/V:{label}");
         return args;

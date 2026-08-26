@@ -21,29 +21,26 @@
 > entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, **Tier 7 — Consistencia
 > y descubribilidad de la UI** (`T7-01`–`T7-09`) y **Tier 8 — Lo que solo se ve usando la app**
 > (`T8-01`–`T8-06`), ambos cerrados el 2026-08-26, y **Tier 9 — Re-auditoría transversal con la app en
-> marcha** (`T9-01`–`T9-20`), **abierto el 2026-08-26**: 20 tareas (1 Alta · 9 Medias · 10 Bajas),
-> **8 completadas y 12 abiertas**.
+> marcha** (`T9-01`–`T9-20`), **abierto y cerrado el 2026-08-26**: 20 tareas (1 Alta · 9 Medias · 10 Bajas),
+> **20/20 completadas**.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
 ## 🏁 Estado
 
-> **Hay trabajo abierto: el [Tier 9](#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26)**,
-> abierto el **2026-08-26** con **20 tareas** (1 Alta, 9 Medias, 10 Bajas) por una re-auditoría de las 12
-> áreas aplicables ejecutada **sobre la máquina**. **8 completadas ese mismo día** —los ocho de esfuerzo
-> bajo, la Alta incluida— y **12 abiertas**. Todo lo demás es registro: los Tiers 1–8 están
-> cerrados —los dos últimos, **[7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (9/9) y
+> **Todo lo que hay aquí es registro: no queda ninguna tarea abierta.** El
+> **[Tier 9](#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26)** se abrió y se
+> cerró el **2026-08-26**, **20/20**, por una re-auditoría de las 12 áreas aplicables ejecutada **sobre la
+> máquina**. Los Tiers 1–8 estaban cerrados desde antes —los dos últimos,
+> **[7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (9/9) y
 > **[8](#-tier-8--lo-que-solo-se-ve-usando-la-app)** (6/6), ese mismo día—. Lo que queda fuera está fuera
 > a propósito, y su porqué está en *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
 >
-> **La tarea Alta era `T9-01`, y ya está hecha:** el corte de versión no comprobaba si el árbol estaba
-> sucio —solo miraba los archivos sin rastrear—, así que `git add -u` podía barrer trabajo ajeno al commit
-> de release, y el instalador se compila desde el árbol de trabajo. El binario publicado podía no
-> corresponder al commit etiquetado.
->
-> **Lo que queda abierto no es urgente, pero sí sustancial:** los tres puntos ciegos de la galería de
-> capturas (`T9-04`–`T9-06`), dos defectos de corrección (`T9-02`, `T9-08`), el borrado del directorio de
-> destino del instalador (`T9-17`) y las tres de cumplimiento (`T9-18`–`T9-20`).
+> **Lo que enseñó el Tier 9, en una línea:** la app estaba mejor que lo que la rodea. De sus 20 tareas,
+> **ninguna** era un fallo de las operaciones de disco; la única **Alta** (`T9-01`) estaba en el corte de
+> versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más
+> reveladoras (`T9-04`/`T9-05`) estaban en la **propia herramienta de auditoría**, que perdía en silencio
+> 4 de sus 26 capturas —incluida la del diálogo destructivo—.
 
 **Parte 1 — funcionalidad: TERMINADA (2026-07-13).** Tiers 1–9 completados; no hay características
 pendientes. Lo que queda fuera está **deliberadamente** fuera — incluidas las dos decisiones que definen el
@@ -304,7 +301,7 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T6** | **Refinado de UX/UI** — 3 defectos + 11 refinamientos + 1 de cobertura · cerrado | 15 | bajo-medio |
 | **T7** | **Consistencia y descubribilidad de la UI** — revisión sobre el código, no sobre capturas · cerrado | 9 | bajo-medio |
 | **T8** | **Lo que solo se ve usando la app** — incluye *Exportar CSV*, roto en toda versión publicada · cerrado | 6 | bajo-medio |
-| **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **8/20**, abierto | 20 | bajo-medio |
+| **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
 | | **Total** | **95** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
@@ -1870,6 +1867,9 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ## 🛠️ Tier 9 — Re-auditoría transversal con la app en marcha *(abierto 2026-08-26)*
 
+> **CERRADO el 2026-08-26, 20/20** — el mismo día que se abrió. El título conserva la fecha de apertura
+> porque cuatro enlaces de este archivo y de `CONTEXT.md` apuntan a este ancla.
+
 > **De dónde sale.** Una re-auditoría de las 12 áreas aplicables (las 13 menos SEO; dentro del área 6,
 > la responsividad web no aplica) ejecutada **sobre la máquina**, no solo leyendo: build, 607 unitarias con cobertura,
 > los 37 UI tests con la USB conectada, la galería de capturas completa y medición de arranque y
@@ -1903,7 +1903,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-02] Al fallar el release, el script aconseja un reintento que él mismo rechaza** · Media
+- [x] **[T9-02] Al fallar el release, el script aconseja un reintento que él mismo rechaza** · Media
   - **Área:** DevOps
   - **Ubicación:** [release.ps1:607](release.ps1#L607) y [release.ps1:571](release.ps1#L571) frente a [release.ps1:331](release.ps1#L331)
   - **Qué hacer:** si `gh release create` falla, el mensaje dice «el tag ya está publicado; puedes
@@ -1930,7 +1930,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ### Galería de capturas (`tools/capture-screenshots.ps1`)
 
-- [ ] **[T9-04] La unidad que elige por defecto hace imposibles 4 de las 26 tomas** · Media
+- [x] **[T9-04] La unidad que elige por defecto hace imposibles 4 de las 26 tomas** · Media
   - **Área:** DevOps / QA
   - **Ubicación:** [tools/capture-screenshots.ps1:131-137](tools/capture-screenshots.ps1#L131)
   - **Qué hacer:** `Resolve-CaptureDrive` toma la **primera unidad no-sistema** —aquí `D:`, fija y de
@@ -1945,7 +1945,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-05] La galería confunde «omitida» con «correcta» — la lección de `T2-12`, sin aplicar aquí** · Media
+- [x] **[T9-05] La galería confunde «omitida» con «correcta» — la lección de `T2-12`, sin aplicar aquí** · Media
   - **Área:** DevOps / QA
   - **Ubicación:** [tools/capture-screenshots.ps1:462](tools/capture-screenshots.ps1#L462) y `Capture-GalleryShot`
   - **Qué hacer:** una toma que falla emite un `Write-Warning` y la corrida sigue hasta «Galería
@@ -1959,7 +1959,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** T9-04
 
-- [ ] **[T9-06] El `-Exe` por defecto es el que la documentación desaconseja** · Baja
+- [x] **[T9-06] El `-Exe` por defecto es el que la documentación desaconseja** · Baja
   - **Área:** DevOps
   - **Ubicación:** [tools/capture-screenshots.ps1:112](tools/capture-screenshots.ps1#L112)
   - **Qué hacer:** por defecto busca en `bin\Release`, que es justo el binario que `CONTEXT.md` §4
@@ -1993,7 +1993,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-08] Un `settings.json` corrupto se sustituye en silencio y se sobrescribe** · Media
+- [x] **[T9-08] Un `settings.json` corrupto se sustituye en silencio y se sobrescribe** · Media
   - **Área:** Auditoría de código
   - **Ubicación:** [src/FormatDiskPro/Services/AppSettings.cs:116](src/FormatDiskPro/Services/AppSettings.cs#L116) y `Save` en [:135](src/FormatDiskPro/Services/AppSettings.cs#L135)
   - **Qué hacer:** ante un JSON ilegible, `Load` devuelve los valores por defecto sin decir nada; el
@@ -2005,7 +2005,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-09] `BuildVolumeScript` es el único constructor de comandos sin la guarda de la convención** · Baja
+- [x] **[T9-09] `BuildVolumeScript` es el único constructor de comandos sin la guarda de la convención** · Baja
   - **Área:** Seguridad (defensa en profundidad)
   - **Ubicación:** [src/FormatDiskPro/Core/FormatLogic.cs:23-34](src/FormatDiskPro/Core/FormatLogic.cs#L23)
   - **Qué hacer:** interpola `fs` en el script sin comprobarlo contra
@@ -2073,7 +2073,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-13] `DecodeArguments` es API pública que solo usa su propia prueba** · Baja
+- [x] **[T9-13] `DecodeArguments` es API pública que solo usa su propia prueba** · Baja
   - **Área:** Refactorización y limpieza
   - **Ubicación:** [src/FormatDiskPro/Core/FormatLogic.cs:46](src/FormatDiskPro/Core/FormatLogic.cs#L46)
   - **Qué hacer:** no tiene ni un consumidor de producción; su única referencia es la prueba de ida y
@@ -2087,7 +2087,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ### Documentación
 
-- [ ] **[T9-14] La cabecera de `CONTEXT.md` se contradice con la fila de al lado** · Media
+- [x] **[T9-14] La cabecera de `CONTEXT.md` se contradice con la fila de al lado** · Media
   - **Área:** Documentación
   - **Ubicación:** [CONTEXT.md:14](CONTEXT.md#L14) (fila *Estado*) y [CONTEXT.md:17](CONTEXT.md#L17) (fila *Pruebas*)
   - **Qué hacer:** la fila *Estado* dice «Abierto: **Tier 7** … (7/8, desde 2026-08-25)» mientras la fila
@@ -2128,7 +2128,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ### Instalador y cumplimiento
 
-- [ ] **[T9-17] El instalador borra el directorio de destino entero, sea cual sea** · Media
+- [x] **[T9-17] El instalador borra el directorio de destino entero, sea cual sea** · Media
   - **Área:** Seguridad / DevOps
   - **Ubicación:** [src/FormatDiskPro/installer/installer.iss:76](src/FormatDiskPro/installer/installer.iss#L76)
   - **Qué hacer:** `[InstallDelete] Type: filesandordirs; Name: "{app}\*"` vacía el directorio de
@@ -2142,7 +2142,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-18] La comprobación de actualizaciones es automática y no se puede desactivar** · Baja · *requiere revisión legal*
+- [x] **[T9-18] La comprobación de actualizaciones es automática y no se puede desactivar** · Baja · *requiere revisión legal*
   - **Área:** Legal y cumplimiento / Privacidad
   - **Ubicación:** [src/FormatDiskPro/UI/MainWindow.xaml.cs:225](src/FormatDiskPro/UI/MainWindow.xaml.cs#L225) · texto en `about.privacy`
   - **Qué hacer:** cada arranque contacta con `api.github.com` sin preguntar y sin que exista preferencia
@@ -2159,7 +2159,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-19] Los avisos de terceros son incoherentes con su propio criterio** · Baja
+- [x] **[T9-19] Los avisos de terceros son incoherentes con su propio criterio** · Baja
   - **Área:** Legal y cumplimiento
   - **Ubicación:** `THIRD-PARTY-NOTICES.txt`
   - **Qué hacer:** el archivo incluye **Inno Setup** con la etiqueta «solo para construir el instalador;
@@ -2171,7 +2171,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T9-20] Desinstalar deja el historial de operaciones en el disco** · Baja
+- [x] **[T9-20] Desinstalar deja el historial de operaciones en el disco** · Baja
   - **Área:** Legal y cumplimiento / UX
   - **Ubicación:** `src/FormatDiskPro/installer/installer.iss` (sin sección `[UninstallDelete]`)
   - **Qué hacer:** al desinstalar queda `%AppData%\FormatDiskPro` con `settings.json` y el historial
@@ -2189,6 +2189,18 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-26 | **T9-20** | Desinstalar ofrece borrar `%AppData%\FormatDiskPro` —preferencias e historial—, que antes quedaba en disco sin que nadie lo mencionara. Se **pregunta** (por defecto No) y en modo silencioso se conserva. **Trampa encontrada al validar:** un comentario `{ … }` de Pascal se cierra con la **primera** llave que aparezca, así que escribir `{app}` dentro terminaba el comentario a mitad y el resto se compilaba como código («'BEGIN' expected»). Queda anotado en el propio `.iss`. |
+| 2026-08-26 | **T9-19** | `THIRD-PARTY-NOTICES.txt` declara su criterio y lo cumple: **(A) redistribuido** (.NET y WinAppSDK, MIT, compatibles con GPLv3) frente a **(B) solo construcción/pruebas**, donde entran los que faltaban —xUnit (Apache-2.0), FlaUI y coverlet— junto a Inno Setup, que ya estaba. Al ampliarlo, cinco líneas se pasaron de **78 columnas** y el visor de la app las **trunca** sin barra visible (`T6-14`): ahora hay una prueba que barre los dos textos legales y falla si alguna se pasa. |
+| 2026-08-26 | **T9-18** | La comprobación de actualizaciones al arrancar es **opcional**: nueva preferencia en *Configuración*, activada por defecto, persistida y traducida a los cinco idiomas. Es la única conexión a Internet de la app y salía en cada arranque sin preguntar. Desactivarla **no** deja la app sin actualizar: *Ayuda → Buscar actualizaciones…* sigue ahí, con su verificación por SHA-256. El texto de privacidad ahora dice que es automática y cómo apagarla. +1 unitaria. |
+| 2026-08-26 | **T9-17** | `DisableDirPage=yes`: el instalador deja de ofrecer elegir carpeta. `[InstallDelete]` vacía `{app}` entero antes de copiar —necesario para actualizar entre versiones con distinto conjunto de archivos—, y con la página de destino visible eso alcanzaba a cualquier carpeta que se apuntara. Aquí no hay nada que elegir: los datos viven en `%AppData%`. **Verificado compilando el instalador con ISCC.** |
+| 2026-08-26 | **T9-14** | La cabecera de `CONTEXT.md` deja de llevar estado. Llevaba versión, recuento de pruebas y tiers abiertos, todo duplicado de §3 y del ROADMAP, y llegó a **contradecir a la fila de al lado**. Ahora solo lleva lo que no caduca —qué es el proyecto y dónde está cada cosa— y enlaza a §3, que pasa a ser la única fuente. Es la segunda vez que la duplicación envejece en este archivo; queda escrito dentro para que no haya una tercera. |
+| 2026-08-26 | **T9-13** | `DecodeArguments` baja a `internal` (no la usaba la app, solo su prueba) y la prueba de codificación **se ancla al Base64 concreto** de UTF-16LE, calculado aparte. Una ida y vuelta contra un inverso propio no falla si ambos lados comparten el error, y lo que ejecuta el script no es nuestro decodificador: es `powershell.exe -EncodedCommand`. |
+| 2026-08-26 | **T9-09** | `BuildVolumeScript` y `BuildComArgumentList` validan letra y sistema de archivos contra la lista blanca, como ya hacían `DiskService` (cinco métodos) y `ReinitDrive` (revalidando el plan). **No cerraba un agujero abierto** —se persiguió la ruta desde `settings.json` y está cerrada por el `IndexOf` del selector—: lo que evita es que la seguridad de la ruta que formatea dependa de que todos los llamantes validen antes. +6 unitarias. |
+| 2026-08-26 | **T9-08** | Un `settings.json` ilegible se **aparta** a `settings.corrupt.json` en vez de quedarse a que el primer `Save()` lo pise, que se llevaba por delante los presets del usuario —lo único que la app no sabe reconstruir—. La ventana lo registra en el historial; `AppSettings` no conoce el historial y no se le da esa dependencia por una línea. +3 unitarias. |
+| 2026-08-26 | **T9-06** | La galería comprueba que la ventana que ha abierto **es la app**: si no aparece el selector de unidades, aborta explicando que lo más probable es que sea el diálogo «You must install or update .NET» y cómo publicar self-contained. Antes fotografiaba ese diálogo sin rechistar, y la mitigación vivía solo en la prosa de `CONTEXT.md`. |
+| 2026-08-26 | **T9-05** | La galería lleva la cuenta: resumen final con guardadas / omitidas / fallidas y **código de salida distinto de cero** si no está completa. Antes una toma perdida solo emitía un aviso y la corrida terminaba diciendo «Galería completada». Es la lección de `T2-12` —distinguir «omitido» de «correcto»— aplicada por fin a las capturas. |
+| 2026-08-26 | **T9-04** | Cada toma declara su precondición y se le busca una unidad que la cumpla, en vez de usar todas la primera unidad no-sistema. Con un disco fijo grande, `main-fat32` (FAT32 no se oferta por encima de 32 GB) y `reinit` (solo extraíbles, `T7-02`) **no podían existir**: la galería salía con 22 de 26 y sin decirlo, y entre las que faltaban estaba la del diálogo destructivo. **Verificado: 26/26 sin `-Drive`.** |
+| 2026-08-26 | **T9-02** | Nuevo `-ResumeRelease` para retomar un corte que murió después de etiquetar: reutiliza tag e instalador y solo crea el GitHub Release. Antes el mensaje aconsejaba «reintenta» y la validación de arriba abortaba con «el tag ya existe»: el consejo y la guarda se contradecían justo cuando el corte está a medias. Los dos mensajes de fallo ahora nombran el flag exacto, y el `-DryRun` en ese modo enseña el plan **real**, no los pasos que se salta. |
 | 2026-08-26 | **T9-01** | El corte solo miraba los archivos **sin rastrear**; los **modificados** entraban enteros al commit vía `git add -u`, y como el instalador se compila desde el árbol de trabajo, **el binario publicado podía no corresponder al commit etiquetado**. Ahora se comprueban los dos casos, ambos bajo `-AllowDirty` —que es lo que su propia ayuda ya prometía— y el `-DryRun` dice cuántos modificados hay ahora mismo. Verificado contra el estado real del repo: 4 modificados, 0 sin rastrear → aborta (antes pasaba en verde). |
 | 2026-08-26 | **T9-07** | La marca de tiempo del historial se escribía con la cultura del hilo, y con ella su **calendario**: en `th-TH` salía el año **2569**. Como `Parse` lee en invariante, la entrada no se rechazaba —quedaba 543 años en el futuro, encabezando el visor—. `InvariantCulture` explícita en los **dos** sitios que escriben (la línea del log y el nombre del CSV), reusando la constante `HistoryEntry.TimeFormat` con la que se lee. **Verificado por reversión**: el test cae mostrando `2569-08-26`. +1 unitaria. |
 | 2026-08-26 | **T9-10** | *Estado de salud* dejaba de ser el valor crudo de Windows: la tarjeta decía «Salud: **Healthy**» en los cinco idiomas y el diálogo S.M.A.R.T. «**Healthy — Normal**», el inglés junto a su traducción. Las claves `health.level.*` y `SmartInfo.HealthLevel` ya existían y solo se usaban para el **color**; ahora dan también el texto. Con `Unknown` se conserva lo que reporte el disco, que es cuando no hay nada que traducir. +1 unitaria sobre las dos mitades del contrato. |
@@ -2275,7 +2287,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 **Estado: AUDITORÍA CERRADA (2026-08-16).** 39/40 completadas · 2 descartadas (`T2-10` CI, `T4-03` firma)
 · **0 abiertas** (T0: 0 · T1: 0 · T2: 0 · T3: 0 · **T4: 0**).
 
-**Estado global (2026-08-26): 12 tareas abiertas, todas del [Tier 9](#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26)** (8/20 completadas el mismo día que se abrió, incluida la única Alta).
+**Estado global (2026-08-26): 0 tareas abiertas.** El [Tier 9](#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) se abrió y se cerró el mismo día, **20/20**.
 Tiers 1–9 de producto y Tiers 0–8 de calidad: cerrados. La re-auditoría del 2026-08-26 **verificó en el
 código** las tareas cerradas que tocaban sus áreas y **no encontró ninguna cerrada en falso**: `T8-01`
 (*Exportar CSV* por `IFileSaveDialog`), `T8-02` (`ErrorText.Describe` en los once sitios), `T7-09`
