@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 Todos los cambios relevantes de **FormatDiskPro**, versión a versión.
 
@@ -10,6 +10,41 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 > [`CONTEXT.md`](CONTEXT.md) (§4 *Decisiones* y su *Registro de cambios*), y lo que queda por hacer, en
 > [`ROADMAP.md`](ROADMAP.md). Las notas de cada publicación están además en
 > [GitHub Releases](https://github.com/xfiberex/FormatDiskPro/releases).
+
+---
+
+## [1.24.0] — 2026-08-26
+
+**Exportar el historial a CSV no funcionaba.** En ninguna versión publicada. El botón estaba, se pulsaba y
+no ocurría absolutamente nada: el selector de archivos que usaba la app rechaza a los programas que corren
+como administrador, y FormatDiskPro corre siempre como administrador. Fallaba antes incluso de abrir la
+ventana de guardar. Lo tapaba un segundo fallo —el mensaje de error llegaba **vacío**—, así que ni el aviso
+en pantalla ni el historial decían qué había pasado.
+
+### Corregido
+
+- **La exportación a CSV del historial ya funciona.** Ahora abre el diálogo «Guardar como» de Windows, el
+  mismo que usa el resto del sistema. El archivo se escribe en UTF-8 con marca de orden, para que Excel
+  respete los acentos.
+- **Los errores ya no pueden salir en blanco.** Cuando el sistema no da texto para explicar un fallo, la
+  app muestra el tipo de error y su código en lugar de un aviso sin contenido — y esa línea también queda
+  en el historial, que es donde se consulta después. Afecta a todos los sitios que informan de un fallo,
+  incluido el de un formateo interrumpido.
+- **Tres botones que podían no hacer nada ahora lo cuentan.** *Abrir archivo* del historial y los enlaces
+  a GitHub y a la donación se tragaban cualquier problema en silencio: sin un programa asociado a `.log` o
+  sin navegador, el clic no producía ningún efecto visible. Ahora se explica el fallo, y en el caso de los
+  enlaces se muestra la dirección para poder copiarla a mano.
+- **El marco de foco salía recortado en los diálogos.** Al recorrerlos con el tabulador, el borde del
+  control enfocado aparecía cortado por la izquierda — se veía sobre todo en los filtros del historial.
+  Ocurría en los seis diálogos de la app.
+
+### Cambiado
+
+- **El menú *Herramientas* dice en el propio texto por qué una opción está apagada.** Antes el motivo iba
+  en un mensaje emergente que Windows **nunca llega a mostrar** sobre una opción deshabilitada, así que
+  solo lo recibía un lector de pantalla. Ahora se lee directamente: «Reinicializar unidad… *(unidad
+  protegida)*», «Expulsar unidad *(solo extraíbles)*». La explicación completa se mantiene para los
+  lectores de pantalla.
 
 ---
 
@@ -470,7 +505,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.23.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.24.0...HEAD
+[1.24.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.0
 [1.23.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.23.0
 [1.22.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.22.0
 [1.21.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.21.0
