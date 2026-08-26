@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using System.Globalization;
+using Xunit;
 
 namespace FormatDiskPro.Tests;
 
@@ -130,5 +131,48 @@ public sealed class HistoryTests : IDisposable
 
         broken.Log("FORMAT OK G:");           // no debe lanzar
         Assert.Empty(broken.ReadLines());      // ni al leerlo
+    }
+
+    /// <summary>
+    /// La marca de tiempo se escribe con el calendario <b>gregoriano</b> pase lo que pase con la cultura
+    /// de Windows (`T9-07`).
+    ///
+    /// <para><b>El fallo que fija:</b> un formato personalizado sin proveedor usa el <b>calendario</b> de
+    /// <see cref="CultureInfo.CurrentCulture"/>. En <c>th-TH</c> (budista) <c>yyyy</c> daba <b>2569</b> en
+    /// vez de 2026, y en <c>ar-SA</c> el año híjri. Lo peor no es que se escriba raro: es que
+    /// <see cref="HistoryEntry.Parse"/> lee con <see cref="CultureInfo.InvariantCulture"/>, así que
+    /// aceptaba «2569» como año gregoriano y la entrada quedaba <b>543 años en el futuro</b>, encabezando
+    /// el orden del visor. El historial es el registro de auditoría de operaciones destructivas.</para>
+    ///
+    /// <para>Se usa <c>th-TH</c> por lo mismo que <c>tr-TR</c> en `T1-01`: es el caso que rompe, no uno
+    /// cualquiera. Verificado por reversión — al quitar la <c>InvariantCulture</c> de <c>History.LogTo</c>,
+    /// esta prueba falla nombrando el año 2569.</para>
+    /// </summary>
+    [Fact]
+    public void Log_UnderNonGregorianCulture_StillWritesGregorianYear()
+    {
+        var previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("th-TH");
+            int gregorianYear = DateTime.Now.Year;
+
+            _history.Log("FORMAT OK G: fs=NTFS");
+
+            string entry = Assert.Single(
+                _history.ReadLines(),
+                l => l.Contains("FORMAT OK G:", StringComparison.Ordinal));
+
+            Assert.StartsWith(
+                gregorianYear.ToString(CultureInfo.InvariantCulture),
+                entry,
+                StringComparison.Ordinal);
+
+            // Y lo escrito se relee como el mismo momento, que es lo que la fecha existe para permitir.
+            var parsed = HistoryEntry.Parse(entry);
+            Assert.NotNull(parsed);
+            Assert.Equal(gregorianYear, parsed!.Time.Year);
+        }
+        finally { CultureInfo.CurrentCulture = previous; }
     }
 }

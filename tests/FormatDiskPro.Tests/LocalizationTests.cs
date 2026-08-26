@@ -1,4 +1,5 @@
-﻿using FormatDiskPro;
+﻿using System.Globalization;
+using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -301,6 +302,109 @@ public sealed class LocalizationTests
             Assert.Equal("Avvia", L.T("btn.start"));
             L.Set(AppLang.Pt);
             Assert.Equal("Iniciar", L.T("btn.start"));
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>
+    /// Los números que <see cref="L.T(string, object[])"/> formatea siguen al <b>idioma de la app</b>,
+    /// no a la cultura de Windows (`T9-12`).
+    ///
+    /// <para><b>Qué vigila, exactamente.</b> `T6-12` arregló esto en <c>FormatBytes</c> y `T7-05` volvió a
+    /// arreglarlo a mano en el recuento del historial, pero la regla la sostenían los <i>puntos de
+    /// llamada</i>: cada uno debía acordarse de preformatear con <c>L.Culture</c> antes de entrar. Bastaba
+    /// que alguien pasara un <c>long</c> directamente para que <c>string.Format</c> usara la cultura del
+    /// hilo y volviera el fallo — «32,161 h» con separador inglés junto a texto español. Al pasar
+    /// <c>Culture</c> como proveedor, la regla vive en un solo sitio; esta prueba es lo que impide que se
+    /// vuelva a quitar.</para>
+    ///
+    /// <para>Se fuerza <c>en-US</c> en el hilo con la app en español: si el proveedor desapareciera, el
+    /// separador sería el inglés y la prueba caería. Verificado por reversión.</para>
+    /// </summary>
+    [Fact]
+    public void T_FormatsNumbersWithTheAppLanguage_NotTheSystemCulture()
+    {
+        var prevLang = L.Current;
+        var prevCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            L.Set(AppLang.Es);
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+
+            // "{0}" con un double: en es-ES el separador decimal es la coma; en en-US, el punto.
+            string spanish = L.T("info.health", 1234.5);
+
+            Assert.Contains("1234,5", spanish);
+            Assert.DoesNotContain("1234.5", spanish);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = prevCulture;
+            L.Set(prevLang);
+        }
+    }
+
+    /// <summary>
+    /// Ninguna cadena del diccionario usa tres puntos donde va el carácter de puntos suspensivos
+    /// (`T9-11`).
+    ///
+    /// <para><c>status.formatting</c> y <c>status.wiping</c> llevaban <c>...</c> mientras las otras 156
+    /// cadenas usaban <c>…</c> — y sus vecinas de la misma barra de estado (<c>check.scanning</c>,
+    /// <c>bench.preparing</c>) ya usaban el carácter correcto. La incoherencia se veía en el mismo punto
+    /// de la pantalla y durante las dos operaciones más largas de la app.</para>
+    ///
+    /// <para>Barrido y no dos asertos concretos, por lo mismo que en `T6-09` con «sólo»: así caza también
+    /// el que se cuele en una traducción futura.</para>
+    /// </summary>
+    [Fact]
+    public void NoEntryUsesThreeDotsInsteadOfEllipsis()
+    {
+        var offenders = L.Map
+            .SelectMany(e => e.Value.Select((text, i) => (Key: e.Key, Lang: (AppLang)i, Text: text)))
+            .Where(x => x.Text.Contains("...", StringComparison.Ordinal))
+            .Select(x => $"{x.Key} [{x.Lang}]: \"{x.Text}\"")
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            "Estas cadenas usan '...' en vez de '…':\n  " + string.Join("\n  ", offenders));
+    }
+
+    /// <summary>
+    /// El estado de salud tiene nombre propio en los cinco idiomas, y ninguno es el valor crudo que
+    /// reporta Windows (`T9-10`).
+    ///
+    /// <para>La tarjeta principal mostraba «Salud: <c>Healthy</c>» en los cinco idiomas y el diálogo
+    /// S.M.A.R.T. «<c>Healthy — Normal</c>», porque ambos pintaban la enumeración de Storage —siempre en
+    /// inglés— en vez de traducirla. Las claves <c>health.level.*</c> ya existían y solo se usaban para
+    /// elegir el color.</para>
+    ///
+    /// <para>Se comprueban las dos mitades del contrato: que <see cref="SmartInfo.HealthLevel"/> reconozca
+    /// los tres valores que Windows reporta, y que el texto con el que se sustituyen no sea ninguno de
+    /// ellos en ningún idioma.</para>
+    /// </summary>
+    [Fact]
+    public void HealthLevels_HaveATranslationThatIsNotTheRawEnglishValue()
+    {
+        string[] rawFromWindows = ["Healthy", "Warning", "Unhealthy"];
+
+        // Los tres valores que reporta Windows se reconocen (si no, no habría nada que traducir).
+        Assert.All(rawFromWindows, raw =>
+            Assert.NotEqual(SmartLevel.Unknown, SmartInfo.HealthLevel(raw)));
+
+        string[] keys = ["health.level.ok", "health.level.warning", "health.level.critical"];
+        var prev = L.Current;
+        try
+        {
+            foreach (AppLang lang in Enum.GetValues<AppLang>())
+            {
+                L.Set(lang);
+                foreach (string key in keys)
+                {
+                    string label = L.T(key);
+                    Assert.False(string.IsNullOrWhiteSpace(label), $"'{key}' vacía en {lang}.");
+                    Assert.DoesNotContain(label, rawFromWindows, StringComparer.OrdinalIgnoreCase);
+                }
+            }
         }
         finally { L.Set(prev); }
     }

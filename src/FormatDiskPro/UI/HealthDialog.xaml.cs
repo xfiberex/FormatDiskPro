@@ -75,7 +75,7 @@ public sealed partial class HealthDialog : ContentDialog
             return;
         }
 
-        AddMetricRow(L.T("health.status"), Show(info.Health), SmartInfo.HealthLevel(info.Health));
+        AddHealthStatusRow(info.Health);
         AddRow(L.T("health.bus"),     Show(info.Bus));
         AddRow(L.T("health.media"),   Show(info.Media));
         // La fila del eje solo aparece si hay eje (T6-03). En un SSD no es un dato que falte: es una
@@ -115,7 +115,44 @@ public sealed partial class HealthDialog : ContentDialog
         AddRow(label, $"{baseValue} — {LevelLabel(level)}", LevelBrush(level, _dark));
     }
 
-    private static string LevelLabel(SmartLevel level) => level switch
+    /// <summary>
+    /// Fila «Estado de salud», con el estado <b>traducido</b> (`T9-10`).
+    ///
+    /// <para>Antes pasaba por <see cref="AddMetricRow"/> con el valor <b>crudo</b> del proveedor de
+    /// Storage, que es una enumeración <b>siempre en inglés</b> (<c>Healthy</c>/<c>Warning</c>/
+    /// <c>Unhealthy</c>). El resultado era la fila «Estado de salud: <c>Healthy — Normal</c>»: el valor
+    /// inglés y su traducción, uno al lado del otro, en el único diálogo de la app que por lo demás está
+    /// entero en el idioma elegido. Y quien usa un lector de pantalla oía la palabra inglesa dentro de
+    /// una frase en español.</para>
+    ///
+    /// <para>Lo que hacía falta ya existía: <see cref="SmartInfo.HealthLevel"/> clasifica el valor y las
+    /// claves <c>health.level.*</c> están traducidas a los cinco idiomas desde `#16` — solo se usaban
+    /// para elegir el <b>color</b>. Aquí se usan también para el texto, que es lo que se lee.</para>
+    ///
+    /// <para>Con <see cref="SmartLevel.Unknown"/> se conserva el valor crudo: no hay nada que traducir,
+    /// y esconder lo que el disco reportó sería peor que enseñarlo en inglés.</para>
+    /// </summary>
+    /// <param name="rawHealth">Estado tal como lo reporta el disco físico.</param>
+    private void AddHealthStatusRow(string rawHealth)
+    {
+        SmartLevel level = SmartInfo.HealthLevel(rawHealth);
+
+        if (level == SmartLevel.Unknown)
+        {
+            AddRow(L.T("health.status"), Show(rawHealth));
+            return;
+        }
+
+        AddRow(L.T("health.status"), LevelLabel(level), LevelBrush(level, _dark));
+    }
+
+    /// <summary>
+    /// Nombre traducido de un nivel S.M.A.R.T. <c>internal</c> porque la tarjeta de la ventana principal
+    /// necesita el mismo texto para su línea «Salud:» (`T9-10`), igual que ya compartía
+    /// <see cref="LevelBrush"/> para el color.
+    /// </summary>
+    /// <param name="level">Nivel a nombrar.</param>
+    internal static string LevelLabel(SmartLevel level) => level switch
     {
         SmartLevel.Ok       => L.T("health.level.ok"),
         SmartLevel.Warning  => L.T("health.level.warning"),

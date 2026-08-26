@@ -86,6 +86,10 @@ $ErrorActionPreference = "Stop"
 # Subirlo es una decisión deliberada; bajarlo, un síntoma.
 $CoreCoverageThreshold = 90
 
+# ¿Ha puesto ESTE script $env:GH_TOKEN desde la credencial cacheada? Solo entonces lo borra al terminar
+# (ver el finally del final). Un token que ya viniera del entorno del usuario es suyo.
+$script:ClearedGhToken = $false
+
 function Info($m)  { Write-Host "==> $m" -ForegroundColor Cyan }
 function Ok($m)    { Write-Host "[OK] $m" -ForegroundColor Green }
 function Warn($m)  { Write-Host "[!] $m" -ForegroundColor Yellow }
@@ -332,9 +336,33 @@ try {
     $remoteTag = (& git ls-remote --tags origin $tag 2>$null)
     if ($remoteTag) { Die "El tag $tag ya existe en origin. Usa otra versión." }
 
-    # ¿Hay archivos sin rastrear? (nuevos, no añadidos con git add)
-    # Estos NO se incluirán en el commit del release — el usuario debe añadirlos explícitamente.
-    $untracked = (& git status --porcelain) | Where-Object { $_ -match '^\?\?' }
+    # ── Estado del árbol de trabajo ──────────────────────────────────────────
+    # Se miran las DOS cosas, y son problemas distintos:
+    #
+    #   - Archivos SIN RASTREAR (`??`): NO entrarán en el commit del release, porque más abajo solo se
+    #     hace `git add -u`. Quien esperase publicarlos se queda sin ellos.
+    #
+    #   - Archivos RASTREADOS MODIFICADOS: entrarán TODOS, porque `git add -u` los barre. Es el caso
+    #     peligroso y hasta ahora no se comprobaba: trabajo a medias, ajeno al release, acababa dentro
+    #     del commit "release: vX.Y.Z" sin que nadie lo pidiera. Y como el instalador se compila desde
+    #     el ÁRBOL DE TRABAJO (build-installer.ps1 publica lo que hay en disco, no lo que hay en HEAD),
+    #     el binario publicado podía no corresponder al commit que lleva el tag — justo la premisa sobre
+    #     la que se apoya el .sha256, que existe porque se decidió no firmar.
+    #
+    # -AllowDirty cubre ambos casos, que es lo que su propia ayuda promete.
+    $status    = @(& git status --porcelain)
+    $untracked = @($status | Where-Object { $_ -match '^\?\?' })
+    $modified  = @($status | Where-Object { $_ -notmatch '^\?\?' })
+
+    if ($modified -and -not $AllowDirty) {
+        Warn "El árbol de trabajo tiene cambios sin commitear, y 'git add -u' los incluiría TODOS en el commit del release:"
+        $modified | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        Die "Commitea o revierte estos cambios y reintenta, o usa -AllowDirty si de verdad quieres publicarlos con el release."
+    } elseif ($modified) {
+        Warn "Árbol sucio aceptado (-AllowDirty): estos cambios ENTRARÁN en el commit del release y en el instalador:"
+        $modified | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+    }
+
     if ($untracked -and -not $AllowDirty) {
         Warn "Hay archivos nuevos sin rastrear (no se incluirán en el release):"
         $untracked | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
@@ -493,7 +521,8 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         $signNote = if ($CertThumbprint -or $CertFile) { " (firmando con Authenticode)" } else { " (SIN firmar — la app verificará por el .sha256)" }
         Write-Host "    1. Actualizar <Version> a $Version en el .csproj" -ForegroundColor DarkGray
         Write-Host "    2. build-installer.ps1 -Version $Version$signNote" -ForegroundColor DarkGray
-        Write-Host "    3. git add -u  (todos los archivos rastreados modificados)" -ForegroundColor DarkGray
+        $dirtyNote = if ($modified.Count -gt 0) { " — AHORA MISMO son $($modified.Count), listados arriba" } else { " — ahora mismo no hay ninguno" }
+        Write-Host "    3. git add -u  (todos los archivos rastreados modificados$dirtyNote)" -ForegroundColor DarkGray
         Write-Host "       git commit -m 'release: v$Version'" -ForegroundColor DarkGray
         Write-Host "       git tag -a $tag" -ForegroundColor DarkGray
         Write-Host "    4. git push origin $branch" -ForegroundColor DarkGray
@@ -598,7 +627,9 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         $cred = "protocol=https`nhost=github.com`n`n" | & git credential fill 2>$null
         $ErrorActionPreference = $eap
         $pwdLine = $cred | Where-Object { $_ -like 'password=*' } | Select-Object -First 1
-        if ($pwdLine) { $env:GH_TOKEN = $pwdLine.Substring(9) }
+        # Se marca que el token lo pone ESTE script, para que el finally lo borre al terminar y no se
+        # quede vivo en la terminal. Si $env:GH_TOKEN ya venía del entorno del usuario, no se toca.
+        if ($pwdLine) { $env:GH_TOKEN = $pwdLine.Substring(9); $script:ClearedGhToken = $true }
         if (-not $env:GH_TOKEN) { Die "No se pudo obtener credencial para gh. Ejecuta 'gh auth login' y reintenta (el tag ya está publicado)." }
     }
 
@@ -614,5 +645,10 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     Show-UiTestCoverage $uiSummary
 }
 finally {
+    # El token que se rellenó desde la credencial cacheada de git NO puede sobrevivir al script.
+    # $env: es del PROCESO, así que sin esto sigue vivo en la terminal que lanzó el corte y lo hereda
+    # cualquier proceso que se abra después desde ella. Se limpia solo si lo puso este script: si ya
+    # venía del entorno del usuario, es suyo y no nos toca borrarlo.
+    if ($script:ClearedGhToken) { $env:GH_TOKEN = $null }
     Pop-Location
 }

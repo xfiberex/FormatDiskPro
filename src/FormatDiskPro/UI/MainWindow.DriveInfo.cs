@@ -158,11 +158,20 @@ public sealed partial class MainWindow
         string dash = L.T("info.dash");
         bool hasBus = !string.IsNullOrWhiteSpace(h.Bus), hasMedia = !string.IsNullOrWhiteSpace(h.Media);
         string conn = hasBus && hasMedia ? $"{h.Bus} · {h.Media}" : hasBus ? h.Bus : hasMedia ? h.Media : dash;
-        InfoHealthText.Text = L.T("info.health", string.IsNullOrWhiteSpace(h.Health) ? dash : h.Health);
+        // El estado va TRADUCIDO, no crudo (`T9-10`). `h.Health` es la enumeración de Storage y viene
+        // siempre en inglés, así que esta línea decía «Salud: Healthy» en los cinco idiomas — en el campo
+        // más relevante de la tarjeta, y el único sin localizar. `HealthLevel` ya clasificaba el valor
+        // para elegir el color; ahora da también el texto. Con Unknown se conserva lo que reporte el
+        // disco (no hay nada que traducir) o el guion si no reporta nada.
+        var level = SmartInfo.HealthLevel(h.Health);
+        string healthText = level != SmartLevel.Unknown
+            ? HealthDialog.LevelLabel(level)
+            : string.IsNullOrWhiteSpace(h.Health) ? dash : h.Health;
+
+        InfoHealthText.Text = L.T("info.health", healthText);
         InfoBusText.Text    = L.T("info.bus", conn);
 
-        // Umbrales de #16: colorear el estado reportado (el texto ya transmite el estado; el color refuerza).
-        var level = SmartInfo.HealthLevel(h.Health);
+        // Umbrales de #16: el color refuerza lo que el texto ya dice.
         if (level == SmartLevel.Unknown)
             InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
         else

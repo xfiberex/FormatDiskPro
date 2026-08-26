@@ -148,7 +148,9 @@ public sealed partial class HistoryDialog : ContentDialog
             string? path = SaveFileDialog.Show(
                 _hwnd,
                 L.T("history.export"),
-                $"FormatDiskPro-historial-{DateTime.Now:yyyyMMdd-HHmmss}",
+                // Invariante como el resto de lo que se ESCRIBE (`T9-07`): sin proveedor, el nombre del
+                // archivo saldría con el año budista o híjri según la cultura de Windows.
+                $"FormatDiskPro-historial-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}",
                 L.T("history.exportType"),
                 ".csv",
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));

@@ -158,8 +158,9 @@ if (-not $Version) {
 # encontrar la ruta especificada", que no dice ni qué archivo era.
 #
 # Publicando a %TEMP% la ruta base baja a ~40 caracteres y el instalador se compila igual desde
-# cualquier ubicación del repo. (El .csproj referencia el SDK como 1.8.*, así que el conjunto de
-# archivos puede crecer solo, sin tocar nada: esto lo deja resuelto de antemano.)
+# cualquier ubicación del repo. (El .csproj fija hoy el SDK a una versión EXACTA —1.8.260529003—
+# precisamente por este fallo, así que el conjunto de archivos ya no cambia solo; publicar a %TEMP%
+# sigue haciendo falta igualmente, porque la longitud de esos nombres no depende de la versión.)
 $publishDir = Join-Path $env:TEMP "FormatDiskPro-publish"
 Write-Host "==> Versión: $Version  (TFM: $tfm)" -ForegroundColor Cyan
 Write-Host "==> Publicando en: $publishDir" -ForegroundColor Cyan

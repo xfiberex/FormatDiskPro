@@ -100,7 +100,13 @@ public static class L
     public static string T(string key, params object[] args)
     {
         string template = T(key);
-        try { return string.Format(template, args); }
+        // Con Culture como proveedor, y no `string.Format(template, args)` a secas: sin él se formatea
+        // con la cultura de WINDOWS, que es de donde venía `T6-12` («32,161 h» junto a texto español).
+        // Los ~45 puntos de llamada ya preformatean sus números con L.Culture antes de entrar aquí, así
+        // que esto no cambia ni una cadena hoy; lo que cambia es QUIÉN sostiene la regla. Antes la
+        // sostenía la disciplina de quien llama —y bastaba pasar un `long` para reabrir el fallo—;
+        // ahora la sostiene esta línea. Es el barrido que a `T6-12` le faltaba (`T9-12`).
+        try { return string.Format(Culture, template, args); }
         catch (FormatException) { return template; }
     }
 
@@ -228,12 +234,12 @@ public static class L
 
         ["fmt.quick"]        = ["rápido", "quick", "rápido", "rapide", "rapida"],
         ["fmt.full"]         = ["completo", "full", "completo", "complet", "completa"],
-        ["status.formatting"]= ["Formateando {0}: ({1})...", "Formatting {0}: ({1})...", "Formatando {0}: ({1})...", "Formatage de {0}: ({1})...", "Formattazione di {0}: ({1})..."],
+        ["status.formatting"]= ["Formateando {0}: ({1})…", "Formatting {0}: ({1})…", "Formatando {0}: ({1})…", "Formatage de {0}: ({1})…", "Formattazione di {0}: ({1})…"],
         ["status.cancelled"] = ["Operación cancelada.", "Operation cancelled.", "Operação cancelada.", "Opération annulée.", "Operazione annullata."],
         ["status.success"]   = ["Formato completado con éxito.", "Format completed successfully.", "Formatação concluída com sucesso.", "Formatage terminé avec succès.", "Formattazione completata con successo."],
         ["status.error"]     = ["Error durante el formato.", "Error during format.", "Erro durante a formatação.", "Erreur pendant le formatage.", "Errore durante la formattazione."],
         ["status.unexpected"]= ["Error inesperado.", "Unexpected error.", "Erro inesperado.", "Erreur inattendue.", "Errore imprevisto."],
-        ["status.wiping"]    = ["Borrado seguro (sobrescribiendo espacio libre)...", "Secure erase (overwriting free space)...", "Apagamento seguro (sobrescrevendo espaço livre)...", "Effacement sécurisé (écrasement de l'espace libre)...", "Cancellazione sicura (sovrascrittura spazio libero)..."],
+        ["status.wiping"]    = ["Borrado seguro (sobrescribiendo espacio libre)…", "Secure erase (overwriting free space)…", "Apagamento seguro (sobrescrevendo espaço livre)…", "Effacement sécurisé (écrasement de l'espace libre)…", "Cancellazione sicura (sovrascrittura spazio libero)…"],
         ["status.wiping.progress"] = ["Borrado seguro: {0}", "Secure erase: {0}", "Apagamento seguro: {0}", "Effacement sécurisé : {0}", "Cancellazione sicura: {0}"],
         ["status.ejected"]   =["Unidad expulsada.", "Drive ejected.", "Unidade ejetada.", "Lecteur éjecté.", "Unità espulsa."],
 

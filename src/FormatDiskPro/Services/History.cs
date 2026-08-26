@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 
 namespace FormatDiskPro;
 
@@ -97,7 +98,13 @@ public sealed class History(string? path = null) : IHistory
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             RotateIfNeeded(path);
             string safe = HistoryEntry.SanitizeDetail(line);
-            File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\t{safe}{Environment.NewLine}");
+            // InvariantCulture explícita, y la MISMA constante con la que HistoryEntry.Parse lo lee
+            // (`T9-07`). Sin proveedor, el formato usa el calendario de la cultura del hilo: en un
+            // Windows tailandés esta línea se escribía con el año budista (2569 en vez de 2026), y Parse
+            // la aceptaba como gregoriana. El historial es el registro de auditoría de operaciones
+            // destructivas: su fecha no puede depender del idioma del sistema.
+            string stamp = DateTime.Now.ToString(HistoryEntry.TimeFormat, CultureInfo.InvariantCulture);
+            File.AppendAllText(path, $"{stamp}\t{safe}{Environment.NewLine}");
         }
         catch { /* el log nunca debe romper la operación */ }
     }

@@ -11,12 +11,12 @@
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Versión publicada** | **1.24.1** (2026-08-26) |
-| **Estado** | Producto (Tiers 1–9), auditoría de calidad, Tier 5 «Ocurrencias» y **Tier 6 — refinado de UX/UI** (15/15): **cerrados**. Abierto: **Tier 7 — consistencia y descubribilidad de la UI** (7/8, desde 2026-08-25) |
+| **Estado** | Producto (Tiers 1–9), auditoría de calidad y Tiers 5–8: **cerrados**. Abierto: **Tier 9 — re-auditoría transversal con la app en marcha** (**8/20**, desde 2026-08-26) — ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
-| **Pruebas** | **588** unitarias (`Core/` al 97,9 %) · **30** de UI sobre la app real — **26 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-17 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **sin tareas abiertas** (Tiers 7 y 8 cerrados el 2026-08-26, 9/9 y 6/6) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-26 (**Tiers 7 y 8 cerrados**, publicados en la **v1.24.0** y la **v1.24.1**. El 7 acabó en el foco recortado de los diálogos (`T7-09`); el 8 salió de una captura del historial en uso y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), y luego que el propio corte publicaba unas notas vacías (`T8-04`)) |
+| **Pruebas** | **611** unitarias — **610 pasan / 1 se omite / 0 fallan**, `Core/` al **97,9 %** · **38** de UI sobre la app real — con la USB y `Category!=Slow`: **34 pasan / 3 se omiten** (solo los opt-in) **/ 0 fallan** de 37, en 2 min. Todo **medido el 2026-08-26** |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **12 tareas abiertas**, todas del Tier 9 (8/20 completadas, incluida la única Alta) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | 2026-08-26 (**re-auditoría transversal de las 12 áreas aplicables, ejecutada sobre la máquina**: abre el **Tier 9** con 20 tareas, de las que **8 se aplicaron el mismo día**. La más grave no estaba en la app sino en el corte —`release.ps1` no comprobaba el árbol sucio, `T9-01`, ya arreglado—, y la más reveladora es que la propia galería de capturas pierde en silencio 4 de sus 26 tomas, incluida la del diálogo destructivo (`T9-04`/`T9-05`, abiertas). Antes, ese mismo día, se cerraron los **Tiers 7 y 8** en la **v1.24.0** y la **v1.24.1**) |
 
 ---
 
@@ -42,7 +42,7 @@ src/FormatDiskPro/
 │  ├─ ReinitPlan.cs       Estilo MBR/GPT por tamaño, tamaños de FAT32 pequeña que caben, parseo de letras
 │  ├─ PartitionPlan.cs    EL LAYOUT COMO DATO: particiones + validación tipada ANTES de borrar nada (T5-01)
 │  ├─ Benchmark.cs        Tamaño de prueba, velocidad, IOPS, mediana
-│  ├─ SecureWipe.cs*      Patrón y nº de pasadas del borrado seguro (*la parte pura)
+│  ├─ ErrorText.cs        Describe(ex) — texto de un fallo que NUNCA sale vacío (tipo + HRESULT si hace falta)
 │  ├─ Presets.cs          Presets integrados (nombre traducido vía NameKey) + validación de los del usuario
 │  ├─ Throughput.cs       Velocidad y ETA de operaciones largas
 │  ├─ DeviceChange.cs     Interpretación de WM_DEVICECHANGE (autorefresco de unidades)
@@ -144,13 +144,14 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **607 / 607** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **611 / 611** (610 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 4 del Tier 9: `T9-07`, `T9-10`, `T9-11` y `T9-12`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.24.1** (2026-08-26) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **Ninguna.** El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
+| Tareas abiertas | **12, todas del Tier 9** (abierto el 2026-08-26 por la re-auditoría transversal; **8 de sus 20 ya completadas**, incluida la única **Alta** —`T9-01`, el corte que podía publicar un instalador sin correspondencia con el commit etiquetado—). Lo abierto: los tres puntos ciegos de la galería de capturas (`T9-04`–`T9-06`), dos defectos de corrección (`T9-02` reintento imposible tras fallo del release, `T9-08` `settings.json` corrupto sobrescrito en silencio), `T9-09`, `T9-13`, `T9-14`, el borrado del directorio de destino del instalador (`T9-17`) y las tres de cumplimiento (`T9-18`–`T9-20`). **Ninguna es un fallo de las operaciones de disco.** Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
+| Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
 > quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
@@ -403,6 +404,107 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-26 — Tier 9: los ocho *quick wins* (`T9-01`, `T9-03`, `T9-07`, `T9-10`, `T9-11`, `T9-12`, `T9-15`, `T9-16`)
+
+Aplicados los ocho arreglos de esfuerzo bajo que abrió la re-auditoría de esa misma fecha. Build **0/0**,
+**610 pasan / 1 omitida / 0 fallan** (611, eran 607: +4 unitarias).
+
+**Lo que importa recordar de cada uno:**
+
+- **`T9-01` — el corte ya no publica lo que no ha mirado.** Comprobaba los archivos *sin rastrear* pero no
+  los *modificados*, que son los que `git add -u` sí barre. Como `build-installer.ps1` publica **lo que hay
+  en disco**, no lo que hay en HEAD, el instalador podía no corresponder al commit etiquetado. Ambos casos
+  quedan bajo `-AllowDirty`, que es lo que su ayuda prometía desde el principio: el fallo estaba en el
+  código, no en la documentación.
+- **`T9-07` — la convención de invariante llegó a los sitios que escriben.** Los cuatro que leen ya la
+  respetaban. Un formato personalizado sin proveedor usa el **calendario** de la cultura: en `th-TH` el
+  historial se fechaba con el año budista y `Parse` lo aceptaba como gregoriano. Ahora ambos lados usan la
+  misma constante, `HistoryEntry.TimeFormat`, que pasó a `internal` por eso.
+- **`T9-12` — el barrido que a `T6-12` le faltaba.** `L.T` pasa `Culture` como proveedor. **No cambia una
+  sola cadena hoy**; cambia que la regla deje de depender de que cada punto de llamada se acuerde de
+  preformatear. Es el patrón de `T1-04` y `T1-07` aplicado al último arreglo que no lo tenía.
+- **`T9-10` — lo que ya estaba traducido y no se usaba.** `health.level.*` y `SmartInfo.HealthLevel`
+  existían desde `#16` y solo elegían el **color**. Ahora dan también el texto, y `LevelLabel` pasó a
+  `internal` para que la tarjeta principal comparta el mismo que el diálogo — como ya compartían
+  `LevelBrush`.
+
+**Trampa nueva, y conviene tenerla escrita.** Al verificar por reversión, restaurar los fuentes con
+`Copy-Item` desde un respaldo **no rehace la compilación**: `Copy-Item` conserva la marca de tiempo del
+origen, MSBuild ve los archivos «al día» y `dotnet test --no-build` ejecuta el **DLL con el código
+revertido**. Las pruebas seguían en rojo con el arreglo ya restaurado en disco. Es primo hermano de la
+trampa del `.slnx` (§4, *Build y publicación*): siempre que un resultado no cuadre con lo que se ve en el
+fuente, sospechar del binario. Se resolvió tocando la marca de tiempo antes de recompilar.
+
+**Verificado por reversión** `T9-07` y `T9-12`: quitando cada arreglo, sus pruebas caen —la de la fecha
+mostrando literalmente `2569-08-26`— y vuelven a pasar al restaurarlo.
+
+**Quedan 12 tareas abiertas** del Tier 9, ninguna de esfuerzo bajo: las de la galería de capturas
+(`T9-04`/`T9-05`/`T9-06`), las dos de corrección restantes (`T9-02`, `T9-08`), `T9-09`, `T9-13`, `T9-14`,
+`T9-17` y las tres de cumplimiento (`T9-18`, `T9-19`, `T9-20`).
+
+### 2026-08-26 — Re-auditoría transversal con la app en marcha: se abre el Tier 9 (20 tareas)
+
+**Qué se hizo.** Una re-auditoría de las **12 áreas aplicables** —las 13 menos SEO, y dentro del área 6 sin
+la responsividad web: no aplica a una app de escritorio de ventana fija— **ejecutada sobre la máquina**,
+no leída: build,
+607 unitarias con cobertura, los 37 UI tests con la USB `utilidades` conectada, la galería completa de
+capturas en ambos temas, y medición propia de arranque y de contraste. No se tocó código: el resultado son
+**20 tareas** en un **Tier 9** nuevo (1 Alta, 9 Medias, 10 Bajas).
+
+**Punto de partida verificado, no supuesto:** build **0 advertencias / 0 errores**; unitarias **606 pasan /
+1 omitida / 0 fallan**; `Core/` al **97,9 %** (Localization 100 %, Services 65,4 %, UI 0 %); UI **34 pasan /
+3 omitidas / 0 fallan** de 37 en 2 min.
+
+**Nada de lo cerrado estaba cerrado en falso.** Se comprobó en el código lo que tocaba a las áreas
+revisadas —`T8-01`, `T8-02`, `T7-09`, `T6-12`/`T7-05`, `T1-04` y `T1-01`— y todo sigue en pie. `T1-04` se
+volvió a medir de verdad, muestreando cuatro pares de píxeles sobre los PNG: 5,1 · 8,11 · 6,94 · 5,49 : 1,
+los cuatro por encima del 4,5:1 de AA.
+
+**Lo que enseñó, y es lo que conviene recordar:**
+
+- **La parte más frágil no es la app, es el corte.** `T9-01`: `release.ps1` valida los archivos **sin
+  rastrear** pero no los **modificados**, y `git add -u` los barre al commit de release. Como el instalador
+  se compila desde el árbol de trabajo, **el binario publicado puede no corresponder al commit etiquetado**.
+  La propia ayuda de `-AllowDirty` promete algo que el script no hace. Es la tercera vez que el corte
+  aparece como el eslabón débil (`T2-12`, `T8-04`/`T8-06`, y ahora esto): las pruebas del producto están
+  mucho mejor vigiladas que el proceso que lo publica.
+- **La herramienta de auditoría también hay que auditarla.** `T9-04`/`T9-05`: la galería eligió `D:` —fija
+  y de 223 GB— y con esa unidad *FAT32* no se oferta y *Reinicializar* sale deshabilitado, así que
+  **4 de las 26 tomas no podían existir**, incluida la del **diálogo destructivo**. Terminó diciendo
+  «Galería completada». Verificado que es la configuración y no las tomas: con `-Drive I` (extraíble,
+  27,3 GB) ambas salen a la primera. Es literalmente la lección de `T2-12` —distinguir «omitido» de
+  «correcto»— aplicada a las pruebas y no a las capturas.
+- **Una convención sin barrido vuelve por donde escribe.** `T9-07`: los **cuatro** sitios que leen,
+  exportan o muestran la fecha del historial usan `InvariantCulture` explícita; los **dos** que la
+  **escriben**, no. En un Windows `th-TH` el historial se fecha con el año budista (**2569** en vez de
+  2026) y `TryParseExact` lo acepta, así que la entrada queda 543 años en el futuro. Misma familia que
+  `T1-01` (cultura turca). Medido, no razonado.
+- **Y el reverso de `T6-12`.** `T9-12`: `L.T(clave, args)` formatea con la cultura de Windows. Hoy no
+  falla —ninguna plantilla lleva especificador y los ~45 puntos de llamada preformatean con `L.Culture`—,
+  pero es el único arreglo de este proyecto que **no** se convirtió en un barrido que lo vigile, al
+  contrario que `T1-04` (inventario de color) o `T1-07` (tablas de cadenas). Una línea lo vuelve
+  estructural.
+- **Lo que ya estaba traducido y no se usaba.** `T9-10`: `health.level.ok/warning/critical` llevan tiempo
+  traducidas a los cinco idiomas y `SmartInfo.HealthLevel` ya clasifica el valor — pero solo se usan para
+  elegir el **color**. La tarjeta principal muestra «Salud: **Healthy**» en los cinco idiomas y el diálogo
+  S.M.A.R.T. muestra «**Healthy — Normal**»: el inglés crudo junto a su traducción.
+
+**Lo que se persiguió y NO llevó a ningún sitio** (consta para no repetirlo): la ruta de **escalada local**
+vía `settings.json` —vive en `%AppData%`, se escribe sin elevación y lo lee un proceso elevado—. Se siguió
+entera hasta `Format-Volume` y está **cerrada**: `MnuPreset_Click` exige que el sistema de archivos del
+preset coincida con un ítem del `ComboBox` (`IndexOf`), y `ReinitDrive` **revalida** el plan contra la lista
+blanca antes de construir el script. También se descartaron dos sospechas: el botón de maximizar (el código
+sí fija `IsResizable`/`IsMaximizable` en `false`) y la lectura del `.csproj` en `build-installer.ps1`
+(`[xml](Get-Content …)` **sí** respeta el BOM; se comprobó que el acento de `<Authors>` sobrevive).
+
+**Qué quedó a medias:** nada del código —la auditoría no toca código a propósito—. Sí se actualizó la
+contabilidad del `ROADMAP.md`, que **se había quedado dos tiers atrás**: el índice marcaba el Tier 6 como
+«lo único abierto» y sumaba 60 tareas cuando ya eran 75. Las dos tareas de deriva documental (`T9-14`, la
+cabecera de este archivo contradiciendo a §3; `T9-15`, el árbol de §2 listando `Core/SecureWipe.cs`, que no
+existe, y omitiendo `Core/ErrorText.cs`, que sí) quedan **abiertas a propósito**: los valores de estado sí
+se han puesto al día, pero quitar la **duplicación** que los envejece es un cambio a decidir, no un
+refresco.
 
 ### 2026-08-26 — `T8-04` a `T8-06`: el corte salió en verde y publicó unas notas vacías
 

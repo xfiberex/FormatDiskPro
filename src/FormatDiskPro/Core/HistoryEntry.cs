@@ -22,7 +22,17 @@ public enum HistoryResult { Ok, Fail, Error, Cancelled, Info }
 public sealed partial record HistoryEntry(
     DateTime Time, HistoryCategory Category, HistoryResult Result, string Detail, string Raw)
 {
-    private const string TimeFormat = "yyyy-MM-dd HH:mm:ss";
+    /// <summary>
+    /// Formato de la marca de tiempo del historial, en el archivo y en el CSV exportado.
+    ///
+    /// <para><b>Siempre con <see cref="CultureInfo.InvariantCulture"/>, tanto al leer como al escribir</b>
+    /// (`T9-07`). Sin proveedor explícito, un formato personalizado usa el <b>calendario</b> de la cultura
+    /// del hilo: en un Windows tailandés (<c>th-TH</c>, budista) <c>yyyy</c> produce <b>2569</b> en vez de
+    /// 2026, y en <c>ar-SA</c> el año híjri. Como <see cref="Parse"/> reinterpreta esa cifra como año
+    /// gregoriano, la entrada no se rechaza: queda 543 años en el futuro y encabeza el orden. Es
+    /// <c>internal</c> para que <c>Services/History</c> escriba con la misma constante con la que se lee.</para>
+    /// </summary>
+    internal const string TimeFormat = "yyyy-MM-dd HH:mm:ss";
 
     /// <summary>Marca que sustituye a un salto de línea aplanado por <see cref="SanitizeDetail"/>.</summary>
     public const string LineBreakMarker = " ⏎ ";
