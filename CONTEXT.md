@@ -157,7 +157,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Publicado | **v1.25.0** (2026-08-26) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **Ninguna.** El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
+| Tareas abiertas | **Una: `T10-01`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. Se abre reconociendo que la causa **no se conoce**. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
@@ -412,6 +412,44 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-26 — v1.25.0 publicada, y un corte que abortó sin causa conocida: se abre el Tier 10
+
+**Publicada la [v1.25.0](https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.25.0)**, que lleva el
+Tier 9 entero. Unitarias **623/623 con 0 omitidas** —la de capacidad sobre unidad real corrió por fin, con
+`FORMATDISKPRO_VERIFY_DRIVE`—, `Core/` al **98,1 %**, UI **34/37** con los tres omitidos *opt-in*, y los
+dos assets arriba (instalador de 58,9 MB y su `.sha256`). El commit del corte llevó **solo el `.csproj`**,
+que es lo que `T9-01` vino a garantizar, y el cuerpo del release renderiza bien: `T8-04` y `T8-05` se
+sostienen en una publicación de verdad.
+
+**Pero el primer intento abortó**, y eso es lo que merece quedar escrito. Murió en la puerta de cobertura
+con el informe **vacío** —235 bytes, `<packages />`—, con las 623 pruebas en verde: el artefacto exacto de
+`T8-06`, **con el arreglo de `T8-06` puesto y ejecutado** (compiló 18,5 s y midió con `--no-build`).
+
+**No se reprodujo.** Tres intentos, los tres con informe de 1,6 MB, incluido el que replica la condición
+que provocaba `T8-06` —desactualizar la compilación a propósito—. El reintento del corte completo salió
+limpio a la primera. De modo que `T8-06` sigue cerrada y correcta: **cerró una** de las causas del informe
+vacío, y hay **al menos otra que no se conoce**. Se abre el **Tier 10** con `T10-01`, y se abre diciendo
+justo eso.
+
+**Lo que se decidió, y por qué:**
+
+- **Nada de reintentar la medición automáticamente.** Es la tentación obvia y sería el peor arreglo: un
+  fallo intermitente al que se le pone un reintento deja de aparecer sin dejar de existir, y esta puerta
+  es la que decide si un corte sale. La tarea va de **dejar pruebas la próxima vez** —distinguir informe
+  *ausente* de informe *vacío*, conservar el vacío en vez de dejarlo en un `%TEMP%` que se borra solo, y
+  pedir los diagnósticos del recolector únicamente por ese camino—.
+- **El mensaje vuelve a señalar mal.** Dice «revisa que coverlet.collector siga referenciado» y en las dos
+  ocasiones registradas el paquete estaba perfectamente referenciado. Es literalmente la moraleja que ya
+  dejó escrita `T8-06` —*un fallo de herramienta que señala mal se arregla dos veces*— sin aplicar del
+  todo, porque entonces se arregló la causa y no el mensaje.
+- **La puerta falló hacia el lado seguro**, y eso también consta: abortó **antes del bump**, con el árbol
+  limpio, sin commit, sin tag y el `.csproj` intacto. Un corte a medias habría costado mucho más que un
+  reintento.
+
+**Nota de banco de pruebas:** la USB `utilidades` está en **`I:`** (en `G:` hay ahora otro medio), y la
+variable de la prueba de capacidad es `FORMATDISKPRO_VERIFY_DRIVE`. Con ella puesta, las unitarias pasan de
+622/1 omitida a **623/0**.
 
 ### 2026-08-26 — Tier 9 CERRADO (20/20): las doce restantes
 

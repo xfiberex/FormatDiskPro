@@ -16,19 +16,23 @@
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
 > | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
 >
-> Al final de la Parte 2 hay además cinco tiers que **no** son parte de la auditoría (que sigue siendo de
+> Al final de la Parte 2 hay además seis tiers que **no** son parte de la auditoría (que sigue siendo de
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
 > entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, **Tier 7 — Consistencia
 > y descubribilidad de la UI** (`T7-01`–`T7-09`) y **Tier 8 — Lo que solo se ve usando la app**
 > (`T8-01`–`T8-06`), ambos cerrados el 2026-08-26, y **Tier 9 — Re-auditoría transversal con la app en
 > marcha** (`T9-01`–`T9-20`), **abierto y cerrado el 2026-08-26**: 20 tareas (1 Alta · 9 Medias · 10 Bajas),
-> **20/20 completadas**.
+> **20/20 completadas**. Y **Tier 10 — Lo que solo aparece al publicar** (`T10-01`), **abierto el
+> 2026-08-26** y el único con trabajo pendiente: no nace de una revisión, sino del corte de la v1.25.0.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
 ## 🏁 Estado
 
-> **Todo lo que hay aquí es registro: no queda ninguna tarea abierta.** El
+> **Queda una tarea abierta**, y no salió de una revisión sino de **publicar**: el
+> **[Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)** (`T10-01`) se abrió el
+> **2026-08-26** al cortar la v1.25.0, cuando la puerta de cobertura abortó el corte con un informe vacío
+> **cuya causa no se conoce**. Todo lo demás es registro. El
 > **[Tier 9](#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26)** se abrió y se
 > cerró el **2026-08-26**, **20/20**, por una re-auditoría de las 12 áreas aplicables ejecutada **sobre la
 > máquina**. Los Tiers 1–8 estaban cerrados desde antes —los dos últimos,
@@ -302,7 +306,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T7** | **Consistencia y descubribilidad de la UI** — revisión sobre el código, no sobre capturas · cerrado | 9 | bajo-medio |
 | **T8** | **Lo que solo se ve usando la app** — incluye *Exportar CSV*, roto en toda versión publicada · cerrado | 6 | bajo-medio |
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
-| | **Total** | **95** | |
+| **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · **abierto** | 1 | bajo |
+| | **Total** | **96** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2185,10 +2190,63 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ---
 
+## 🧪 Tier 10 — Lo que solo aparece al publicar *(abierto 2026-08-26)*
+
+> **De dónde sale.** Del corte de la **v1.25.0**, no de una revisión. El primer intento abortó en la
+> puerta de cobertura con el informe **vacío** —el síntoma de `T8-06`, ya cerrado— **con su arreglo
+> puesto y funcionando**. El reintento salió limpio y la v1.25.0 se publicó. Queda una tarea, y lo
+> honesto es decir que **no se conoce su causa**: `T8-06` cerró *una* de las causas del informe vacío,
+> y hay al menos otra.
+>
+> **Base:** v1.25.0 · unitarias **623/623, 0 omitidas** (con `FORMATDISKPRO_VERIFY_DRIVE`) · `Core/` al
+> **98,1 %** · UI **34/37**, los 3 omitidos opt-in · todo del propio corte del 2026-08-26.
+
+- [ ] **[T10-01] El informe de cobertura sale vacío de vez en cuando, y no se sabe por qué** · Media
+  - **Área:** DevOps / publicación
+  - **Ubicación:** [release.ps1:437-449](release.ps1#L437-L449) (compilar, medir y abortar) ·
+    [release.ps1:156](release.ps1#L156) (`Get-CoreCoverage`, que devuelve `$null` sin distinguir casos)
+  - **Qué pasó, medido:** al cortar la v1.25.0 el script murió con «Se pidió cobertura y no se obtuvo
+    informe», con las **623 unitarias en verde** y un `coverage.cobertura.xml` de **235 bytes**
+    (`<packages />`). Es exactamente el artefacto de `T8-06` — pero su arreglo estaba puesto y se
+    ejecutó: `dotnet build` de la solución (18,5 s, recompiló) y `dotnet test --no-build` después.
+  - **Lo que NO se consiguió:** reproducirlo. **Tres intentos, los tres con informe de 1,6 MB**: (1)
+    `dotnet test --no-build` con la compilación al día; (2) la secuencia exacta del corte, con
+    `FORMATDISKPRO_VERIFY_DRIVE=I` puesta como la tenía el corte; (3) **la condición que provocaba
+    `T8-06`** —tocar una fuente para desactualizar la compilación— y aun así compilar antes. El
+    reintento del corte completo también salió bien, al 98,1 %. Así que **no es la causa de `T8-06`**,
+    y esa sigue cerrada: esto es otra distinta.
+  - **Único dato diferencial, y es débil:** en la corrida que falló, la compilación tardó **18,5 s** y
+    las pruebas **1 m 6 s**; en las que salieron bien, 8 s y 20 s. **Hipótesis sin verificar**, y hay
+    que tratarla como tal: la corrida que falló fue la primera con la prueba de capacidad sobre unidad
+    real activada, que hace E/S sin caché sobre la USB durante ~1 min. No se ha medido ninguna relación
+    entre eso y la instrumentación, y bien podría no haberla.
+  - **Qué hacer, y qué NO:** **no** poner un reintento automático de la medición. Un fallo intermitente
+    que se reintenta solo deja de aparecer y no deja de existir, y esta puerta es la que decide si un
+    corte sale. Lo que hace falta es que la **próxima vez que ocurra deje pruebas**:
+    1. Distinguir en el mensaje **informe ausente** de **informe presente y vacío**. Hoy los dos caen en
+       el mismo `$null` y en el mismo texto, que culpa a `coverlet.collector` — y en las dos ocasiones
+       registradas el paquete estaba perfectamente referenciado. Es la lección de `T8-06` sin aprender
+       del todo: *un fallo de herramienta que señala mal se arregla dos veces*.
+    2. Cuando el informe salga vacío, **conservarlo** junto al log de la corrida en vez de dejarlo en un
+       `%TEMP%` que la siguiente corrida borra, y decir dónde quedó.
+    3. Añadir los diagnósticos del recolector (`--diag`) **solo en ese camino**, para no ralentizar los
+       cortes que van bien.
+  - **Criterio de aceptación:** provocar el caso a mano (un `coverage.cobertura.xml` vacío) y comprobar
+    que el corte aborta con un mensaje que dice que el informe está **vacío**, no que falte el paquete,
+    y que nombra la ruta donde lo ha dejado.
+  - **Lo que este fallo hizo bien, y consta:** abortó **antes del bump**. Árbol limpio, sin commit, sin
+    tag, `.csproj` intacto en `1.24.1`. La puerta falló hacia el lado seguro, que es la mitad del
+    trabajo de una puerta.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+---
+
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-26 | — | **Se abre el [Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)** con **1 tarea** (`T10-01`, Media), y no de una revisión sino del **corte de la v1.25.0**: el primer intento abortó con el informe de cobertura **vacío** —el artefacto de `T8-06`— **con el arreglo de `T8-06` puesto y ejecutado**. No se reprodujo en tres intentos, incluido el caso que provocaba `T8-06`. Se abre reconociendo que **la causa no se conoce**, y la tarea va de dejar pruebas la próxima vez, no de reintentar hasta que salga. El corte reintentado publicó la v1.25.0 al 98,1 %. |
 | 2026-08-26 | **T9-20** | Desinstalar ofrece borrar `%AppData%\FormatDiskPro` —preferencias e historial—, que antes quedaba en disco sin que nadie lo mencionara. Se **pregunta** (por defecto No) y en modo silencioso se conserva. **Trampa encontrada al validar:** un comentario `{ … }` de Pascal se cierra con la **primera** llave que aparezca, así que escribir `{app}` dentro terminaba el comentario a mitad y el resto se compilaba como código («'BEGIN' expected»). Queda anotado en el propio `.iss`. |
 | 2026-08-26 | **T9-19** | `THIRD-PARTY-NOTICES.txt` declara su criterio y lo cumple: **(A) redistribuido** (.NET y WinAppSDK, MIT, compatibles con GPLv3) frente a **(B) solo construcción/pruebas**, donde entran los que faltaban —xUnit (Apache-2.0), FlaUI y coverlet— junto a Inno Setup, que ya estaba. Al ampliarlo, cinco líneas se pasaron de **78 columnas** y el visor de la app las **trunca** sin barra visible (`T6-14`): ahora hay una prueba que barre los dos textos legales y falla si alguna se pasa. |
 | 2026-08-26 | **T9-18** | La comprobación de actualizaciones al arrancar es **opcional**: nueva preferencia en *Configuración*, activada por defecto, persistida y traducida a los cinco idiomas. Es la única conexión a Internet de la app y salía en cada arranque sin preguntar. Desactivarla **no** deja la app sin actualizar: *Ayuda → Buscar actualizaciones…* sigue ahí, con su verificación por SHA-256. El texto de privacidad ahora dice que es automática y cómo apagarla. +1 unitaria. |
