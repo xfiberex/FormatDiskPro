@@ -136,13 +136,11 @@ public sealed partial class MainWindow
         MnuTools.AccessKey  = FirstLetter(L.T("menu.tools"));
         MnuConfig.AccessKey = FirstLetter(L.T("menu.config"));
         MnuHelp.AccessKey   = FirstLetter(L.T("menu.help"));
-        MnuVerify.Text   = L.T("menu.verify");
-        MnuHealth.Text   = L.T("menu.health");
-        MnuCheck.Text    = L.T("menu.check");
-        MnuBenchmark.Text = L.T("menu.benchmark");
-        MnuUnlock.Text   = L.T("menu.unlock");
-        MnuReinit.Text   = L.T("menu.reinit");
-        MnuEject.Text    = L.T("menu.eject");
+        // Los siete ítems que dependen de la unidad —verificar, salud, chkdsk, benchmark, quitar
+        // protección, reinicializar y expulsar— NO se escriben aquí: su texto lleva pegada la etiqueta
+        // del motivo cuando están apagados (T7-08), así que lo escribe UpdateToolsMenuAvailability, al
+        // final de este método. Escribirlo en los dos sitios dejaría la etiqueta perdida o duplicada
+        // según cuál corriera el último.
         MnuHistory.Text  = L.T("menu.history");
         MnuConfig.Title  = L.T("menu.config");
         MnuLang.Text     = L.T("menu.lang");

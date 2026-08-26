@@ -1,4 +1,4 @@
-using FormatDiskPro;
+﻿using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -240,6 +240,52 @@ public sealed class LocalizationTests
         foreach ((string text, int i) in L.Map["alloc.hint"].Select((t, i) => (t, i)))
             Assert.All(ghosts, ghost => Assert.False(text.Contains(ghost, StringComparison.OrdinalIgnoreCase),
                 $"alloc.hint en {(AppLang)i} nombra «{ghost}», que no es una opción del selector."));
+    }
+
+    /// <summary>
+    /// `T7-08`: la etiqueta que se pega al texto de un ítem apagado tiene que <b>caber en el menú</b>.
+    /// El motivo largo ya existe —va en el <c>HelpText</c>—; esto es su resumen visible, y una traducción
+    /// que copie la frase completa duplicaría el ancho del menú <i>Herramientas</i> en lugar de decir en
+    /// dos palabras por qué el ítem está gris. Los paréntesis son parte del contrato: la etiqueta se
+    /// concatena al nombre del ítem, no lo sustituye.
+    /// </summary>
+    [Theory]
+    [InlineData("menu.tagNoDrive")]
+    [InlineData("menu.tagProtected")]
+    [InlineData("menu.tagRemovable")]
+    public void DisabledMenuTags_AreShortAndParenthesized_InEveryLanguage(string key)
+    {
+        Assert.True(L.Map.ContainsKey(key), $"Falta la clave '{key}'.");
+
+        foreach ((string text, int i) in L.Map[key].Select((t, i) => (t, i)))
+        {
+            var lang = (AppLang)i;
+            Assert.True(text.StartsWith('(') && text.EndsWith(')'),
+                $"'{key}' en {lang} no va entre paréntesis: se concatena al nombre del ítem — '{text}'");
+            Assert.True(text.Length <= 30,
+                $"'{key}' en {lang} mide {text.Length} caracteres: es una etiqueta de menú, no la frase " +
+                $"completa (esa va en '{key.Replace("tag", "why")}') — '{text}'");
+        }
+    }
+
+    /// <summary>
+    /// La etiqueta corta y la frase larga son <b>dos textos distintos</b>, no el mismo repetido: si
+    /// alguien pega la frase en la etiqueta, el test de longitud lo caza; si abrevia la frase hasta la
+    /// etiqueta, el lector de pantalla pierde el motivo. Esta prueba cubre el segundo caso.
+    /// </summary>
+    [Theory]
+    [InlineData("menu.tagNoDrive",   "menu.whyNoDrive")]
+    [InlineData("menu.tagProtected", "menu.whyProtected")]
+    [InlineData("menu.tagRemovable", "menu.whyRemovable")]
+    public void DisabledMenuReasons_AreFullSentences_NotTheShortTag(string tagKey, string whyKey)
+    {
+        foreach ((string why, int i) in L.Map[whyKey].Select((t, i) => (t, i)))
+        {
+            var lang = (AppLang)i;
+            Assert.True(why.Length > L.Map[tagKey][i].Length,
+                $"'{whyKey}' en {lang} no dice más que su etiqueta corta '{L.Map[tagKey][i]}'.");
+            Assert.EndsWith(".", why);
+        }
     }
 
     [Fact]

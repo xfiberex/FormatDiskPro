@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace FormatDiskPro;
 
@@ -160,6 +160,14 @@ public static class L
         ["menu.whyNoDrive"]   = ["No disponible: no hay ninguna unidad seleccionada.", "Not available: no drive is selected.", "Indisponível: nenhuma unidade selecionada.", "Indisponible : aucun lecteur sélectionné.", "Non disponibile: nessuna unità selezionata."],
         ["menu.whyProtected"] = ["No disponible: la unidad está protegida o es el disco del sistema.", "Not available: the drive is protected or is the system disk.", "Indisponível: a unidade está protegida ou é o disco do sistema.", "Indisponible : le lecteur est protégé ou c'est le disque système.", "Non disponibile: l'unità è protetta o è il disco di sistema."],
         ["menu.whyRemovable"] = ["No disponible: solo para unidades extraíbles.", "Not available: removable drives only.", "Indisponível: apenas para unidades removíveis.", "Indisponible : uniquement pour les lecteurs amovibles.", "Non disponibile: solo per unità rimovibili."],
+        // Y la MISMA razón, en corto, pegada al texto del ítem (T7-08). WinUI no muestra el tooltip de un
+        // control deshabilitado —no hay `ShowOnDisabled` como en WPF—, así que el motivo de arriba solo le
+        // llegaba al lector de pantalla: quien mira la pantalla veía un ítem gris y mudo. Estas etiquetas
+        // se pintan siempre, sin necesidad de apuntar con el ratón. Van entre paréntesis y en minúscula
+        // porque son un apéndice del nombre del ítem, no una frase aparte.
+        ["menu.tagNoDrive"]   = ["(sin unidad)", "(no drive)", "(sem unidade)", "(aucun lecteur)", "(nessuna unità)"],
+        ["menu.tagProtected"] = ["(unidad protegida)", "(drive protected)", "(unidade protegida)", "(lecteur protégé)", "(unità protetta)"],
+        ["menu.tagRemovable"] = ["(solo extraíbles)", "(removable only)", "(apenas removíveis)", "(amovibles seulement)", "(solo rimovibili)"],
         ["tip.refresh"]      = ["Actualizar lista de unidades", "Refresh drive list", "Atualizar lista de unidades", "Actualiser la liste des lecteurs", "Aggiorna elenco unità"],
         ["drive.none"]       = ["No hay unidades — conecta un dispositivo", "No drives — connect a device", "Sem unidades — conecte um dispositivo", "Aucun lecteur — connectez un périphérique", "Nessuna unità — collega un dispositivo"],
 

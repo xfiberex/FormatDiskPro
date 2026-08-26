@@ -173,9 +173,10 @@ public sealed partial class MainWindow
     /// Ajusta el menú <i>Herramientas</i> a la unidad seleccionada (<c>T7-02</c>): lo que esa unidad no
     /// admite se ve apagado en vez de aceptarse y rechazarse después en un diálogo.
     ///
-    /// <para><b>El motivo va escrito en cada ítem</b> —tooltip y <c>HelpText</c> de automatización—,
-    /// porque un ítem gris y mudo es peor que el diálogo que sustituye: deja al usuario sin saber qué
-    /// hizo mal. Las condiciones son EXACTAMENTE las guardas de cada handler en
+    /// <para><b>El motivo va escrito en cada ítem</b>, y por partida doble: una etiqueta corta en el
+    /// TEXTO visible —<c>T7-08</c>— y la frase completa en el tooltip y el <c>HelpText</c> de
+    /// automatización. Un ítem gris y mudo es peor que el diálogo que sustituye: deja al usuario sin
+    /// saber qué hizo mal. Las condiciones son EXACTAMENTE las guardas de cada handler en
     /// <c>MainWindow.Operations.cs</c>, que <b>siguen ahí</b>: el estado de la unidad puede cambiar
     /// entre que se abre el menú y se pulsa (para eso está <c>WM_DEVICECHANGE</c>), así que esto es la
     /// primera línea y aquellas son la red.</para>
@@ -183,6 +184,10 @@ public sealed partial class MainWindow
     /// <para><i>Comprobar errores</i> y <i>Benchmark</i> no se apagan nunca con una unidad seleccionada:
     /// chkdsk en modo solo lectura sí corre sobre el disco de sistema —lo que no se ofrece allí es la
     /// reparación— y el benchmark no escribe fuera de su propio archivo temporal.</para>
+    ///
+    /// <para>Este método es el ÚNICO dueño del texto de estos siete ítems: <c>ApplyLanguage</c> ya no
+    /// se los escribe, porque el texto depende del idioma <i>y</i> de la unidad, y dos dueños dejarían
+    /// la etiqueta del motivo pegada —o perdida— según cuál escribiera el último.</para>
     /// </summary>
     private void UpdateToolsMenuAvailability()
     {
@@ -192,38 +197,57 @@ public sealed partial class MainWindow
         bool removable = item?.Info.DriveType == DriveType.Removable;
 
         // El motivo más específico primero: sin unidad no hay nada que explicar sobre protecciones.
-        string noDrive   = L.T("menu.whyNoDrive");
-        string protectedWhy = L.T("menu.whyProtected");
-        string removableWhy = L.T("menu.whyRemovable");
+        var noDrive     = (L.T("menu.whyNoDrive"),   L.T("menu.tagNoDrive"));
+        var protectedWhy = (L.T("menu.whyProtected"), L.T("menu.tagProtected"));
+        var removableWhy = (L.T("menu.whyRemovable"), L.T("menu.tagRemovable"));
 
-        SetMenuItemAvailability(MnuVerify,    hasDrive && !blocked, !hasDrive ? noDrive : protectedWhy);
-        SetMenuItemAvailability(MnuHealth,    hasDrive,             noDrive);
-        SetMenuItemAvailability(MnuCheck,     hasDrive,             noDrive);
-        SetMenuItemAvailability(MnuBenchmark, hasDrive,             noDrive);
-        SetMenuItemAvailability(MnuUnlock,    hasDrive && !blocked, !hasDrive ? noDrive : protectedWhy);
-        SetMenuItemAvailability(MnuReinit,    hasDrive && removable && !blocked,
+        SetMenuItemAvailability(MnuVerify, "menu.verify", hasDrive && !blocked,
+                                !hasDrive ? noDrive : protectedWhy);
+        SetMenuItemAvailability(MnuHealth,    "menu.health",    hasDrive, noDrive);
+        SetMenuItemAvailability(MnuCheck,     "menu.check",     hasDrive, noDrive);
+        SetMenuItemAvailability(MnuBenchmark, "menu.benchmark", hasDrive, noDrive);
+        SetMenuItemAvailability(MnuUnlock, "menu.unlock", hasDrive && !blocked,
+                                !hasDrive ? noDrive : protectedWhy);
+        SetMenuItemAvailability(MnuReinit, "menu.reinit", hasDrive && removable && !blocked,
                                 !hasDrive ? noDrive : !removable ? removableWhy : protectedWhy);
-        SetMenuItemAvailability(MnuEject,     hasDrive && removable, !hasDrive ? noDrive : removableWhy);
+        SetMenuItemAvailability(MnuEject,  "menu.eject",  hasDrive && removable,
+                                !hasDrive ? noDrive : removableWhy);
     }
 
     /// <summary>
     /// Habilita o apaga un ítem del menú, poniéndole el motivo cuando queda apagado y quitándoselo
-    /// cuando vuelve. El motivo va en el tooltip <b>y</b> en <c>HelpText</c>: un lector de pantalla
-    /// anuncia el ítem como no disponible, pero no sabría decir por qué.
+    /// cuando vuelve.
+    ///
+    /// <para>El motivo va en tres sitios y no es redundancia: la <b>etiqueta corta</b> se pega al texto
+    /// visible porque WinUI <b>no muestra el tooltip de un control deshabilitado</b> —no existe el
+    /// <c>ShowOnDisabled</c> de WPF—, así que sin ella quien mira la pantalla no recibe nada; el
+    /// <b>tooltip</b> se conserva por si el ítem se recorre con el ratón desde un control vecino; y el
+    /// <c>HelpText</c> lleva la frase completa, que es lo que lee un lector de pantalla, porque este
+    /// anuncia el ítem como no disponible pero no sabría decir por qué.</para>
+    ///
+    /// <para>El texto se re-deriva SIEMPRE de <paramref name="labelKey"/>, nunca del que el ítem trae
+    /// puesto: leerlo acumularía la etiqueta cada vez que se repinta el menú.</para>
     /// </summary>
-    private static void SetMenuItemAvailability(MenuFlyoutItem menuItem, bool enabled, string reason)
+    /// <param name="menuItem">Ítem del menú a ajustar.</param>
+    /// <param name="labelKey">Clave de localización del texto base del ítem, sin etiqueta de motivo.</param>
+    /// <param name="enabled">Si la unidad seleccionada admite la operación.</param>
+    /// <param name="why">Frase completa del motivo y su etiqueta corta, ambas ya localizadas.</param>
+    private static void SetMenuItemAvailability(
+        MenuFlyoutItem menuItem, string labelKey, bool enabled, (string Reason, string Tag) why)
     {
         menuItem.IsEnabled = enabled;
 
         if (enabled)
         {
+            menuItem.Text = L.T(labelKey);
             ToolTipService.SetToolTip(menuItem, null);
             AutomationProperties.SetHelpText(menuItem, "");
         }
         else
         {
-            ToolTipService.SetToolTip(menuItem, reason);
-            AutomationProperties.SetHelpText(menuItem, reason);
+            menuItem.Text = $"{L.T(labelKey)}  {why.Tag}";
+            ToolTipService.SetToolTip(menuItem, why.Reason);
+            AutomationProperties.SetHelpText(menuItem, why.Reason);
         }
     }
 

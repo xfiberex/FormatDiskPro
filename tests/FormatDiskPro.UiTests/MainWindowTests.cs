@@ -1,4 +1,4 @@
-using FlaUI.Core.AutomationElements;
+﻿using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using FlaUI.Core.Input;
 using FlaUI.Core.WindowsAPI;
@@ -56,6 +56,13 @@ public sealed class MainWindowTests(AppFixture fixture)
                 Assert.False(item.IsEnabled, $"'{id}' debería estar apagado sobre el disco de sistema.");
                 Assert.False(string.IsNullOrWhiteSpace(item.HelpText),
                     $"'{id}' está apagado sin decir por qué (HelpText vacío).");
+
+                // `T7-08`: y el motivo tiene que VERSE. WinUI no muestra el tooltip de un control
+                // deshabilitado —comprobado con la app en marcha—, así que sin la etiqueta pegada al
+                // texto el HelpText de arriba solo le llega a un lector de pantalla y quien mira la
+                // pantalla se queda con un ítem gris y mudo.
+                Assert.True(item.Name.TrimEnd().EndsWith(')'),
+                    $"'{id}' está apagado y su texto visible no lleva el motivo: '{item.Name}'.");
             }
 
             foreach (string id in (string[])["MnuHealth", "MnuCheck", "MnuBenchmark", "MnuHistory"])
