@@ -1,4 +1,4 @@
-# FormatDiskPro — Hoja de ruta
+﻿# FormatDiskPro — Hoja de ruta
 
 > **Qué hay aquí:** las características agrupadas por **tiers**, con dónde vive cada una en la arquitectura
 > por capas (`Core` lógica pura testeable · `Services` efectos colaterales · `UI` WinUI 3 · `Localization`).
@@ -16,16 +16,18 @@
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
 > | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
 >
-> Al final de la Parte 2 hay además tres tiers que **no** son parte de la auditoría (que sigue siendo de
+> Al final de la Parte 2 hay además cuatro tiers que **no** son parte de la auditoría (que sigue siendo de
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
 > entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, y **Tier 7 — Consistencia
-> y descubribilidad de la UI** (`T7-01`–`T7-08`), **el único abierto**, con una sola tarea viva (`T7-08`).
+> y descubribilidad de la UI** (`T7-01`–`T7-09`) y **Tier 8 — Lo que solo se ve usando la app**
+> (`T8-01`–`T8-03`), ambos cerrados el 2026-08-26. **No queda ninguna tarea abierta.**
 
 ## 🏁 Estado
 
-> **Casi todo lo que hay aquí es registro.** Lo único abierto es el
-> **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (7 de 8), y lo que queda es **mirar la
-> pantalla**, no escribir código. Lo que
+> **Todo lo que hay aquí es registro.** Los dos últimos tiers
+> —**[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)** (9/9) y
+> **[Tier 8](#-tier-8--lo-que-solo-se-ve-usando-la-app)** (3/3)— cerraron el **2026-08-26**: no
+> queda ninguna tarea pendiente. Lo que
 > queda fuera está fuera a propósito, y su porqué está en
 > *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
 
@@ -55,7 +57,7 @@ app por falta de terminal elevada. Al ejecutarla (`T6-11`, galería completa en 
 **tres hallazgos más** que la primera ronda no podía ver, así que el tier cerró en **15**. Ver
 **[Tier 6](#-tier-6--refinado-de-uxui)**.
 
-**Tier 7 — consistencia y descubribilidad: ABIERTO (2026-08-25), 7/8.** Con el Tier 6 cerrado, una
+**Tier 7 — consistencia y descubribilidad: CERRADO (2026-08-26), 9/9.** Con el Tier 6 cerrado, una
 revisión sobre el **código** de la UI —no sobre capturas— buscó lo que una galería no enseña: qué pasa al
 pulsar y qué se ofrece para negarse después. **6 hallazgos, ninguno un defecto de corrección**: borrar un
 preset no confirmaba mientras vaciar el historial sí (`T7-01`), *Herramientas* ofrece operaciones que
@@ -63,9 +65,11 @@ después rechaza en un diálogo (`T7-02`), el campo más esotérico era el únic
 tiene un solo atajo de teclado (`T7-04`), la búsqueda del historial no dice cuánto oculta (`T7-05`) y
 quedan dos preguntas que solo se contestan con la app en marcha (`T7-06`). `T7-06` —la revisión **con la app en marcha**— se hizo el mismo día y, como `T6-11` en su
 tier, **abrió lo que la lectura no podía ver**: `T7-07` (las filas del historial y de presets se
-anunciaban con el volcado del record, y los filtros no decían qué filtraban), ya hecha, y `T7-08`, que
-no es código sino **una comprobación de ojo**: si WinUI pinta el tooltip de un ítem de menú
-deshabilitado. De paso desmintió la sospecha de partida: los `ListView` con `SelectionMode="None"`
+anunciaban con el volcado del record, y los filtros no decían qué filtraban) y `T7-08`, **una
+comprobación de ojo**: si WinUI pinta el tooltip de un ítem de menú deshabilitado. La respuesta fue
+**no** —no existe el `ShowOnDisabled` de WPF—, así que el motivo bajó al texto visible del ítem y `T7-02`
+quedó completa. Y mirar ese menú arreglado abrió a su vez `T7-09`: el marco de foco salía **recortado** en
+los seis diálogos. De paso desmintió la sospecha de partida: los `ListView` con `SelectionMode="None"`
 **sí** se recorren y desplazan solo con teclado. Ver **[Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui)**.
 
 | Tier | Tema | Versión |
@@ -1665,21 +1669,127 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     arreglos, las tres pruebas de nombres fallan y las dos de teclado siguen verdes.
   - *Esfuerzo: bajo · Depende de: T7-06*
 
-- [ ] **[T7-08] ¿Se ve el tooltip de un ítem de menú deshabilitado?**
+- [x] **[T7-08] El tooltip de un ítem de menú deshabilitado NO se ve** — **hecho (2026-08-26)**
   - **Área:** UI / prevención de errores
-  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.DriveInfo.cs` (`SetMenuItemAvailability`)
-  - **Qué hacer:** seleccionar el disco de sistema, abrir *Herramientas* y **poner el ratón encima** de
-    *Reinicializar unidad…*, que está apagado. Si aparece «No disponible: la unidad está protegida o es
-    el disco del sistema», `T7-02` está completa y esta tarea se cierra sin tocar código. Si **no**
-    aparece, el motivo solo lo recibe un lector de pantalla (el `HelpText`, que sí está probado) y hay
-    que llevarlo a la vista — el sitio natural es la `InfoBar` de la ventana, que ya hace justo eso para
-    la unidad protegida (`ProtectedBar`).
-  - **Por qué:** de esto depende que `T7-02` cumpla su propia condición —«las dos mitades van juntas o
-    no va ninguna»—. Un ítem gris y mudo es peor que el diálogo que sustituyó.
-  - **Ojo:** **no intentar medirlo con FlaUI otra vez.** Ya se probó: no detecta el tooltip ni sobre un
-    control habilitado que sí lo tiene, con el ratón encima confirmado por `FromPoint`. Un cero ahí no
-    prueba nada, y tomarlo por prueba sería el error que `T6-11` existe para no repetir.
+  - **Ubicación:** `src/FormatDiskPro/UI/MainWindow.DriveInfo.cs` (`SetMenuItemAvailability`),
+    `src/FormatDiskPro/UI/MainWindow.Preferences.cs` (`ApplyLanguage`),
+    `src/FormatDiskPro/Localization/Localization.cs`
+  - **La respuesta, mirando la pantalla:** con el disco de sistema seleccionado y el ratón encima de
+    *Reinicializar unidad…*, **no aparece nada**. WinUI no tiene el `ShowOnDisabled` de WPF: un control
+    deshabilitado no recibe eventos de puntero, así que su tooltip no se pinta nunca. El motivo que
+    `T7-02` escribió solo le llegaba a un lector de pantalla.
+  - **Hecho:** el motivo, **en corto, pegado al texto visible del ítem** — «Reinicializar unidad…
+    (unidad protegida)», «Expulsar unidad (solo extraíbles)». Tres claves nuevas
+    (`menu.tagNoDrive`/`tagProtected`/`tagRemovable`) × 5 idiomas, junto a las `menu.why*` de `T7-02`,
+    que **se quedan**: la etiqueta cabe en un menú, la frase completa dice el porqué y va donde ya iba
+    (tooltip + `HelpText`).
+  - **No fue la `InfoBar`**, que era lo que la tarea proponía: el flyout de *Herramientas* se abre
+    justo encima de la fila donde vive `ProtectedBar`, así que el aviso habría salido **debajo del menú
+    que lo motiva**. Y el motivo es por ítem, no por ventana: una barra tendría que resumir hasta tres
+    razones distintas y perdería a cuál corresponde cada una. La etiqueta va donde está el problema.
+  - **Efecto colateral que hubo que resolver:** el texto de esos siete ítems tenía **dos dueños**
+    —`ApplyLanguage` y `UpdateToolsMenuAvailability`—, y con la etiqueta dentro eso se vuelve un error:
+    según cuál escribiera el último, la etiqueta se perdía o se acumulaba. `ApplyLanguage` deja de
+    escribirlos (ya llamaba a `UpdateToolsMenuAvailability` al final), y el texto se re-deriva **siempre**
+    de la clave de localización, nunca del que el ítem trae puesto.
+  - **Verificado por reversión:** quitando la etiqueta del `Text`, la prueba de `T7-02` —ampliada con la
+    comprobación del texto visible— falla; con ella, verde. +6 unitarias sobre las etiquetas en los cinco
+    idiomas (que sean cortas y entre paréntesis, y que la frase larga siga diciendo más que ellas).
   - *Esfuerzo: bajo (mirar) · Depende de: —*
+
+### Abierta al mirar el resultado de `T7-08`
+
+- [x] **[T7-09] El foco salía recortado en los diálogos** — **hecho (2026-08-26)**
+  - **Área:** UI / accesibilidad
+  - **Ubicación:** `src/FormatDiskPro/UI/Theme/AppTheme.xaml` y la raíz de los seis diálogos
+  - **Qué pasaba:** al tabular hasta el primer filtro del *Historial*, su marco de foco salía **cortado
+    por la izquierda**. WinUI dibuja ese marco **hacia fuera** de los límites del control (2 px de trazo
+    primario + 1 px de secundario) y el `ContentDialog` envuelve su contenido en un `ScrollViewer` que
+    recorta: cualquier control pegado al borde de la raíz pierde el lado que cae fuera.
+  - **Hecho:** un recurso compartido, `DialogContentPadding` = 3 px —exactamente lo que el trazo
+    necesita—, aplicado a la raíz del contenido de los seis diálogos. Va **dentro** de
+    `MinWidth`/`MaxWidth`, así que no cambia el ancho de ninguno ni toca lo que fijó `T6-07`.
+  - **No era solo el historial**, y por eso el arreglo no vive ahí: los seis diálogos ponían su raíz
+    pegada al borde. Lo mismo le pasaba al buscador y a la fila de botones; solo se notó en el combo
+    porque su marco es el más visible.
+  - **La única excepción, declarada:** `LegalTextDialog`, cuyo ancho es el valor **medido** en `T6-14`
+    para que quepan las 78 columnas de la GPL sin barra horizontal — un relleno le comería 6 px de esa
+    cuenta y volvería a partir el texto legal. Su raíz es además un `ScrollViewer` a pantalla completa:
+    no hay ningún control tabulable pegado a su borde.
+  - **Por qué:** un foco a medio dibujar es exactamente el problema que el resto del Tier 7 vino a
+    arreglar —la app sabiendo algo que no enseña—, y quien navega a teclado es quien más depende de él.
+  - **Verificado por reversión:** quitando el relleno de un diálogo, la prueba que barre los seis falla
+    y nombra el fichero. La prueba defiende **la convención, no los píxeles**: que el recorte ya no se ve
+    es una comprobación de ojo, como la de `T7-08`.
+  - *Esfuerzo: bajo · Depende de: T7-08*
+
+---
+
+## 🔍 Tier 8 — Lo que solo se ve usando la app
+
+> **Ni Tier 6 ni Tier 7.** El [Tier 6](#-tier-6--refinado-de-uxui) miró **capturas** y el
+> [Tier 7](#-tier-7--consistencia-y-descubribilidad-de-la-ui) miró **código**. Este tier salió de algo que
+> ninguno de los dos podía dar: **una captura de la app en uso real**, con su historial lleno. Ahí se veían
+> cuatro entradas seguidas que decían `EXPORT ERROR:` y nada más.
+>
+> Y a diferencia del Tier 7, aquí **sí hay defectos de corrección**. El primero es grande: una función del
+> menú que **nunca funcionó en ninguna versión publicada**, y que ninguna prueba cubría.
+
+**Origen (2026-08-26):** una captura del historial durante la revisión del Tier 7.
+
+- [x] **[T8-01] *Exportar CSV* nunca funcionó en la app publicada** — **hecho (2026-08-26)**
+  - **Área:** Corrección / historial
+  - **Ubicación:** `src/FormatDiskPro/UI/SaveFileDialog.cs` (nuevo), `UI/HistoryDialog.xaml.cs`
+  - **Qué pasaba:** `FileSavePicker.PickSaveFileAsync()` —el selector de archivos de WinRT— **rechaza a
+    los procesos elevados**, y FormatDiskPro corre siempre elevada (`requireAdministrator`). Lanzaba
+    `COMException 0x80004005` **en el acto**, sin llegar a mostrar ninguna ventana. El botón parecía no
+    hacer nada.
+  - **Medido, no supuesto:** una sonda de UI pulsó el botón contra el .exe real y enumeró las ventanas del
+    proceso por `EnumWindows` — ninguna nueva, y la `InfoBar` con el HRESULT. La misma sonda, ya con el
+    arreglo, ve aparecer la ventana `Exportar CSV` de clase `#32770`, la de los diálogos comunes de
+    Windows.
+  - **Hecho:** el diálogo «Guardar como» de Windows por COM (`IFileSaveDialog`), que no pasa por el
+    intermediario que rechaza la elevación y es el mismo diálogo moderno del resto del sistema. La
+    escritura pasa de `FileIO.WriteTextAsync` a `File.WriteAllTextAsync` con **UTF-8 con BOM**, que es lo
+    que escribía antes: sin BOM, Excel destroza los acentos de los detalles.
+  - **Por qué se nos escapó:** *no había ninguna prueba de la exportación*, ni unitaria ni de UI. La había
+    de `HistoryEntry.ToCsv` —la parte pura— pero ninguna del camino que el usuario pulsa. Ahora sí.
+  - *Esfuerzo: alto · Depende de: —*
+
+- [x] **[T8-02] Los errores podían salir vacíos** — **hecho (2026-08-26)**
+  - **Área:** Corrección / diagnóstico
+  - **Ubicación:** `src/FormatDiskPro/Core/ErrorText.cs` (nuevo) y los once sitios que mostraban o
+    registraban el mensaje de una excepción
+  - **Qué pasaba:** las cuatro líneas `EXPORT ERROR:` del historial no estaban truncadas — la `Message` de
+    esa excepción era **de verdad la cadena vacía**. Una excepción que cruza la frontera de WinRT lleva su
+    texto en un `IRestrictedErrorInfo`, y cuando ese descriptor viene sin descripción, lo que llega a .NET
+    es un mensaje en blanco. El `InfoBar` mostraba título sin cuerpo.
+  - **Hecho:** `ErrorText.Describe(ex)` — el mensaje si lo hay (recortado), y si no, el tipo y el
+    `HRESULT`. Es lógica pura, así que se prueba de verdad. Lo usan los once sitios que enseñan o
+    registran un error, incluida la línea de historial de un formateo fallido (`OperationFailure`), que es
+    la más importante del archivo.
+  - **Y una prueba que barre las fuentes** y falla si vuelve a aparecer el mensaje en crudo fuera de
+    `ErrorText`. No es estilo: cada uno de esos sitios podía escribir un error vacío, y el fallo estuvo ahí
+    años sin que ninguna prueba lo notara porque el código «se leía bien».
+  - **Fue lo que diagnosticó `T8-01`:** con el respaldo puesto, la app dijo `COMException (HRESULT
+    0x80004005)` en pantalla, y eso señaló directamente al selector de archivos.
+  - *Esfuerzo: medio · Depende de: —*
+
+- [x] **[T8-03] Dos botones más que podían no hacer nada** — **hecho (2026-08-26)**
+  - **Área:** Corrección / prevención de errores
+  - **Ubicación:** `Services/History.cs`, `Services/UpdateService.cs`, `UI/HistoryDialog.xaml.cs`,
+    `UI/AboutDialog.*`, `UI/WhatsNewDialog.*`, `UI/MainWindow.HelpAndUpdates.cs`
+  - **Qué pasaba:** buscando más fallos de la familia de `T8-01` aparecieron dos `catch` vacíos.
+    `History.Open()` —el botón *Abrir archivo* del historial— y `UpdateService.OpenUrl()` —*Apoyar el
+    proyecto*, *GitHub*, *Ver en GitHub*— se tragaban cualquier fallo: sin editor asociado a `.log` o sin
+    navegador, el botón no producía **ningún** efecto visible.
+  - **Hecho:** `Open()` deja salir la excepción y el diálogo la cuenta en la `InfoBar` que ya tenía;
+    `OpenUrl()` pasa a devolver `bool` y quien llama enseña la dirección para poder copiarla. *Ver en
+    GitHub* sigue cerrando el diálogo cuando el navegador **sí** abre —que es lo que se espera— y solo se
+    queda abierto cuando hay algo que contar.
+  - **Por qué:** un botón que no hace nada es el peor fallo posible de una interfaz: no da al usuario
+    ninguna forma de saber si el problema es suyo, del programa o del clic.
+  - *Esfuerzo: bajo · Depende de: T8-02*
 
 ---
 
@@ -1687,6 +1797,11 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-26 | **T8-03** | Dos `catch` vacíos más de la misma familia: *Abrir archivo* del historial y los enlaces a GitHub/donación no producían **ningún** efecto visible al fallar. `History.Open()` deja salir la excepción y el diálogo la cuenta; `OpenUrl()` devuelve `bool` y quien llama enseña la dirección. *Ver en GitHub* solo se queda abierto si el navegador NO abrió. |
+| 2026-08-26 | **T8-02** | Los errores podían salir **vacíos**: el mensaje de una excepción venida de WinRT es la cadena vacía cuando su `IRestrictedErrorInfo` no trae descripción. `ErrorText.Describe(ex)` respalda con tipo + `HRESULT`, y lo usan los once sitios que enseñan o registran un error. Una prueba barre las fuentes y falla si vuelve a aparecer el mensaje en crudo. Fue lo que diagnosticó `T8-01`. +6 unitarias. |
+| 2026-08-26 | **T8-01** | ***Exportar CSV* nunca funcionó en una versión publicada.** El `FileSavePicker` de WinRT rechaza a los procesos elevados y la app siempre lo es: `COMException 0x80004005` en el acto, sin abrir ninguna ventana. Sustituido por el diálogo «Guardar como» de Windows por COM (`IFileSaveDialog`). **Medido con una sonda de UI** contra el .exe real —antes, ninguna ventana nueva; después, la ventana `Exportar CSV` de clase `#32770`—, convertida luego en prueba de regresión. No había NINGUNA prueba de la exportación: por ahí viajó el fallo. |
+| 2026-08-26 | **T7-09** | Al mirar el menú arreglado se vio otra cosa: el marco de foco salía **cortado** en los diálogos. WinUI lo dibuja hacia fuera del control y el `ContentDialog` recorta su contenido, así que la raíz pegada al borde se comía 3 px del marco — en los **seis** diálogos, no solo en el historial. Recurso compartido `DialogContentPadding` = 3 px, dentro de `MinWidth`/`MaxWidth` (no toca `T6-07`). `LegalTextDialog` queda fuera **a propósito**: su ancho es la medida de `T6-14`. **Verificado por reversión** + 2 pruebas que barren los diálogos. |
+| 2026-08-26 | **T7-08** | La comprobación a ojo dio **no**: WinUI no pinta el tooltip de un control deshabilitado —no existe el `ShowOnDisabled` de WPF— y el motivo de `T7-02` solo le llegaba al lector de pantalla. El motivo pasa al **texto visible del ítem** en corto («(unidad protegida)», «(solo extraíbles)», «(sin unidad)») × 5 idiomas. No a la `InfoBar`: el flyout se abre justo encima de ella, y el motivo es por ítem, no por ventana. De paso, el texto de esos siete ítems pasa a tener **un solo dueño** (`UpdateToolsMenuAvailability`); con dos, la etiqueta se perdía o se duplicaba. **Verificado por reversión** + 6 unitarias. |
 | 2026-08-25 | **T7-07** | Las filas de historial y presets dejan de anunciarse con el `ToString()` del record —«HistoryRow { …, Accent = Microsoft.UI.Xaml.Media.SolidColorBrush }»— y los dos filtros del historial dicen qué filtran. El nombre va en el **contenedor** (`ContainerContentChanging`): dentro de la plantilla no cambia el del `ListViewItem`. **Verificado por reversión**: quitando los arreglos caen las tres pruebas de nombres y siguen verdes las dos de teclado. |
 | 2026-08-25 | **T7-06** | Revisión con la app en marcha. **Desmintió su propia sospecha**: `SelectionMode="None"` no impide recorrer ni desplazar los `ListView` con teclado (0 % → 30 % con ↓ y AvPág). Foco inicial correcto en ambos diálogos y flyout de borrado de `T7-01` usable con teclado. Abrió **`T7-07`** (hecha) y **`T7-08`** (el tooltip del ítem apagado, que FlaUI no puede medir: no lo ve ni sobre un control habilitado que sí lo tiene). La sonda que lo midió se convirtió en 5 pruebas y se borró. |
 | 2026-08-25 | **T7-04** | Atajos para los tres diagnósticos que no escriben nada (`Ctrl+I` salud, `Ctrl+B` benchmark, `Ctrl+H` historial) y `Ctrl+E` para exportar dentro del historial. Formatear/reinicializar/verificar **no llevan atajo a propósito**. Sin `KeyboardAcceleratorTextOverride`: el `MenuFlyoutItem` pinta solo el texto cuando el acelerador existe de verdad. Sacó a la luz que `MnuHistory_Click` no comprobaba `_isBusy` —le bastaba con que el menú se deshabilitara— y `Ctrl+H` llega sin pasar por el menú. **Verificado por reversión** con un UI test que pulsa el atajo sin abrir el menú. |

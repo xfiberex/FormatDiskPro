@@ -1,4 +1,4 @@
-# FormatDiskPro
+﻿# FormatDiskPro
 
 ![Release](https://img.shields.io/github/v/release/xfiberex/FormatDiskPro?label=versión&color=blue)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
@@ -97,7 +97,7 @@ filtros por categoría y resultado, y exportación a CSV.
 - **Tema automático / claro / oscuro**: sigue el tema del sistema Windows en tiempo real; opción de forzar claro u oscuro desde el menú
 - **Recuerda tus preferencias** (idioma, tema, última unidad, presets, aviso y pasadas de borrado seguro) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)
 - **Expulsión segura** de unidades removibles
-- **Visor de historial integrado** dentro de la app (con **búsqueda y filtros** por categoría/resultado, y **exportación a CSV**), además del registro de auditoría en `%AppData%\FormatDiskPro\history.log`
+- **Visor de historial integrado** dentro de la app (con **búsqueda y filtros** por categoría/resultado, y **exportación a CSV** por el diálogo «Guardar como» de Windows), además del registro de auditoría en `%AppData%\FormatDiskPro\history.log`
 - **Lista de unidades autorefrescada**: se actualiza sola al **conectar o desconectar** una unidad (además del botón Refrescar / F5)
 - **Tiempo transcurrido, velocidad y ETA** en operaciones largas, con **cancelación segura** de cualquier operación
 - **Aviso al terminar**: sonido + parpadeo de la barra de tareas al completar operaciones largas (solo si la ventana no está en primer plano), para poder alejarte del PC; se activa/desactiva en *Configuración → Avisar al terminar*
@@ -262,6 +262,13 @@ Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los hel
 | **Configuración** | Idioma (ES/EN/PT/FR/IT) · Tema (Automático/Claro/Oscuro) · Presets (con Gestionar presets…) · Avisar al terminar |
 | **Ayuda** | Buscar actualizaciones · Novedades · Licencia · Avisos de terceros · Acerca de (con disclaimer, privacidad y *Apoyar el proyecto*) |
 
+> **El menú *Herramientas* se ajusta a la unidad seleccionada.** Lo que esa unidad no admite aparece
+> apagado **con el motivo escrito en el propio ítem** —«Reinicializar unidad… *(unidad protegida)*»,
+> «Expulsar unidad *(solo extraíbles)*»—, en vez de aceptarse y rechazarse después en un diálogo. La
+> explicación completa la recibe también un lector de pantalla. *Comprobar errores* y *Benchmark* siguen
+> disponibles en el disco del sistema: el primero corre ahí en modo solo lectura y el segundo no escribe
+> fuera de su archivo temporal.
+
 ## Sistemas de archivos disponibles
 
 | FS | Recomendado para | Límite de archivo |
@@ -297,7 +304,8 @@ src/FormatDiskPro/
 │  ├─ UpdateChecker.cs      Comparación de versiones para actualizaciones
 │  ├─ AppInfo.cs            Versión, coordenadas del repositorio y enlace de donación
 │  ├─ Presets.cs            Configuraciones predefinidas (nombre traducido) + validación/renombrado
-│  └─ OperationFailure.cs   Línea de historial de una operación fallida
+│  ├─ OperationFailure.cs   Línea de historial de una operación fallida
+│  └─ ErrorText.cs         Texto de una excepción para un humano (nunca vacío: respalda con tipo + HRESULT)
 ├─ Services/        Efectos colaterales (procesos / disco / red)
 │  ├─ DiskService.cs        S.M.A.R.T., nº de disco, protección de escritura y expulsión (PowerShell)
 │  ├─ SecureWipe.cs         Borrado seguro del espacio libre (sobrescritor propio, con progreso)
@@ -318,6 +326,7 @@ src/FormatDiskPro/
 │  ├─ PresetsDialog.xaml / .cs     Gestionar presets propios (guardar / editar / reordenar / eliminar)
 │  ├─ AboutDialog.xaml / .cs       Acerca de: descripción, disclaimer, privacidad, donación
 │  ├─ LegalTextDialog.xaml / .cs   Visor de licencia GPLv3 / avisos de terceros
+│  ├─ SaveFileDialog.cs            Diálogo «Guardar como» de Windows por COM (el de WinRT no funciona elevado)
 │  ├─ Theme/AppTheme.xaml          Tokens de diseño (tarjetas, encabezados, footer)
 │  └─ DriveViewModel.cs            Modelo de binding para el ComboBox de unidades
 ├─ Localization/    Cadenas ES/EN/PT/FR/IT centralizadas (arreglo por idioma)

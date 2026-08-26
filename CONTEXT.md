@@ -1,4 +1,4 @@
-# Contexto del proyecto — FormatDiskPro
+﻿# Contexto del proyecto — FormatDiskPro
 
 > **Qué es este archivo.** El contexto **vivo** del proyecto: qué es, cómo está montado, **qué se decidió y
 > por qué**, y qué se aprendió por el camino. Sirve para retomarlo tras meses sin tocarlo, o desde otro
@@ -15,8 +15,8 @@
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Pruebas** | **588** unitarias (`Core/` al 97,9 %) · **30** de UI sobre la app real — **26 pasan / 3 se omiten** (solo los opt-in) con la USB conectada, verificado el 2026-08-17 |
-| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — 1 tarea abierta (`T7-08`, que es mirar la pantalla, no escribir código) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | 2026-08-25 (**Tier 7**, 7/8: la revisión con la app en marcha (`T7-06`) desmintió su propia sospecha y abrió `T7-07` —ya hecha— y `T7-08`, que es una comprobación visual. Sin publicar todavía) |
+| **Hoja de ruta** | [`ROADMAP.md`](ROADMAP.md) — **sin tareas abiertas** (Tiers 7 y 8 cerrados el 2026-08-26, 9/9 y 3/3) · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
+| **Última actualización** | 2026-08-26 (**Tiers 7 y 8 cerrados**. El 7 acabó en el foco recortado de los diálogos (`T7-09`); el 8 salió de una captura del historial en uso y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`). Sin publicar todavía) |
 
 ---
 
@@ -144,13 +144,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **588 / 588** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05`) · se ejecutan **en local**, nunca en CI (ver §4) |
-| UI tests | **36** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, −1 la sonda borrada) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-25, sin ninguna y ya con las siete del Tier 7, fueron **22 pasan / 14 se omiten / 0 fallan** — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
+| Unitarias | **604 / 604** (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.23.0** (2026-08-17) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **1**: `T7-08` — comprobar **a ojo** si WinUI pinta el tooltip de un ítem de menú deshabilitado (`T7-02`); FlaUI no puede medirlo. Del **Tier 7** (abierto el 2026-08-25) están hechas `T7-01` a `T7-07`: la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`, dos defectos de accesibilidad que solo se ven con lector de pantalla. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
+| Tareas abiertas | **Ninguna.** El **Tier 8** cerró el **2026-08-26**, 3/3: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
 > quedó desactualizada por serlo. Se mantiene solo allí: los nueve tiers de producto (1.4.0 → 1.15.1), la
@@ -340,8 +340,7 @@ commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su 
 
 ## 6. Qué queda fuera, y por qué
 
-**La única tarea abierta es `T7-08`** —mirar si un tooltip aparece, no una característica nueva;
-el estado vivo está en §3, esta sección es solo el alcance—. Los tres frentes del proyecto están cerrados:
+**No queda ninguna tarea abierta** —el estado vivo está en §3, esta sección es solo el alcance—. Los tres frentes del proyecto están cerrados:
 producto (Tiers 1–9, 2026-07-13), auditoría de calidad (2026-08-16) y Tier 5 «Ocurrencias» (2026-08-16).
 
 Lo que falta, falta **a propósito**. Las decisiones y su porqué viven en §4 y en *Decisiones cerradas* del
@@ -402,6 +401,124 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-26 — Tier 8: lo que solo se ve usando la app (`T8-01` a `T8-03`)
+
+**Una captura encontró lo que dos revisiones enteras no.** El Tier 6 miró capturas de la galería y el
+Tier 7 miró el código; este tier salió de una **captura de la app en uso real**, con el historial lleno,
+enviada de pasada para enseñar otra cosa. En ella había cuatro entradas seguidas que decían
+`EXPORT ERROR:` y nada más.
+
+**`T8-01` — *Exportar CSV* nunca funcionó en ninguna versión publicada.** El
+`FileSavePicker` de WinRT delega en un intermediario que **rechaza a los procesos elevados**, y
+FormatDiskPro corre siempre elevada (`requireAdministrator`, decisión cerrada). `PickSaveFileAsync`
+lanzaba `COMException 0x80004005` **en el acto**, sin llegar a mostrar ninguna ventana: para el usuario,
+un botón que no hacía nada. Los tres primeros fallos del historial están separados por **3 y 4 segundos**
+—demasiado poco para elegir un nombre de archivo—, que fue la primera señal de que el diálogo ni se abría.
+
+**Medido, no supuesto.** Una sonda de UI pulsó el botón contra el .exe real y enumeró las ventanas del
+proceso: ninguna nueva. Con el arreglo, la misma sonda ve aparecer la ventana `Exportar CSV` de clase
+`#32770` —la de los diálogos comunes de Windows—. Las ventanas se enumeran por `EnumWindows` y **no** por
+UI Automation: un modal del sistema bloquea el hilo de UI de la app y toda consulta UIA caduca con
+«Operation timed out», que es un síntoma del bloqueo y no una medida. Tomarlo por resultado habría sido el
+error que `T6-11` existe para no repetir. La sonda se convirtió en prueba de regresión y se borró.
+
+**El arreglo es el diálogo de Windows por COM** (`IFileSaveDialog`), que lo crea el propio proceso y por
+tanto la elevación le da igual — y es el mismo diálogo moderno del resto del sistema, no el
+`GetSaveFileName` de los noventa. De la interfaz se declaran los métodos **en orden de vtable** hasta el
+último que se usa: en COM el orden ES el contrato. La escritura pasa a `File.WriteAllTextAsync` con
+**UTF-8 con BOM**, que es lo que hacía `FileIO.WriteTextAsync`: sin BOM, Excel abre el CSV en la página de
+códigos del sistema y destroza los acentos.
+
+**Por qué viajó en todas las versiones:** no había **ninguna** prueba de la exportación. La había de
+`HistoryEntry.ToCsv` —la parte pura, con su escape RFC 4180 y su defensa contra fórmulas— pero ninguna del
+camino que el usuario pulsa. La lección no es «faltaba un test», es que la cobertura estaba donde era
+fácil ponerla.
+
+**`T8-02` — y el error que lo tapaba.** Las cuatro líneas del historial no estaban truncadas: la `Message`
+de esa excepción era **de verdad la cadena vacía**. Una excepción que cruza la frontera de WinRT lleva su
+texto en un `IRestrictedErrorInfo`, y cuando ese descriptor viene sin descripción —lo habitual en los
+fallos de COM— lo que llega a .NET es un mensaje en blanco. El `InfoBar` mostraba título sin cuerpo y el
+historial registraba que algo falló sin decir qué. `ErrorText.Describe(ex)` respalda con el tipo y el
+`HRESULT`, y **fue lo que diagnosticó `T8-01`**: con el respaldo puesto, la app dijo
+`COMException (HRESULT 0x80004005)` en pantalla y eso señaló directamente al selector.
+
+Lo usan los once sitios que enseñan o registran un error, incluida la línea de un formateo fallido
+(`OperationFailure`), que es la más importante del archivo. Y una prueba **barre las fuentes** y falla si
+vuelve a aparecer el mensaje en crudo fuera de `ErrorText`: no es una regla de estilo, cada uno de esos
+sitios podía escribir un error vacío.
+
+**`T8-03` — dos botones más que podían no hacer nada.** Buscando la misma familia de fallo aparecieron dos
+`catch` vacíos: `History.Open()` (*Abrir archivo*) y `UpdateService.OpenUrl()` (*Apoyar el proyecto*,
+*GitHub*, *Ver en GitHub*). Sin editor asociado a `.log` o sin navegador, el botón no producía **ningún**
+efecto visible. Ahora `Open()` deja salir la excepción y el diálogo la cuenta en la `InfoBar` que ya
+tenía, y `OpenUrl()` devuelve `bool` para que quien llama enseñe la dirección. Detalle que casi se cuela:
+*Ver en GitHub* debe **seguir cerrando** el diálogo cuando el navegador sí abre —es lo que se espera de
+ese botón—, así que solo se queda abierto cuando hay algo que contar.
+
+**Lo que este tier deja escrito:** las tres revisiones de UI han encontrado cosas distintas porque miraron
+fuentes distintas —capturas de galería, código, y la app en uso—. La tercera es la única que encontró un
+defecto de corrección, y encontró el mayor de los tres.
+
+### 2026-08-26 — `T7-08` y `T7-09`: se cierra el Tier 7 (9/9)
+
+**La respuesta era «no», y la propuesta de la tarea también.** Con el disco de sistema seleccionado y el
+ratón sobre *Reinicializar unidad…*, **no aparece nada**: WinUI no tiene el `ShowOnDisabled` de WPF, y un
+control deshabilitado no recibe eventos de puntero, así que su tooltip no se pinta jamás. El motivo que
+`T7-02` había escrito llegaba solo por `HelpText`, es decir, **solo a un lector de pantalla**. Un ítem gris
+y mudo para quien mira era exactamente lo que esa tarea se prohibió a sí misma.
+
+**Pero la `InfoBar` que la tarea proponía era el sitio equivocado, y mirarlo lo dejó claro.** El flyout de
+*Herramientas* se despliega **justo encima** de la fila donde vive `ProtectedBar`: el aviso habría quedado
+tapado por el propio menú que lo motiva. Y hay un problema anterior al de la geometría: el motivo es **por
+ítem** —protegida, no extraíble, sin unidad—, mientras que una barra es **por ventana**, y con tres ítems
+apagados por razones distintas tendría que resumirlas sin poder decir a cuál corresponde cada una.
+
+**Dónde fue, entonces: al texto del propio ítem.** «Reinicializar unidad… (unidad protegida)», «Expulsar
+unidad (solo extraíbles)». Tres claves nuevas (`menu.tagNoDrive`, `menu.tagProtected`,
+`menu.tagRemovable`) × 5 idiomas, cortas y entre paréntesis porque son un apéndice del nombre, no una
+frase aparte. Las `menu.why*` de `T7-02` **se quedan tal cual**: la etiqueta cabe en un menú, la frase
+completa dice el porqué, y cada una va donde sirve —la primera a la vista, la segunda al `HelpText`—. El
+tooltip se conserva aunque hoy no se pinte: no cuesta nada y deja de ser deuda el día que la plataforma lo
+muestre.
+
+**El efecto colateral fue el hallazgo de verdad.** El texto de esos siete ítems tenía **dos dueños**:
+`ApplyLanguage` lo escribía al cambiar de idioma y `UpdateToolsMenuAvailability` al cambiar de unidad.
+Mientras el texto era constante, la duplicación era inocua; con la etiqueta dentro se vuelve un fallo
+—según cuál corriera el último, la etiqueta se perdía o se acumulaba en cada repintado—. `ApplyLanguage`
+deja de escribirlos (ya llamaba a `UpdateToolsMenuAvailability` al final, por los motivos de `T7-02`), y
+el texto se re-deriva **siempre** de la clave de localización, nunca del que el ítem trae puesto.
+
+**Verificado por reversión:** quitando la etiqueta del `Text`, la prueba de `T7-02` —ampliada con una
+comprobación del texto **visible**, no solo del `HelpText`— falla; con ella, verde. La aserción es
+independiente del idioma (el texto de un ítem apagado termina en `)`), porque el idioma activo en la
+máquina de pruebas es el que el usuario tenga guardado. +6 unitarias sobre las etiquetas en los cinco
+idiomas.
+
+**`T7-09` — y mirar el resultado abrió otra cosa.** El mismo repaso con la app delante enseñó que, al
+tabular hasta el primer filtro del *Historial*, su **marco de foco salía cortado por la izquierda**. La
+causa no está en ese combo: WinUI dibuja el marco de foco **hacia fuera** de los límites del control —2 px
+de trazo primario más 1 px de secundario— y el `ContentDialog` envuelve su contenido en un `ScrollViewer`
+que recorta. Cualquier control pegado al borde de la raíz pierde el lado que cae fuera, y **los seis
+diálogos** ponían su raíz pegada al borde. Al buscador y a la fila de botones les pasaba igual; solo se
+notó en el combo porque su marco es el más visible.
+
+Por eso el arreglo no vive en el historial sino en un recurso compartido —`DialogContentPadding` = 3 px,
+que es exactamente lo que el trazo necesita—, aplicado a la raíz de los seis. Va **dentro** de
+`MinWidth`/`MaxWidth`, así que no mueve el ancho de nadie ni toca lo que fijó `T6-07`. Esa tarea es
+justamente el precedente: un criterio por diálogo acabó en seis criterios distintos y en una ventana que
+saltaba al abrir el siguiente.
+
+**La excepción va declarada, no borrada.** `LegalTextDialog` se queda sin relleno porque su ancho es el
+valor **medido** en `T6-14` para que quepan las 78 columnas de la GPL sin barra horizontal: 6 px menos
+volverían a partir el texto legal. Y no lo necesita — su raíz es un `ScrollViewer` que ocupa el diálogo
+entero, sin ningún control tabulable pegado al borde. El nombre y el porqué están en la propia prueba, que
+es donde hay que ir a discutirlos si algún día cambian.
+
+**Qué prueba la prueba, y qué no.** Barre los `*Dialog.xaml` y falla nombrando el que se olvide del
+relleno —verificado por reversión—, pero lo que defiende es **la convención, no los píxeles**: que el
+recorte ya no se vea es una comprobación de ojo, igual que la que abrió `T7-08`. Un diálogo nuevo que se
+salte el relleno recorta el foco exactamente igual, y nadie lo notaría hasta que alguien tabulara.
 
 ### 2026-08-25 — Tier 7: siete de ocho (`T7-01` a `T7-07`)
 
