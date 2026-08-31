@@ -150,24 +150,68 @@ function Invoke-Git {
     red son los UI tests, y medirlos con la misma vara daría un número que invitaría a escribir pruebas
     fáciles de lo que no importa.
 
-    Devuelve $null si no encuentra informe (el corte lo trata como error: pedir cobertura y no obtenerla
-    no puede pasar por "correcto").
+    Devuelve SIEMPRE un objeto con .Status, nunca $null (`T10-01`). Antes, cuatro situaciones muy distintas
+    —no hay informe; lo hay y no se puede leer; lo hay y esta vacio; lo hay lleno pero sin ninguna clase de
+    Core/— colapsaban en el mismo $null y salian por el mismo mensaje, que culpaba a coverlet.collector de
+    no estar referenciado. Las dos veces que ha fallado de verdad, el paquete estaba referenciado.
+
+    Un fallo de herramienta que senala mal se arregla dos veces: una buscando donde no es, y otra donde si.
+    Eso ya lo dejo escrito `T8-06`; esto es aplicarlo al MENSAJE, no solo a la causa.
+
+    .Status:
+      ok         — medido; trae Covered/Total/Percent/PerClass.
+      missing    — no hay ningun coverage.cobertura.xml bajo el directorio de resultados.
+      unreadable — lo hay, pero no es XML valido.
+      empty      — lo hay y es valido, pero no declara NI UNA clase. Es el artefacto de 235 bytes
+                   (`<packages />`) de `T8-06`, y el que reaparecio al cortar la v1.25.0 con el arreglo de
+                   `T8-06` puesto y ejecutado, por una causa que sigue sin conocerse (`T10-01`).
+      nocore     — declara clases, pero ninguna bajo Core/. Eso no es un fallo del recolector: o se movio
+                   la carpeta, o el filtro de esta funcion dejo de encajar.
 #>
 function Get-CoreCoverage {
     param([Parameter(Mandatory)][string]$CoverageDir)
 
     $report = Get-ChildItem $CoverageDir -Recurse -Filter "coverage.cobertura.xml" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
-    if (-not $report) { return $null }
+    if (-not $report) {
+        return [pscustomobject]@{
+            Status = 'missing'
+            Report = $null
+            Reason = "No hay ningun coverage.cobertura.xml bajo $CoverageDir."
+        }
+    }
 
     try {
         $xml = New-Object System.Xml.XmlDocument
         $xml.Load($report.FullName)
-    } catch { return $null }
+    } catch {
+        return [pscustomobject]@{
+            Status = 'unreadable'
+            Report = $report.FullName
+            Reason = "El informe existe ($($report.Length) bytes) pero no se pudo leer como XML: $($_.Exception.Message)"
+        }
+    }
 
     # El informe identifica cada clase por su archivo fuente: es lo que permite separar Core/ del resto.
-    $classes = @($xml.SelectNodes("//class") | Where-Object { $_.filename -match '\\Core\\' })
-    if ($classes.Count -eq 0) { return $null }
+    $all     = @($xml.SelectNodes("//class"))
+    $classes = @($all | Where-Object { $_.filename -match '\\Core\\' })
+
+    # Sin NINGUNA clase, el informe no mide nada de nada: es el `<packages />` de 235 bytes.
+    if ($all.Count -eq 0) {
+        return [pscustomobject]@{
+            Status = 'empty'
+            Report = $report.FullName
+            Reason = "El informe existe ($($report.Length) bytes) y es XML valido, pero no declara ni una clase: no se instrumento nada."
+        }
+    }
+    # Con clases pero ninguna de Core/, el problema no es el recolector sino este filtro o el arbol.
+    if ($classes.Count -eq 0) {
+        return [pscustomobject]@{
+            Status = 'nocore'
+            Report = $report.FullName
+            Reason = "El informe mide $($all.Count) clases, pero ninguna bajo Core/. O se movio la carpeta, o el filtro de Get-CoreCoverage dejo de encajar."
+        }
+    }
 
     $covered = 0; $total = 0
     $perClass = foreach ($c in $classes) {
@@ -182,11 +226,44 @@ function Get-CoreCoverage {
     }
 
     [pscustomobject]@{
+        Status   = 'ok'
+        Reason   = $null
         Covered  = $covered
         Total    = $total
         Percent  = if ($total -gt 0) { [math]::Round(100 * $covered / $total, 1) } else { 0 }
         Report   = $report.FullName
         PerClass = @($perClass | Sort-Object Percent)
+    }
+}
+
+<#
+.SYNOPSIS
+    Pone a salvo un directorio de resultados de cobertura que ha fallado, y devuelve donde lo dejo.
+
+.DESCRIPTION
+    El directorio de trabajo (`$env:TEMP\FormatDiskPro_coverage`) lo BORRA la siguiente corrida, asi que
+    la unica prueba de un fallo desaparecia en cuanto se reintentaba el corte — que es exactamente lo
+    primero que uno hace. Al cortar la v1.25.0 el informe salio vacio, el reintento salio bien, y lo unico
+    que quedo del fallo fue lo que se copio a mano antes de relanzar.
+
+    Se copia FUERA del repo a proposito: cualquier archivo nuevo dentro del arbol haria abortar el
+    siguiente corte por arbol sucio (`T9-01`), y el remedio no puede estropear el diagnostico.
+#>
+function Save-CoverageEvidence {
+    param(
+        [Parameter(Mandatory)][AllowNull()][string]$CoverageDir,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    if (-not $CoverageDir -or -not (Test-Path $CoverageDir)) { return $null }
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $dest  = Join-Path $env:TEMP "FormatDiskPro_cobertura_fallida\$Label-$stamp"
+    try {
+        New-Item -ItemType Directory -Path $dest -Force | Out-Null
+        Copy-Item (Join-Path $CoverageDir '*') $dest -Recurse -Force -ErrorAction Stop
+        return $dest
+    } catch {
+        return $null
     }
 }
 
@@ -443,10 +520,61 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
         if ($LASTEXITCODE -ne 0) { Die "Las pruebas unitarias fallaron. Release abortado." }
         Ok "Pruebas unitarias correctas."
 
-        $coverage = Get-CoreCoverage -CoverageDir $covDir
-        if (-not $coverage) {
-            Die "Se pidió cobertura y no se obtuvo informe. Un corte no puede salir sin saber qué cubre: revisa que coverlet.collector siga referenciado en el proyecto de pruebas."
+        # `T10-01`: cuatro fallos distintos dejan de salir por el mismo mensaje. Get-CoreCoverage ya no
+        # devuelve $null nunca: dice CUAL de ellos es.
+        $covResult = Get-CoreCoverage -CoverageDir $covDir
+        if ($covResult.Status -ne 'ok') {
+            Warn "Cobertura no medible ($($covResult.Status)): $($covResult.Reason)"
+            $evidencia = Save-CoverageEvidence -CoverageDir $covDir -Label $Version
+            if ($evidencia) { Warn "Informe conservado en: $evidencia" }
+            else            { Warn "No se pudo conservar el informe (no habia directorio de resultados)." }
+
+            # 'missing' y 'nocore' SI apuntan a algo concreto, y cada uno a un sitio distinto.
+            if ($covResult.Status -eq 'missing') {
+                Die "No se genero ningun informe de cobertura. Aqui si cabe sospechar del recolector: revisa que coverlet.collector siga referenciado en el proyecto de pruebas."
+            }
+            if ($covResult.Status -eq 'nocore') {
+                Die "El informe mide, pero no ve Core/. Eso no es del recolector: o se movio src\FormatDiskPro\Core, o el filtro de Get-CoreCoverage dejo de encajar con las rutas del informe. Revisa $($covResult.Report)."
+            }
+
+            # 'empty' / 'unreadable': es el fallo de `T10-01`, cuya causa NO se conoce. Se repite la
+            # medicion con los diagnosticos del recolector puestos —solo por aqui, para no ralentizar los
+            # cortes que van bien— y el resultado NO desbloquea nada: el corte muere igual, unas lineas mas
+            # abajo, gane o pierda. Un fallo intermitente al que se le pone un reintento deja de aparecer
+            # sin dejar de existir, y esta puerta es la que decide si un corte sale.
+            Info "Repitiendo la medicion con diagnosticos. Esto NO desbloquea el corte: solo busca dejar rastro."
+            $diagDir = Join-Path $env:TEMP "FormatDiskPro_coverage_diag"
+            if (Test-Path $diagDir) { Remove-Item $diagDir -Recurse -Force -ErrorAction SilentlyContinue }
+            New-Item -ItemType Directory -Path $diagDir -Force | Out-Null
+            $diagLog = Join-Path $diagDir "dotnet-test.diag.log"
+            & dotnet test $solution --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $diagDir --diag:$diagLog
+            $segunda   = Get-CoreCoverage -CoverageDir $diagDir
+            $diagKept  = Save-CoverageEvidence -CoverageDir $diagDir -Label "$Version-diag"
+
+            if ($segunda.Status -eq 'ok') {
+                $veredicto = "La segunda pasada SI midio ($($segunda.Percent)%). Es intermitente, como en el corte de la v1.25.0."
+                $consejo   = "Relanzar el corte probablemente funcione — pero antes anota en ``T10-01`` que ha vuelto a pasar, con los diagnosticos de arriba. Es la unica forma de que esto deje de ser un fallo sin causa conocida."
+            } else {
+                $veredicto = "La segunda pasada TAMPOCO midio ($($segunda.Status)): $($segunda.Reason)"
+                $consejo   = "Esto ya no es intermitente: es reproducible aqui y ahora. No relances el corte; arreglalo con los diagnosticos delante."
+            }
+
+            Die @"
+La cobertura no se pudo medir, y no por falta del paquete.
+
+  Que paso: $($covResult.Reason)
+  Informe:  $(if ($evidencia) { $evidencia } else { $covResult.Report })
+  Segunda pasada con --diag: $veredicto
+  Diagnosticos: $(if ($diagKept) { $diagKept } else { "no se pudieron conservar" })
+
+$consejo
+
+Contexto: ``T8-06`` cerro UNA causa del informe vacio (compilar antes de medir, que se sigue haciendo).
+``T10-01`` esta abierta justo por esta: al cortar la v1.25.0 volvio a pasar con ese arreglo puesto, y no se
+reprodujo en tres intentos. Ver ROADMAP.md, Tier 10.
+"@
         }
+        $coverage = $covResult
         if ($coverage.Percent -lt $CoreCoverageThreshold) {
             Warn "Clases de Core/ con menos cobertura:"
             $coverage.PerClass | Select-Object -First 5 | ForEach-Object {

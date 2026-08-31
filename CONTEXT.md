@@ -157,7 +157,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Publicado | **v1.25.0** (2026-08-26) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tareas abiertas | **Una: `T10-01`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. Se abre reconociendo que la causa **no se conoce**. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
+| Tareas abiertas | **Una, y bloqueada a propósito: `T10-02`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
@@ -412,6 +412,38 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-08-27 — `T10-01`: el camino de fallo de la cobertura deja pruebas en vez de señalar mal
+
+`Get-CoreCoverage` devolvía `$null` a **cuatro** situaciones distintas y el corte las contaba todas con el
+mismo mensaje: «revisa que coverlet.collector siga referenciado». Las dos veces que ha fallado de verdad,
+el paquete estaba referenciado. Ahora devuelve un `.Status` —`missing`, `unreadable`, `empty`, `nocore`— y
+cada uno aborta diciendo lo suyo; `nocore`, en particular, ni siquiera es del recolector.
+
+**Lo que se decidió, y por qué:**
+
+- **La segunda pasada con `--diag` no es un reintento.** Es la distinción que sostiene toda la tarea: se
+  vuelve a medir, sí, pero **el corte muere igual gane o pierda**. Lo único que cambia es el veredicto que
+  imprime —«es intermitente» o «es reproducible aquí y ahora»— y el consejo. Un fallo intermitente al que
+  se le pone un reintento deja de aparecer sin dejar de existir, y esta puerta es la que decide si un
+  corte sale.
+- **Las pruebas se conservan FUERA del repo.** `%TEMP%\FormatDiskPro_cobertura_fallida\...`, no una
+  carpeta del proyecto: un archivo nuevo dentro del árbol haría abortar el siguiente corte por árbol sucio
+  (`T9-01`). El remedio de un fallo no puede estropear el diagnóstico del siguiente.
+- **El directorio de trabajo lo borra la corrida siguiente**, y eso es justo lo que hacía desaparecer la
+  única prueba: al cortar la v1.25.0, del fallo solo quedó lo que se copió a mano antes de relanzar.
+
+**Verificado en dos niveles**, y el segundo es el que importa: las cinco clasificaciones contra informes
+fabricados (5/5, incluido el `<packages />` real de 235 bytes), y el **camino de fallo completo** con una
+copia desechable del script apuntando a ese informe. Clasificó `empty`, conservó el informe, repitió con
+`--diag` —midió 98,1 %, veredicto «intermitente»—, guardó **3,7 MB de diagnósticos** (entre ellos el log
+del *datacollector*, que es el que puede explicar por qué no se instrumentó nada) y abortó con `exit 1` sin
+nombrar a `coverlet.collector`.
+
+**Lo que NO se ha resuelto, y se deja abierto en vez de darlo por cerrado:** la causa. Se abre **`T10-02`**,
+bloqueada a propósito **hasta que el fallo vuelva a ocurrir**, porque no se puede investigar lo que no se
+reproduce. Su criterio de cierre exige nombrar la causa con un log delante, o decir qué se descartó y con
+qué pruebas. Cerrar `T10-01` y callar la pregunta habría sido fingir que se resolvió.
 
 ### 2026-08-26 — v1.25.0 publicada, y un corte que abortó sin causa conocida: se abre el Tier 10
 

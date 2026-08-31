@@ -22,17 +22,20 @@
 > y descubribilidad de la UI** (`T7-01`–`T7-09`) y **Tier 8 — Lo que solo se ve usando la app**
 > (`T8-01`–`T8-06`), ambos cerrados el 2026-08-26, y **Tier 9 — Re-auditoría transversal con la app en
 > marcha** (`T9-01`–`T9-20`), **abierto y cerrado el 2026-08-26**: 20 tareas (1 Alta · 9 Medias · 10 Bajas),
-> **20/20 completadas**. Y **Tier 10 — Lo que solo aparece al publicar** (`T10-01`), **abierto el
+> **20/20 completadas**. Y **Tier 10 — Lo que solo aparece al publicar** (`T10-01`–`T10-02`), **abierto el
 > 2026-08-26** y el único con trabajo pendiente: no nace de una revisión, sino del corte de la v1.25.0.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
 ## 🏁 Estado
 
-> **Queda una tarea abierta**, y no salió de una revisión sino de **publicar**: el
-> **[Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)** (`T10-01`) se abrió el
+> **Queda una tarea abierta, y está bloqueada a propósito**: `T10-02`, en el
+> **[Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)**. El tier se abrió el
 > **2026-08-26** al cortar la v1.25.0, cuando la puerta de cobertura abortó el corte con un informe vacío
-> **cuya causa no se conoce**. Todo lo demás es registro. El
+> cuya causa **sigue sin conocerse**. `T10-01` (2026-08-27) no la busca: se ocupa de que la próxima vez
+> queden **pruebas** —informe conservado y diagnósticos del recolector— y de que el mensaje deje de culpar
+> al paquete equivocado. `T10-02` es la causa, y espera a que vuelva a ocurrir, porque no se puede
+> investigar lo que no se reproduce. Todo lo demás es registro. El
 > **[Tier 9](#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26)** se abrió y se
 > cerró el **2026-08-26**, **20/20**, por una re-auditoría de las 12 áreas aplicables ejecutada **sobre la
 > máquina**. Los Tiers 1–8 estaban cerrados desde antes —los dos últimos,
@@ -306,8 +309,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T7** | **Consistencia y descubribilidad de la UI** — revisión sobre el código, no sobre capturas · cerrado | 9 | bajo-medio |
 | **T8** | **Lo que solo se ve usando la app** — incluye *Exportar CSV*, roto en toda versión publicada · cerrado | 6 | bajo-medio |
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
-| **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · **abierto** | 1 | bajo |
-| | **Total** | **96** | |
+| **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · `T10-01` hecha · `T10-02` **abierta, a la espera de que vuelva a ocurrir** | 2 | bajo |
+| | **Total** | **97** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2201,7 +2204,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 > **Base:** v1.25.0 · unitarias **623/623, 0 omitidas** (con `FORMATDISKPRO_VERIFY_DRIVE`) · `Core/` al
 > **98,1 %** · UI **34/37**, los 3 omitidos opt-in · todo del propio corte del 2026-08-26.
 
-- [ ] **[T10-01] El informe de cobertura sale vacío de vez en cuando, y no se sabe por qué** · Media
+- [x] **[T10-01] El informe de cobertura sale vacío de vez en cuando, y no se sabe por qué** — **hecho (2026-08-27)** · Media
   - **Área:** DevOps / publicación
   - **Ubicación:** [release.ps1:437-449](release.ps1#L437-L449) (compilar, medir y abortar) ·
     [release.ps1:156](release.ps1#L156) (`Get-CoreCoverage`, que devuelve `$null` sin distinguir casos)
@@ -2237,8 +2240,47 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Lo que este fallo hizo bien, y consta:** abortó **antes del bump**. Árbol limpio, sin commit, sin
     tag, `.csproj` intacto en `1.24.1`. La puerta falló hacia el lado seguro, que es la mitad del
     trabajo de una puerta.
+  - **Hecho (2026-08-27):** `Get-CoreCoverage` ya no devuelve `$null` nunca: devuelve un `.Status` que
+    separa **`missing`** (no hay informe — aquí sí cabe sospechar del paquete), **`unreadable`** (lo hay y
+    no es XML), **`empty`** (lo hay, es válido y no declara ni una clase: el artefacto de 235 bytes) y
+    **`nocore`** (mide clases, pero ninguna de `Core/` — eso es el filtro o el árbol, no el recolector).
+    Cada uno aborta con su mensaje. En `empty`/`unreadable` el informe se copia a
+    `%TEMP%\FormatDiskPro_cobertura_fallida\<versión>-<fecha>` —**fuera del repo**, porque un archivo
+    nuevo dentro haría abortar el siguiente corte por árbol sucio (`T9-01`)— y se repite la medición **una
+    vez** con `--diag`, cuyos logs se conservan igual.
+  - **Y esa segunda pasada NO es un reintento:** el corte muere igual, gane o pierda. Lo único que cambia
+    es el veredicto que imprime —«es intermitente» o «es reproducible aquí y ahora»— y el consejo que da.
+    Un fallo intermitente al que se le pone un reintento deja de aparecer sin dejar de existir, y esta
+    puerta es la que decide si un corte sale.
+  - **Verificado, y en dos niveles:** las **cinco** clasificaciones, contra informes fabricados a mano
+    (incluido el `<packages />` real de 235 bytes) — 5/5; y el **camino de fallo entero**, con una copia
+    desechable del script apuntando a ese informe vacío: clasificó `empty`, conservó el informe, repitió
+    con `--diag` (midió 98,1 %, veredicto «intermitente»), guardó **3,7 MB de diagnósticos** —incluido el
+    log del *datacollector*, que es justo el que puede explicar por qué no se instrumentó nada— y abortó
+    con `exit 1` sin nombrar a `coverlet.collector`.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+
+- [ ] **[T10-02] La causa del informe vacío sigue sin conocerse** · Baja
+  - **Área:** DevOps / publicación
+  - **Ubicación:** [release.ps1:525-575](release.ps1#L525-L575) (el camino de fallo que ahora recoge las
+    pruebas)
+  - **Qué falta:** saber **por qué** pasa. `T8-06` cerró una causa (compilar antes de medir) y `T10-01` se
+    ocupó de que la próxima vez queden pruebas, pero **ninguna de las dos explica** el fallo del corte de
+    la v1.25.0, que ocurrió con el arreglo de `T8-06` puesto y ejecutado y no se reprodujo en tres
+    intentos.
+  - **Está bloqueada, y es deliberado:** no se puede investigar lo que no se puede reproducir. La tarea se
+    queda abierta **a la espera de la próxima vez que ocurra**, que es cuando habrá logs del recolector en
+    `%TEMP%\FormatDiskPro_cobertura_fallida` — y ese, no otro, es el momento de trabajarla.
+  - **Lo único que se sabe, y es débil:** en la corrida que falló, la compilación tardó 18,5 s y las
+    pruebas 1 m 6 s; en las que salieron bien, 8 s y 20 s. Fue también la primera con la prueba de
+    capacidad sobre unidad real activada. **Hipótesis sin verificar**, anotada para contrastarla con los
+    logs cuando los haya — no para darla por buena.
+  - **Criterio de aceptación:** nombrar la causa con un log delante, o —si tras varias ocurrencias los
+    diagnósticos no la señalan— cerrarla diciendo qué se descartó y con qué pruebas. Cerrarla sin
+    ninguna de las dos cosas sería fingir que se resolvió.
+  - **Esfuerzo:** desconocido (depende de lo que digan los logs)
+  - **Depende de:** `T10-01` (hecha: es la que produce las pruebas)
 
 ---
 
@@ -2246,6 +2288,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-08-27 | **T10-01** | El camino de fallo de la cobertura deja de mentir y empieza a dejar pruebas. `Get-CoreCoverage` separa **`missing` · `unreadable` · `empty` · `nocore`**, que antes eran el mismo `$null` y el mismo mensaje —el que culpa a `coverlet.collector`, referenciado y presente las dos veces que ha fallado—. En `empty`/`unreadable` conserva el informe **fuera del repo** (dentro haría abortar el siguiente corte por `T9-01`) y repite la medición una vez con `--diag`, **sin que eso desbloquee nada**: el corte muere igual y solo cambia el veredicto. **Verificado con las 5 clasificaciones (5/5) y con el camino entero ejercitado**: conservó el informe, guardó 3,7 MB de diagnósticos y abortó. Queda `T10-02`: la causa. |
 | 2026-08-26 | — | **Se abre el [Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)** con **1 tarea** (`T10-01`, Media), y no de una revisión sino del **corte de la v1.25.0**: el primer intento abortó con el informe de cobertura **vacío** —el artefacto de `T8-06`— **con el arreglo de `T8-06` puesto y ejecutado**. No se reprodujo en tres intentos, incluido el caso que provocaba `T8-06`. Se abre reconociendo que **la causa no se conoce**, y la tarea va de dejar pruebas la próxima vez, no de reintentar hasta que salga. El corte reintentado publicó la v1.25.0 al 98,1 %. |
 | 2026-08-26 | **T9-20** | Desinstalar ofrece borrar `%AppData%\FormatDiskPro` —preferencias e historial—, que antes quedaba en disco sin que nadie lo mencionara. Se **pregunta** (por defecto No) y en modo silencioso se conserva. **Trampa encontrada al validar:** un comentario `{ … }` de Pascal se cierra con la **primera** llave que aparezca, así que escribir `{app}` dentro terminaba el comentario a mitad y el resto se compilaba como código («'BEGIN' expected»). Queda anotado en el propio `.iss`. |
 | 2026-08-26 | **T9-19** | `THIRD-PARTY-NOTICES.txt` declara su criterio y lo cumple: **(A) redistribuido** (.NET y WinAppSDK, MIT, compatibles con GPLv3) frente a **(B) solo construcción/pruebas**, donde entran los que faltaban —xUnit (Apache-2.0), FlaUI y coverlet— junto a Inno Setup, que ya estaba. Al ampliarlo, cinco líneas se pasaron de **78 columnas** y el visor de la app las **trunca** sin barra visible (`T6-14`): ahora hay una prueba que barre los dos textos legales y falla si alguna se pasa. |
