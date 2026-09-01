@@ -323,7 +323,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
 | **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · `T10-01` hecha · `T10-02` **abierta, a la espera de que vuelva a ocurrir** | 2 | bajo |
 | **T11** | **Rendimiento y jerarquía de la ventana principal** — el pie deja de ser solo una barra, las tres herramientas de solo lectura salen del menú y la tarjeta de unidad se ordena por importancia · **4/4, cerrado** | 4 | bajo |
-| | **Total** | **101** | |
+| **T12** | **Lo que la ventana no dice** — un contraste por debajo de AA que el barrido no veía, el botón que no nombraba lo que destruye, las opciones bajo el pliegue y los presets lejos de lo que configuran · **4/4, cerrado** | 4 | bajo |
+| | **Total** | **105** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2297,6 +2298,121 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ---
 
+## 🔤 Tier 12 — Lo que la ventana no dice *(abierto 2026-09-01)*
+
+> **De dónde sale.** De una revisión de UI/UX pedida después de cerrar el Tier 11. El primer hallazgo no
+> es una preferencia: es un **defecto medido**, y de la misma familia que el que documenta
+> `SeverityPalette.All` — un color de texto por debajo de WCAG AA que el barrido de contraste no podía
+> ver porque venía de un `ThemeResource` de Windows.
+>
+> **Base:** unitarias **667/667** (666 pasan · 1 se omite) · build 0/0.
+
+- [x] **[T12-01] El texto terciario de Fluent no llega a AA, y el barrido no podía verlo** — **hecho (2026-09-01)** · Alta
+  - **Área:** Accesibilidad / contraste
+  - **Ubicación:** [Core/FluentTextPalette.cs](src/FormatDiskPro/Core/FluentTextPalette.cs) ·
+    [Core/SeverityPalette.cs](src/FormatDiskPro/Core/SeverityPalette.cs) (`MutedText`) ·
+    [UI/Theme/AppTheme.xaml](src/FormatDiskPro/UI/Theme/AppTheme.xaml) ·
+    [tests/TextContrastTests.cs](tests/FormatDiskPro.Tests/TextContrastTests.cs)
+  - **Medido, con la fórmula de la propia app** (`SeverityPalette.ContrastRatio`):
+
+    | Token | Claro | Oscuro | AA 4,5:1 |
+    |---|---:|---:|---|
+    | `TextFillColorPrimary` | 16,65:1 | 14,16:1 | OK |
+    | `TextFillColorSecondary` | 6,17:1 | 9,09:1 | OK |
+    | **`TextFillColorTertiary`** | **3,29:1** | 5,09:1 | **por debajo** |
+
+  - **Dónde estaba:** en `HintTextStyle`, `DriveMetaStyle` y `MetricCaptionStyle` — **18 controles** de la
+    ventana principal. No es texto decorativo: son las pistas que explican qué sistema de archivos y qué
+    tamaño de clúster elegir, la línea `NTFS · Disco fijo · NVMe · SSD`, «Libre: 181,6 GB» y las etiquetas
+    de la franja de rendimiento.
+  - **Por qué el barrido no lo veía, que es lo importante:** `SeverityPaletteTests` recorre
+    `SeverityPalette.All()`, y la documentación de esa clase decía que sus colores eran «los únicos que no
+    salen de un `ThemeResource` de Windows». Eso dejaba fuera de la medición a los que **sí** salen de
+    uno. Es **el mismo fallo que ese inventario existe para evitar** —«así entró un gris de 3.52:1»—
+    repitiéndose por el otro lado: que un color venga de Windows no lo hace correcto para cualquier uso.
+    Fluent define el terciario para texto de apoyo, no para contenido; usarlo en una pista fue decisión
+    nuestra, y por tanto su contraste también.
+  - **Qué se hizo:**
+    1. `SeverityPalette.MutedText` — tercer nivel de texto **elegido y medido**: `#6C6C6C` / `#9A9A9A`,
+       **5,07:1** y **5,03:1**. Con margen (no el primero que pasa, por lo mismo que en `ForResult`) y por
+       debajo del secundario de Fluent, que es lo que conserva el escalón de jerarquía. Subirlo a
+       secundario habría sido más fácil y habría borrado el tercer nivel: si el paso más callado no puede
+       leerse, es que estaba mal elegido, no que sobre.
+    2. `FluentTextPalette` — los tokens de texto de Fluent que la app usa, con su valor real, para poder
+       medirlos.
+    3. `TextContrastTests` — **recorre el XAML** buscando `TextFillColor*Brush` y mide lo que hay puesto.
+       Un token no declarado también falla: significa que la app usa un color que nadie ha medido.
+  - **`HighContrast` no usa el gris:** en alto contraste manda el color del sistema, y sustituirlo por uno
+    propio —por muy medido que esté— es justo lo que ese modo existe para impedir.
+  - **La copia está anclada:** un `ResourceDictionary` no puede llamar a `Core`, así que los dos hex están
+    duplicados en `AppTheme.xaml`; una prueba los lee de ahí y exige que coincidan con `SeverityPalette`.
+    Sin ella, la duplicación sería exactamente el agujero que esta tarea cierra.
+  - **Verificado en negativo:** se reintrodujo el terciario en un estilo y el barrido **falló**. Un test de
+    contraste que no se ha visto fallar no se sabe si mide.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [x] **[T12-02] El botón que puede destruir un disco no lo nombraba** — **hecho (2026-09-01)** · Alta
+  - **Área:** UI / prevención de errores
+  - **Ubicación:** [MainWindow.FormatOptions.cs](src/FormatDiskPro/UI/MainWindow.FormatOptions.cs) (`UpdateFooterSummary`)
+  - **Qué pasaba:** `StartButton.Content = L.T("btn.start")` → **«Iniciar»**, siempre. El peor fallo posible
+    de esta app es formatear la unidad equivocada, y el control que lo dispara era el **único sitio de la
+    pantalla** donde el destino no aparecía.
+  - **Qué se hizo:** **«Formatear H:»**, siguiendo a la selección. La confirmación reforzada —escribir la
+    letra— sigue siendo la red; esto es la primera línea, y llega antes.
+  - **Un solo dueño del texto**, por lo mismo que `UpdateToolsMenuAvailability` lo es del de los siete
+    ítems del menú: depende del idioma *y* de la unidad, y dos dueños dejarían el nombre perdido o pegado
+    dos veces según cuál corriera el último. `ApplyLanguage` deja de escribirlo.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [x] **[T12-03] Se podía formatear sin haber visto nunca las opciones** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / densidad
+  - **Ubicación:** [MainWindow.xaml](src/FormatDiskPro/UI/MainWindow.xaml) (`FormatSummaryText`) ·
+    [MainWindow.FormatOptions.cs](src/FormatDiskPro/UI/MainWindow.FormatOptions.cs) (`CurrentFormatSummary`)
+  - **Qué pasaba:** en una ventana de alto fijo, la tarjeta *Opciones de formato* —formato rápido,
+    compresión, **borrado seguro**— queda entera bajo el pliegue, mientras el botón que la ejecuta está
+    siempre visible en el pie.
+  - **Qué se hizo:** el resumen —**`NTFS · 4 KB · rápido`**— en la columna del medio de la fila de
+    botones, que estaba vacía. Sale de los propios controles, no de un estado paralelo: así no puede
+    mentir sobre lo que la operación hará. El detalle completo (compresión incluida) va al tooltip, y el
+    resumen se oculta durante la operación, cuando el pie lo manda `StatusText`.
+  - **Reutiliza la cadena que ya existía** dentro de `MnuManagePresets_Click`, que construía este mismo
+    texto para el diálogo de presets. Ahora hay un solo `CurrentFormatSummary` para los dos.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [x] **[T12-04] Los presets estaban a tres menús de la tarjeta que configuran** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / descubribilidad
+  - **Ubicación:** [MainWindow.xaml](src/FormatDiskPro/UI/MainWindow.xaml) (`PresetsButton`) ·
+    [MainWindow.FormatOptions.cs](src/FormatDiskPro/UI/MainWindow.FormatOptions.cs) (`FillPresets`)
+  - **Qué se hizo:** un `DropDownButton` en la cabecera de *Configuración de formato*, que es
+    exactamente lo que un preset configura. El menú *Configuración → Presets* **se queda**: quitarlo
+    rompería la ruta que la gente ya conoce y las pruebas de UI que la recorren.
+  - **Un solo constructor para las dos listas** (`FillPresets`): son la misma lista, y construirlas por
+    separado haría que un preset nuevo apareciera en una y no en la otra. Los `MenuFlyoutItem` no se
+    pueden compartir entre dos flyouts —un elemento de XAML tiene un solo padre—, así que se crean dos
+    juegos con la misma fábrica.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+### La trampa de WinUI que encontró este tier
+
+`IsChecked="True"` en el XAML de un `CheckBox` que además declara `Checked="…"` **dispara el manejador
+durante el propio parseo**, cuando los controles declarados más abajo en el archivo aún no existen. El
+manejador nuevo tocaba el pie de la ventana, y el `NullReferenceException` salió envuelto como
+`XamlParseException: Failed to assign to property 'ToggleButton.IsChecked'` — un mensaje que señala al
+atributo y no a la causa. La app arrancaba en negro y moría.
+
+Lo encontró **su propio registro**: `App.UnhandledException` (`T0-01`) dejó la traza completa en
+`history.log`, con archivo y línea. Sin esa red, el síntoma era un `0xc000027b` en `Microsoft.UI.Xaml.dll`.
+
+La guarda es un campo `_uiBuilt`, puesto justo después de `InitializeComponent`. No confundir con
+`_uiReady`, que marca el final del constructor entero y sirve para no persistir preferencias mientras se
+restauran.
+
+---
+
 ## 📈 Tier 11 — Rendimiento y jerarquía de la ventana principal *(abierto 2026-09-01)*
 
 > **De dónde sale.** De una petición de producto —un panel de uso de recursos, al estilo del «Tu entorno»
@@ -2447,6 +2563,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |
 | 2026-09-01 | **T11-04** | El panel de rendimiento deja de ser un `Expander` y pasa a una **franja fija de tres columnas** (~34 px, menos que el encabezado que el desplegable ocupaba plegado). El razonamiento de `T11-01` estaba mal: plegar se justificó por el alto, pero el clic y el resumen del encabezado se pagan **siempre** y el alto solo desplegado — la respuesta era compactar, no plegar. Los pies de cada métrica van al tooltip, que aquí **sí** se muestra porque estos controles nunca se deshabilitan (`T7-08`). Se elimina la preferencia `ShowPerformance` y el muestreo pasa a depender de si la ventana está al frente. |
 | 2026-09-01 | **T11-03** | La tarjeta de unidad deja de repartir seis datos con el mismo peso: **capacidad** como dato principal, **salud** con punto de color a su derecha, y FS/tipo/conexión en una línea de contexto atenuada; el espacio libre baja bajo la barra de ocupación, junto al dato con el que se compara. Los rótulos se van de la pantalla pero **no de la accesibilidad**: `SetInfo` pone la frase entera en `AutomationProperties.Name`, en un solo sitio. El punto no sustituye al texto (1.4.1) y con salud desconocida se pone gris en vez de desaparecer. |
 | 2026-09-01 | **T11-02** | Las tres herramientas que **no escriben nada** —salud, benchmark, historial— salen del menú a una barra de acciones bajo la barra de menús. No es un criterio nuevo: son exactamente las tres que ya tenían atajo, y por el mismo motivo. Todo lo destructivo se queda dentro del menú. Esquiva `T7-08` (WinUI no pinta el tooltip de un control deshabilitado) porque solo se apagan **sin unidad**, y entonces el selector ya lo explica. El estado se espeja del ítem del menú en vez de recalcularse. |

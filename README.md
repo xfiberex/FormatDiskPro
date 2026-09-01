@@ -92,8 +92,11 @@ filtros por categoría y resultado, y exportación a CSV.
 - **Benchmark de lectura/escritura**: mide la velocidad real (MB/s) **secuencial** (cola Q8) y **4 KiB aleatorio** (con **IOPS** junto a los MB/s, estilo CrystalDiskMark) con un archivo temporal de ~512 MB **sin caché del sistema**, tomando la mediana de varias pasadas; **no destructivo** y disponible en cualquier unidad
 
 ### Experiencia
+- **El botón primario nombra la unidad** (*Formatear H:*) y el pie resume lo que se aplicará (`NTFS · 4 KB · rápido`), con el detalle completo en su tooltip — formatear el disco equivocado es el peor error posible, y ahora el destino está en el propio control que lo dispara
+- **Presets a mano**, en la cabecera de *Configuración de formato* (y también, como siempre, en *Configuración → Presets*)
 - **Barra de acciones rápidas**: *Salud*, *Benchmark* e *Historial* a un clic bajo la barra de menús — las tres funciones que no escriben nada (todo lo destructivo sigue dentro del menú *Herramientas*, con su confirmación reforzada)
 - **Interfaz moderna basada en tarjetas** (WinUI 3 / Fluent): secciones con encabezado e icono, barra de acción inferior y un **color de acento que sigue el de Windows** (sistema de diseño inspirado en Win11Debloat), adaptándose a tema claro u oscuro
+- **Contraste medido, no supuesto**: los colores con significado y **todos los colores de texto que usa la interfaz** —incluidos los que vienen de Windows— pasan por una prueba automática que exige el 4,5:1 de WCAG AA; el barrido recorre el XAML, así que un color nuevo entra bajo medición sin que nadie tenga que acordarse
 - **Interfaz multilingüe** Español · Inglés · Português · Français · Italiano (conmutable en caliente); **detecta el idioma del sistema en el primer arranque** (luego manda tu elección). **Las cifras siguen al idioma que elijas**, no al de Windows (`223,6 GB` en español, `223.6 GB` en inglés); lo que se guarda —historial y CSV— usa un formato fijo, independiente del idioma
 - **Tema automático / claro / oscuro**: sigue el tema del sistema Windows en tiempo real; opción de forzar claro u oscuro desde el menú
 - **Recuerda tus preferencias** (idioma, tema, última unidad, presets, aviso y pasadas de borrado seguro) entre sesiones (`%AppData%\FormatDiskPro\settings.json`)

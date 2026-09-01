@@ -45,6 +45,7 @@ src/FormatDiskPro/
 │  ├─ FormatLogic.cs      Comandos de formato, parseo de %, formato de bytes, validación de etiqueta
 │  ├─ SmartInfo.cs        Modelo + parseo del detalle S.M.A.R.T. + umbrales de severidad (SmartLevel)
 │  ├─ SeverityPalette.cs  INVENTARIO de colores semánticos por tema — contraste WCAG medido sobre All()
+│  ├─ FluentTextPalette.cs Los colores de TEXTO que la app toma de Fluent, con su valor real, para medirlos
 │  ├─ HistoryEntry.cs     Parseo del historial + filtro + exportación CSV (anti CSV injection)
 │  ├─ ReinitPlan.cs       Estilo MBR/GPT por tamaño, tamaños de FAT32 pequeña que caben, parseo de letras
 │  ├─ PartitionPlan.cs    EL LAYOUT COMO DATO: particiones + validación tipada ANTES de borrar nada (T5-01)
@@ -154,13 +155,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **664 / 664** (663 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 41 de `T11-01`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **667 / 667** (666 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 41 de `T11-01` + 3 de `T12-01`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: el Tier 11 entero (`T11-01`–`T11-04`, 2026-09-01) está en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
+| Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: los Tiers 11 y 12 enteros (`T11-01`–`T11-04` y `T12-01`–`T12-04`, 2026-09-01) están en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tiers abiertos | **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). **Pendiente: regenerar la galería** con `tools/capture-screenshots.ps1` — las capturas del README son de la ventana anterior. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
+| Tiers abiertos | **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 4/4**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros tres: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, y los presets bajan a la tarjeta que configuran · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). **Pendiente: regenerar la galería** con `tools/capture-screenshots.ps1` — las capturas del README son de la ventana anterior. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
 | Tareas abiertas | **Una, y bloqueada a propósito: `T10-02`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
@@ -414,6 +415,88 @@ ni mueve datos).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-09-01 — `T12-01`: el mismo fallo de contraste, entrando por la puerta que nadie vigilaba
+
+**El hallazgo.** `TextFillColorTertiaryBrush` da **3,29:1** sobre el fondo claro —medido con la fórmula
+de la propia app—, por debajo del **4,5:1** que WCAG AA exige al texto normal. Pintaba **18 controles**
+de la ventana principal a través de `HintTextStyle`, `DriveMetaStyle` y `MetricCaptionStyle`: las pistas
+que explican qué sistema de archivos y qué tamaño de clúster elegir, la línea de tipo y conexión de la
+unidad, «Libre: …» y las etiquetas de la franja de rendimiento. No es texto decorativo.
+
+**Por qué el barrido no lo veía, que es lo que importa.** `SeverityPaletteTests` recorre
+`SeverityPalette.All()`, y la documentación de esa clase decía que sus colores eran «los **únicos** que
+no salen de un `ThemeResource` de Windows». Esa frase, que describía un hecho, funcionaba como una
+frontera: lo que viene de Windows no se mide. Y es **el mismo fallo que ese inventario existe para
+evitar** —«así entró un gris de 3.52:1 que WCAG AA no admite»— repitiéndose por el otro lado.
+
+Que un color venga de Windows no lo hace correcto **para cualquier uso**. Fluent define el terciario para
+texto de apoyo sobre superficies grandes, no para contenido; ponerlo en una pista fue decisión nuestra, y
+por tanto su contraste también.
+
+**Qué se hizo, en tres piezas:**
+
+1. **`SeverityPalette.MutedText`** — el tercer nivel de texto, ahora elegido y medido: `#6C6C6C` /
+   `#9A9A9A`, **5,07:1** y **5,03:1**. La salida fácil era subirlo al secundario de Fluent (6,17:1), pero
+   eso borraba el tercer escalón de la jerarquía. Si el paso más callado no puede leerse, es que estaba
+   mal elegido, no que sobre. Y con margen: no se tomó el primero que pasa, por lo mismo que en
+   `ForResult`.
+2. **`Core/FluentTextPalette`** — los tokens de texto de Fluent que la app usa, con su valor real. No
+   elige colores: declara los que hay para que se puedan medir.
+3. **`TextContrastTests`** — **recorre el XAML** buscando `TextFillColor*Brush` y mide lo que hay puesto,
+   no una lista que alguien mantiene. Un token no declarado también falla: significa que la app usa un
+   color de texto que nadie ha medido. Es el mismo principio que hace enumerable a `SeverityPalette.All`:
+   añadir un color tiene que ser lo mismo que ponerlo bajo test, sin un segundo paso que se olvide.
+
+**`HighContrast` no usa el gris**, y es deliberado: en alto contraste manda el color del sistema, y
+sustituirlo por uno propio —por muy medido que esté— es justo lo que ese modo existe para impedir.
+
+**La copia está anclada.** Un `ResourceDictionary` no puede llamar a `Core`, así que los dos hex están
+duplicados en `AppTheme.xaml`. Una prueba los lee de ese archivo y exige que coincidan con
+`SeverityPalette`. Sin ella la duplicación sería, literalmente, el agujero que esta tarea cierra.
+
+**Verificado en negativo:** se volvió a poner el terciario en un estilo y el barrido **falló**. Un test de
+contraste que no se ha visto fallar no se sabe si mide.
+
+---
+
+### 2026-09-01 — `T12-02` a `T12-04`: el pie dice qué va a pasar, y los presets bajan a donde se usan
+
+**`T12-02` — el botón que puede destruir un disco no lo nombraba.** `StartButton` decía «Iniciar»,
+siempre. El peor fallo posible de esta herramienta es formatear la unidad equivocada, y ese botón era el
+**único sitio de la pantalla** donde el destino no aparecía. Ahora dice **«Formatear H:»**. La
+confirmación reforzada —escribir la letra— sigue siendo la red; esto llega antes que ella. Su texto tiene
+**un solo dueño**, `UpdateFooterSummary`, por lo mismo que `UpdateToolsMenuAvailability` lo es del de los
+siete ítems del menú: depende del idioma *y* de la unidad, y dos dueños dejarían el nombre perdido o
+duplicado según cuál corriera el último.
+
+**`T12-03` — se podía formatear sin haber visto nunca las opciones.** En una ventana de alto fijo, la
+tarjeta *Opciones de formato* queda entera bajo el pliegue mientras el botón que la ejecuta está siempre
+visible. El pie resume ahora **`NTFS · 4 KB · rápido`** en la columna del medio de la fila de botones,
+que estaba vacía. Sale de los propios controles, no de un estado paralelo: así no puede mentir sobre lo
+que la operación hará. Reutiliza la cadena que ya construía `MnuManagePresets_Click` para el diálogo de
+presets — ahora hay un solo `CurrentFormatSummary` para los dos sitios.
+
+**`T12-04` — los presets estaban a tres menús de la tarjeta que configuran.** Un `DropDownButton` en la
+cabecera de *Configuración de formato*. El menú se queda: quitarlo rompería la ruta conocida y las
+pruebas de UI. Las dos listas las llena **el mismo constructor**, porque son la misma lista.
+
+**La trampa de WinUI que costó un arranque en negro.** `IsChecked="True"` en el XAML de un `CheckBox` que
+además declara `Checked="…"` **dispara el manejador durante el propio parseo**, cuando los controles
+declarados más abajo en el archivo aún no existen. El manejador nuevo tocaba el pie, y el
+`NullReferenceException` salió envuelto como `XamlParseException: Failed to assign to property
+'ToggleButton.IsChecked'` — un mensaje que señala al atributo y no a la causa.
+
+Lo encontró **el propio registro de la app**: la red global de `T0-01` dejó la traza completa en
+`history.log`, con archivo y línea, mientras el visor de eventos de Windows solo tenía un `0xc000027b` en
+`Microsoft.UI.Xaml.dll`. Esa red se escribió para que un fallo de E/S no se llevara la app por delante, y
+ha servido para depurar un fallo de arranque.
+
+La guarda es el campo `_uiBuilt`, puesto justo después de `InitializeComponent`. **No confundir con
+`_uiReady`**, que marca el final del constructor entero y sirve para no persistir preferencias mientras
+se restauran: son dos momentos distintos y hacen falta los dos.
 
 ---
 

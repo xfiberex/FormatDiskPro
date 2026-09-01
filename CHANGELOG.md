@@ -32,7 +32,31 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   disco no se escala contra un máximo teórico, que no existe, sino contra el **pico de esa misma
   operación**. Traducido a los cinco idiomas.
 
+### Corregido
+
+- **El texto de ayuda no llegaba al contraste mínimo de accesibilidad en tema claro.** Las pistas que
+  explican qué sistema de archivos y qué tamaño de clúster elegir —y otros dieciséis textos de la ventana
+  principal— usaban el gris de apoyo de Windows, que da **3,29:1** sobre el fondo claro, por debajo del
+  **4,5:1** que WCAG AA exige al texto normal. Ahora usan un gris propio, medido, de **5,07:1** en claro y
+  **5,03:1** en oscuro; en modo de alto contraste sigue mandando el color del sistema. La comprobación de
+  contraste, que hasta ahora solo medía los colores elegidos a mano, recorre además el XAML y mide
+  cualquier color de texto que la aplicación use, venga de donde venga.
+
 ### Cambiado
+
+- **El botón que formatea dice qué unidad va a formatear.** Era «Iniciar» y ahora es **«Formatear H:»**,
+  siguiendo a la unidad seleccionada. Formatear el disco equivocado es el peor error posible con esta
+  herramienta, y el botón que lo dispara era el único sitio de la pantalla donde el destino no aparecía.
+  La confirmación reforzada —escribir la letra de la unidad— sigue estando; esto llega antes.
+
+- **El pie resume lo que se va a aplicar:** `NTFS · 4 KB · rápido`, junto al botón. Las opciones de
+  formato quedan fuera de la vista en la ventana —que es de tamaño fijo— mientras el botón está siempre
+  visible, así que se podía lanzar un formateo sin haber visto nunca con qué opciones. El detalle
+  completo está en el tooltip.
+
+- **Los presets están donde se usan.** Un selector *Presets* en la cabecera de *Configuración de formato*,
+  que es exactamente lo que un preset configura; estaban solo en *Configuración → Presets*, a tres menús
+  de ahí. Esa ruta sigue funcionando igual.
 
 - **Salud, Benchmark e Historial salen del menú.** Las tres viven ahora en una barra de botones bajo la
   barra de menús, a un clic. Son exactamente las tres funciones que **no escriben nada** —las mismas que
