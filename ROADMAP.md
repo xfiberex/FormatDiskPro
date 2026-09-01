@@ -323,8 +323,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
 | **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · `T10-01` hecha · `T10-02` **abierta, a la espera de que vuelva a ocurrir** | 2 | bajo |
 | **T11** | **Rendimiento y jerarquía de la ventana principal** — el pie deja de ser solo una barra, las tres herramientas de solo lectura salen del menú y la tarjeta de unidad se ordena por importancia · **4/4, cerrado** | 4 | bajo |
-| **T12** | **Lo que la ventana no dice** — un contraste por debajo de AA que el barrido no veía, el botón que no nombraba lo que destruye, las opciones bajo el pliegue y los presets lejos de lo que configuran · **4/4, cerrado** | 4 | bajo |
-| | **Total** | **105** | |
+| **T12** | **Lo que la ventana no dice** — un contraste por debajo de AA que el barrido no veía, el botón que no nombraba lo que destruye, las opciones bajo el pliegue, los presets lejos de lo que configuran y una barra de progreso en la que el éxito y el fallo eran el mismo color · **6/6, cerrado** | 6 | bajo |
+| | **Total** | **107** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2396,6 +2396,68 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
+- [x] **[T12-05] En un equipo con acento rojo, el éxito y el fallo eran el mismo color** — **hecho (2026-09-01)** · Alta
+  - **Área:** UI / señalización de estado
+  - **Ubicación:** [MainWindow.xaml.cs](src/FormatDiskPro/UI/MainWindow.xaml.cs) (`ApplyProgressColor`)
+  - **Cómo apareció:** en una captura del propio usuario. Un benchmark que **terminó bien** dejaba la
+    barra llena y **roja** — exactamente igual que uno que falla.
+  - **La causa:** `FormatProgress` nunca fijaba `Foreground`, así que usaba el **color de acento** que el
+    usuario tiene en Windows; y `ShowError` pinta de rojo al fallar o cancelar. Con el acento en rojo, el
+    único canal que distinguía éxito de fallo no distinguía nada.
+  - **Es una decisión que el repo ya había tomado, sin aplicar aquí.** `CapacityBrush` lo dice con todas
+    las letras: «una barra de capacidad no debe usar el color de ACENTO del sistema (lo que hace un
+    `ProgressBar` por defecto): en un equipo con acento rojo se veía roja con el disco medio vacío y leía
+    como alarma». La misma trampa, el mismo control, otro sitio.
+  - **Qué se hizo:** `Foreground` explícito desde `SeverityPalette.For(SmartLevel.Ok)` — verde mientras va
+    y al terminar bien, rojo de `ShowError` al fallar o cancelar. Los dos salen del inventario que el
+    barrido de contraste mide, y ninguno depende ya de lo que el usuario tenga configurado.
+  - **Verificado con la app en marcha, en los DOS estados**, que es lo que había que comprobar: fijar
+    `Foreground` a mano podía haber ganado al estado de error del propio control y dejar el fallo sin
+    rojo. Benchmark completo → **barra verde llena**; benchmark cancelado → **barra roja**.
+  - **De paso, una corrección:** la documentación de `T11-01` decía que el benchmark alimenta la fila de
+    Disco de la franja de rendimiento. **No lo hace, y no debe.** Su `IProgress` reporta porcentaje, no
+    bytes, y una vez por ventana de medición —cada varios segundos—: un caudal derivado de ahí sería
+    grueso, a saltos, y **contradiría** la mediana de MB/s que el propio benchmark calcula y enseña. Dos
+    cifras distintas para lo mismo en la misma pantalla es justo lo que esa franja se diseñó para evitar.
+    Las operaciones que sí informan de bytes son **dos**: verificación de capacidad y borrado seguro.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [x] **[T12-06] El contenido se cortaba a media tarjeta sin decir que seguía** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / descubribilidad
+  - **Ubicación:** [MainWindow.xaml.cs](src/FormatDiskPro/UI/MainWindow.xaml.cs) (`UpdateScrollAffordance`)
+  - **Qué pasaba:** la ventana es de **tamaño fijo**, así que el contenido casi siempre desborda; y WinUI
+    oculta la barra de desplazamiento hasta que alguien interactúa. Quedaba una tarjeta cortada por el
+    borde inferior sin nada que avisara — y lo que quedaba debajo eran las **opciones de formato**.
+  - **Qué se hizo:** la barra de desplazamiento se deja a la vista **cuando hay algo que desplazar**, y
+    vuelve a `Auto` cuando no. No pisa la preferencia de accesibilidad del sistema («Mostrar siempre las
+    barras de desplazamiento»): no se enseña *siempre*, se enseña cuando hace falta.
+  - **Lo que se probó primero y se descartó, con la app delante:** un degradado en el borde inferior.
+    Sobre el material **Mica** no hay un color de fondo que igualar —el degradado tiene que acabar en algo
+    opaco y la ventana no lo es—, así que se leyó como una **franja clara** y dejaba el campo que tapaba
+    con aspecto de deshabilitado. Era peor que el problema que resolvía. Queda escrito para que nadie lo
+    reintente pensando que es obvio.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+### Dos refinamientos que se propusieron y NO se hicieron
+
+Los dos salieron de la misma revisión que abrió este tier, y al mirarlos de cerca no se sostuvieron.
+Constan aquí para no volver a proponerlos sin argumento nuevo.
+
+- **Encoger el aviso de unidad protegida** (el `InfoBar` que aparece sobre la tarjeta de unidad) para
+  ganar alto, alegando que el mismo hecho ya lo dicen el `[Protegido]` del selector y su color rojo.
+  **No.** Solo aparece cuando la unidad seleccionada está protegida, que es precisamente cuando el
+  usuario necesita entender por qué no puede formatear. Redundar en el aviso más importante de la app no
+  es despilfarro, y encogerlo para recuperar 40 px de una tarjeta que en ese estado está deshabilitada
+  entera es cambiar seguridad por espacio que no hace falta.
+
+- **Quitar o degradar el botón «Cerrar»** del pie, alegando que duplica la X de la barra de título.
+  **No.** Durante una operación es «Cancelar» —la única forma de parar un borrado seguro de 40 minutos— y
+  ahí se gana el sitio de sobra. En reposo ya es visualmente secundario frente al botón de acento, que es
+  toda la jerarquía que necesita. La preocupación real era la memoria muscular hacia el botón de abajo a
+  la derecha, y de eso se ocupa la confirmación reforzada, no la posición.
+
 ### La trampa de WinUI que encontró este tier
 
 `IsChecked="True"` en el XAML de un `CheckBox` que además declara `Checked="…"` **dispara el manejador
@@ -2563,6 +2625,7 @@ restauran.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |
 | 2026-09-01 | **T11-04** | El panel de rendimiento deja de ser un `Expander` y pasa a una **franja fija de tres columnas** (~34 px, menos que el encabezado que el desplegable ocupaba plegado). El razonamiento de `T11-01` estaba mal: plegar se justificó por el alto, pero el clic y el resumen del encabezado se pagan **siempre** y el alto solo desplegado — la respuesta era compactar, no plegar. Los pies de cada métrica van al tooltip, que aquí **sí** se muestra porque estos controles nunca se deshabilitan (`T7-08`). Se elimina la preferencia `ShowPerformance` y el muestreo pasa a depender de si la ventana está al frente. |
 | 2026-09-01 | **T11-03** | La tarjeta de unidad deja de repartir seis datos con el mismo peso: **capacidad** como dato principal, **salud** con punto de color a su derecha, y FS/tipo/conexión en una línea de contexto atenuada; el espacio libre baja bajo la barra de ocupación, junto al dato con el que se compara. Los rótulos se van de la pantalla pero **no de la accesibilidad**: `SetInfo` pone la frase entera en `AutomationProperties.Name`, en un solo sitio. El punto no sustituye al texto (1.4.1) y con salud desconocida se pone gris en vez de desaparecer. |

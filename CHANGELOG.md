@@ -34,6 +34,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Corregido
 
+- **La barra de progreso pintaba igual el éxito que el fallo en equipos con el acento en rojo.** Usaba el
+  color de acento de Windows, y el estado de error también es rojo: un benchmark que terminaba bien
+  dejaba la barra llena y roja, idéntica a uno que fallaba. Ahora es **verde** mientras va y al terminar
+  bien, y **roja** solo al fallar o cancelarse — en cualquier equipo, con el acento que sea.
+
 - **El texto de ayuda no llegaba al contraste mínimo de accesibilidad en tema claro.** Las pistas que
   explican qué sistema de archivos y qué tamaño de clúster elegir —y otros dieciséis textos de la ventana
   principal— usaban el gris de apoyo de Windows, que da **3,29:1** sobre el fondo claro, por debajo del
@@ -53,6 +58,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   formato quedan fuera de la vista en la ventana —que es de tamaño fijo— mientras el botón está siempre
   visible, así que se podía lanzar un formateo sin haber visto nunca con qué opciones. El detalle
   completo está en el tooltip.
+
+- **La barra de desplazamiento se ve cuando hay algo que ver debajo.** La ventana es de tamaño fijo y el
+  contenido casi siempre desborda, pero la barra estaba oculta hasta interactuar: quedaba una tarjeta
+  cortada por el borde inferior sin ninguna señal de que seguía — y lo que quedaba debajo eran las
+  opciones de formato.
 
 - **Los presets están donde se usan.** Un selector *Presets* en la cabecera de *Configuración de formato*,
   que es exactamente lo que un preset configura; estaban solo en *Configuración → Presets*, a tres menús
