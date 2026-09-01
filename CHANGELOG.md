@@ -33,6 +33,22 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   disco no se escala contra un máximo teórico, que no existe, sino contra el **pico de esa misma
   operación**. Traducido a los cinco idiomas.
 
+### Cambiado
+
+- **Salud, Benchmark e Historial salen del menú.** Las tres viven ahora en una barra de botones bajo la
+  barra de menús, a un clic. Son exactamente las tres funciones que **no escriben nada** —las mismas que
+  ya tenían atajo de teclado, y por el mismo motivo—; formatear, reinicializar, verificar capacidad,
+  quitar protección y borrado seguro **siguen dentro del menú**, porque una operación que borra datos no
+  debe estar a un clic de distancia.
+
+- **La tarjeta de la unidad se ordena por importancia.** Antes eran seis líneas «Etiqueta: valor» del
+  mismo tamaño y el mismo color, así que «Conexión: USB» pesaba tanto como «Salud: Crítico». Ahora la
+  **capacidad** es el dato principal, la **salud** va a su derecha con un punto de color, y sistema de
+  archivos, tipo y conexión quedan en una línea de contexto; el **espacio libre** baja bajo la barra de
+  ocupación, junto al dato con el que se compara. Es el mismo contenido, reordenado — y los rótulos que
+  desaparecen de la pantalla siguen ahí para los lectores de pantalla, que continúan leyendo «Total:
+  930,5 GB».
+
 ---
 
 ## [1.25.0] — 2026-08-26

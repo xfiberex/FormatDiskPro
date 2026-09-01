@@ -157,10 +157,10 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Unitarias | **664 / 664** (663 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 41 de `T11-01`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: el panel de rendimiento del pie (`T11-01`, 2026-09-01) está en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
+| Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: el Tier 11 entero (`T11-01`–`T11-03`, 2026-09-01) está en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tiers abiertos | **Tier 11 — Rendimiento visible durante la operación** (abierto el **2026-09-01**), con su única tarea `T11-01` **hecha**: el pie de la ventana enseña disco, CPU y RAM mientras corre una operación. No sale de un fallo sino de una petición de producto, sobre una carencia real — en un borrado seguro de 40 minutos la única señal de vida era una barra de progreso quieta. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-visible-durante-la-operación-abierto-2026-09-01) |
+| Tiers abiertos | **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 3/3**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones) y `T11-03` (la tarjeta de unidad se ordena por importancia). **Pendiente: regenerar la galería** con `tools/capture-screenshots.ps1` — las capturas del README son de la ventana anterior. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
 | Tareas abiertas | **Una, y bloqueada a propósito: `T10-02`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
@@ -414,6 +414,64 @@ ni mueve datos).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-09-01 — `T11-02` y `T11-03`: qué se ve primero, y qué no debería estar a un clic
+
+Las dos salen de la misma revisión que `T11-01` y atacan la misma raíz: **qué enseña la ventana principal
+y con qué peso**.
+
+**`T11-02` — la mitad de la app vivía dentro de un menú.** La salud S.M.A.R.T., el benchmark y el
+historial —tres de las funciones que más justifican instalar esto— no existían para quien no abriera
+`Herramientas`. Ahora hay una barra de tres botones bajo el menú.
+
+*Por qué esas tres y no cuatro, ni siete:* son **exactamente** las que ya tenían atajo de teclado
+(Ctrl+I / Ctrl+B / Ctrl+H), y por el criterio que se escribió al dárselo — son las únicas que **no
+escriben nada**. Formatear, reinicializar, verificar capacidad, quitar protección y borrado seguro se
+quedan en el menú: una operación que borra datos no debe estar a un clic, y su confirmación reforzada
+existe precisamente para que llegar ahí cueste. La barra **no añade un criterio nuevo**, aplica el que ya
+había en un segundo sitio.
+
+*Y de paso esquiva `T7-08` sin repetir su solución.* WinUI **no pinta el tooltip de un control
+deshabilitado** —no existe el `ShowOnDisabled` de WPF—, así que un botón de icono apagado sería mudo: es
+el fallo que `T7-08` tuvo que resolver metiendo el motivo en el texto del ítem. Aquí no hace falta porque
+estas tres solo se apagan **cuando no hay unidad**, y entonces el propio selector, dos centímetros más
+arriba, ya dice «No hay unidades — conecta un dispositivo». El historial no se apaga nunca.
+
+Dos detalles que constan para que nadie los «arregle»: los botones **no declaran `KeyboardAccelerator`**
+—vive en su ítem del menú, y declararlo dos veces lo duplicaría—, y su estado se **espeja** del ítem
+(`BtnHealth.IsEnabled = MnuHealth.IsEnabled`) en vez de recalcularse. Dos condiciones para la misma
+acción acabarían discrepando, y el usuario vería un botón vivo sobre un menú apagado.
+
+**`T11-03` — seis datos con el mismo peso son seis datos que hay que leer.** La tarjeta de unidad era una
+rejilla de 2×3 con seis líneas «Etiqueta: valor», todas del mismo tamaño y del mismo color: «Conexión:
+USB» pesaba tanto como «Salud: Crítico». Las dos preguntas que uno se hace al seleccionar una unidad
+—cuánto cabe y si está sana— había que buscarlas entre las otras cuatro.
+
+Ahora hay tres niveles: la **capacidad** como dato principal, la **salud** a su derecha con su punto de
+color, y sistema de archivos, tipo y conexión en una línea de contexto atenuada. El **espacio libre** baja
+bajo la barra de ocupación, que es de lo que habla — antes estaba a tres líneas del dato con el que se
+compara. Mismo contenido, mismos seis controles, reordenados por importancia.
+
+*La parte que no se ve es la que importa:* los rótulos desaparecen de la **pantalla**, no de la
+**accesibilidad**. `SetInfo` pinta el valor y pone la frase entera en `AutomationProperties.Name`, en un
+solo sitio para que las dos cosas no puedan separarse: un lector de pantalla sigue leyendo «Total: 930,5
+GB». La jerarquía visual no se paga con información.
+
+*Y el punto de color no sustituye al texto* (WCAG 1.4.1): repite en color lo que la palabra ya dice, va en
+`AccessibilityView="Raw"`, y con salud desconocida se pone **gris** en vez de ocultarse — un hueco donde
+había un círculo se lee como que el dato cambió de sitio. Su pincel es **el mismo objeto** que el del
+texto, no una segunda derivación del mismo color: ese es exactamente el camino por el que entró el fallo
+de contraste que documenta `SeverityPalette.All`.
+
+**Verificado** con la app en marcha: `931,5 GB` · `● Normal` · `NTFS · Disco fijo · NVMe · SSD` ·
+`Libre: 181,6 GB`, y los tres botones nuevos. Sin colores nuevos: los dos estilos usan `ThemeResource` de
+Fluent y el punto reusa `HealthDialog.LevelBrush` / `SeverityPalette`, ya medidos.
+
+**Pendiente, y anotado a propósito:** la galería del README (`tools/capture-screenshots.ps1`) es de la
+ventana anterior. No se regeneró aquí porque conduce la app por UI Automation contra unidades reales y
+merece su propia pasada.
 
 ---
 

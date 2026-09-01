@@ -29,10 +29,16 @@
 
 ## 🏁 Estado
 
-> **Se abrió el [Tier 11](#-tier-11--rendimiento-visible-durante-la-operación-abierto-2026-09-01)** el
-> **2026-09-01**, con `T11-01` ya hecha: el pie de la ventana enseña disco, CPU y RAM mientras corre una
-> operación. No sale de un fallo, sale de una petición de producto — y de constatar que en un borrado
-> seguro de 40 minutos la única señal de vida era una barra de progreso.
+> **Se abrió y se cerró el [Tier 11](#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01)**
+> el **2026-09-01**, **3/3**. No sale de un fallo sino de una petición de producto sobre la ventana
+> principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01`, el pie
+> enseña disco, CPU y RAM mientras corre la operación (antes, en un borrado seguro de 40 minutos la única
+> señal de vida era una barra quieta); `T11-02`, las tres herramientas que **no escriben nada** salen del
+> menú a una barra de acciones; `T11-03`, la tarjeta de unidad se ordena por importancia en vez de
+> repartir seis datos con el mismo peso.
+>
+> **Queda pendiente regenerar la galería** (`tools/capture-screenshots.ps1`): las capturas del README son
+> de la ventana anterior.
 >
 > **Queda una tarea abierta, y está bloqueada a propósito**: `T10-02`, en el
 > **[Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)**. El tier se abrió el
@@ -315,8 +321,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T8** | **Lo que solo se ve usando la app** — incluye *Exportar CSV*, roto en toda versión publicada · cerrado | 6 | bajo-medio |
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
 | **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · `T10-01` hecha · `T10-02` **abierta, a la espera de que vuelva a ocurrir** | 2 | bajo |
-| **T11** | **Rendimiento visible durante la operación** — el pie deja de ser solo una barra · `T11-01` hecha | 1 | bajo |
-| | **Total** | **98** | |
+| **T11** | **Rendimiento y jerarquía de la ventana principal** — el pie deja de ser solo una barra, las tres herramientas de solo lectura salen del menú y la tarjeta de unidad se ordena por importancia · **3/3, cerrado** | 3 | bajo |
+| | **Total** | **100** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2290,7 +2296,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ---
 
-## 📈 Tier 11 — Rendimiento visible durante la operación *(abierto 2026-09-01)*
+## 📈 Tier 11 — Rendimiento y jerarquía de la ventana principal *(abierto 2026-09-01)*
 
 > **De dónde sale.** De una petición de producto —un panel de uso de recursos, al estilo del «Tu entorno»
 > de otras herramientas— y de una carencia real: durante un borrado seguro de 40 minutos o una
@@ -2347,12 +2353,70 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
+- [x] **[T11-02] Todo lo que no fuera formatear vivía escondido en un menú** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / descubribilidad
+  - **Ubicación:** [MainWindow.xaml](src/FormatDiskPro/UI/MainWindow.xaml) (`QuickBar`) ·
+    [MainWindow.DriveInfo.cs](src/FormatDiskPro/UI/MainWindow.DriveInfo.cs) (`ApplyQuickBarLanguage`,
+    espejo en `UpdateToolsMenuAvailability`)
+  - **Qué pasaba:** la salud S.M.A.R.T., el benchmark y el historial —tres de las funciones que más
+    justifican instalar la app— **no existían para quien no abriera `Herramientas`**. La ventana ofrecía
+    formatear y nada más.
+  - **Qué se hizo:** una barra de tres botones bajo el menú, con icono y etiqueta corta.
+  - **Por qué esas tres y no otras, que es toda la decisión:** son **exactamente** las que ya tenían atajo
+    de teclado (Ctrl+I / Ctrl+B / Ctrl+H), y por el mismo criterio que se escribió al dárselo: son las
+    únicas que **no escriben nada**. Formatear, reinicializar, verificar capacidad, quitar protección y
+    borrado seguro **se quedan en el menú**: una operación que borra datos no debe estar a un clic, y su
+    confirmación reforzada existe para que llegar ahí cueste. La barra no añade un criterio nuevo, aplica
+    el que ya había en un segundo sitio.
+  - **Y de paso esquiva `T7-08` sin repetir su solución:** WinUI **no pinta el tooltip de un control
+    deshabilitado**, así que un botón de icono apagado sería mudo — el fallo que `T7-08` tuvo que arreglar
+    metiendo el motivo en el texto del ítem. Estas tres solo se apagan cuando **no hay unidad**, y
+    entonces el propio selector, dos centímetros más arriba, ya dice «No hay unidades — conecta un
+    dispositivo». El historial no se apaga nunca.
+  - **Los botones no declaran `KeyboardAccelerator`:** el acelerador vive en su ítem del menú y
+    declararlo dos veces lo duplicaría. El atajo se anuncia en el tooltip, que además lleva la frase
+    larga («Salud del disco (S.M.A.R.T.)… (Ctrl+I)») y es el nombre de automatización del botón: «Salud»
+    a secas, fuera del contexto visual de la barra, no dice qué hace.
+  - **El estado se ESPEJA, no se recalcula:** `BtnHealth.IsEnabled = MnuHealth.IsEnabled`. Dos
+    condiciones para la misma acción acabarían discrepando y el usuario vería un botón vivo sobre un menú
+    apagado.
+  - **Verificado:** con la app en marcha, en español; +4 claves × 5 idiomas.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [x] **[T11-03] La tarjeta de unidad daba el mismo peso a «Conexión: USB» que a «Salud: Crítico»** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / jerarquía visual
+  - **Ubicación:** [MainWindow.xaml](src/FormatDiskPro/UI/MainWindow.xaml) (cabecera de la tarjeta) ·
+    [MainWindow.DriveInfo.cs](src/FormatDiskPro/UI/MainWindow.DriveInfo.cs) (`SetInfo`, `ClearHealthColor`)
+  - **Qué pasaba:** seis líneas «Etiqueta: valor» en una rejilla de 2×3, **todas del mismo tamaño y del
+    mismo color**. Las dos preguntas que se hacen al seleccionar una unidad —cuánto cabe y si está sana—
+    había que buscarlas entre las otras cuatro.
+  - **Qué se hizo:** tres niveles. La **capacidad** como dato principal (20 px, semibold), la **salud** a
+    su derecha con un punto de color, y sistema de archivos, tipo y conexión en una línea de contexto
+    atenuada. El **espacio libre** baja bajo la barra de ocupación, que es de lo que habla — antes estaba
+    a tres líneas del dato con el que se compara. Mismo contenido, mismos seis controles, reordenados.
+  - **La parte que no se ve, y es la que importa:** los rótulos desaparecen de la **pantalla**, no de la
+    **accesibilidad**. `SetInfo` pinta el valor y pone la frase entera en `AutomationProperties.Name`, en
+    un solo sitio para que no puedan separarse: un lector de pantalla sigue leyendo «Total: 930,5 GB».
+    La jerarquía visual no se paga con información.
+  - **El punto de color no sustituye al texto** (WCAG 1.4.1): repite en color lo que la palabra ya dice, y
+    va en `AccessibilityView="Raw"`. Con salud desconocida se pone **gris** en vez de ocultarse — un hueco
+    donde había un círculo se lee como que el dato cambió de sitio. Su pincel es **el mismo objeto** que
+    el del texto, no una segunda derivación del mismo color.
+  - **Verificado:** con la app en marcha (`931,5 GB` · `● Normal` · `NTFS · Disco fijo · NVMe · SSD` ·
+    `Libre: 181,6 GB`). Sin colores nuevos: los dos estilos usan `ThemeResource` de Fluent y el punto
+    reusa `HealthDialog.LevelBrush` / `SeverityPalette`, ya medidos.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
 ---
 
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-09-01 | **T11-03** | La tarjeta de unidad deja de repartir seis datos con el mismo peso: **capacidad** como dato principal, **salud** con punto de color a su derecha, y FS/tipo/conexión en una línea de contexto atenuada; el espacio libre baja bajo la barra de ocupación, junto al dato con el que se compara. Los rótulos se van de la pantalla pero **no de la accesibilidad**: `SetInfo` pone la frase entera en `AutomationProperties.Name`, en un solo sitio. El punto no sustituye al texto (1.4.1) y con salud desconocida se pone gris en vez de desaparecer. |
+| 2026-09-01 | **T11-02** | Las tres herramientas que **no escriben nada** —salud, benchmark, historial— salen del menú a una barra de acciones bajo la barra de menús. No es un criterio nuevo: son exactamente las tres que ya tenían atajo, y por el mismo motivo. Todo lo destructivo se queda dentro del menú. Esquiva `T7-08` (WinUI no pinta el tooltip de un control deshabilitado) porque solo se apagan **sin unidad**, y entonces el selector ya lo explica. El estado se espeja del ítem del menú en vez de recalcularse. |
 | 2026-09-01 | **T11-01** | El pie deja de ser solo una barra: panel plegable con **disco (caudal + pico), CPU y RAM**, desplegado solo mientras hay operación. Lo que no enseña está tan decidido como lo que enseña — nada de «CPU del proceso» (el trabajo lo hacen procesos hijos y diría 0), nada de contadores de disco del sistema (medirían toda la máquina), y la barra de caudal se escala contra **su propio pico** porque no hay un máximo teórico honesto. Win32 y no `PerformanceCounter`: los nombres de PDH están traducidos y la app se instala en cinco idiomas. Colores de `SeverityPalette` con los mismos umbrales 80/90 que la barra de ocupación. **+41 unitarias (664/664)**, verificado con la app en marcha. |
 | 2026-08-27 | **T10-01** | El camino de fallo de la cobertura deja de mentir y empieza a dejar pruebas. `Get-CoreCoverage` separa **`missing` · `unreadable` · `empty` · `nocore`**, que antes eran el mismo `$null` y el mismo mensaje —el que culpa a `coverlet.collector`, referenciado y presente las dos veces que ha fallado—. En `empty`/`unreadable` conserva el informe **fuera del repo** (dentro haría abortar el siguiente corte por `T9-01`) y repite la medición una vez con `--diag`, **sin que eso desbloquee nada**: el corte muere igual y solo cambia el veredicto. **Verificado con las 5 clasificaciones (5/5) y con el camino entero ejercitado**: conservó el informe, guardó 3,7 MB de diagnósticos y abortó. Queda `T10-02`: la causa. |
 | 2026-08-26 | — | **Se abre el [Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)** con **1 tarea** (`T10-01`, Media), y no de una revisión sino del **corte de la v1.25.0**: el primer intento abortó con el informe de cobertura **vacío** —el artefacto de `T8-06`— **con el arreglo de `T8-06` puesto y ejecutado**. No se reprodujo en tres intentos, incluido el caso que provocaba `T8-06`. Se abre reconociendo que **la causa no se conoce**, y la tarea va de dejar pruebas la próxima vez, no de reintentar hasta que salga. El corte reintentado publicó la v1.25.0 al 98,1 %. |
