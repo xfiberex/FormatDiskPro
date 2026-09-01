@@ -176,7 +176,7 @@
         tener el mismo grosor. Aquí la pista es este Border y el relleno es su hijo.
     -->
     <Style x:Key="MetricBarStyle" TargetType="Border">
-        <Setter Property="Height" Value="6" />
+        <Setter Property="Height" Value="4" />
         <Setter Property="CornerRadius" Value="2" />
         <!-- Raw: el valor ya está en el TextBlock de al lado, en texto. La barra es su duplicado
              gráfico, y refrescándose cada segundo solo sería ruido para un lector de pantalla. -->

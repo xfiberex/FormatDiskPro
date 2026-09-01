@@ -157,10 +157,10 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Unitarias | **664 / 664** (663 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 41 de `T11-01`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: el Tier 11 entero (`T11-01`–`T11-03`, 2026-09-01) está en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
+| Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: el Tier 11 entero (`T11-01`–`T11-04`, 2026-09-01) está en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tiers abiertos | **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 3/3**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones) y `T11-03` (la tarjeta de unidad se ordena por importancia). **Pendiente: regenerar la galería** con `tools/capture-screenshots.ps1` — las capturas del README son de la ventana anterior. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
+| Tiers abiertos | **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). **Pendiente: regenerar la galería** con `tools/capture-screenshots.ps1` — las capturas del README son de la ventana anterior. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
 | Tareas abiertas | **Una, y bloqueada a propósito: `T10-02`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
@@ -414,6 +414,42 @@ ni mueve datos).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-09-01 — `T11-04`: el desplegable era la pieza equivocada
+
+Sale de ver `T11-01` funcionando. El `Expander` estaba bien resuelto y aun así sobraba.
+
+**El razonamiento que estaba mal.** Se plegó por el **alto**: la ventana es de tamaño fijo y el panel
+desplegado ocupaba ~230 px. Pero un desplegable cobra su propio precio —un clic para ver un dato que se
+consulta de un vistazo, y un encabezado que hay que llenar con un resumen para que plegado diga algo—, y
+ese precio se paga **siempre**, mientras que el del alto solo se pagaba desplegado. El error no fue elegir
+mal entre plegar y no plegar: fue **aceptar los 230 px como dados** en vez de atacarlos.
+
+**Qué hay ahora.** Tres columnas —etiqueta + valor arriba, barra de 4 px debajo—. La franja entera cabe en
+**~34 px**, menos que el encabezado que el `Expander` ocupaba *plegado*. Sin problema de alto no queda
+motivo para plegar, así que es fija: siempre visible, sin clic y sin resumen que inventar. La preferencia
+`ShowPerformance` se elimina — ya no hay nada que recordar.
+
+**Lo que se sacrifica, y adónde va.** El pie de cada métrica —el pico, los núcleos, el consumo de la
+propia app— ya no cabe y pasa al **tooltip**, junto al valor. No se pierde, y esta vez el tooltip sí
+sirve: estos controles **nunca se deshabilitan**, que era justo lo que lo inutilizaba en los ítems de
+menú de `T7-08`. Ese mismo texto es el nombre de automatización de cada columna, así que un lector de
+pantalla recibe «Disco: 42,3 MB/s — Pico 58,1 MB/s» y no un número suelto.
+
+**Las columnas no son iguales, y es deliberado** (`1.15* / 0.7* / 1.15*`). «100 %» de CPU siempre es corto
+y «13,5 GB / 31,9 GB» de RAM siempre es largo: a tercios, la RAM saldría truncada con hueco sobrante a su
+izquierda.
+
+**El muestreo cambia de disparador.** Ya no puede depender de si el panel está abierto, porque siempre lo
+está. Ahora corre mientras la ventana está **al frente** o hay una operación en curso: con la app detrás
+no hay nadie mirando la franja, y con una operación en curso hay que seguir midiendo aunque el usuario se
+haya ido a otra ventana, porque al volver el pico tiene que ser el de **toda** la operación, no el de los
+ratos en que estuvo mirando.
+
+**Verificado:** build 0/0, 664/664, y con la app en marcha — la franja ocupa una línea y el contenido de
+arriba recupera el alto que el panel desplegado le quitaba.
 
 ---
 

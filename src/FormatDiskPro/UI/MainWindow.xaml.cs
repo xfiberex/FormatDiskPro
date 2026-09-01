@@ -686,7 +686,7 @@ public sealed partial class MainWindow : Window
             ? AutomationNotificationKind.ActionAborted
             : AutomationNotificationKind.ActionCompleted);
 
-        // Con la operación ya terminada, el panel deja de muestrear si el usuario lo tenía plegado.
+        // Con la operación ya terminada, el muestreo solo sigue si la ventana está delante.
         SyncPerformanceSampling();
 
         // Aviso al terminar operaciones largas: sonido + parpadeo de la barra (solo si el usuario

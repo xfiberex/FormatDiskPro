@@ -30,12 +30,13 @@
 ## 🏁 Estado
 
 > **Se abrió y se cerró el [Tier 11](#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01)**
-> el **2026-09-01**, **3/3**. No sale de un fallo sino de una petición de producto sobre la ventana
-> principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01`, el pie
+> el **2026-09-01**, **4/4**. No sale de un fallo sino de una petición de producto sobre la ventana
+> principal, y las cuatro tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01`, el pie
 > enseña disco, CPU y RAM mientras corre la operación (antes, en un borrado seguro de 40 minutos la única
 > señal de vida era una barra quieta); `T11-02`, las tres herramientas que **no escriben nada** salen del
 > menú a una barra de acciones; `T11-03`, la tarjeta de unidad se ordena por importancia en vez de
-> repartir seis datos con el mismo peso.
+> repartir seis datos con el mismo peso; y `T11-04`, ese panel de rendimiento deja de ser un desplegable
+> y pasa a una franja fija de tres columnas — al compactarlo desapareció el motivo de poder plegarlo.
 >
 > **Queda pendiente regenerar la galería** (`tools/capture-screenshots.ps1`): las capturas del README son
 > de la ventana anterior.
@@ -321,8 +322,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T8** | **Lo que solo se ve usando la app** — incluye *Exportar CSV*, roto en toda versión publicada · cerrado | 6 | bajo-medio |
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
 | **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · `T10-01` hecha · `T10-02` **abierta, a la espera de que vuelva a ocurrir** | 2 | bajo |
-| **T11** | **Rendimiento y jerarquía de la ventana principal** — el pie deja de ser solo una barra, las tres herramientas de solo lectura salen del menú y la tarjeta de unidad se ordena por importancia · **3/3, cerrado** | 3 | bajo |
-| | **Total** | **100** | |
+| **T11** | **Rendimiento y jerarquía de la ventana principal** — el pie deja de ser solo una barra, las tres herramientas de solo lectura salen del menú y la tarjeta de unidad se ordena por importancia · **4/4, cerrado** | 4 | bajo |
+| | **Total** | **101** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2409,12 +2410,44 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
+- [x] **[T11-04] El panel de rendimiento pedía un clic para enseñar tres números** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / densidad
+  - **Ubicación:** [MainWindow.xaml](src/FormatDiskPro/UI/MainWindow.xaml) (`PerfStrip`) ·
+    [MainWindow.Performance.cs](src/FormatDiskPro/UI/MainWindow.Performance.cs)
+  - **De dónde sale:** de ver `T11-01` funcionando. El `Expander` estaba bien resuelto y aun así era la
+    pieza equivocada.
+  - **El razonamiento que estaba mal en `T11-01`:** se plegó por el **alto** —la ventana es de tamaño fijo
+    y el panel desplegado ocupaba ~230 px—. Pero un desplegable cobra su propio precio: un clic para ver
+    un dato que se consulta de un vistazo, y un encabezado que hay que llenar con un resumen para que
+    plegado diga algo. Ese precio se paga **siempre**; el del alto solo se pagaba desplegado. El error fue
+    aceptar el alto como dado en vez de atacarlo.
+  - **Qué se hizo:** tres columnas —etiqueta + valor arriba, barra de 4 px debajo—. La franja entera cabe
+    en **~34 px**, menos que el encabezado que el `Expander` ocupaba **plegado**. Sin el problema del alto
+    no queda motivo para plegar, así que la franja es fija: siempre visible, sin clic, sin resumen que
+    inventar. La preferencia `ShowPerformance` se elimina — ya no hay nada que recordar.
+  - **Lo que se sacrifica, y adónde va:** el pie de cada métrica (el pico, los núcleos, el consumo de la
+    propia app) ya no cabe en pantalla y pasa al **tooltip**, junto al valor. No se pierde: estos
+    controles **nunca se deshabilitan**, así que el tooltip sí se muestra — que era justo el problema de
+    los ítems de menú de `T7-08`. Ese mismo texto es el nombre de automatización de cada columna.
+  - **Las columnas no son iguales, y es deliberado** (`1.15* / 0.7* / 1.15*`): «100 %» de CPU siempre es
+    corto y «13,5 GB / 31,9 GB» de RAM siempre es largo. A tercios, la RAM saldría truncada con hueco
+    sobrante a su izquierda.
+  - **El muestreo cambia de disparador:** ya no puede depender de si el panel está abierto, porque siempre
+    lo está. Ahora corre mientras la ventana está **al frente** o hay una operación en curso. Con la app
+    detrás no hay nadie mirando; con una operación en curso hay que seguir midiendo aunque el usuario se
+    haya ido, o el pico tendría agujeros.
+  - **Verificado:** build 0/0, 664/664 y con la app en marcha — la franja ocupa una línea y el contenido
+    de arriba recupera el alto que el panel desplegado le quitaba.
+  - **Esfuerzo:** bajo
+  - **Depende de:** `T11-01`
+
 ---
 
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-09-01 | **T11-04** | El panel de rendimiento deja de ser un `Expander` y pasa a una **franja fija de tres columnas** (~34 px, menos que el encabezado que el desplegable ocupaba plegado). El razonamiento de `T11-01` estaba mal: plegar se justificó por el alto, pero el clic y el resumen del encabezado se pagan **siempre** y el alto solo desplegado — la respuesta era compactar, no plegar. Los pies de cada métrica van al tooltip, que aquí **sí** se muestra porque estos controles nunca se deshabilitan (`T7-08`). Se elimina la preferencia `ShowPerformance` y el muestreo pasa a depender de si la ventana está al frente. |
 | 2026-09-01 | **T11-03** | La tarjeta de unidad deja de repartir seis datos con el mismo peso: **capacidad** como dato principal, **salud** con punto de color a su derecha, y FS/tipo/conexión en una línea de contexto atenuada; el espacio libre baja bajo la barra de ocupación, junto al dato con el que se compara. Los rótulos se van de la pantalla pero **no de la accesibilidad**: `SetInfo` pone la frase entera en `AutomationProperties.Name`, en un solo sitio. El punto no sustituye al texto (1.4.1) y con salud desconocida se pone gris en vez de desaparecer. |
 | 2026-09-01 | **T11-02** | Las tres herramientas que **no escriben nada** —salud, benchmark, historial— salen del menú a una barra de acciones bajo la barra de menús. No es un criterio nuevo: son exactamente las tres que ya tenían atajo, y por el mismo motivo. Todo lo destructivo se queda dentro del menú. Esquiva `T7-08` (WinUI no pinta el tooltip de un control deshabilitado) porque solo se apagan **sin unidad**, y entonces el selector ya lo explica. El estado se espeja del ítem del menú en vez de recalcularse. |
 | 2026-09-01 | **T11-01** | El pie deja de ser solo una barra: panel plegable con **disco (caudal + pico), CPU y RAM**, desplegado solo mientras hay operación. Lo que no enseña está tan decidido como lo que enseña — nada de «CPU del proceso» (el trabajo lo hacen procesos hijos y diría 0), nada de contadores de disco del sistema (medirían toda la máquina), y la barra de caudal se escala contra **su propio pico** porque no hay un máximo teórico honesto. Win32 y no `PerformanceCounter`: los nombres de PDH están traducidos y la app se instala en cinco idiomas. Colores de `SeverityPalette` con los mismos umbrales 80/90 que la barra de ocupación. **+41 unitarias (664/664)**, verificado con la app en marcha. |

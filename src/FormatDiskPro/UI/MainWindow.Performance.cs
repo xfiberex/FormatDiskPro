@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
@@ -6,7 +7,7 @@ using Windows.UI;
 namespace FormatDiskPro.UI;
 
 /// <summary>
-/// Panel de rendimiento del pie: disco, CPU y RAM mientras corre una operación.
+/// Franja de rendimiento del pie: disco, CPU y RAM, siempre visibles.
 ///
 /// <para>Parte de <see cref="MainWindow"/>: es la MISMA clase, repartida en archivos por asunto
 /// (T2-08).</para>
@@ -19,11 +20,16 @@ namespace FormatDiskPro.UI;
 /// aparte, de modo que un «CPU del proceso» diría casi 0 durante un formateo y sería mentira útil para
 /// nadie.</para>
 ///
-/// <para><b>Coste.</b> El temporizador corre con el panel desplegado <b>o</b> con una operación en
-/// curso, y en ningún otro momento. Esta app arranca elevada en toda sesión y muchas se pasan enteras
-/// sin formatear nada: un tick por segundo perpetuo sería coste sin beneficio. Que siga muestreando con
-/// el panel plegado <b>durante</b> una operación es lo que mantiene vivo el resumen del encabezado, que
-/// es lo único que ve quien lo plegó. Ver <see cref="ShouldSample"/>.
+/// <para><b>Por qué ya no es un desplegable (`T11-04`).</b> Empezó siéndolo para no gastar alto en una
+/// ventana de tamaño fijo. Pero plegar cuesta un clic para ver un dato que se consulta de un vistazo, y
+/// obliga a inventar un resumen para que el encabezado diga algo estando plegado. Compactada a tres
+/// columnas, la franja entera ocupa menos que aquel encabezado: el motivo de plegarla desapareció, y
+/// con él el desplegable.</para>
+///
+/// <para><b>Coste.</b> El temporizador corre mientras la ventana está <b>al frente</b> o hay una
+/// operación en curso, y en ningún otro momento (ver <see cref="ShouldSample"/>). Con la app detrás no
+/// hay nadie mirando la franja; con una operación en curso hay que seguir midiendo aunque el usuario se
+/// haya ido a otra ventana, porque al volver el pico tiene que ser el de toda la operación.</para>
 /// </remarks>
 public sealed partial class MainWindow
 {
@@ -34,6 +40,7 @@ public sealed partial class MainWindow
     // distintos para lo mismo en la misma pantalla.
     private double _diskBytesPerSec;
     private double _diskPeakBytesPerSec;
+    private bool _windowActive;
 
     /// <summary>
     /// Si la operación en curso informa de bytes procesados (verificación, borrado seguro, benchmark).
@@ -45,21 +52,35 @@ public sealed partial class MainWindow
     /// </remarks>
     private bool OperationReportsBytes => _opTotalBytes > 0;
 
-    /// <summary>Prepara el temporizador del panel y su estado inicial. Se llama una vez, al construir.</summary>
+    /// <summary>
+    /// Si hay motivo para muestrear: alguien está mirando la ventana, o hay una operación cuyo pico no
+    /// puede tener agujeros aunque el usuario se haya ido a otra parte.
+    /// </summary>
+    private bool ShouldSample => _windowActive || _isBusy;
+
+    /// <summary>Prepara el temporizador de la franja y su estado inicial. Se llama una vez, al construir.</summary>
     private void InitPerformancePanel()
     {
         _perfTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _perfTimer.Tick += PerfTimer_Tick;
 
-        PerfExpander.IsExpanded = _settings.ShowPerformance;
-        if (ShouldSample) StartPerformanceSampling();
-        else              RenderPerformance(null);
+        // La activación de la ventana es lo que enciende y apaga el muestreo. Este manejador NO se da de
+        // baja (a diferencia de OnFirstActivated): tiene que oír también las desactivaciones.
+        Activated += OnActivatedForPerformance;
+
+        RenderPerformance(null);
+    }
+
+    private void OnActivatedForPerformance(object sender, WindowActivatedEventArgs e)
+    {
+        _windowActive = e.WindowActivationState != WindowActivationState.Deactivated;
+        SyncPerformanceSampling();
     }
 
     /// <summary>Arranca el muestreo: pinta una muestra ya y sigue cada segundo.</summary>
     /// <remarks>
-    /// Muestrea inmediatamente antes de arrancar el temporizador para que el panel no aparezca en blanco
-    /// el primer segundo, que es justo cuando el usuario acaba de abrirlo y está mirándolo.
+    /// Muestrea inmediatamente antes de arrancar el temporizador para que la franja no se quede en
+    /// guiones el primer segundo, que es justo cuando el usuario acaba de volver a la ventana.
     /// </remarks>
     private void StartPerformanceSampling()
     {
@@ -68,14 +89,8 @@ public sealed partial class MainWindow
         _perfTimer.Start();
     }
 
-    /// <summary>Para el muestreo. El panel conserva lo último pintado.</summary>
+    /// <summary>Para el muestreo. La franja conserva lo último pintado.</summary>
     private void StopPerformanceSampling() => _perfTimer.Stop();
-
-    /// <summary>
-    /// Si hay motivo para muestrear: el panel está abierto, o hay una operación cuyo resumen se enseña
-    /// en el encabezado aunque el panel esté plegado.
-    /// </summary>
-    private bool ShouldSample => PerfExpander.IsExpanded || _isBusy;
 
     /// <summary>Arranca o para el muestreo según <see cref="ShouldSample"/>.</summary>
     private void SyncPerformanceSampling()
@@ -84,80 +99,42 @@ public sealed partial class MainWindow
         else              StopPerformanceSampling();
     }
 
-    private void PerfExpander_Expanding(Expander sender, ExpanderExpandingEventArgs args)
-    {
-        StartPerformanceSampling();
-        SavePerformancePreference(true);
-    }
-
-    private void PerfExpander_Collapsed(Expander sender, ExpanderCollapsedEventArgs args)
-    {
-        SyncPerformanceSampling();
-        SavePerformancePreference(false);
-    }
-
-    /// <summary>Persiste si el panel queda abierto entre sesiones; nunca durante el arranque.</summary>
-    /// <param name="expanded">Estado nuevo del panel.</param>
-    private void SavePerformancePreference(bool expanded)
-    {
-        // _uiReady lo pone el constructor al terminar: sin esta guarda, fijar IsExpanded desde
-        // InitPerformancePanel dispararía el evento y guardaría el valor que se acaba de leer.
-        if (!_uiReady || _settings.ShowPerformance == expanded) return;
-        _settings.ShowPerformance = expanded;
-        _settings.Save();
-    }
-
     private void PerfTimer_Tick(object? sender, object e)
         => RenderPerformance(_services.Performance.Sample(_diskBytesPerSec));
 
-    /// <summary>Reinicia el seguimiento del caudal para una operación nueva y despliega el panel.</summary>
+    /// <summary>Reinicia el seguimiento del caudal para una operación nueva.</summary>
     private void BeginPerformanceTracking()
     {
         _diskBytesPerSec = _diskPeakBytesPerSec = 0;
         _services.Performance.Reset();
-
-        // Desplegar el panel al empezar es lo que le da sentido: los números tienen contexto porque hay
-        // una operación que los produce. No se persiste como preferencia (no lo pidió el usuario), así
-        // que se pone IsExpanded directamente y SavePerformancePreference queda al margen.
-        if (!PerfExpander.IsExpanded)
-        {
-            _settings.ShowPerformance = true;   // que el Collapsed posterior no lo guarde como "cerrado"
-            PerfExpander.IsExpanded = true;     // dispara Expanding → arranca el muestreo
-        }
-        else
-        {
-            StartPerformanceSampling();
-        }
+        StartPerformanceSampling();
     }
 
     /// <summary>
-    /// Cierra el seguimiento al terminar la operación: deja de contar caudal y pinta el último estado.
+    /// Cierra el seguimiento al terminar la operación: deja de contar caudal.
     /// </summary>
     /// <remarks>
-    /// El panel se queda <b>desplegado</b> y con el pico: en ese momento deja de ser un monitor y pasa a
-    /// ser el resumen de lo que acaba de pasar, que es cuando el dato vale más. El muestreo sigue vivo
-    /// porque el panel sigue abierto; lo que se para es el reloj de la operación.
+    /// El <b>pico</b> no se borra aquí: se queda en el tooltip de la columna de disco hasta la operación
+    /// siguiente, que es cuando deja de describir nada. Borrarlo al terminar quitaría el dato justo en el
+    /// momento en que el usuario va a mirarlo.
     /// </remarks>
-    private void EndPerformanceTracking()
-    {
-        _diskBytesPerSec = 0;
-        // _isBusy sigue en true cuando EndOperation llama aquí: la sincronización real la hace el propio
-        // EndOperation al terminar de bajarlo. Aquí solo se corta el caudal, que ya no existe.
-    }
+    private void EndPerformanceTracking() => _diskBytesPerSec = 0;
 
     /// <summary>
-    /// Pinta una muestra en las tres filas. Con <paramref name="sample"/> nulo deja el panel en su
-    /// estado de reposo (guiones), que es como arranca si el usuario lo dejó plegado.
+    /// Pinta una muestra en las tres columnas. Con <paramref name="sample"/> nulo deja la franja en su
+    /// estado de reposo (guiones), que es como arranca antes del primer muestreo.
     /// </summary>
     /// <param name="sample">Muestra a pintar, o <c>null</c> para el estado de reposo.</param>
     private void RenderPerformance(LoadSample? sample)
     {
+        string dash = L.T("info.dash");
+
         if (sample is not LoadSample s)
         {
-            string dash = L.T("info.dash");
             PerfDiskValue.Text = PerfCpuValue.Text = PerfRamValue.Text = dash;
-            PerfDiskCaption.Text = PerfCpuCaption.Text = PerfRamCaption.Text = "";
-            PerfSummaryText.Text = "";
+            SetCell(PerfDiskCell, "perf.disk", dash, "");
+            SetCell(PerfCpuCell,  "perf.cpu",  dash, "");
+            SetCell(PerfRamCell,  "perf.ram",  dash, "");
             SetBar(PerfDiskColumns, PerfDiskFill, PerfDiskBar, 0, neutral: true);
             SetBar(PerfCpuColumns,  PerfCpuFill,  PerfCpuBar,  0, neutral: false);
             SetBar(PerfRamColumns,  PerfRamFill,  PerfRamBar,  0, neutral: false);
@@ -166,41 +143,66 @@ public sealed partial class MainWindow
 
         // ── Disco ──
         _diskPeakBytesPerSec = SystemLoad.Peak(_diskPeakBytesPerSec, s.DiskBytesPerSec);
-        bool hasFlow = s.DiskBytesPerSec > 0 || _diskPeakBytesPerSec > 0;
 
         // FormatSpeed devuelve cadena vacía con velocidad 0: aquí eso sería un hueco en blanco durante
         // cada pausa de la operación, así que el 0 se pinta como guion, igual que el reposo.
-        PerfDiskValue.Text = s.DiskBytesPerSec > 0
-            ? Throughput.FormatSpeed(s.DiskBytesPerSec)
-            : L.T("info.dash");
-        PerfDiskCaption.Text = _diskPeakBytesPerSec > 0
+        string diskValue = s.DiskBytesPerSec > 0 ? Throughput.FormatSpeed(s.DiskBytesPerSec) : dash;
+        string diskDetail = _diskPeakBytesPerSec > 0
             ? L.T("perf.disk.peak", Throughput.FormatSpeed(_diskPeakBytesPerSec))
             : _isBusy && !OperationReportsBytes ? L.T("perf.disk.noBytes")
             : _isBusy ? ""
             : L.T("perf.disk.idle");
 
-        // Neutro siempre: en esta fila un valor ALTO es lo bueno, así que los umbrales de alarma de las
-        // otras dos (80/90 en ámbar y rojo) dirían justo lo contrario de lo que pasa.
+        PerfDiskValue.Text = diskValue;
+        SetCell(PerfDiskCell, "perf.disk", diskValue, diskDetail);
+
+        // Neutro siempre: en esta columna un valor ALTO es lo bueno, así que los umbrales de alarma de
+        // las otras dos (80/90 en ámbar y rojo) dirían justo lo contrario de lo que pasa.
         SetBar(PerfDiskColumns, PerfDiskFill, PerfDiskBar,
                SystemLoad.RelativeFill(s.DiskBytesPerSec, _diskPeakBytesPerSec), neutral: true);
 
         // ── CPU ──
-        PerfCpuValue.Text   = L.T("perf.percent", s.CpuPercent.ToString("0", L.Culture));
-        PerfCpuCaption.Text = L.T("perf.cpu.cores", Environment.ProcessorCount.ToString(L.Culture));
+        string cpuValue = L.T("perf.percent", s.CpuPercent.ToString("0", L.Culture));
+        PerfCpuValue.Text = cpuValue;
+        SetCell(PerfCpuCell, "perf.cpu", cpuValue,
+                L.T("perf.cpu.cores", Environment.ProcessorCount.ToString(L.Culture)));
         SetBar(PerfCpuColumns, PerfCpuFill, PerfCpuBar, s.CpuPercent, neutral: false);
 
         // ── RAM ──
         double ramPct = SystemLoad.Percent(s.RamUsedBytes, s.RamTotalBytes);
-        PerfRamValue.Text = s.RamTotalBytes > 0
+        string ramValue = s.RamTotalBytes > 0
             ? L.T("perf.ram.value", FormatBytes(s.RamUsedBytes), FormatBytes(s.RamTotalBytes))
-            : L.T("info.dash");
-        PerfRamCaption.Text = L.T("perf.ram.app", FormatBytes(s.AppRamBytes));
+            : dash;
+        PerfRamValue.Text = ramValue;
+        SetCell(PerfRamCell, "perf.ram", ramValue, L.T("perf.ram.app", FormatBytes(s.AppRamBytes)));
         SetBar(PerfRamColumns, PerfRamFill, PerfRamBar, ramPct, neutral: false);
+    }
 
-        // Resumen del encabezado: lo único que se ve con el panel plegado.
-        PerfSummaryText.Text = hasFlow
-            ? $"{Throughput.FormatSpeed(s.DiskBytesPerSec)}  ·  {L.T("perf.cpu")} {L.T("perf.percent", s.CpuPercent.ToString("0", L.Culture))}"
-            : $"{L.T("perf.cpu")} {L.T("perf.percent", s.CpuPercent.ToString("0", L.Culture))}  ·  {L.T("perf.ram")} {L.T("perf.percent", ramPct.ToString("0", L.Culture))}";
+    /// <summary>
+    /// Pone en una columna su tooltip y su nombre de automatización: etiqueta, valor y el detalle que ya
+    /// no cabe en pantalla.
+    /// </summary>
+    /// <remarks>
+    /// <para>Al compactar la franja (`T11-04`) los pies de cada métrica —el pico, los núcleos, el consumo
+    /// de la propia app— dejaron de caber. Van aquí, y no se pierden: <b>el tooltip sí se muestra</b>
+    /// porque estos controles no se deshabilitan nunca, que era justo el problema de los ítems de menú de
+    /// <c>T7-08</c>.</para>
+    ///
+    /// <para>El nombre de automatización lleva lo mismo, porque un lector de pantalla que recorre el pie
+    /// necesita saber que «42,3 MB/s» es el disco y contra qué se compara.</para>
+    /// </remarks>
+    /// <param name="cell">Contenedor de la columna.</param>
+    /// <param name="labelKey">Clave de la etiqueta de la métrica.</param>
+    /// <param name="value">Valor ya formateado.</param>
+    /// <param name="detail">Detalle de contexto, o cadena vacía si no hay ninguno que dar.</param>
+    private static void SetCell(FrameworkElement cell, string labelKey, string value, string detail)
+    {
+        string text = detail.Length > 0
+            ? $"{L.T(labelKey)}: {value} — {detail}"
+            : $"{L.T(labelKey)}: {value}";
+
+        ToolTipService.SetToolTip(cell, text);
+        AutomationProperties.SetName(cell, text);
     }
 
     /// <summary>
@@ -239,17 +241,16 @@ public sealed partial class MainWindow
         track.Background = new SolidColorBrush(SeverityPalette.TrackFill(_darkMode));
     }
 
-    /// <summary>Reescribe las etiquetas fijas del panel al cambiar de idioma.</summary>
+    /// <summary>Reescribe las etiquetas fijas de la franja al cambiar de idioma.</summary>
     private void ApplyPerformanceLanguage()
     {
-        PerfTitleLbl.Text = L.T("perf.title");
-        PerfDiskLbl.Text  = L.T("perf.disk");
-        PerfCpuLbl.Text   = L.T("perf.cpu");
-        PerfRamLbl.Text   = L.T("perf.ram");
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PerfExpander, L.T("perf.title"));
+        PerfDiskLbl.Text = L.T("perf.disk");
+        PerfCpuLbl.Text  = L.T("perf.cpu");
+        PerfRamLbl.Text  = L.T("perf.ram");
+        AutomationProperties.SetName(PerfStrip, L.T("perf.title"));
 
-        // Los valores y los pies los reescribe el próximo tick; con el panel parado hay que forzarlo,
-        // o quedarían en el idioma anterior hasta que alguien lo despliegue.
+        // Los valores y los tooltips los reescribe el próximo tick; con el muestreo parado hay que
+        // forzarlo, o quedarían en el idioma anterior hasta que la ventana vuelva al frente.
         if (!_perfTimer.IsEnabled) RenderPerformance(null);
     }
 }
