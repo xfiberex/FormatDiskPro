@@ -24,6 +24,28 @@
         medición: así entró un gris de 3.52:1 que WCAG AA no admite (ver ROADMAP T1-03/T1-04).
     -->
 
+    <!--
+        Pincel del tercer nivel de texto (`T12-01`). Los valores están DUPLICADOS de
+        `Core/SeverityPalette.MutedText`, que es donde se eligen y donde el barrido de contraste los mide;
+        un XAML no puede llamar a `Core`. La duplicación está anclada: `TextContrastTests` lee estos dos
+        hex de este archivo y exige que coincidan con los de `SeverityPalette`, así que cambiar uno sin
+        el otro rompe el build en vez de dejar un color fuera de la medición.
+
+        `HighContrast` NO usa el gris: en alto contraste manda el color del sistema, y sustituirlo por uno
+        propio —por muy medido que esté— es justo lo que ese modo existe para impedir.
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="AppMutedTextBrush" Color="#6C6C6C" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="AppMutedTextBrush" Color="#9A9A9A" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="AppMutedTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
     <!-- Radio de esquina de las tarjetas de sección -->
     <CornerRadius x:Key="AppCardCornerRadius">8</CornerRadius>
 
@@ -126,7 +148,7 @@
     <!-- Línea de contexto: sistema de archivos, tipo y conexión. Atenuada a propósito -->
     <Style x:Key="DriveMetaStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource AppMutedTextBrush}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
@@ -135,7 +157,7 @@
     <Style x:Key="HintTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontStyle" Value="Italic" />
-        <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource AppMutedTextBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
@@ -165,7 +187,7 @@
     <!-- Pie de la métrica: contra qué se mide el valor (el pico, los núcleos, el propio proceso) -->
     <Style x:Key="MetricCaptionStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11" />
-        <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource AppMutedTextBrush}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 

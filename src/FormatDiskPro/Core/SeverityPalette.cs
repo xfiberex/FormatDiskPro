@@ -49,6 +49,13 @@ public sealed record PaletteColor(
 /// semántico al inventario es lo mismo que ponerlo bajo test: no hay forma de hacer una cosa sin la otra.
 /// Si añades un color aquí, aparece en el barrido automáticamente.</para>
 ///
+/// <para><b>Y qué pasa con los colores que SÍ salen de un <c>ThemeResource</c></b> (`T12-01`). Que
+/// vengan de Windows no los hace correctos para cualquier uso: la decisión de pintar una etiqueta con el
+/// terciario de Fluent es nuestra, y por tanto también lo es su contraste. Los que la app usa para texto
+/// están declarados en <see cref="FluentTextPalette"/> y los mide <c>TextContrastTests</c>, que recorre
+/// el XAML y comprueba lo que hay puesto de verdad. Es el mismo principio que <see cref="All"/>: lo que
+/// se muestra tiene que estar bajo medición, venga de donde venga.</para>
+///
 /// <para><b>Qué NO entra aquí:</b> los colores de los botones de caption de la barra de título
 /// (<c>MainWindow.UpdateCaptionButtonColors</c>). No comunican significado —son cromo de ventana— y sus
 /// estados hover/pressed son superposiciones translúcidas sobre el material del sistema (Mica/Acrylic),
@@ -105,6 +112,27 @@ public static class SeverityPalette
         dark ? Color.FromArgb(255, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xE4, 0x00, 0x00, 0x00);
 
     /// <summary>
+    /// Tercer nivel de texto: el contexto que acompaña a un dato sin competir con él (las pistas de
+    /// formato, la línea de sistema de archivos/tipo/conexión, las etiquetas de la franja de rendimiento).
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué es nuestro y no de Fluent</b> (`T12-01`). El sitio natural era
+    /// <c>TextFillColorTertiaryBrush</c>, y ahí estaba: da <b>3,29:1</b> en tema claro, por debajo del
+    /// 4,5:1 que WCAG AA exige al texto normal. Fluent lo define para texto de apoyo sobre superficies
+    /// grandes, no para contenido, y estos dieciocho controles son contenido — uno de ellos es la pista
+    /// que explica qué tamaño de clúster elegir.</para>
+    ///
+    /// <para>La alternativa era subirlos a <see cref="Text"/> o al secundario de Fluent, pero eso
+    /// eliminaría el tercer nivel de la jerarquía: si el paso más callado no puede leerse, no es que
+    /// haya que quitarlo, es que estaba mal elegido. <c>#6C6C6C</c> / <c>#9A9A9A</c> dan <b>5,07:1</b> y
+    /// <b>5,03:1</b> — con margen (no se tomó el primero que pasa, por lo mismo que en
+    /// <see cref="ForResult"/>) y claramente por debajo del secundario de Fluent (6,17:1 y 9,09:1), que
+    /// es lo que conserva el escalón.</para>
+    /// </remarks>
+    public static Color MutedText(bool dark) =>
+        dark ? Color.FromArgb(255, 0x9A, 0x9A, 0x9A) : Color.FromArgb(255, 0x6C, 0x6C, 0x6C);
+
+    /// <summary>
     /// Relleno del espacio USADO en la barra de ocupación cuando queda sitio de sobra (&lt; 80 %).
     /// </summary>
     /// <remarks>
@@ -151,6 +179,7 @@ public static class SeverityPalette
                 list.Add(new($"HistoryResult.{result}", ForResult(result, dark), dark, ContrastRequirement.NormalText));
 
             list.Add(new("Text", Text(dark), dark, ContrastRequirement.NormalText));
+            list.Add(new("MutedText", MutedText(dark), dark, ContrastRequirement.NormalText));
             list.Add(new("NeutralFill", NeutralFill(dark), dark, ContrastRequirement.Graphical));
 
             // La pista entra al inventario como cualquier otro color, pero declarando su vecino: hay una
