@@ -34,7 +34,8 @@
              El texto del atajo lo pinta el propio MenuFlyoutItem al haber un KeyboardAccelerator: no
              hace falta KeyboardAcceleratorTextOverride, que es para cuando NO hay acelerador real y se
              quiere anunciar uno igualmente. -->
-        <MenuBar Grid.Row="1">
+        <StackPanel Grid.Row="1">
+        <MenuBar>
             <MenuBarItem x:Name="MnuTools" Title="Herramientas">
                 <MenuFlyoutItem x:Name="MnuVerify" Text="Verificar capacidad real…" Click="MnuVerify_Click" />
                 <MenuFlyoutItem x:Name="MnuHealth" Text="Salud del disco (S.M.A.R.T.)…" Click="MnuHealth_Click">
@@ -88,6 +89,54 @@
             </MenuBarItem>
         </MenuBar>
 
+            <!-- ── Barra de acciones rápidas (T11-02) ─────────────────────────────────────────
+
+                 Hasta aquí, TODA función que no fuera formatear vivía dentro de `MnuTools`: la salud
+                 del disco, el benchmark y el historial no existían para quien no abriera el menú.
+
+                 Suben EXACTAMENTE estas tres, y el criterio no es nuevo: son las mismas que ya tenían
+                 atajo de teclado (Ctrl+I / Ctrl+B / Ctrl+H), y por el mismo motivo que allí —son las
+                 únicas que NO escriben nada—. Formatear, reinicializar, verificar capacidad, quitar
+                 protección y borrado seguro se quedan en el menú: una operación que borra datos no debe
+                 estar a un clic de distancia, y su confirmación reforzada existe precisamente para que
+                 llegar ahí cueste.
+
+                 Ese criterio resuelve además el problema de T7-08 sin repetir su solución: WinUI no
+                 pinta el tooltip de un control deshabilitado, así que un botón de icono apagado sería
+                 mudo. Estos tres solo se apagan cuando NO hay unidad —y entonces el propio selector, a
+                 dos centímetros, ya dice «No hay unidades — conecta un dispositivo»—. El historial no
+                 se apaga nunca.
+
+                 NO llevan KeyboardAccelerator propio: el acelerador ya está en su ítem del menú y
+                 declararlo dos veces lo duplicaría. El atajo se anuncia en el tooltip. -->
+            <Grid x:Name="QuickBar" ColumnDefinitions="*,*,*" ColumnSpacing="8"
+                  Margin="16,2,16,0">
+                <Button x:Name="BtnHealth" HorizontalAlignment="Stretch" Click="MnuHealth_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE95E;" FontSize="15"
+                                  AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Name="BtnHealthLbl" Text="Salud" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnBenchmark" Grid.Column="1" HorizontalAlignment="Stretch"
+                        Click="MnuBenchmark_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE916;" FontSize="15"
+                                  AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Name="BtnBenchmarkLbl" Text="Benchmark" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnHistory" Grid.Column="2" HorizontalAlignment="Stretch"
+                        Click="MnuHistory_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE81C;" FontSize="15"
+                                  AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Name="BtnHistoryLbl" Text="Historial" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </StackPanel>
+
         <!-- Row 2: Scrollable content — cards inspired by Win11Debloat sections -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0">
             <StackPanel Padding="16,14,16,16" Spacing="12">
@@ -134,15 +183,50 @@
 
                         <Border Style="{StaticResource CardDividerStyle}" />
 
-                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
-                              ColumnSpacing="12" RowSpacing="6">
-                            <TextBlock x:Name="InfoTotalText"  Grid.Row="0" Grid.Column="0" Style="{StaticResource InfoTextStyle}" Text="Total: –" />
-                            <TextBlock x:Name="InfoFsText"     Grid.Row="0" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Sistema actual: –" />
-                            <TextBlock x:Name="InfoFreeText"   Grid.Row="1" Grid.Column="0" Style="{StaticResource InfoTextStyle}" Text="Libre: –" />
-                            <TextBlock x:Name="InfoTypeText"   Grid.Row="1" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Tipo: –" />
-                            <TextBlock x:Name="InfoHealthText" Grid.Row="2" Grid.Column="0" Style="{StaticResource InfoTextStyle}" Text="Salud: –" />
-                            <TextBlock x:Name="InfoBusText"    Grid.Row="2" Grid.Column="1" Style="{StaticResource InfoTextStyle}" Text="Conexión: –" />
+                        <!-- ── Cabecera de la unidad (T11-03) ───────────────────────
+
+                             Antes esto era una rejilla de 2×3 con seis líneas «Etiqueta: valor» del
+                             mismo tamaño y del mismo color. Eso le daba a «Conexión: USB» exactamente
+                             el mismo peso que a «Salud: Crítico», y las dos preguntas que se hacen al
+                             seleccionar una unidad —cuánto cabe y si está sana— había que buscarlas
+                             entre las otras cuatro.
+
+                             Ahora hay tres niveles: la CAPACIDAD como dato principal, la SALUD a su
+                             derecha con su punto de color, y el resto —sistema de archivos, tipo y
+                             conexión— en una línea de contexto atenuada. Es el mismo contenido y los
+                             mismos seis controles, reordenados por importancia.
+
+                             Los rótulos («Total:», «Salud:»…) desaparecen de la pantalla porque el
+                             valor solo ya se entiende —«930,5 GB» no necesita que le digan que es el
+                             total—, pero NO desaparecen de la accesibilidad: el código les pone la
+                             frase entera en AutomationProperties.Name, así que un lector de pantalla
+                             sigue leyendo «Total: 930,5 GB». La jerarquía visual no se paga con
+                             información. -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <TextBlock x:Name="InfoTotalText" Style="{StaticResource DriveCapacityStyle}"
+                                       Text="–" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7"
+                                        VerticalAlignment="Center">
+                                <!-- El punto repite en color lo que el texto dice en palabras; el color
+                                     nunca es el único portador (WCAG 1.4.1). Va en Raw: un lector de
+                                     pantalla ya recibe «Salud: Normal» del TextBlock de al lado. -->
+                                <Ellipse x:Name="InfoHealthDot" Width="8" Height="8"
+                                         VerticalAlignment="Center"
+                                         AutomationProperties.AccessibilityView="Raw" />
+                                <TextBlock x:Name="InfoHealthText" Style="{StaticResource InfoTextStyle}"
+                                           Text="–" />
+                            </StackPanel>
                         </Grid>
+
+                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,-4,0,0">
+                            <TextBlock x:Name="InfoFsText" Style="{StaticResource DriveMetaStyle}" Text="–" />
+                            <TextBlock Style="{StaticResource DriveMetaStyle}" Text="·"
+                                       AutomationProperties.AccessibilityView="Raw" />
+                            <TextBlock x:Name="InfoTypeText" Style="{StaticResource DriveMetaStyle}" Text="–" />
+                            <TextBlock Style="{StaticResource DriveMetaStyle}" Text="·"
+                                       AutomationProperties.AccessibilityView="Raw" />
+                            <TextBlock x:Name="InfoBusText" Style="{StaticResource DriveMetaStyle}" Text="–" />
+                        </StackPanel>
 
                         <!-- Ocupación usado/libre de un vistazo (oculta si la unidad no está lista).
 
@@ -183,6 +267,10 @@
                                     <Border x:Name="CapacityUsedFill" Grid.Column="0" CornerRadius="2" />
                                 </Grid>
                             </Border>
+                            <!-- El espacio libre baja aquí: es la otra mitad de lo que dice la barra, y
+                                 arriba estaba a tres líneas de distancia del dato con el que se compara. -->
+                            <TextBlock x:Name="InfoFreeText" Style="{StaticResource DriveMetaStyle}"
+                                       Text="Libre: –" />
                         </StackPanel>
                     </StackPanel>
                 </Border>

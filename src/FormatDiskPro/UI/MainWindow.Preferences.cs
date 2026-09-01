@@ -146,6 +146,7 @@ public sealed partial class MainWindow
     private void ApplyLanguage()
     {
         ApplyPerformanceLanguage();
+        ApplyQuickBarLanguage();
         MnuTools.Title   = L.T("menu.tools");
         // Aceleradores de teclado del menú (Alt + primera letra del título localizado).
         MnuTools.AccessKey  = FirstLetter(L.T("menu.tools"));
@@ -269,8 +270,10 @@ public sealed partial class MainWindow
         foreach (var vm in _driveItems)
             vm.ForegroundBrush = DriveBrush(vm.IsProtected);
 
-        // Re-derivar el color de la línea «Salud:» con la paleta del tema efectivo.
+        // Re-derivar el color de la salud —texto y punto— con la paleta del tema efectivo. La rama
+        // `else` no sobra: sin salud consultada, el punto se quedaría con el gris del tema anterior.
         if (_lastHealth is not null) RenderHealth(_lastHealth);
+        else                         ClearHealthColor();
 
         // Las barras del panel de rendimiento se repintan solas en el próximo tick; con el muestreo
         // parado (panel plegado) hay que forzarlo, o se quedarían con los colores del tema anterior.

@@ -120,8 +120,8 @@ public sealed partial class MainWindow
         char letter = item.Letter;
         _healthLetter = letter;
         _lastHealth = null;
-        InfoHealthText.Text = L.T("info.health", L.T("info.loading"));
-        InfoBusText.Text    = L.T("info.bus", L.T("info.loading"));
+        SetInfo(InfoHealthText, L.T("info.loading"), "info.health");
+        SetInfo(InfoBusText,    L.T("info.loading"), "info.bus");
 
         DiskService.HealthInfo? info;
         try
@@ -148,9 +148,9 @@ public sealed partial class MainWindow
     {
         if (h is null)
         {
-            InfoHealthText.Text = L.T("info.health", L.T("info.dash"));
-            InfoBusText.Text    = L.T("info.bus", L.T("info.dash"));
-            InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
+            SetInfo(InfoHealthText, L.T("info.dash"), "info.health");
+            SetInfo(InfoBusText,    L.T("info.dash"), "info.bus");
+            ClearHealthColor();
             return;
         }
         // Un USB puede no reportar salud/bus/medio: mostrar el guion en vez de dejar el valor vacío
@@ -168,14 +168,52 @@ public sealed partial class MainWindow
             ? HealthDialog.LevelLabel(level)
             : string.IsNullOrWhiteSpace(h.Health) ? dash : h.Health;
 
-        InfoHealthText.Text = L.T("info.health", healthText);
-        InfoBusText.Text    = L.T("info.bus", conn);
+        SetInfo(InfoHealthText, healthText, "info.health");
+        SetInfo(InfoBusText,    conn,        "info.bus");
 
-        // Umbrales de #16: el color refuerza lo que el texto ya dice.
+        // Umbrales de #16: el color refuerza lo que el texto ya dice. Desde `T11-03` lo llevan los dos
+        // —texto y punto—, siempre el mismo pincel: dos fuentes para el mismo color acabarían separadas.
         if (level == SmartLevel.Unknown)
-            InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
+        {
+            ClearHealthColor();
+        }
         else
-            InfoHealthText.Foreground = HealthDialog.LevelBrush(level, _darkMode);
+        {
+            var brush = HealthDialog.LevelBrush(level, _darkMode);
+            InfoHealthText.Foreground = brush;
+            InfoHealthDot.Fill        = brush;
+        }
+    }
+
+    /// <summary>
+    /// Deja la salud sin color: el texto vuelve al del tema y el punto al gris neutro.
+    /// </summary>
+    /// <remarks>
+    /// El punto <b>no</b> se oculta cuando la salud es desconocida: un hueco donde antes había un círculo
+    /// se lee como que el dato cambió de sitio. Gris es «no lo sé», que es lo que pasa.
+    /// </remarks>
+    private void ClearHealthColor()
+    {
+        InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
+        InfoHealthDot.Fill = new SolidColorBrush(SeverityPalette.NeutralFill(_darkMode));
+    }
+
+    /// <summary>
+    /// Pinta un dato de la cabecera de la unidad: el <b>valor</b> en pantalla y la frase completa —con su
+    /// rótulo— en el nombre de automatización.
+    /// </summary>
+    /// <remarks>
+    /// Es lo que permite quitar los rótulos visibles sin quitar información (`T11-03`): «930,5 GB» se
+    /// entiende solo, pero un lector de pantalla que recorre la tarjeta necesita saber que ese número es
+    /// el total y no el libre. Un solo sitio decide las dos cosas, para que no puedan separarse.
+    /// </remarks>
+    /// <param name="target">Bloque de texto de la cabecera.</param>
+    /// <param name="value">Valor a mostrar, ya formateado y localizado.</param>
+    /// <param name="labelKey">Clave de la frase completa, con un <c>{0}</c> para el valor.</param>
+    private static void SetInfo(TextBlock target, string value, string labelKey)
+    {
+        target.Text = value;
+        AutomationProperties.SetName(target, L.T(labelKey, value));
     }
 
     /// <summary>
@@ -221,6 +259,36 @@ public sealed partial class MainWindow
                                 !hasDrive ? noDrive : !removable ? removableWhy : protectedWhy);
         SetMenuItemAvailability(MnuEject,  "menu.eject",  hasDrive && removable,
                                 !hasDrive ? noDrive : removableWhy);
+
+        // La barra rápida (`T11-02`) ESPEJA el estado de su ítem, no lo recalcula: dos condiciones para
+        // la misma acción acabarían discrepando, y el usuario vería un botón vivo sobre un menú apagado.
+        // `MnuHistory` no aparece porque no depende de la unidad: su botón no se apaga nunca.
+        BtnHealth.IsEnabled    = MnuHealth.IsEnabled;
+        BtnBenchmark.IsEnabled = MnuBenchmark.IsEnabled;
+    }
+
+    /// <summary>
+    /// Escribe la barra de acciones rápidas al cambiar de idioma: etiqueta corta visible y frase larga
+    /// —con su atajo— en el tooltip y en el nombre de automatización.
+    /// </summary>
+    /// <remarks>
+    /// El nombre accesible es la frase LARGA («Salud del disco (S.M.A.R.T.)…»), no la corta que se ve:
+    /// «Salud» a secas, fuera del contexto visual de la barra, no dice qué hace el botón. El atajo se
+    /// anuncia aquí porque el botón no lo lleva declarado — vive en su ítem del menú (ver el XAML).
+    /// </remarks>
+    private void ApplyQuickBarLanguage()
+    {
+        Label(BtnHealth,    BtnHealthLbl,    "bar.health",    "menu.health",    "Ctrl+I");
+        Label(BtnBenchmark, BtnBenchmarkLbl, "bar.benchmark", "menu.benchmark", "Ctrl+B");
+        Label(BtnHistory,   BtnHistoryLbl,   "bar.history",   "menu.history",   "Ctrl+H");
+
+        static void Label(Button button, TextBlock text, string shortKey, string longKey, string accelerator)
+        {
+            string full = L.T("bar.tip", L.T(longKey), accelerator);
+            text.Text = L.T(shortKey);
+            ToolTipService.SetToolTip(button, full);
+            AutomationProperties.SetName(button, full);
+        }
     }
 
     /// <summary>
@@ -307,10 +375,13 @@ public sealed partial class MainWindow
         {
             if (!drive.IsReady) { ClearInfo(); return; }
             long total = drive.TotalSize, free = drive.AvailableFreeSpace;
-            InfoTotalText.Text = L.T("info.total", FormatBytes(total));
-            InfoFreeText.Text  = L.T("info.free", FormatBytes(free));
-            InfoFsText.Text    = L.T("info.fs", drive.DriveFormat);
-            InfoTypeText.Text  = L.T("info.type", DriveTypeName(drive.DriveType));
+            SetInfo(InfoTotalText, FormatBytes(total), "info.total");
+            SetInfo(InfoFsText,    drive.DriveFormat,  "info.fs");
+            SetInfo(InfoTypeText,  DriveTypeName(drive.DriveType), "info.type");
+            // El espacio libre CONSERVA su rótulo visible, y es la única excepción: va debajo de la
+            // barra, junto a «Usado 815,3 GB / 930,5 GB», y ahí un número suelto no se sabría de cuál
+            // de los dos es.
+            InfoFreeText.Text = L.T("info.free", FormatBytes(free));
             RenderCapacity(total, free);
         }
         catch { ClearInfo(); }
@@ -367,13 +438,14 @@ public sealed partial class MainWindow
 
     private void ClearInfo()
     {
-        InfoTotalText.Text  = L.T("info.total", L.T("info.dash"));
-        InfoFreeText.Text   = L.T("info.free", L.T("info.dash"));
-        InfoFsText.Text     = L.T("info.fs", L.T("info.dash"));
-        InfoTypeText.Text   = L.T("info.type", L.T("info.dash"));
-        InfoHealthText.Text = L.T("info.health", L.T("info.dash"));
-        InfoBusText.Text    = L.T("info.bus", L.T("info.dash"));
-        InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
+        string dash = L.T("info.dash");
+        SetInfo(InfoTotalText,  dash, "info.total");
+        SetInfo(InfoFsText,     dash, "info.fs");
+        SetInfo(InfoTypeText,   dash, "info.type");
+        SetInfo(InfoHealthText, dash, "info.health");
+        SetInfo(InfoBusText,    dash, "info.bus");
+        InfoFreeText.Text = L.T("info.free", dash);
+        ClearHealthColor();
         CapacityPanel.Visibility = Visibility.Collapsed;
     }
 }

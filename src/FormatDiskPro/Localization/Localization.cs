@@ -211,6 +211,16 @@ public static class L
         ["perf.ram.app"]     = ["FormatDiskPro {0}", "FormatDiskPro {0}", "FormatDiskPro {0}", "FormatDiskPro {0}", "FormatDiskPro {0}"],
         ["perf.percent"]     = ["{0} %", "{0}%", "{0} %", "{0} %", "{0} %"],
 
+        // ── Barra de acciones rápidas (T11-02) ──
+        // Etiquetas CORTAS: las del menú ("Salud del disco (S.M.A.R.T.)…") no caben en un tercio de una
+        // ventana de 500 DIP en ningún idioma. La frase larga sigue viva, en el tooltip.
+        ["bar.health"]       = ["Salud", "Health", "Saúde", "Santé", "Stato"],
+        ["bar.benchmark"]    = ["Benchmark", "Benchmark", "Benchmark", "Benchmark", "Benchmark"],
+        ["bar.history"]      = ["Historial", "History", "Histórico", "Historique", "Cronologia"],
+        // Tooltip: la frase larga más el atajo, que el botón no puede anunciar por sí mismo (su
+        // KeyboardAccelerator vive en el ítem del menú, y declararlo dos veces lo duplicaría).
+        ["bar.tip"]          = ["{0} ({1})", "{0} ({1})", "{0} ({1})", "{0} ({1})", "{0} ({1})"],
+
         ["menu.tools"]       = ["Herramientas", "Tools", "Ferramentas", "Outils", "Strumenti"],
         ["menu.verify"]      = ["Verificar capacidad real…", "Verify real capacity…", "Verificar capacidade real…", "Vérifier la capacité réelle…", "Verifica capacità reale…"],
         ["menu.health"]      = ["Salud del disco (S.M.A.R.T.)…", "Disk health (S.M.A.R.T.)…", "Saúde do disco (S.M.A.R.T.)…", "Santé du disque (S.M.A.R.T.)…", "Stato del disco (S.M.A.R.T.)…"],
