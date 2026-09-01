@@ -29,6 +29,11 @@
 
 ## 🏁 Estado
 
+> **Se abrió el [Tier 11](#-tier-11--rendimiento-visible-durante-la-operación-abierto-2026-09-01)** el
+> **2026-09-01**, con `T11-01` ya hecha: el pie de la ventana enseña disco, CPU y RAM mientras corre una
+> operación. No sale de un fallo, sale de una petición de producto — y de constatar que en un borrado
+> seguro de 40 minutos la única señal de vida era una barra de progreso.
+>
 > **Queda una tarea abierta, y está bloqueada a propósito**: `T10-02`, en el
 > **[Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)**. El tier se abrió el
 > **2026-08-26** al cortar la v1.25.0, cuando la puerta de cobertura abortó el corte con un informe vacío
@@ -310,7 +315,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T8** | **Lo que solo se ve usando la app** — incluye *Exportar CSV*, roto en toda versión publicada · cerrado | 6 | bajo-medio |
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
 | **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · `T10-01` hecha · `T10-02` **abierta, a la espera de que vuelva a ocurrir** | 2 | bajo |
-| | **Total** | **97** | |
+| **T11** | **Rendimiento visible durante la operación** — el pie deja de ser solo una barra · `T11-01` hecha | 1 | bajo |
+| | **Total** | **98** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2284,10 +2290,70 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ---
 
+## 📈 Tier 11 — Rendimiento visible durante la operación *(abierto 2026-09-01)*
+
+> **De dónde sale.** De una petición de producto —un panel de uso de recursos, al estilo del «Tu entorno»
+> de otras herramientas— y de una carencia real: durante un borrado seguro de 40 minutos o una
+> verificación de capacidad de una USB de 256 GB, **la única señal de vida era una barra de progreso**.
+> Con ella quieta no hay forma de distinguir «va lento» de «se colgó».
+>
+> **Base:** v1.25.0 · unitarias **664/664** (663 pasan · 1 se omite) · build 0/0.
+
+- [x] **[T11-01] El pie no dice a qué velocidad va la operación ni a costa de qué** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / UX
+  - **Ubicación:** [src/FormatDiskPro/Core/SystemLoad.cs](src/FormatDiskPro/Core/SystemLoad.cs) ·
+    [src/FormatDiskPro/Services/PerformanceMonitor.cs](src/FormatDiskPro/Services/PerformanceMonitor.cs) ·
+    [src/FormatDiskPro/UI/MainWindow.Performance.cs](src/FormatDiskPro/UI/MainWindow.Performance.cs)
+  - **Qué se hizo:** un panel plegable en el **pie**, encima de la barra de progreso, con tres métricas de
+    la misma forma —etiqueta + valor, barra, pie de contexto—: **Disco** (caudal de la operación y su
+    pico), **CPU** y **RAM** del equipo. Se despliega solo al empezar una operación y se queda desplegado
+    al terminar, convertido en el resumen de lo que acaba de pasar.
+  - **La decisión de diseño que lo sostiene, y por qué NO es una cuarta tarjeta:** la ventana es de
+    **tamaño fijo** (500×900 DIP, decisión firme). Las tres tarjetas ya la llenan: una cuarta siempre
+    visible empujaría *Opciones de formato* fuera de la vista para cobrar sitio permanente por un dato que
+    solo tiene sentido mientras algo corre. En el pie está además **pegado a la barra de progreso y al
+    cronómetro**, que describen la misma operación.
+  - **Lo que se decidió NO enseñar, y es la mitad del trabajo:**
+    - **CPU del proceso.** Sería casi 0 durante un formateo: el trabajo lo hacen `format.com`,
+      `chkdsk.exe` y PowerShell en **procesos aparte**. Se enseña la del equipo, dicho así en el pie de la
+      fila. El consumo propio de la app va al pie de RAM, que es donde no engaña.
+    - **Un contador de disco del sistema.** Daría el tráfico de toda la máquina. El caudal sale de los
+      **bytes que la propia operación reporta** —el mismo dato del que ya vivían la velocidad y el ETA del
+      cronómetro—, así que mide lo que el usuario está esperando y no hay dos cifras distintas para lo
+      mismo en la misma pantalla.
+    - **Un máximo teórico para la barra de disco.** No existe: depende del medio, del bus y de la
+      operación. La barra se escala contra el **pico de esta operación** («vas al 70 % de tu mejor
+      momento»), que es la pregunta útil — ¿se está frenando?
+  - **Trampas evitadas, y por qué constan:**
+    - **`PerformanceCounter` no vale aquí.** Los nombres de categoría de PDH están **traducidos** (en un
+      Windows en español es «Procesador», no «Processor») y esta app se instala en cinco idiomas: se
+      habría caído en la mitad de las máquinas. Se usa `GetSystemTimes` + `GlobalMemoryStatusEx`.
+    - **`GetSystemTimes` incluye el ocioso dentro del tiempo de núcleo.** Restarlo no es una corrección
+      opcional, es la fórmula; hay una prueba que lo ancla.
+    - **Las barras NO son `ProgressBar`**, por lo mismo que la de ocupación (`ProgressBarTrackHeight` fija
+      la pista en 1 px mientras el relleno ocupa el `MinHeight`): pista = `Border`, relleno = su hijo.
+    - **Ni un `Color.FromArgb` nuevo.** Los colores salen de `SeverityPalette`, que es el inventario que
+      el barrido de contraste WCAG mide, y con los **mismos umbrales 80/90** que la barra de ocupación:
+      dos barras iguales que cambiaran de color en umbrales distintos enseñarían que el color no importa.
+    - **Sin región activa.** `StatusText` ya es la del pie; otra que se actualizara cada segundo con tres
+      cifras haría inusable el lector de pantalla durante una operación de horas. Las barras van en
+      `AccessibilityView="Raw"` y el valor queda en texto, al lado.
+  - **Coste, acotado:** el temporizador corre con el panel desplegado **o** con una operación en curso, y
+    en ningún otro momento. La app arranca elevada en toda sesión y muchas se pasan enteras sin formatear
+    nada: un tick por segundo perpetuo sería coste sin beneficio.
+  - **Verificado:** compilación 0/0, **+41 unitarias** sobre `SystemLoad` y `MovingAverage` (664/664), y
+    **con la app en marcha**: panel plegado, desplegado, valores vivos y preferencia persistida entre
+    arranques.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+---
+
 ## 📋 Progreso
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-09-01 | **T11-01** | El pie deja de ser solo una barra: panel plegable con **disco (caudal + pico), CPU y RAM**, desplegado solo mientras hay operación. Lo que no enseña está tan decidido como lo que enseña — nada de «CPU del proceso» (el trabajo lo hacen procesos hijos y diría 0), nada de contadores de disco del sistema (medirían toda la máquina), y la barra de caudal se escala contra **su propio pico** porque no hay un máximo teórico honesto. Win32 y no `PerformanceCounter`: los nombres de PDH están traducidos y la app se instala en cinco idiomas. Colores de `SeverityPalette` con los mismos umbrales 80/90 que la barra de ocupación. **+41 unitarias (664/664)**, verificado con la app en marcha. |
 | 2026-08-27 | **T10-01** | El camino de fallo de la cobertura deja de mentir y empieza a dejar pruebas. `Get-CoreCoverage` separa **`missing` · `unreadable` · `empty` · `nocore`**, que antes eran el mismo `$null` y el mismo mensaje —el que culpa a `coverlet.collector`, referenciado y presente las dos veces que ha fallado—. En `empty`/`unreadable` conserva el informe **fuera del repo** (dentro haría abortar el siguiente corte por `T9-01`) y repite la medición una vez con `--diag`, **sin que eso desbloquee nada**: el corte muere igual y solo cambia el veredicto. **Verificado con las 5 clasificaciones (5/5) y con el camino entero ejercitado**: conservó el informe, guardó 3,7 MB de diagnósticos y abortó. Queda `T10-02`: la causa. |
 | 2026-08-26 | — | **Se abre el [Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)** con **1 tarea** (`T10-01`, Media), y no de una revisión sino del **corte de la v1.25.0**: el primer intento abortó con el informe de cobertura **vacío** —el artefacto de `T8-06`— **con el arreglo de `T8-06` puesto y ejecutado**. No se reprodujo en tres intentos, incluido el caso que provocaba `T8-06`. Se abre reconociendo que **la causa no se conoce**, y la tarea va de dejar pruebas la próxima vez, no de reintentar hasta que salga. El corte reintentado publicó la v1.25.0 al 98,1 %. |
 | 2026-08-26 | **T9-20** | Desinstalar ofrece borrar `%AppData%\FormatDiskPro` —preferencias e historial—, que antes quedaba en disco sin que nadie lo mencionara. Se **pregunta** (por defecto No) y en modo silencioso se conserva. **Trampa encontrada al validar:** un comentario `{ … }` de Pascal se cierra con la **primera** llave que aparezca, así que escribir `{app}` dentro terminaba el comentario a mitad y el resto se compilaba como código («'BEGIN' expected»). Queda anotado en el propio `.iss`. |

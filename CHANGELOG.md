@@ -13,6 +13,28 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
+## [No publicado]
+
+### Añadido
+
+- **Panel de rendimiento en el pie de la ventana.** Mientras corre una operación —o siempre que lo
+  despliegues— el pie enseña tres métricas: **Disco** (a qué velocidad va la operación, con su **pico**),
+  **CPU** y **RAM** del equipo. Se despliega solo al empezar y se queda desplegado al terminar, con el
+  pico a la vista: en un borrado seguro de 40 minutos o una verificación de capacidad larga, la única
+  señal de vida era hasta ahora una barra de progreso, y con ella quieta no había forma de distinguir
+  «va lento» de «se colgó». Plegado deja un resumen de una línea en su encabezado. La preferencia
+  (abierto / plegado) se recuerda entre sesiones, y el muestreo **solo corre** con el panel abierto o con
+  una operación en curso.
+
+  Tres cosas que el panel **no** hace, a propósito: no enseña «CPU del proceso» —formatear, comprobar y
+  reinicializar los ejecutan `format.com`, `chkdsk.exe` o PowerShell en procesos aparte, así que diría
+  casi 0 y sería mentira—; no lee el caudal de un contador del sistema, sino de los **bytes que la propia
+  operación reporta**, que es lo que estás esperando y no el tráfico de toda la máquina; y su barra de
+  disco no se escala contra un máximo teórico, que no existe, sino contra el **pico de esa misma
+  operación**. Traducido a los cinco idiomas.
+
+---
+
 ## [1.25.0] — 2026-08-26
 
 **Nada de esto salió de un informe de fallo: salió de auditar la aplicación entera con ella en marcha.**

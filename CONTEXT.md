@@ -14,7 +14,7 @@
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — lo pendiente, por tiers · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | **2026-08-26** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
+| **Última actualización** | **2026-09-01** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
 
 > **Esta tabla no lleva estado, y es deliberado (`T9-14`).** Llevaba versión publicada, recuento de pruebas
 > y tiers abiertos —todo duplicado de §3 y del [`ROADMAP.md`](ROADMAP.md)—, y llegó a contradecir a la fila
@@ -52,6 +52,7 @@ src/FormatDiskPro/
 │  ├─ ErrorText.cs        Describe(ex) — texto de un fallo que NUNCA sale vacío (tipo + HRESULT si hace falta)
 │  ├─ Presets.cs          Presets integrados (nombre traducido vía NameKey) + validación de los del usuario
 │  ├─ Throughput.cs       Velocidad y ETA de operaciones largas
+│  ├─ SystemLoad.cs       Aritmética del panel de rendimiento (CPU por delta, %, escalado) + MovingAverage
 │  ├─ DeviceChange.cs     Interpretación de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ReleaseNotes.cs     Notas de versión (Markdown) → texto plano
 │  ├─ LegalText.cs        Licencia GPLv3 y avisos de terceros embebidos en el .exe
@@ -71,6 +72,7 @@ src/FormatDiskPro/
 │  ├─ CapacityVerifier.cs  Verificación de capacidad real
 │  ├─ AppSettings.cs       Preferencias (%AppData%\FormatDiskPro\settings.json)
 │  ├─ Notifier.cs          Aviso al terminar (sonido + parpadeo de barra de tareas, Win32)
+│  ├─ PerformanceMonitor.cs CPU/RAM del equipo por Win32 (NO PerformanceCounter: PDH está traducido)
 │  ├─ TaskbarProgress.cs   Progreso en el icono de la barra de tareas (ITaskbarList3)
 │  ├─ FormatProcess.cs     Lanza Format-Volume (PowerShell) y format.com, con progreso real
 │  ├─ UpdateService.cs     GitHub Releases: consulta, descarga, VERIFICACIÓN (firma/SHA-256), instalación
@@ -79,6 +81,7 @@ src/FormatDiskPro/
 │  ├─ MainWindow          Ventana principal, repartida en partial class por asunto (ninguna >800 líneas):
 │  │                      .xaml.cs (ciclo de vida, unidades, formato) · .DriveInfo · .FormatOptions
 │  │                      .Operations (menú Herramientas) · .HelpAndUpdates · .Preferences
+│  │                      .Performance (panel de rendimiento del pie: disco / CPU / RAM)
 │  ├─ DeviceChangeWatcher Subclassing Win32 de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ConfirmDialog       Confirmación reforzada (escribir la letra de la unidad)
 │  ├─ HealthDialog        Detalle S.M.A.R.T. (colores por umbral + texto de estado)
@@ -151,12 +154,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **623 / 623** (622 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`)) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **664 / 664** (663 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 41 de `T11-01`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
-| Publicado | **v1.25.0** (2026-08-26) · `master` sin trabajo pendiente de publicar |
+| Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: el panel de rendimiento del pie (`T11-01`, 2026-09-01) está en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
+| Tiers abiertos | **Tier 11 — Rendimiento visible durante la operación** (abierto el **2026-09-01**), con su única tarea `T11-01` **hecha**: el pie de la ventana enseña disco, CPU y RAM mientras corre una operación. No sale de un fallo sino de una petición de producto, sobre una carencia real — en un borrado seguro de 40 minutos la única señal de vida era una barra de progreso quieta. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-visible-durante-la-operación-abierto-2026-09-01) |
 | Tareas abiertas | **Una, y bloqueada a propósito: `T10-02`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
@@ -410,6 +414,65 @@ ni mueve datos).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-09-01 — `T11-01`: el pie deja de ser solo una barra (se abre el Tier 11)
+
+**De dónde sale.** De una petición de producto —un panel de uso de recursos— sobre una carencia que ya
+estaba ahí: durante un borrado seguro de 40 minutos o una verificación de capacidad larga, **la única
+señal de vida era la barra de progreso**. Con ella quieta no hay forma de distinguir «va lento» de «se
+colgó».
+
+**Qué hay ahora.** Un `Expander` en el **pie**, encima de la barra de progreso, con tres métricas de la
+misma forma —etiqueta + valor, barra, pie de contexto—: **Disco** (caudal de la operación y su pico),
+**CPU** y **RAM** del equipo. Se despliega solo al empezar una operación y se queda desplegado al
+terminar, con el pico: en ese momento deja de ser un monitor y pasa a ser el **resumen** de lo que acaba
+de pasar. Plegado deja un resumen de una línea en su encabezado.
+
+**Por qué en el pie y no en una cuarta tarjeta.** La ventana es de **tamaño fijo** (§4). Las tres
+tarjetas ya llenan los 900 DIP de diseño: una cuarta siempre visible empujaría *Opciones de formato*
+fuera de la vista para cobrar sitio permanente por un dato que solo tiene sentido mientras algo corre. En
+el pie está además pegado a la barra de progreso y al cronómetro, que describen **la misma operación**.
+
+**Lo que se decidió NO enseñar, que es la mitad del trabajo.**
+
+- **CPU del proceso.** Diría casi 0 durante un formateo: formatear, comprobar y reinicializar los
+  ejecutan `format.com`, `chkdsk.exe` o PowerShell en **procesos aparte**. Se enseña la del equipo, y se
+  dice así en el pie de la fila. El consumo propio de la app va al pie de RAM, donde no engaña.
+- **Un contador de disco del sistema.** Daría el tráfico de toda la máquina. El caudal sale de los
+  **bytes que la propia operación reporta** —el mismo dato del que ya vivían la velocidad y el ETA del
+  cronómetro—, así que no hay dos cifras distintas para lo mismo en la misma pantalla.
+- **Un máximo teórico para la barra de disco.** No existe: depende del medio, del bus y de la operación.
+  La barra se escala contra el **pico de esta operación**, que responde a la pregunta útil: ¿se está
+  frenando?
+
+**Cuatro trampas, y por qué constan.**
+
+1. **`PerformanceCounter` no vale aquí.** Los nombres de categoría de PDH están **traducidos** —en un
+   Windows en español la categoría es «Procesador», no «Processor»— y esta app se instala en cinco
+   idiomas: se habría caído en la mitad de las máquinas, y solo en las de los usuarios. Además su primera
+   lectura tarda y devuelve 0, justo cuando el usuario acaba de abrir el panel. Se usa `GetSystemTimes` +
+   `GlobalMemoryStatusEx`.
+2. **`GetSystemTimes` mete el tiempo ocioso DENTRO del de núcleo.** Restarlo no es una corrección
+   opcional, es la fórmula; hay una prueba anclada a eso para que nadie la «simplifique».
+3. **Las barras no son `ProgressBar`**, por lo mismo que la de ocupación: su plantilla fija la pista en
+   1 px mientras el relleno ocupa el `MinHeight`, así que no pueden tener el mismo grosor. Pista =
+   `Border`, relleno = su hijo, ancho por columnas estrella.
+4. **Ni un `Color.FromArgb` nuevo.** Los colores salen de `SeverityPalette` —el inventario que el barrido
+   WCAG mide— y con los **mismos umbrales 80/90** que la barra de ocupación: dos barras iguales que
+   cambiaran de color en umbrales distintos enseñarían que el color no significa nada.
+
+**Coste, acotado a propósito.** El temporizador corre con el panel desplegado **o** con una operación en
+curso, y en ningún otro momento. La app arranca elevada en toda sesión y muchas se pasan enteras sin
+formatear nada.
+
+**Accesibilidad.** Sin región activa nueva: `StatusText` ya es la del pie, y otra que se actualizara cada
+segundo con tres cifras haría inusable un lector de pantalla durante una operación de horas. Las barras
+van en `AccessibilityView="Raw"` y el valor queda en texto, al lado.
+
+**Verificado:** build 0/0, **+41 unitarias** sobre `SystemLoad` y `MovingAverage` (664/664, 1 omitida), y
+con la **app en marcha**: plegado, desplegado, valores vivos y preferencia persistida entre arranques.
 
 ---
 
