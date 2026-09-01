@@ -660,6 +660,57 @@ public sealed partial class MainWindow : Window
         catch { /* accesibilidad: nunca puede tumbar la operación que está describiendo */ }
     }
 
+    // ── Indicio de desbordamiento del contenido (T12-06) ──────────
+
+    private void ContentScroller_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateScrollAffordance();
+
+    /// <summary>
+    /// Deja la barra de desplazamiento a la vista cuando —y solo cuando— hay contenido por debajo.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>El problema.</b> La ventana es de <b>tamaño fijo</b>, así que el contenido casi siempre
+    /// desborda; y WinUI oculta la barra hasta que alguien interactúa (modo «consciente»). El resultado
+    /// era una tarjeta cortada a media altura por el borde inferior sin nada que dijera que había más
+    /// abajo — y lo que quedaba abajo eran las <i>opciones de formato</i>.</para>
+    ///
+    /// <para><b>Lo que se probó antes y se descartó:</b> un degradado en el borde inferior. Sobre el
+    /// material Mica no hay un color de fondo que igualar —el degradado tiene que acabar en algo opaco y
+    /// la ventana no lo es—, así que se leía como una <b>franja clara</b> y dejaba el campo que tapaba
+    /// con aspecto de deshabilitado. Era peor que el problema que resolvía.</para>
+    ///
+    /// <para><b>Esto no pisa la preferencia del sistema</b> («Mostrar siempre las barras de
+    /// desplazamiento»): no se enseña <i>siempre</i>, se enseña cuando hay algo que desplazar, que es
+    /// exactamente para lo que existe una barra. Sin desbordamiento vuelve a <c>Auto</c> y desaparece.</para>
+    /// </remarks>
+    private void UpdateScrollAffordance()
+        => ContentScroller.VerticalScrollBarVisibility = ContentScroller.ScrollableHeight > 1
+            ? ScrollBarVisibility.Visible
+            : ScrollBarVisibility.Auto;
+
+    /// <summary>
+    /// Fija el color de la barra de progreso a partir de la paleta medida, en vez de dejar el del
+    /// ACENTO del sistema (`T12-05`).
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué.</b> Un <c>ProgressBar</c> de Fluent se pinta con el color de acento que el
+    /// usuario haya elegido en Windows, y <c>ShowError</c> lo pone en rojo al fallar o cancelar. En un
+    /// equipo con el <b>acento rojo</b> —que los hay, y en uno se vio— las dos cosas son el mismo color:
+    /// un benchmark que terminó bien dejaba la barra llena y roja, exactamente igual que uno que falló.
+    /// El único canal que distinguía éxito de fallo no distinguía nada.</para>
+    ///
+    /// <para>Es la misma decisión que ya estaba tomada para la barra de ocupación —«no debe usar el color
+    /// de ACENTO del sistema: en un equipo con acento rojo se veía roja con el disco medio vacío y leía
+    /// como alarma»—, sin aplicar aquí. Ahora el verde de <see cref="SmartLevel.Ok"/> significa que va
+    /// bien y el rojo de <c>ShowError</c> que no, siempre, en cualquier equipo; y los dos salen de
+    /// <see cref="SeverityPalette"/>, que es lo que el barrido de contraste mide.</para>
+    ///
+    /// <para>Se llama al arrancar y en cada cambio de tema, porque el color depende del tema efectivo y
+    /// no del estado de la operación.</para>
+    /// </remarks>
+    private void ApplyProgressColor()
+        => FormatProgress.Foreground = new SolidColorBrush(SeverityPalette.For(SmartLevel.Ok, _darkMode));
+
     /// <summary>Fija el estado visible y lo anuncia: es el hito de <b>inicio</b> de una operación.</summary>
     private void SetStatusAndAnnounce(string text)
     {

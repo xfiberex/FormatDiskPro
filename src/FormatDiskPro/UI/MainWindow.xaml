@@ -1,4 +1,4 @@
-<Window
+﻿<Window
     x:Class="FormatDiskPro.UI.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -138,7 +138,9 @@
         </StackPanel>
 
         <!-- Row 2: Scrollable content — cards inspired by Win11Debloat sections -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0">
+        <ScrollViewer x:Name="ContentScroller" Grid.Row="2" Padding="0"
+                      VerticalScrollBarVisibility="Auto"
+                      SizeChanged="ContentScroller_SizeChanged">
             <StackPanel Padding="16,14,16,16" Spacing="12">
 
                 <!-- Aviso persistente: unidad de sistema protegida (formateo deshabilitado) -->

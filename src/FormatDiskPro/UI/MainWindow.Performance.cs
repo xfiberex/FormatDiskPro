@@ -43,12 +43,26 @@ public sealed partial class MainWindow
     private bool _windowActive;
 
     /// <summary>
-    /// Si la operación en curso informa de bytes procesados (verificación, borrado seguro, benchmark).
-    /// El formateo por <c>format.com</c> y <c>chkdsk</c> solo dan porcentaje.
+    /// Si la operación en curso informa de bytes procesados. Solo lo hacen dos: la <b>verificación de
+    /// capacidad</b> y el <b>borrado seguro</b>.
     /// </summary>
     /// <remarks>
-    /// Se deriva de <c>_opTotalBytes</c> —el mismo dato del que ya depende la velocidad del cronómetro—
-    /// en vez de guardarse aparte: un segundo campo que dijera lo mismo podría contradecirlo.
+    /// <para>Se deriva de <c>_opTotalBytes</c> —el mismo dato del que ya depende la velocidad del
+    /// cronómetro— en vez de guardarse aparte: un segundo campo que dijera lo mismo podría
+    /// contradecirlo.</para>
+    ///
+    /// <para><b>El benchmark NO alimenta esta fila, y es deliberado</b> (corregido en `T12-05`; la
+    /// documentación de `T11-01` decía lo contrario y estaba mal). Su <c>IProgress</c> reporta
+    /// <i>porcentaje</i>, no bytes, y lo hace una vez por <b>ventana de medición</b> —cada varios
+    /// segundos—, no una vez por segundo. Derivar de ahí un caudal daría un número grueso y a saltos que
+    /// <b>contradiría</b> la mediana de MB/s que el propio benchmark calcula sobre ventanas cronometradas
+    /// y enseña en su diálogo. Dos cifras distintas para lo mismo en la misma pantalla es justo lo que
+    /// esta franja se diseñó para evitar: el caudal sale de quien está midiendo, y del benchmark ya mide
+    /// su propio resultado, mejor que esto.</para>
+    ///
+    /// <para>Durante un benchmark, un formateo o un <c>chkdsk</c>, la fila de disco enseña un guion y su
+    /// tooltip dice <i>«Esta operación no informa de bytes»</i> — que es la verdad, y es mejor que un
+    /// número inventado.</para>
     /// </remarks>
     private bool OperationReportsBytes => _opTotalBytes > 0;
 
