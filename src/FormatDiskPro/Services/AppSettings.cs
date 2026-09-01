@@ -36,6 +36,17 @@ public sealed class AppSettings
     public bool NotifyOnFinish { get; set; } = true;
 
     /// <summary>
+    /// Dejar desplegado el panel de rendimiento del pie (disco / CPU / RAM) entre sesiones (`T11-01`).
+    /// </summary>
+    /// <remarks>
+    /// <c>false</c> por defecto: el panel es informativo y ocupa alto en una ventana de tamaño fijo, así
+    /// que la app no se lo impone a quien no lo ha pedido. Empezar una operación lo despliega igualmente
+    /// —ahí es donde sirve—, y a partir de ese momento la preferencia queda a <c>true</c>: quien lo
+    /// vuelva a plegar lo dice explícitamente y se respeta.
+    /// </remarks>
+    public bool ShowPerformance { get; set; }
+
+    /// <summary>
     /// Comprobar si hay una versión nueva al arrancar. <c>true</c> por defecto (`T9-18`).
     /// </summary>
     /// <remarks>

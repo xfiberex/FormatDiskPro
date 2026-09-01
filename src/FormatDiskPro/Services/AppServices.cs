@@ -12,7 +12,7 @@ namespace FormatDiskPro;
 /// <c>T2-05</c> y la que esta clase cierra: con las dependencias inyectadas, un doble de prueba
 /// reproduce el fallo en milisegundos y sin tocar un disco.</para>
 ///
-/// <para><b>Un contenedor a mano y no un framework de DI.</b> Son doce servicios, sin ciclos de vida ni
+/// <para><b>Un contenedor a mano y no un framework de DI.</b> Son trece servicios, sin ciclos de vida ni
 /// ámbitos: un <c>ServiceCollection</c> añadiría una dependencia y una indirección para resolver algo
 /// que aquí cabe en una pantalla. Si algún día hay ámbitos o resolución dinámica, este es el archivo
 /// que se sustituye.</para>
@@ -44,9 +44,10 @@ public sealed class AppServices
         Notifier  = new Notifier();
         Taskbar   = new TaskbarProgress();
         Updates   = new UpdateService();
+        Performance = new PerformanceMonitor();
     }
 
-    // Deliberadamente NO hay un constructor "para pruebas" que acepte los once servicios sueltos: su
+    // Deliberadamente NO hay un constructor "para pruebas" que acepte los doce servicios sueltos: su
     // único consumidor posible sería MainWindow, y una ventana WinUI no se instancia en las unitarias.
     // Las pruebas construyen el servicio que les interesa (`new CheckDisk(runnerFalso)`) y se saltan
     // este grafo. Un constructor sin llamantes que promete servir para algo es peor que no tenerlo.
@@ -63,4 +64,7 @@ public sealed class AppServices
     public INotifier          Notifier  { get; }
     public ITaskbarProgress   Taskbar   { get; }
     public IUpdateService     Updates   { get; }
+
+    /// <summary>Métricas del equipo para el panel de rendimiento del pie de la ventana.</summary>
+    public IPerformanceMonitor Performance { get; }
 }

@@ -293,6 +293,92 @@
         <!-- Row 3: Footer action bar (progress + status + actions), Win11Debloat-style -->
         <Border Grid.Row="3" Style="{StaticResource FooterBarStyle}">
             <StackPanel Spacing="8">
+
+                <!-- ── Panel de rendimiento (T11-01) ──────────────────────────────────────────
+
+                     Va en el PIE y no en una cuarta tarjeta, y va dentro de un Expander, por dos
+                     razones que se sostienen la una a la otra:
+
+                       · La ventana es de tamaño fijo (ver §4 del CONTEXT). Las tres tarjetas ya llenan
+                         los 900 DIP de diseño: una cuarta siempre visible empujaría «Opciones de
+                         formato» fuera de la vista para cobrar sitio permanente por un dato que solo
+                         tiene sentido mientras algo corre.
+                       · Aquí está pegado a la barra de progreso y al cronómetro, que es su contexto:
+                         los tres describen la MISMA operación. Arriba, entre los controles que la
+                         configuran, sería un dato sin dueño.
+
+                     Se auto-expande al empezar una operación y se queda expandido al terminar, con el
+                     pico: en ese momento deja de ser un monitor y pasa a ser el resumen de lo que acaba
+                     de pasar, que es cuando el dato vale más.
+
+                     Sin LiveSetting: StatusText ya es la región activa del pie, y una que se actualice
+                     cada segundo con tres cifras haría inusable el lector de pantalla durante una
+                     operación de horas. -->
+                <Expander x:Name="PerfExpander" HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch" Padding="12,10,12,12"
+                          Expanding="PerfExpander_Expanding" Collapsed="PerfExpander_Collapsed">
+                    <Expander.Header>
+                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                            <FontIcon Glyph="&#xE9D9;" Style="{StaticResource SectionIconStyle}" />
+                            <TextBlock x:Name="PerfTitleLbl" Grid.Column="1" Text="Rendimiento"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <!-- Resumen de una línea con el panel plegado: sin él, plegado no dice nada
+                                 y el usuario no sabe si merece la pena abrirlo. -->
+                            <TextBlock x:Name="PerfSummaryText" Grid.Column="2" HorizontalAlignment="Right"
+                                       Margin="0,0,8,0" Style="{StaticResource MetricCaptionStyle}" />
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Spacing="12">
+
+                        <!-- Disco: caudal de la operación en curso, escalado contra su propio pico -->
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <TextBlock x:Name="PerfDiskLbl" Text="Disco" Style="{StaticResource InfoTextStyle}" />
+                                <TextBlock x:Name="PerfDiskValue" Grid.Column="1" HorizontalAlignment="Right"
+                                           Style="{StaticResource MetricValueStyle}" />
+                            </Grid>
+                            <Border x:Name="PerfDiskBar" Style="{StaticResource MetricBarStyle}">
+                                <Grid x:Name="PerfDiskColumns" ColumnDefinitions="0*,100*">
+                                    <Border x:Name="PerfDiskFill" Grid.Column="0" CornerRadius="2" />
+                                </Grid>
+                            </Border>
+                            <TextBlock x:Name="PerfDiskCaption" Style="{StaticResource MetricCaptionStyle}" />
+                        </StackPanel>
+
+                        <!-- CPU del equipo (no del proceso: el trabajo lo hacen procesos hijos) -->
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <TextBlock x:Name="PerfCpuLbl" Text="CPU" Style="{StaticResource InfoTextStyle}" />
+                                <TextBlock x:Name="PerfCpuValue" Grid.Column="1" HorizontalAlignment="Right"
+                                           Style="{StaticResource MetricValueStyle}" />
+                            </Grid>
+                            <Border x:Name="PerfCpuBar" Style="{StaticResource MetricBarStyle}">
+                                <Grid x:Name="PerfCpuColumns" ColumnDefinitions="0*,100*">
+                                    <Border x:Name="PerfCpuFill" Grid.Column="0" CornerRadius="2" />
+                                </Grid>
+                            </Border>
+                            <TextBlock x:Name="PerfCpuCaption" Style="{StaticResource MetricCaptionStyle}" />
+                        </StackPanel>
+
+                        <!-- RAM física del equipo; el consumo de la propia app va al pie -->
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <TextBlock x:Name="PerfRamLbl" Text="RAM" Style="{StaticResource InfoTextStyle}" />
+                                <TextBlock x:Name="PerfRamValue" Grid.Column="1" HorizontalAlignment="Right"
+                                           Style="{StaticResource MetricValueStyle}" />
+                            </Grid>
+                            <Border x:Name="PerfRamBar" Style="{StaticResource MetricBarStyle}">
+                                <Grid x:Name="PerfRamColumns" ColumnDefinitions="0*,100*">
+                                    <Border x:Name="PerfRamFill" Grid.Column="0" CornerRadius="2" />
+                                </Grid>
+                            </Border>
+                            <TextBlock x:Name="PerfRamCaption" Style="{StaticResource MetricCaptionStyle}" />
+                        </StackPanel>
+
+                    </StackPanel>
+                </Expander>
+
                 <ProgressBar x:Name="FormatProgress" />
 
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
