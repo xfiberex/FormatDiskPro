@@ -18,7 +18,10 @@ public sealed class SettingsTests(AppFixture fixture)
         try
         {
             MainWindowActions.ClickMenuPath(Window, "MnuConfig", "MnuLang", "MnuLangEn");
-            Assert.Equal("Start", MainWindowActions.Button(Window, "StartButton").Name);
+            // StartsWith y no Equal: desde `T12-02` el botón nombra la unidad seleccionada («Format H:»),
+            // y cuál sea depende de la máquina donde corra esta prueba. Lo que se comprueba aquí es que
+            // el texto siguió al idioma, no cuál es la unidad.
+            Assert.StartsWith("Format", MainWindowActions.Button(Window, "StartButton").Name);
         }
         finally
         {
@@ -27,7 +30,7 @@ public sealed class SettingsTests(AppFixture fixture)
             MainWindowActions.ClickMenuPath(Window, "MnuConfig", "MnuLang", "MnuLangEs");
         }
 
-        Assert.Equal("Iniciar", MainWindowActions.Button(Window, "StartButton").Name);
+        Assert.StartsWith("Formatear", MainWindowActions.Button(Window, "StartButton").Name);
     }
 
     [Fact]

@@ -156,7 +156,19 @@ public static class L
         // necesita saber que un equipo viejo o un aparato empotrado puede ver solo la primera.
         ["opt.restNote"]        = ["La partición FAT32 se crea primero a propósito: Windows 10 (1703) y posteriores muestran las dos, pero equipos más antiguos y muchos aparatos (televisores, radios de coche, BIOS de placas base) solo leen la primera.", "The FAT32 partition is created first on purpose: Windows 10 (1703) and later show both, but older machines and many devices (TVs, car stereos, motherboard BIOS) only read the first one.", "A partição FAT32 é criada primeiro de propósito: o Windows 10 (1703) e posteriores mostram as duas, mas máquinas mais antigas e muitos aparelhos (TVs, rádios de carro, BIOS de placas-mãe) leem apenas a primeira.", "La partition FAT32 est créée en premier volontairement : Windows 10 (1703) et ultérieurs affichent les deux, mais les machines plus anciennes et de nombreux appareils (téléviseurs, autoradios, BIOS de cartes mères) ne lisent que la première.", "La partizione FAT32 viene creata per prima di proposito: Windows 10 (1703) e successivi mostrano entrambe, ma i computer più vecchi e molti apparecchi (TV, autoradio, BIOS di schede madri) leggono solo la prima."],
         ["btn.restore"]      = ["Restaurar valores predeterminados", "Restore defaults", "Restaurar padrões", "Restaurer les valeurs par défaut", "Ripristina predefiniti"],
-        ["btn.start"]        = ["Iniciar", "Start", "Iniciar", "Démarrer", "Avvia"],
+        // El botón primario NOMBRA la operación y la unidad (`T12-02`). Era «Iniciar», que no decía ni
+        // qué empieza ni sobre qué: el peor fallo posible de esta app es formatear la unidad equivocada,
+        // y el control que lo dispara era el único sitio de la pantalla donde el destino no aparecía.
+        ["btn.start"]        = ["Formatear", "Format", "Formatar", "Formater", "Formatta"],
+        ["btn.start.drive"]  = ["Formatear {0}", "Format {0}", "Formatar {0}", "Formater {0}", "Formatta {0}"],
+        // Resumen de lo que se va a hacer, junto al botón que lo hace (`T12-03`). La tarjeta de opciones
+        // queda bajo el pliegue en una ventana de alto fijo, así que sin esto se puede lanzar un formateo
+        // sin haber visto nunca las opciones con las que se lanza.
+        ["fmt.summaryTip"]   = ["Se aplicará: {0}", "Will apply: {0}", "Será aplicado: {0}", "Sera appliqué : {0}", "Verrà applicato: {0}"],
+        ["fmt.compress"]     = ["compresión", "compression", "compressão", "compression", "compressione"],
+        // Presets, donde se usan (`T12-04`): hasta ahora solo estaban en Configuración → Presets, a tres
+        // menús de la tarjeta que configuran.
+        ["fmt.presets"]      = ["Presets", "Presets", "Presets", "Préréglages", "Preset"],
         ["btn.close"]        = ["Cerrar", "Close", "Fechar", "Fermer", "Chiudi"],
         ["btn.cancel"]       = ["Cancelar", "Cancel", "Cancelar", "Annuler", "Annulla"],
         // Motivos por los que un ítem de *Herramientas* queda apagado (T7-02). Van en el tooltip y en el

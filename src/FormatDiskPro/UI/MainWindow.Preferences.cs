@@ -202,7 +202,11 @@ public sealed partial class MainWindow
         InitRestPickers();
         UpdateSmallFat32Hint();
         RestoreButton.Content    = L.T("btn.restore");
-        StartButton.Content      = L.T("btn.start");
+        // StartButton NO se escribe aquí: su texto depende del idioma Y de la unidad seleccionada
+        // (`T12-02`), así que lo escribe UpdateFooterSummary, al que llega ApplyLanguage por medio de
+        // UpdateToolsMenuAvailability. Dos dueños dejarían el nombre de la unidad perdido o pegado dos
+        // veces según cuál corriera el último — la misma trampa que documenta ese método.
+        PresetsButton.Content    = L.T("fmt.presets");
         if (!_isBusy) CloseButton.Content = L.T("btn.close");
         // El atajo va en el tooltip, no traducido: «F5» se llama igual en los cinco idiomas, y con un
         // ToolTip explícito WinUI ya no añade por su cuenta el texto del KeyboardAccelerator (T7-04).

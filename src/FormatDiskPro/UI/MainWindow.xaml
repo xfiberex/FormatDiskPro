@@ -278,10 +278,20 @@
                 <!-- ── Card: Configuración de formato ── -->
                 <Border Style="{StaticResource AppCardStyle}">
                     <StackPanel Spacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <!-- El selector de presets vive aquí, no en Configuración → Presets (`T12-04`):
+                             configura EXACTAMENTE esta tarjeta, y estaba a tres menús de ella. El menú
+                             sigue existiendo —mismo contenido, construido por el mismo código— porque
+                             quitarlo rompería la ruta que la gente ya conoce y las pruebas de UI. -->
+                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
                             <FontIcon Glyph="&#xE713;" Style="{StaticResource SectionIconStyle}" />
-                            <TextBlock x:Name="FormatGroupLbl" Text="Configuración de formato" Style="{StaticResource SectionTitleStyle}" />
-                        </StackPanel>
+                            <TextBlock x:Name="FormatGroupLbl" Grid.Column="1" Text="Configuración de formato" Style="{StaticResource SectionTitleStyle}" />
+                            <DropDownButton x:Name="PresetsButton" Grid.Column="2" Content="Presets"
+                                            HorizontalAlignment="Right" Padding="10,3" FontSize="12">
+                                <DropDownButton.Flyout>
+                                    <MenuFlyout x:Name="PresetsFlyout" Placement="BottomEdgeAlignedRight" />
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                        </Grid>
 
                         <ComboBox x:Name="FileSystemPicker" HorizontalAlignment="Stretch"
                                   Header="Sistema de archivos"
@@ -289,7 +299,8 @@
                         <TextBlock x:Name="FsDescText" Style="{StaticResource HintTextStyle}" Margin="2,0,0,0" />
 
                         <ComboBox x:Name="AllocUnitPicker" HorizontalAlignment="Stretch"
-                                  Header="Tamaño de unidad de asignación" Margin="0,2,0,0" />
+                                  Header="Tamaño de unidad de asignación" Margin="0,2,0,0"
+                                  SelectionChanged="FormatOption_Changed" />
                         <!-- T7-03: era el único campo esotérico sin ayuda, mientras el sistema de
                              archivos —que casi todo el mundo sabe elegir— sí la tenía. Misma pista y
                              mismo estilo que FsDescText, justo debajo de su combo. -->
@@ -320,8 +331,10 @@
                             <FontIcon Glyph="&#xE74E;" Style="{StaticResource SectionIconStyle}" />
                             <TextBlock x:Name="OptionsGroupLbl" Text="Opciones de formato" Style="{StaticResource SectionTitleStyle}" />
                         </StackPanel>
-                        <CheckBox x:Name="QuickFormatCheck" Content="Formato rápido"                        IsChecked="True" />
-                        <CheckBox x:Name="CompressCheck"    Content="Habilitar compresión (solo NTFS)"      IsEnabled="False" />
+                        <CheckBox x:Name="QuickFormatCheck" Content="Formato rápido" IsChecked="True"
+                                  Checked="FormatOption_Changed" Unchecked="FormatOption_Changed" />
+                        <CheckBox x:Name="CompressCheck"    Content="Habilitar compresión (solo NTFS)" IsEnabled="False"
+                                  Checked="FormatOption_Changed" Unchecked="FormatOption_Changed" />
                         <CheckBox x:Name="SecureWipeCheck"  Content="Borrado seguro (sobrescribir espacio libre)"
                                   Checked="SecureWipeCheck_Toggled" Unchecked="SecureWipeCheck_Toggled" />
                         <StackPanel x:Name="WipePassesPanel" Orientation="Horizontal" Spacing="8"
@@ -469,9 +482,18 @@
                                VerticalAlignment="Center" Opacity="0.55" FontSize="12" />
                 </Grid>
 
-                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2,0,0">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2,0,0" ColumnSpacing="10">
                     <Button x:Name="CloseButton" Content="Cerrar" MinWidth="110"
                             Click="CloseButton_Click" />
+                    <!-- Qué se va a aplicar, junto al botón que lo aplica (`T12-03`). La columna del
+                         medio estaba vacía y la tarjeta «Opciones de formato» queda bajo el pliegue en
+                         una ventana de alto fijo: sin esto se puede pulsar Formatear sin haber visto
+                         nunca las opciones con las que se formatea. Se oculta durante la operación —ahí
+                         manda StatusText, que además es la región activa del pie— y el detalle completo
+                         (compresión incluida) está en su tooltip. -->
+                    <TextBlock x:Name="FormatSummaryText" Grid.Column="1"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Style="{StaticResource MetricCaptionStyle}" />
                     <Button x:Name="StartButton" Grid.Column="2" Content="Iniciar" MinWidth="130"
                             Style="{StaticResource AccentButtonStyle}"
                             Click="StartButton_Click" />

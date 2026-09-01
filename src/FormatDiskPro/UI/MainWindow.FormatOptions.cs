@@ -361,24 +361,120 @@ public sealed partial class MainWindow
 
     // ── Presets ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// Rellena las DOS listas de presets: la del menú <i>Configuración</i> y la del botón que vive en la
+    /// tarjeta que configuran (`T12-04`).
+    /// </summary>
+    /// <remarks>
+    /// Un solo constructor para los dos, y a propósito: son la misma lista: si se construyeran por
+    /// separado, un preset nuevo aparecería en uno y no en el otro hasta que alguien se acordara. Los
+    /// <c>MenuFlyoutItem</c> no se pueden compartir entre dos <c>Flyout</c> —un elemento de XAML tiene un
+    /// solo padre—, así que se crean dos juegos con la misma fábrica.
+    /// </remarks>
     private void BuildPresetsMenu()
     {
-        MnuPresets.Items.Clear();
+        FillPresets(MnuPresets.Items);
+        FillPresets(PresetsFlyout.Items);
+    }
+
+    /// <summary>Vuelca los presets integrados, los del usuario y <i>Gestionar…</i> en una lista.</summary>
+    /// <param name="items">Lista de un <c>MenuFlyout</c> o de un <c>MenuFlyoutSubItem</c>.</param>
+    private void FillPresets(IList<MenuFlyoutItemBase> items)
+    {
+        items.Clear();
 
         foreach (var preset in Presets.All)
-            MnuPresets.Items.Add(MakePresetItem(preset));
+            items.Add(MakePresetItem(preset));
 
         if (_settings.UserPresets.Count > 0)
         {
-            MnuPresets.Items.Add(new MenuFlyoutSeparator());
+            items.Add(new MenuFlyoutSeparator());
             foreach (var preset in _settings.UserPresets)
-                MnuPresets.Items.Add(MakePresetItem(preset));
+                items.Add(MakePresetItem(preset));
         }
 
-        MnuPresets.Items.Add(new MenuFlyoutSeparator());
+        items.Add(new MenuFlyoutSeparator());
         var manage = new MenuFlyoutItem { Text = L.T("menu.managePresets") };
         manage.Click += MnuManagePresets_Click;
-        MnuPresets.Items.Add(manage);
+        items.Add(manage);
+    }
+
+    /// <summary>
+    /// Lo que se va a aplicar al pulsar el botón primario: sistema de archivos, tamaño de clúster y modo.
+    /// </summary>
+    /// <remarks>
+    /// <para>Sale de los controles, no de un estado paralelo: es la única forma de que el resumen no
+    /// pueda mentir sobre lo que la operación hará.</para>
+    ///
+    /// <para>La versión corta es la que cabe en el pie junto a los botones; la <paramref name="full"/>
+    /// añade la compresión y es la del tooltip y la del diálogo de presets. Se separan porque el ancho
+    /// disponible en el pie son ~200 px y «compresión» solo aplica a NTFS: gastarlos siempre en un dato
+    /// que la mayoría de las veces no está activo dejaría fuera al que sí importa.</para>
+    /// </remarks>
+    /// <param name="full">Incluir la compresión.</param>
+    private string CurrentFormatSummary(bool full = false)
+    {
+        string fs   = FileSystemPicker.SelectedItem?.ToString() ?? "";
+        string mode = QuickFormatCheck.IsChecked == true ? L.T("fmt.quick") : L.T("fmt.full");
+
+        if (full && CompressCheck.IsChecked == true) mode += " + " + L.T("fmt.compress");
+        if (SecureWipeCheck.IsChecked == true)       mode += " + " + L.T("confirm.secure");
+
+        return $"{fs} · {AllocUnitPicker.SelectedItem} · {mode}";
+    }
+
+    /// <summary>
+    /// Escribe el pie: el texto del botón primario y el resumen de lo que va a aplicar.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>El botón nombra la unidad</b> (`T12-02`). «Iniciar» no decía ni qué empieza ni sobre qué,
+    /// y el peor fallo posible de esta app es formatear la unidad equivocada: era el único control de la
+    /// pantalla que podía destruir un disco sin nombrarlo. La confirmación reforzada sigue siendo la red;
+    /// esto es la primera línea.</para>
+    ///
+    /// <para><b>Es el ÚNICO dueño de ese texto</b>, por lo mismo que <c>UpdateToolsMenuAvailability</c> lo
+    /// es del de los siete ítems del menú: depende del idioma <i>y</i> de la unidad, y dos dueños dejarían
+    /// el nombre de la unidad perdido o duplicado según cuál corriera el último.</para>
+    ///
+    /// <para>El resumen se oculta con una operación en curso: ahí el pie lo manda <c>StatusText</c>, que
+    /// además es su región activa, y dos textos compitiendo por la misma fila sobra uno.</para>
+    /// </remarks>
+    private void UpdateFooterSummary()
+    {
+        var drive = DrivePicker.SelectedItem as DriveViewModel;
+
+        StartButton.Content = drive is null
+            ? L.T("btn.start")
+            : L.T("btn.start.drive", $"{drive.Letter}:");
+
+        if (_isBusy || drive is null || FileSystemPicker.SelectedItem is null)
+        {
+            FormatSummaryText.Text = "";
+            ToolTipService.SetToolTip(FormatSummaryText, null);
+            return;
+        }
+
+        FormatSummaryText.Text = CurrentFormatSummary();
+        ToolTipService.SetToolTip(FormatSummaryText, L.T("fmt.summaryTip", CurrentFormatSummary(full: true)));
+    }
+
+    /// <summary>
+    /// Repinta el pie cuando cambia una opción de formato que el resumen enseña.
+    /// </summary>
+    /// <remarks>
+    /// La guarda de <c>_uiBuilt</c> no es defensiva por si acaso: <c>IsChecked="True"</c> en el XAML
+    /// dispara esto <b>durante</b> <c>InitializeComponent</c>, cuando los controles del pie aún no
+    /// existen. Ver el comentario de ese campo.
+    /// </remarks>
+    private void FormatOption_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_uiBuilt) UpdateFooterSummary();
+    }
+
+    /// <inheritdoc cref="FormatOption_Changed(object, RoutedEventArgs)"/>
+    private void FormatOption_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_uiBuilt) UpdateFooterSummary();
     }
 
     private MenuFlyoutItem MakePresetItem(FormatPreset preset)
@@ -399,11 +495,7 @@ public sealed partial class MainWindow
         bool secure     = SecureWipeCheck.IsChecked  == true;
         var current     = new FormatPreset("", fs, allocBytes, quick, compress, secure);
 
-        string mode = quick ? L.T("fmt.quick") : L.T("fmt.full");
-        if (secure) mode += " + " + L.T("confirm.secure");
-        string summary = $"{fs} · {AllocUnitPicker.SelectedItem} · {mode}";
-
-        var dlg = new PresetsDialog(current, summary, _settings) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        var dlg = new PresetsDialog(current, CurrentFormatSummary(full: true), _settings) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         await dlg.ShowAsync();
         BuildPresetsMenu();
     }

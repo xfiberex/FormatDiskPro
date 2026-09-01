@@ -297,11 +297,11 @@ public sealed class LocalizationTests
         try
         {
             L.Set(AppLang.Fr);
-            Assert.Equal("Démarrer", L.T("btn.start"));
+            Assert.Equal("Formater", L.T("btn.start"));
             L.Set(AppLang.It);
-            Assert.Equal("Avvia", L.T("btn.start"));
+            Assert.Equal("Formatta", L.T("btn.start"));
             L.Set(AppLang.Pt);
-            Assert.Equal("Iniciar", L.T("btn.start"));
+            Assert.Equal("Formatar", L.T("btn.start"));
         }
         finally { L.Set(prev); }
     }

@@ -265,6 +265,11 @@ public sealed partial class MainWindow
         // `MnuHistory` no aparece porque no depende de la unidad: su botón no se apaga nunca.
         BtnHealth.IsEnabled    = MnuHealth.IsEnabled;
         BtnBenchmark.IsEnabled = MnuBenchmark.IsEnabled;
+
+        // El pie nombra la unidad y resume las opciones (`T12-02`/`T12-03`), así que depende de lo mismo
+        // que este método: la selección, la protección y el idioma. Colgarlo aquí es lo que evita una
+        // cuarta lista de sitios desde los que repintar.
+        UpdateFooterSummary();
     }
 
     /// <summary>

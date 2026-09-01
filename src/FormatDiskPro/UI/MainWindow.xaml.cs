@@ -47,6 +47,26 @@ public sealed partial class MainWindow : Window
 
     // ── State ─────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Si <c>InitializeComponent</c> ya terminó, es decir, si los campos que genera el XAML existen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Trampa de WinUI, y costó un arranque en negro.</b> Asignar <c>IsChecked="True"</c> en el
+    /// XAML de un <c>CheckBox</c> que además declara <c>Checked="…"</c> <b>dispara el manejador durante
+    /// el propio parseo</b>, cuando los controles que vienen más abajo en el archivo todavía no se han
+    /// creado. El manejador tocaba el pie de la ventana, que se declara después, y el
+    /// <c>NullReferenceException</c> salía envuelto como <c>XamlParseException: Failed to assign to
+    /// property 'ToggleButton.IsChecked'</c> — un mensaje que señala al atributo y no a la causa.</para>
+    ///
+    /// <para>La alternativa era enganchar los eventos en código tras <c>InitializeComponent</c>, pero eso
+    /// esconde el cableado justo donde se espera verlo. Una guarda explícita lo deja dicho: durante el
+    /// parseo no hay ventana que repintar, y el primer repintado real lo hace el constructor.</para>
+    ///
+    /// <para>No confundir con <c>_uiReady</c>, que marca el final del constructor entero y sirve para no
+    /// persistir preferencias mientras se restauran.</para>
+    /// </remarks>
+    private bool _uiBuilt;
+
     private bool _isBusy, _cancelRequested, _isDriveProtected, _darkMode, _autoTheme = true;
     // Falla real (no cancelación) de la operación en curso: la fija cada flujo en su rama de error
     // no-cancelación; EndOperation la combina con _cancelRequested para el estado visual de la barra.
@@ -97,6 +117,8 @@ public sealed partial class MainWindow : Window
         _services = services ?? new AppServices();
 
         InitializeComponent();
+        // A partir de aquí los campos que genera el XAML existen todos. Antes NO: ver _uiBuilt.
+        _uiBuilt = true;
 
         // Window-level title bar extension: WinUI draws and themes the caption
         // (minimize/maximize/close) buttons automatically, following the content's
@@ -649,6 +671,10 @@ public sealed partial class MainWindow : Window
     {
         _isBusy = true;
         BeginPerformanceTracking();
+        // SetControlsEnabled(false) NO pasa por UpdateToolsMenuAvailability, así que el resumen del pie
+        // se quedaría puesto compitiendo con StatusText. Al terminar lo repinta EndOperation, que sí
+        // vuelve a habilitar los controles.
+        UpdateFooterSummary();
         _cancelRequested = false;
         _lastOperationFailed = false;
         FormatProgress.ShowError = false;
