@@ -38,8 +38,10 @@
 > repartir seis datos con el mismo peso; y `T11-04`, ese panel de rendimiento deja de ser un desplegable
 > y pasa a una franja fija de tres columnas — al compactarlo desapareció el motivo de poder plegarlo.
 >
-> **Queda pendiente regenerar la galería** (`tools/capture-screenshots.ps1`): las capturas del README son
-> de la ventana anterior.
+> **Galería regenerada y suite de UI en verde** (2026-09-01, con la USB conectada): las **12** capturas
+> del README rehechas conduciendo la app real, y **34 pasan / 3 se omiten / 0 fallan** en 1 m 57 s. Las 3
+> omitidas son de opt-in (`ALLOW_YANK` ×2, `ALLOW_DESTRUCTIVE`), no falta de hardware. Regenerar la
+> galería es además lo que destapó que el arreglo de `T12-06` no hacía nada.
 >
 > **Queda una tarea abierta, y está bloqueada a propósito**: `T10-02`, en el
 > **[Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)**. El tier se abrió el
