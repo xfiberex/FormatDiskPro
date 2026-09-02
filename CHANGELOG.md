@@ -15,23 +15,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [No publicado]
 
-### Añadido
-
-- **Franja de rendimiento en el pie de la ventana.** Una sola línea, siempre visible y sin nada que
-  desplegar, con tres métricas: **Disco** (a qué velocidad va la operación en curso), **CPU** y **RAM**
-  del equipo, cada una con su valor y una barra fina. En un borrado seguro de 40 minutos o una
-  verificación de capacidad larga, la única señal de vida era hasta ahora una barra de progreso, y con
-  ella quieta no había forma de distinguir «va lento» de «se colgó». El detalle de cada métrica —el
-  **pico** alcanzado, los núcleos del equipo, lo que consume la propia app— está en su tooltip. El
-  muestreo **solo corre** mientras la ventana está al frente o hay una operación en curso.
-
-  Tres cosas que el panel **no** hace, a propósito: no enseña «CPU del proceso» —formatear, comprobar y
-  reinicializar los ejecutan `format.com`, `chkdsk.exe` o PowerShell en procesos aparte, así que diría
-  casi 0 y sería mentira—; no lee el caudal de un contador del sistema, sino de los **bytes que la propia
-  operación reporta**, que es lo que estás esperando y no el tráfico de toda la máquina; y su barra de
-  disco no se escala contra un máximo teórico, que no existe, sino contra el **pico de esa misma
-  operación**. Traducido a los cinco idiomas.
-
 ### Corregido
 
 - **La barra de progreso pintaba igual el éxito que el fallo en equipos con el acento en rojo.** Usaba el

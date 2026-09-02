@@ -325,8 +325,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
 | **T9** | **Re-auditoría transversal con la app en marcha** — 1 Alta · 9 Medias · 10 Bajas · **20/20, cerrado** | 20 | bajo-medio |
 | **T10** | **Lo que solo aparece al publicar** — nacido del corte de la v1.25.0 · `T10-01` hecha · `T10-02` **abierta, a la espera de que vuelva a ocurrir** | 2 | bajo |
 | **T11** | **Rendimiento y jerarquía de la ventana principal** — el pie deja de ser solo una barra, las tres herramientas de solo lectura salen del menú y la tarjeta de unidad se ordena por importancia · **4/4, cerrado** | 4 | bajo |
-| **T12** | **Lo que la ventana no dice** — un contraste por debajo de AA que el barrido no veía, el botón que no nombraba lo que destruye, las opciones bajo el pliegue, los presets lejos de lo que configuran y una barra de progreso en la que el éxito y el fallo eran el mismo color · **6/6, cerrado** | 6 | bajo |
-| | **Total** | **107** | |
+| **T12** | **Lo que la ventana no dice** — un contraste por debajo de AA que el barrido no veía, el botón que no nombraba lo que destruye, las opciones bajo el pliegue, los presets lejos de lo que configuran, una barra de progreso en la que el éxito y el fallo eran el mismo color, y la retirada de la franja de rendimiento · **7/7, cerrado** | 7 | bajo |
+| | **Total** | **108** | |
 
 > **Esta tabla se quedó atrás dos tiers** (marcaba el T6 como «lo único abierto» y sumaba 60) hasta la
 > re-auditoría del 2026-08-26. Al añadir un tier hay que tocarla: es el único sitio donde se ve el
@@ -2454,6 +2454,39 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
+- [x] **[T12-07] La franja de rendimiento no aportaba nada, y se retira** — **hecho (2026-09-01)** · Media
+  - **Área:** UI / alcance de producto
+  - **Qué se quitó:** `Core/SystemLoad.cs` (con `MovingAverage`), `Services/PerformanceMonitor.cs`,
+    `UI/MainWindow.Performance.cs`, la franja del XAML, los tres estilos `Metric*`,
+    `AppServices.Performance`, las 11 claves `perf.*` (× 5 idiomas) y sus **41 unitarias**. Es decir,
+    `T11-01` y `T11-04` enteras. **626 pruebas** tras la retirada.
+  - **Por qué, y el motivo de peso es que la justificación de partida era falsa.** `T11-01` se defendió
+    con «en un borrado seguro de 40 minutos la única señal de vida era una barra de progreso». **No era
+    cierto**: `TimerElapsed_Tick` ya escribía en el pie `03:41 · 42,3 MB/s · ETA 05:12`, y **para las
+    mismas dos operaciones** que alimentaban la fila de Disco (verificación de capacidad y borrado
+    seguro). La fila de Disco era un duplicado de la línea que tenía justo debajo — y peor, porque no
+    llevaba ETA. La afirmación no se comprobó antes de construir.
+  - **Las tres filas fallaban por motivos distintos, que es lo que impedía salvar un subconjunto:**
+    Disco **duplicaba**; CPU y RAM del equipo **decoraban** —no son asunto de un formateador de discos, y
+    eso estaba dicho en la propia conversación que la encargó antes de construirla—. Quitar CPU/RAM y
+    dejar Disco conserva el duplicado; quitar Disco y dejar CPU/RAM conserva lo decorativo.
+  - **Lo que costaba:** ~34 px permanentes en una ventana de **alto fijo** donde este mismo tier y el
+    anterior llevaban peleando por espacio vertical (`T12-03`: las opciones quedaban bajo el pliegue), más
+    un servicio Win32 con temporizador atado a la activación de la ventana, 41 pruebas y 55 cadenas
+    traducidas. La fila de Disco enseñaba `–` en 3 de las 5 operaciones.
+  - **Lo único que se pierde y no está en otro sitio** es el **pico** de velocidad. Se deja fuera a
+    propósito: cabría en el cronómetro en una línea, pero nadie lo ha pedido y añadirlo «por si acaso» es
+    cómo empezó esto.
+  - **Lo que SÍ sobrevive de aquel trabajo**, porque se sostiene solo: el color de la barra de progreso
+    (`T12-05`), que salió de mirar la franja funcionando; el galón de scroll (`T12-06`); y
+    `SeverityPalette.MutedText` con su barrido (`T12-01`), que nació de medir los grises que la franja
+    usaba y ahora protege a toda la ventana.
+  - **La lección:** una petición de producto no exime de comprobar el problema que dice resolver. La
+    franja se construyó bien —compacta, medida, accesible, probada— sobre un problema que no existía.
+  - **Verificado:** build 0/0, **626/626**, y con las capturas regeneradas.
+  - **Esfuerzo:** bajo
+  - **Depende de:** revierte `T11-01` y `T11-04`
+
 ### Dos refinamientos que se propusieron y NO se hicieron
 
 Los dos salieron de la misma revisión que abrió este tier, y al mirarlos de cerca no se sostuvieron.
@@ -2639,6 +2672,7 @@ restauran.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |
 | 2026-09-01 | **T11-04** | El panel de rendimiento deja de ser un `Expander` y pasa a una **franja fija de tres columnas** (~34 px, menos que el encabezado que el desplegable ocupaba plegado). El razonamiento de `T11-01` estaba mal: plegar se justificó por el alto, pero el clic y el resumen del encabezado se pagan **siempre** y el alto solo desplegado — la respuesta era compactar, no plegar. Los pies de cada métrica van al tooltip, que aquí **sí** se muestra porque estos controles nunca se deshabilitan (`T7-08`). Se elimina la preferencia `ShowPerformance` y el muestreo pasa a depender de si la ventana está al frente. |

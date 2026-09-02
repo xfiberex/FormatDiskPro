@@ -53,7 +53,6 @@ src/FormatDiskPro/
 │  ├─ ErrorText.cs        Describe(ex) — texto de un fallo que NUNCA sale vacío (tipo + HRESULT si hace falta)
 │  ├─ Presets.cs          Presets integrados (nombre traducido vía NameKey) + validación de los del usuario
 │  ├─ Throughput.cs       Velocidad y ETA de operaciones largas
-│  ├─ SystemLoad.cs       Aritmética del panel de rendimiento (CPU por delta, %, escalado) + MovingAverage
 │  ├─ DeviceChange.cs     Interpretación de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ReleaseNotes.cs     Notas de versión (Markdown) → texto plano
 │  ├─ LegalText.cs        Licencia GPLv3 y avisos de terceros embebidos en el .exe
@@ -73,7 +72,6 @@ src/FormatDiskPro/
 │  ├─ CapacityVerifier.cs  Verificación de capacidad real
 │  ├─ AppSettings.cs       Preferencias (%AppData%\FormatDiskPro\settings.json)
 │  ├─ Notifier.cs          Aviso al terminar (sonido + parpadeo de barra de tareas, Win32)
-│  ├─ PerformanceMonitor.cs CPU/RAM del equipo por Win32 (NO PerformanceCounter: PDH está traducido)
 │  ├─ TaskbarProgress.cs   Progreso en el icono de la barra de tareas (ITaskbarList3)
 │  ├─ FormatProcess.cs     Lanza Format-Volume (PowerShell) y format.com, con progreso real
 │  ├─ UpdateService.cs     GitHub Releases: consulta, descarga, VERIFICACIÓN (firma/SHA-256), instalación
@@ -82,7 +80,6 @@ src/FormatDiskPro/
 │  ├─ MainWindow          Ventana principal, repartida en partial class por asunto (ninguna >800 líneas):
 │  │                      .xaml.cs (ciclo de vida, unidades, formato) · .DriveInfo · .FormatOptions
 │  │                      .Operations (menú Herramientas) · .HelpAndUpdates · .Preferences
-│  │                      .Performance (panel de rendimiento del pie: disco / CPU / RAM)
 │  ├─ DeviceChangeWatcher Subclassing Win32 de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ConfirmDialog       Confirmación reforzada (escribir la letra de la unidad)
 │  ├─ HealthDialog        Detalle S.M.A.R.T. (colores por umbral + texto de estado)
@@ -155,13 +152,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **667 / 667** (666 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 41 de `T11-01` + 3 de `T12-01`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **626 / 626** (625 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 3 de `T12-01`; las 41 de `T11-01` se fueron con la franja en `T12-07`) · se ejecutan **en local**, nunca en CI (ver §4) |
 | UI tests | **2026-09-01, con la USB (`utilidades`) y `FORMATDISKPRO_VERIFY_DRIVE=G`: 34 pasan / 3 se omiten / 0 fallan** en 1 m 57 s — la pasada que cubre los Tiers 11 y 12 (barra de acciones, cabecera de unidad, franja de rendimiento, pie con «Formatear I:», presets y galón de scroll). Las 3 omitidas son opt-in (`ALLOW_YANK` ×2, `ALLOW_DESTRUCTIVE`). Historial: **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.25.0** (2026-08-26) · `master` **con trabajo sin publicar**: los Tiers 11 y 12 enteros (`T11-01`–`T11-04` y `T12-01`–`T12-04`, 2026-09-01) están en `[No publicado]` del [`CHANGELOG.md`](CHANGELOG.md) |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tiers abiertos | **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 6/6**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— y la barra de desplazamiento aparece cuando hay algo que desplazar · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
+| Tiers abiertos | **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 7/7**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— la barra de desplazamiento aparece cuando hay algo que desplazar, y **`T12-07` retira la franja de rendimiento entera** —revierte `T11-01` y `T11-04`— porque su justificación de partida era falsa: el cronómetro del pie ya escribía velocidad y ETA · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
 | Tareas abiertas | **Una, y bloqueada a propósito: `T10-02`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
@@ -415,6 +412,56 @@ ni mueve datos).
 | **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
 | **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+### 2026-09-01 — `T12-07`: la franja de rendimiento se retira, porque el problema que resolvía no existía
+
+Se va entera: `Core/SystemLoad.cs` con `MovingAverage`, `Services/PerformanceMonitor.cs`,
+`UI/MainWindow.Performance.cs`, la franja del XAML, los tres estilos `Metric*`,
+`AppServices.Performance`, las 11 claves `perf.*` en cinco idiomas y sus **41 unitarias**. Es decir,
+`T11-01` y `T11-04` completas. Quedan **626 pruebas**.
+
+**El motivo de peso: la justificación de partida era falsa, y no se comprobó.** `T11-01` se defendió con
+«en un borrado seguro de 40 minutos la única señal de vida era una barra de progreso». No lo era:
+`TimerElapsed_Tick` ya escribía en el pie `03:41 · 42,3 MB/s · ETA 05:12` — y **para las mismas dos
+operaciones** que alimentaban la fila de Disco, verificación de capacidad y borrado seguro. La fila de
+Disco era un duplicado de la línea que tenía justo debajo, y peor, porque no llevaba ETA. Bastaba leer
+ese método antes de proponer la franja.
+
+**Las tres filas fallaban por motivos distintos**, y por eso no había subconjunto que salvar: Disco
+**duplicaba**; CPU y RAM del equipo **decoraban**. Lo segundo estaba dicho en la propia conversación que
+la encargó —«en un formateador de discos eso es decoración»— y se construyó igual. Quitar CPU/RAM y dejar
+Disco conserva el duplicado; quitar Disco y dejar CPU/RAM conserva lo decorativo.
+
+**Lo que costaba:** ~34 px permanentes en una ventana de **alto fijo** donde los Tiers 11 y 12 llevaban
+peleando por espacio vertical —`T12-03` existe precisamente porque las opciones de formato quedaban bajo
+el pliegue—, más un servicio Win32 con temporizador atado a la activación de la ventana, 41 pruebas y 55
+cadenas traducidas. Y la fila de Disco enseñaba `–` en 3 de las 5 operaciones.
+
+**Lo único que se pierde y no está en otro sitio es el pico** de velocidad. Se deja fuera a propósito:
+cabría en el cronómetro en una línea, pero nadie lo ha pedido, y añadirlo «por si acaso» es exactamente
+como empezó esto.
+
+**Lo que sobrevive de aquel trabajo, porque se sostiene solo:**
+
+- El **color de la barra de progreso** (`T12-05`) — salió de mirar la franja funcionando, y arregla un
+  defecto real que llevaba ahí desde siempre.
+- El **galón de scroll** (`T12-06`).
+- **`SeverityPalette.MutedText` y su barrido** (`T12-01`) — nació de medir los grises que la franja usaba
+  y ahora protege a toda la ventana.
+
+**La lección, y va al §4 en espíritu:** una petición de producto no exime de comprobar el problema que
+dice resolver. La franja se construyó **bien** —compacta, medida, accesible, con 41 pruebas y traducida a
+cinco idiomas— sobre un problema que no existía. Todo ese cuidado no la salvó, y no podía: ningún test
+comprueba que la funcionalidad haga falta.
+
+**Una trampa al retirarla**, anotada porque volvería igual: el bloque de claves `perf.*` estaba pegado al
+de `bar.*` en `Localization.cs`, y borrarlo por rango se llevó las etiquetas de la barra de acciones.
+La app arrancó enseñando `bar.health` en crudo —`L.T` devuelve la clave cuando falta, que es lo correcto
+y también lo que hace el fallo silencioso—. Lo cazó **regenerar las capturas**, otra vez; y al
+restaurarlas se duplicaron tres claves, que un barrido de duplicados encontró. Un `Dictionary` con
+indexador no se queja de una clave repetida: sobrescribe.
 
 ---
 
