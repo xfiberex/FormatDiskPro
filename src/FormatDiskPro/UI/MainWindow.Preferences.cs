@@ -145,7 +145,6 @@ public sealed partial class MainWindow
 
     private void ApplyLanguage()
     {
-        ApplyPerformanceLanguage();
         ApplyQuickBarLanguage();
         MnuTools.Title   = L.T("menu.tools");
         // Aceleradores de teclado del menú (Alt + primera letra del título localizado).
@@ -280,10 +279,6 @@ public sealed partial class MainWindow
         else                         ClearHealthColor();
 
         ApplyProgressColor();
-
-        // Las barras del panel de rendimiento se repintan solas en el próximo tick; con el muestreo
-        // parado (panel plegado) hay que forzarlo, o se quedarían con los colores del tema anterior.
-        if (!_perfTimer.IsEnabled) RenderPerformance(null);
     }
 
     // Tematiza los botones de caption (minimizar/maximizar/cerrar) según el tema EFECTIVO.

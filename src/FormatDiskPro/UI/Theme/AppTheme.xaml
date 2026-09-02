@@ -168,43 +168,6 @@
         <Setter Property="HorizontalAlignment" Value="Stretch" />
     </Style>
 
-    <!--
-        Panel de rendimiento (T11-01): tres métricas con la MISMA forma — etiqueta + valor arriba, barra
-        en medio, pie de contexto debajo. Los tres estilos están aquí y no repetidos en cada fila porque
-        lo que hace legible el panel es justamente que las tres filas se lean igual: si una cambia de
-        tamaño o de peso, deja de ser una tabla y pasa a ser tres cosas distintas apiladas.
-    -->
-
-    <!-- Valor de la métrica: el único texto del pie con peso, para que se lea de un vistazo -->
-    <Style x:Key="MetricValueStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
-        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-
-    <!-- Pie de la métrica: contra qué se mide el valor (el pico, los núcleos, el propio proceso) -->
-    <Style x:Key="MetricCaptionStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="11" />
-        <Setter Property="Foreground" Value="{ThemeResource AppMutedTextBrush}" />
-        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-    </Style>
-
-    <!--
-        Barra de la métrica. Mismo patrón y mismo grosor que la barra de ocupación de la tarjeta de
-        unidad, y NO un ProgressBar, por el mismo motivo que allí: su plantilla pinta la pista con una
-        altura fija de 1 px mientras el relleno ocupa el MinHeight, así que relleno y resto no pueden
-        tener el mismo grosor. Aquí la pista es este Border y el relleno es su hijo.
-    -->
-    <Style x:Key="MetricBarStyle" TargetType="Border">
-        <Setter Property="Height" Value="4" />
-        <Setter Property="CornerRadius" Value="2" />
-        <!-- Raw: el valor ya está en el TextBlock de al lado, en texto. La barra es su duplicado
-             gráfico, y refrescándose cada segundo solo sería ruido para un lector de pantalla. -->
-        <Setter Property="AutomationProperties.AccessibilityView" Value="Raw" />
-    </Style>
-
     <!-- Barra de acción inferior (footer) separada del contenido con una línea superior -->
     <Style x:Key="FooterBarStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />

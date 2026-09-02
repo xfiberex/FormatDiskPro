@@ -139,9 +139,6 @@ public sealed partial class MainWindow : Window
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += TimerElapsed_Tick;
-        // Antes de ApplyThemeMode y ApplyLanguage: los dos repintan el panel, y sin su temporizador
-        // creado se caerían con NullReference en el arranque.
-        InitPerformancePanel();
         AppWindow.Closing += AppWindow_Closing;
 
         var icoPath = Path.Combine(AppContext.BaseDirectory, "FormatDiskPro.ico");
@@ -330,10 +327,8 @@ public sealed partial class MainWindow : Window
     private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         // Auto-actualización en curso: dejamos cerrar para que el instalador pueda reemplazar la app.
-        // El muestreo del panel se para en los dos caminos que SÍ cierran: un tick contra controles ya
-        // desmontados no aporta nada y es una excepción esperando a pasar.
-        if (_closingForUpdate) { StopPerformanceSampling(); RemoveDeviceHook(); return; }
-        if (!_isBusy) { StopPerformanceSampling(); RemoveDeviceHook(); return; }
+        if (_closingForUpdate) { RemoveDeviceHook(); return; }
+        if (!_isBusy) { RemoveDeviceHook(); return; }
         args.Cancel = true;
         await ShowInfoAsync(L.T("closing.title"), L.T("closing.body"));
     }
@@ -736,7 +731,6 @@ public sealed partial class MainWindow : Window
     private void BeginOperation()
     {
         _isBusy = true;
-        BeginPerformanceTracking();
         // SetControlsEnabled(false) NO pasa por UpdateToolsMenuAvailability, así que el resumen del pie
         // se quedaría puesto compitiendo con StatusText. Al terminar lo repinta EndOperation, que sí
         // vuelve a habilitar los controles.
@@ -758,7 +752,6 @@ public sealed partial class MainWindow : Window
     private void EndOperation()
     {
         _elapsedTimer.Stop();
-        EndPerformanceTracking();
         _isBusy = false;
         _activeProcess?.Dispose();
         _activeProcess = null;
@@ -777,9 +770,6 @@ public sealed partial class MainWindow : Window
         AnnounceStatus(kind: FormatProgress.ShowError
             ? AutomationNotificationKind.ActionAborted
             : AutomationNotificationKind.ActionCompleted);
-
-        // Con la operación ya terminada, el muestreo solo sigue si la ventana está delante.
-        SyncPerformanceSampling();
 
         // Aviso al terminar operaciones largas: sonido + parpadeo de la barra (solo si el usuario
         // no está mirando la ventana). No aplica a operaciones cortas ni canceladas.
@@ -813,13 +803,9 @@ public sealed partial class MainWindow : Window
         {
             double dt = (now - _speedLastTime).TotalSeconds;
             long db = _opBytesDone - _speedLastBytes;
-            // Un tick sin avance deja el caudal en 0 a propósito: el panel de rendimiento lo pinta, y
-            // una barra que se cae es exactamente lo que hay que ver cuando la operación se atasca.
-            _diskBytesPerSec = 0;
             if (dt > 0 && db > 0)
             {
                 double speed = db / dt;
-                _diskBytesPerSec = speed;
                 var eta = Throughput.Eta(Math.Max(0, _opTotalBytes - _opBytesDone), speed);
                 string spd = Throughput.FormatSpeed(speed);
                 string etaStr = Throughput.FormatEta(eta);

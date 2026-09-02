@@ -422,80 +422,6 @@
         <Border Grid.Row="3" Style="{StaticResource FooterBarStyle}">
             <StackPanel Spacing="8">
 
-                <!-- ── Franja de rendimiento (T11-01, compactada en T11-04) ────────────────────
-
-                     Nació como un Expander y ya no lo es. La razón de plegarlo era el alto: la ventana
-                     es de tamaño fijo y el panel desplegado ocupaba ~230 px. Pero un desplegable cobra
-                     su propio precio —un clic para ver un dato que se consulta de un vistazo, y un
-                     encabezado que hay que llenar con un resumen para que plegado diga algo—, y ese
-                     precio se paga SIEMPRE, mientras que el del alto solo se pagaba desplegado.
-
-                     Compactado a tres columnas el panel entero cabe en ~34 px, menos que el encabezado
-                     que tenía plegado. Con eso desaparece el motivo de plegarlo, y con él el desplegable:
-                     está siempre visible y siempre dice la verdad.
-
-                     Lo que se sacrifica es el PIE de cada métrica (el pico, los núcleos, el consumo de la
-                     app): ya no cabe en pantalla y se va al tooltip, junto al valor. No se pierde nada
-                     —el tooltip sí se muestra aquí, porque estos controles nunca se deshabilitan (a
-                     diferencia de los ítems de menú de T7-08)— y además es lo que un lector de pantalla
-                     recibe como nombre de cada celda.
-
-                     Las columnas NO son iguales: «100 %» de CPU siempre es corto y «13,0 GB / 31,9 GB»
-                     de RAM siempre es largo. Repartir a tercios dejaría a la RAM truncada con hueco
-                     sobrante a su izquierda. -->
-                <Grid x:Name="PerfStrip" ColumnDefinitions="1.15*,0.7*,1.15*" ColumnSpacing="14"
-                      AutomationProperties.Name="Rendimiento">
-
-                    <!-- Disco: caudal de la operación en curso, escalado contra su propio pico -->
-                    <StackPanel x:Name="PerfDiskCell" Spacing="4">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                            <TextBlock x:Name="PerfDiskLbl" Text="Disco"
-                                       Style="{StaticResource MetricCaptionStyle}"
-                                       VerticalAlignment="Center" />
-                            <TextBlock x:Name="PerfDiskValue" Grid.Column="1"
-                                       Style="{StaticResource MetricValueStyle}" />
-                        </Grid>
-                        <Border x:Name="PerfDiskBar" Style="{StaticResource MetricBarStyle}">
-                            <Grid x:Name="PerfDiskColumns" ColumnDefinitions="0*,100*">
-                                <Border x:Name="PerfDiskFill" Grid.Column="0" CornerRadius="2" />
-                            </Grid>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- CPU del equipo (no del proceso: el trabajo lo hacen procesos hijos) -->
-                    <StackPanel x:Name="PerfCpuCell" Grid.Column="1" Spacing="4">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                            <TextBlock x:Name="PerfCpuLbl" Text="CPU"
-                                       Style="{StaticResource MetricCaptionStyle}"
-                                       VerticalAlignment="Center" />
-                            <TextBlock x:Name="PerfCpuValue" Grid.Column="1"
-                                       Style="{StaticResource MetricValueStyle}" />
-                        </Grid>
-                        <Border x:Name="PerfCpuBar" Style="{StaticResource MetricBarStyle}">
-                            <Grid x:Name="PerfCpuColumns" ColumnDefinitions="0*,100*">
-                                <Border x:Name="PerfCpuFill" Grid.Column="0" CornerRadius="2" />
-                            </Grid>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- RAM física del equipo; el consumo de la propia app va al tooltip -->
-                    <StackPanel x:Name="PerfRamCell" Grid.Column="2" Spacing="4">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                            <TextBlock x:Name="PerfRamLbl" Text="RAM"
-                                       Style="{StaticResource MetricCaptionStyle}"
-                                       VerticalAlignment="Center" />
-                            <TextBlock x:Name="PerfRamValue" Grid.Column="1"
-                                       Style="{StaticResource MetricValueStyle}" />
-                        </Grid>
-                        <Border x:Name="PerfRamBar" Style="{StaticResource MetricBarStyle}">
-                            <Grid x:Name="PerfRamColumns" ColumnDefinitions="0*,100*">
-                                <Border x:Name="PerfRamFill" Grid.Column="0" CornerRadius="2" />
-                            </Grid>
-                        </Border>
-                    </StackPanel>
-
-                </Grid>
-
                 <ProgressBar x:Name="FormatProgress" />
 
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -520,7 +446,7 @@
                          (compresión incluida) está en su tooltip. -->
                     <TextBlock x:Name="FormatSummaryText" Grid.Column="1"
                                HorizontalAlignment="Right" VerticalAlignment="Center"
-                               Style="{StaticResource MetricCaptionStyle}" />
+                               Style="{StaticResource DriveMetaStyle}" />
                     <Button x:Name="StartButton" Grid.Column="2" Content="Iniciar" MinWidth="130"
                             Style="{StaticResource AccentButtonStyle}"
                             Click="StartButton_Click" />

@@ -206,23 +206,6 @@ public static class L
         ["info.dash"]        = ["–", "–", "–", "–", "–"],
         ["info.loading"]     = ["consultando…", "querying…", "consultando…", "interrogation…", "interrogazione…"],
 
-        // ── Panel de rendimiento del pie (T11-01) ──
-        // Tres filas con la misma forma: etiqueta a la izquierda, valor a la derecha y, bajo la barra,
-        // el pie que da el contexto que el valor solo no tiene (contra qué se mide).
-        ["perf.title"]       = ["Rendimiento", "Performance", "Desempenho", "Performances", "Prestazioni"],
-        ["perf.disk"]        = ["Disco", "Disk", "Disco", "Disque", "Disco"],
-        ["perf.cpu"]         = ["CPU", "CPU", "CPU", "Processeur", "CPU"],
-        ["perf.ram"]         = ["RAM", "RAM", "RAM", "RAM", "RAM"],
-        ["perf.disk.peak"]   = ["Pico {0}", "Peak {0}", "Pico {0}", "Pic {0}", "Picco {0}"],
-        ["perf.disk.idle"]   = ["Sin operación en curso", "No operation running", "Nenhuma operação em andamento", "Aucune opération en cours", "Nessuna operazione in corso"],
-        // El formato NO informa de bytes (format.com solo da porcentaje): decirlo evita que un caudal en
-        // blanco durante un formateo se lea como «no está haciendo nada».
-        ["perf.disk.noBytes"]= ["Esta operación no informa de bytes", "This operation does not report bytes", "Esta operação não informa bytes", "Cette opération ne rapporte pas d’octets", "Questa operazione non riporta byte"],
-        ["perf.cpu.cores"]   = ["Equipo · {0} núcleos", "Machine · {0} cores", "Computador · {0} núcleos", "Machine · {0} cœurs", "Computer · {0} core"],
-        ["perf.ram.value"]   = ["{0} / {1}", "{0} / {1}", "{0} / {1}", "{0} / {1}", "{0} / {1}"],
-        ["perf.ram.app"]     = ["FormatDiskPro {0}", "FormatDiskPro {0}", "FormatDiskPro {0}", "FormatDiskPro {0}", "FormatDiskPro {0}"],
-        ["perf.percent"]     = ["{0} %", "{0}%", "{0} %", "{0} %", "{0} %"],
-
         // ── Barra de acciones rápidas (T11-02) ──
         // Etiquetas CORTAS: las del menú ("Salud del disco (S.M.A.R.T.)…") no caben en un tercio de una
         // ventana de 500 DIP en ningún idioma. La frase larga sigue viva, en el tooltip.
