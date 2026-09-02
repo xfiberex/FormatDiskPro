@@ -138,10 +138,17 @@
         </StackPanel>
 
         <!-- Row 2: Scrollable content — cards inspired by Win11Debloat sections -->
-        <ScrollViewer x:Name="ContentScroller" Grid.Row="2" Padding="0"
+        <Grid Grid.Row="2" RowDefinitions="*,Auto">
+        <ScrollViewer x:Name="ContentScroller" Padding="0"
                       VerticalScrollBarVisibility="Auto"
+                      ViewChanged="ContentScroller_ViewChanged"
                       SizeChanged="ContentScroller_SizeChanged">
-            <StackPanel Padding="16,14,16,16" Spacing="12">
+            <!-- El SizeChanged va aquí y NO (solo) en el ScrollViewer: el del ScrollViewer mide el
+                 HUECO, que no cambia nunca en una ventana de tamaño fijo. Lo que crece es el CONTENIDO
+                 —la tarjeta de unidad al rellenarse, las opciones al aparecer—, y es eso lo que decide
+                 si hay algo que desplazar. Con el manejador solo en el ScrollViewer, la barra no salía. -->
+            <StackPanel x:Name="ContentPanel" Padding="16,14,16,16" Spacing="12"
+                        SizeChanged="ContentScroller_SizeChanged">
 
                 <!-- Aviso persistente: unidad de sistema protegida (formateo deshabilitado) -->
                 <InfoBar x:Name="ProtectedBar" Severity="Warning" IsClosable="False" IsOpen="False" />
@@ -392,6 +399,24 @@
 
             </StackPanel>
         </ScrollViewer>
+
+            <!-- ── «Hay más abajo» (T12-06) ────────────────────────────────────────────────────
+
+                 La ventana es de tamaño fijo, así que el contenido casi siempre desborda, y quedaba una
+                 tarjeta cortada por el borde inferior sin nada que lo dijera — con las OPCIONES de
+                 formato debajo.
+
+                 Este galón ocupa su PROPIA fila (`Auto`), no flota encima del contenido. No es un
+                 detalle de estilo: los dos intentos anteriores fallaron justamente por superponerse.
+                 Ver `UpdateScrollAffordance` para el registro de los dos.
+
+                 Raw: es una pista visual. Un lector de pantalla ya recorre el contenido entero,
+                 desborde o no, y anunciar un galón decorativo solo estorbaría. -->
+            <FontIcon x:Name="ScrollMoreHint" Grid.Row="1" Glyph="&#xE70D;" FontSize="10"
+                      Foreground="{ThemeResource AppMutedTextBrush}"
+                      Margin="0,1,0,3" Visibility="Collapsed"
+                      AutomationProperties.AccessibilityView="Raw" />
+        </Grid>
 
         <!-- Row 3: Footer action bar (progress + status + actions), Win11Debloat-style -->
         <Border Grid.Row="3" Style="{StaticResource FooterBarStyle}">

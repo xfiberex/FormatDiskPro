@@ -665,28 +665,43 @@ public sealed partial class MainWindow : Window
     private void ContentScroller_SizeChanged(object sender, SizeChangedEventArgs e)
         => UpdateScrollAffordance();
 
+    private void ContentScroller_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+        => UpdateScrollAffordance();
+
     /// <summary>
-    /// Deja la barra de desplazamiento a la vista cuando —y solo cuando— hay contenido por debajo.
+    /// Enseña el galón de «hay más abajo» mientras quede contenido sin ver.
     /// </summary>
     /// <remarks>
     /// <para><b>El problema.</b> La ventana es de <b>tamaño fijo</b>, así que el contenido casi siempre
-    /// desborda; y WinUI oculta la barra hasta que alguien interactúa (modo «consciente»). El resultado
-    /// era una tarjeta cortada a media altura por el borde inferior sin nada que dijera que había más
-    /// abajo — y lo que quedaba abajo eran las <i>opciones de formato</i>.</para>
+    /// desborda; y Windows oculta las barras de desplazamiento hasta que alguien interactúa. Quedaba una
+    /// tarjeta cortada a media altura por el borde inferior sin nada que dijera que había más abajo — y
+    /// lo que quedaba abajo eran las <i>opciones de formato</i>.</para>
     ///
-    /// <para><b>Lo que se probó antes y se descartó:</b> un degradado en el borde inferior. Sobre el
-    /// material Mica no hay un color de fondo que igualar —el degradado tiene que acabar en algo opaco y
-    /// la ventana no lo es—, así que se leía como una <b>franja clara</b> y dejaba el campo que tapaba
-    /// con aspecto de deshabilitado. Era peor que el problema que resolvía.</para>
+    /// <para><b>Dos intentos anteriores, los dos descartados con la app delante.</b> Constan para que no
+    /// se reintenten pensando que son lo obvio:</para>
+    /// <list type="number">
+    ///   <item><description>Un <b>degradado</b> en el borde inferior. Sobre el material <b>Mica</b> no
+    ///   hay color de fondo que igualar —el degradado tiene que acabar en algo opaco y la ventana no lo
+    ///   es—, así que se leyó como una franja clara; y al superponerse a un <c>TextBox</c> lo dejaba con
+    ///   aspecto de deshabilitado. Cualquier velo sobre el contenido tiene ese segundo problema.</description></item>
+    ///   <item><description>Forzar <c>VerticalScrollBarVisibility="Visible"</c>. <b>No hace nada</b> con
+    ///   las barras auto-ocultas del sistema (el valor por defecto de Windows 11): el <c>ScrollBar</c> se
+    ///   hace visible pero su estado de indicador lo sigue colapsando hasta que hay interacción. Se
+    ///   comprobó ampliando la franja derecha de una captura: no había rail.</description></item>
+    /// </list>
     ///
-    /// <para><b>Esto no pisa la preferencia del sistema</b> («Mostrar siempre las barras de
-    /// desplazamiento»): no se enseña <i>siempre</i>, se enseña cuando hay algo que desplazar, que es
-    /// exactamente para lo que existe una barra. Sin desbordamiento vuelve a <c>Auto</c> y desaparece.</para>
+    /// <para><b>Por eso el galón ocupa su propia fila</b> en vez de flotar sobre el contenido: no tapa
+    /// nada, no lava ningún control y no depende de ningún color de fondo. Cuesta 14 px, y solo cuando
+    /// hay algo que desplazar.</para>
+    ///
+    /// <para>No oscila: al aparecer quita alto al <c>ScrollViewer</c>, lo que solo puede <i>aumentar</i>
+    /// el desbordamiento, así que la condición que lo encendió sigue siendo cierta.</para>
     /// </remarks>
     private void UpdateScrollAffordance()
-        => ContentScroller.VerticalScrollBarVisibility = ContentScroller.ScrollableHeight > 1
-            ? ScrollBarVisibility.Visible
-            : ScrollBarVisibility.Auto;
+    {
+        double remaining = ContentScroller.ScrollableHeight - ContentScroller.VerticalOffset;
+        ScrollMoreHint.Visibility = remaining > 1 ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     /// <summary>
     /// Fija el color de la barra de progreso a partir de la paleta medida, en vez de dejar el del
