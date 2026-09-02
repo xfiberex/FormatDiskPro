@@ -452,18 +452,34 @@ misma pantalla es justo lo que esa franja se diseñó para evitar. Las operacion
 bytes son dos: verificación de capacidad y borrado seguro. Durante un benchmark, un formateo o un
 `chkdsk`, la fila enseña un guion y su tooltip dice por qué.
 
-**`T12-06` — el contenido se cortaba sin decir que seguía.** La ventana es de tamaño fijo, así que el
-contenido casi siempre desborda, y WinUI oculta la barra de desplazamiento hasta que alguien interactúa.
-Quedaba una tarjeta cortada por el borde inferior sin ninguna señal — y lo que quedaba debajo eran las
-**opciones de formato**. Ahora la barra se deja a la vista cuando hay algo que desplazar, y vuelve a
-`Auto` cuando no; eso no pisa la preferencia de accesibilidad del sistema, porque no se enseña *siempre*,
-se enseña cuando hace falta.
+**`T12-06` — el contenido se cortaba sin decir que seguía, y costó tres intentos.** La ventana es de
+tamaño fijo, así que el contenido casi siempre desborda, y Windows oculta las barras de desplazamiento
+hasta que alguien interactúa. Quedaba una tarjeta cortada por el borde inferior sin ninguna señal — y lo
+que quedaba debajo eran las **opciones de formato**.
 
-**Lo que se probó primero y se descartó con la app delante:** un degradado en el borde inferior. Sobre el
-material **Mica** no hay un color de fondo que igualar —el degradado tiene que acabar en algo opaco y la
-ventana no lo es—, así que se leyó como una **franja clara** y dejaba el campo que tapaba con aspecto de
-deshabilitado. Peor que el problema que resolvía. Queda escrito para que nadie lo reintente pensando que
-es la solución obvia.
+*Intento 1: un degradado en el borde inferior.* Sobre el material **Mica** no hay un color de fondo que
+igualar —el degradado tiene que acabar en algo opaco y la ventana no lo es—, así que se leyó como una
+**franja clara**; y al superponerse a un `TextBox` lo dejaba con aspecto de **deshabilitado**. Ese segundo
+problema lo tiene cualquier velo sobre el contenido, no solo un degradado.
+
+*Intento 2: forzar `VerticalScrollBarVisibility="Visible"`.* Se dio por bueno **sin comprobarlo**, y no
+hace nada: con las barras auto-ocultas de Windows 11 —el valor por defecto— el `ScrollBar` se hace
+visible pero su estado de indicador lo sigue colapsando hasta que hay interacción. Se descubrió al
+**regenerar las capturas del README**: no salía el rail, y ampliando ×6 la franja derecha de la captura no
+había barra ninguna. Compilaba, corría, y no hacía nada de lo que decía.
+
+*Intento 3, el que está:* un **galón** (`⌄`) centrado bajo el contenido, en **su propia fila**. No tapa
+nada, no lava ningún control y no depende de ningún color de fondo. Cuesta 14 px y solo cuando hay algo
+que desplazar. No oscila: al aparecer quita alto al `ScrollViewer`, lo que solo puede *aumentar* el
+desbordamiento.
+
+*Y el disparador tampoco era el que parecía.* `SizeChanged` del `ScrollViewer` mide el **hueco**, que en
+una ventana de tamaño fijo no cambia nunca; lo que crece es el **contenido** —la tarjeta de unidad al
+rellenarse—, así que el manejador va en el `StackPanel` de dentro. Con él solo en el `ScrollViewer`, el
+galón no salía.
+
+**La lección, que es la de siempre aquí:** un arreglo de UI que no se ha *visto* funcionar no se sabe si
+funciona. Los dos primeros intentos pasaron build y pruebas sin hacer nada.
 
 **Y dos refinamientos que se propusieron y NO se hicieron**, con su porqué en el
 [`ROADMAP.md`](ROADMAP.md#dos-refinamientos-que-se-propusieron-y-no-se-hicieron): encoger el aviso de

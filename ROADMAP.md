@@ -2429,14 +2429,26 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Qué pasaba:** la ventana es de **tamaño fijo**, así que el contenido casi siempre desborda; y WinUI
     oculta la barra de desplazamiento hasta que alguien interactúa. Quedaba una tarjeta cortada por el
     borde inferior sin nada que avisara — y lo que quedaba debajo eran las **opciones de formato**.
-  - **Qué se hizo:** la barra de desplazamiento se deja a la vista **cuando hay algo que desplazar**, y
-    vuelve a `Auto` cuando no. No pisa la preferencia de accesibilidad del sistema («Mostrar siempre las
-    barras de desplazamiento»): no se enseña *siempre*, se enseña cuando hace falta.
-  - **Lo que se probó primero y se descartó, con la app delante:** un degradado en el borde inferior.
-    Sobre el material **Mica** no hay un color de fondo que igualar —el degradado tiene que acabar en algo
-    opaco y la ventana no lo es—, así que se leyó como una **franja clara** y dejaba el campo que tapaba
-    con aspecto de deshabilitado. Era peor que el problema que resolvía. Queda escrito para que nadie lo
-    reintente pensando que es obvio.
+  - **Qué se hizo:** un **galón** (`⌄`) centrado bajo el contenido, que aparece mientras quede algo por
+    ver y desaparece al llegar al final. Ocupa **su propia fila**, no flota encima del contenido.
+  - **Costó tres intentos, y los dos primeros constan para que no se reintenten:**
+    1. **Un degradado en el borde inferior.** Sobre el material **Mica** no hay un color de fondo que
+       igualar —el degradado tiene que acabar en algo opaco y la ventana no lo es—, así que se leyó como
+       una **franja clara**; y al superponerse a un `TextBox` lo dejaba con aspecto de **deshabilitado**.
+       Ese segundo problema lo tiene cualquier velo sobre el contenido, no solo este.
+    2. **Forzar `VerticalScrollBarVisibility="Visible"`.** Se dio por bueno sin comprobarlo y **no hace
+       nada**: con las barras auto-ocultas de Windows 11 (el valor por defecto), el `ScrollBar` se hace
+       visible pero su estado de indicador lo sigue colapsando hasta que hay interacción. Se descubrió al
+       **regenerar las capturas del README**: no salía el rail. Se confirmó ampliando ×6 la franja derecha
+       de la captura — ahí no había barra ninguna.
+  - **La lección, y es la de siempre en este repo:** un arreglo de UI que no se ha *visto* funcionar no se
+    sabe si funciona. Los dos primeros intentos compilaban, corrían y no hacían nada de lo que decían.
+  - **Por eso el galón ocupa su propia fila:** no tapa nada, no lava ningún control y no depende de
+    ningún color de fondo. Cuesta 14 px, y solo cuando hay algo que desplazar. No oscila: al aparecer
+    quita alto al `ScrollViewer`, lo que solo puede *aumentar* el desbordamiento.
+  - **Y el disparador tampoco era el que parecía:** `SizeChanged` del `ScrollViewer` mide el **hueco**,
+    que en una ventana de tamaño fijo no cambia nunca. Lo que crece es el **contenido**, así que el
+    manejador va en el `StackPanel` de dentro.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 

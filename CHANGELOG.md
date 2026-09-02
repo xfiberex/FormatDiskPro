@@ -59,10 +59,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   visible, así que se podía lanzar un formateo sin haber visto nunca con qué opciones. El detalle
   completo está en el tooltip.
 
-- **La barra de desplazamiento se ve cuando hay algo que ver debajo.** La ventana es de tamaño fijo y el
-  contenido casi siempre desborda, pero la barra estaba oculta hasta interactuar: quedaba una tarjeta
-  cortada por el borde inferior sin ninguna señal de que seguía — y lo que quedaba debajo eran las
-  opciones de formato.
+- **Un indicador avisa de que hay más contenido debajo.** La ventana es de tamaño fijo y el contenido
+  casi siempre desborda, pero Windows oculta las barras de desplazamiento hasta que interactúas: quedaba
+  una tarjeta cortada por el borde inferior sin ninguna señal de que seguía — y lo que quedaba debajo
+  eran las opciones de formato. Ahora aparece un pequeño galón bajo el contenido mientras quede algo por
+  ver.
 
 - **Los presets están donde se usan.** Un selector *Presets* en la cabecera de *Configuración de formato*,
   que es exactamente lo que un preset configura; estaban solo en *Configuración → Presets*, a tres menús
