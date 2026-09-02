@@ -13,7 +13,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
-## [No publicado]
+## [1.26.0] — 2026-09-01
+
+**Una revisión de la ventana principal: qué se ve primero, qué se lee y qué dice el botón que borra
+datos.** Nada de esto salió de un informe de fallo — salió de mirar la aplicación en marcha y medir lo que
+enseña.
 
 ### Corregido
 
@@ -669,7 +673,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.24.1...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.26.0...HEAD
+[1.26.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.26.0
 [1.25.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.25.0
 [1.24.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.1
 [1.24.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.0
