@@ -29,18 +29,18 @@
                      IsTabStop="True" />
             <TextBlock Text="FormatDiskPro" FontWeight="SemiBold" FontSize="18"
                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-            <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="12" />
+            <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             <TextBlock x:Name="DescText" TextWrapping="Wrap" FontSize="13" />
-            <TextBlock x:Name="CopyrightText" TextWrapping="Wrap" FontSize="12" Opacity="0.85" />
+            <TextBlock x:Name="CopyrightText" TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
             <Border Height="1" Margin="0,4"
                     Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
             <TextBlock x:Name="DisclaimerHeader" FontWeight="SemiBold" FontSize="13" />
-            <TextBlock x:Name="DisclaimerText" TextWrapping="Wrap" FontSize="12" Opacity="0.9" />
+            <TextBlock x:Name="DisclaimerText" TextWrapping="Wrap" FontSize="12" />
 
             <TextBlock x:Name="PrivacyHeader" FontWeight="SemiBold" FontSize="13" Margin="0,4,0,0" />
-            <TextBlock x:Name="PrivacyText" TextWrapping="Wrap" FontSize="12" Opacity="0.9" />
+            <TextBlock x:Name="PrivacyText" TextWrapping="Wrap" FontSize="12" />
         </StackPanel>
     </ScrollViewer>
 </ContentDialog>

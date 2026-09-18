@@ -26,7 +26,7 @@
 > 2026-08-26 al cortar la v1.25.0, con `T10-02` bloqueada a propósito. **Tier 11 — Rendimiento y jerarquía
 > de la ventana principal** (`T11-01`–`T11-04`) y **Tier 12 — Lo que la ventana no dice**
 > (`T12-01`–`T12-07`), abiertos y cerrados el 2026-09-01. Y **Tier 13 — Lo que solo se ve midiendo**
-> (`T13-01`–`T13-16`), **abierto el 2026-09-18** por una auditoría de UI/UX.
+> (`T13-01`–`T13-18`), **abierto el 2026-09-18** por una auditoría de UI/UX.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
@@ -38,6 +38,12 @@
 > el alto efectivo de la ventana según el escalado. Lo más revelador: el barrido de contraste de `T12-01`
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
+>
+> **Progreso del Tier 13: 2/18.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
+> opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
+> su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
+> `T13-18`: *Reinicializar* rechaza un plan FAT32 demasiado grande con un mensaje que no dice por qué.
 >
 > **El mismo día se revisa `T2-10`: hay CI.** El repositorio es público, y la decisión del 2026-08-15 daba
 > por asumido que un PR externo no ejecutaría nada hasta que el mantenedor lo corriera en su máquina. Ahora
@@ -2358,7 +2364,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ### Defectos — la interfaz dice algo que no es cierto, o no se lee
 
-- [ ] **[T13-01] Cinco textos no llegan a WCAG AA en tema claro, y están atenuados con `Opacity`** · Alta
+- [x] **[T13-01] Cinco textos no llegan a WCAG AA en tema claro, y están atenuados con `Opacity`** — **hecho (2026-09-18)** · Alta
   - **Área:** Accesibilidad / contraste
   - **Ubicación:** [MainWindow.xaml:434](src/FormatDiskPro/UI/MainWindow.xaml#L434) (`ElapsedText`) ·
     [HistoryDialog.xaml:32](src/FormatDiskPro/UI/HistoryDialog.xaml#L32), [51](src/FormatDiskPro/UI/HistoryDialog.xaml#L51),
@@ -2384,8 +2390,21 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     opacidades puesta y pasa sin ellas.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna (se verifica con `T13-02`)
+  - **Hecho:** ya no queda ninguna `Opacity` en un texto.
+    - Los cinco que no llegaban a AA pasan a `AppMutedTextBrush`: el cronómetro del pie, el recuento,
+      la fecha de cada fila y el «vacío» del historial, y la nota de Salud.
+    - Pasan a `TextFillColorSecondaryBrush` los que estaban al 0,7–0,85: versión y copyright de
+      *Acerca de*, el estado y las etiquetas de fila de Salud, las dos pistas de presets y el detalle
+      del historial.
+    - El aviso y la privacidad de *Acerca de* (0,9) quedan en texto primario: son párrafos para leer, y
+      el 0,9 ya estaba más cerca del primario que del secundario.
+    - La etiqueta de fila de Salud se crea en código, y ahora toma un **estilo** del diálogo en vez de un
+      pincel de `Application.Current.Resources`. Ese diccionario devuelve el del tema de Windows, no el
+      forzado desde *Configuración* (ver `T13-17`).
+    - **Verificado:** `NoTextIsDimmedWithOpacity` falló con las catorce (trece en XAML, una en código),
+      nombrando archivo y línea, y pasa sin ellas.
 
-- [ ] **[T13-02] El barrido de contraste de `T12-01` tiene tres puntos ciegos** · Alta
+- [x] **[T13-02] El barrido de contraste de `T12-01` tiene tres puntos ciegos** — **hecho (2026-09-18)** · Alta
   - **Área:** Accesibilidad / pruebas
   - **Ubicación:** [TextContrastTests.cs:51-52](tests/FormatDiskPro.Tests/TextContrastTests.cs#L51-L52)
     (el regex) · [TextContrastTests.cs:74](tests/FormatDiskPro.Tests/TextContrastTests.cs#L74) ·
@@ -2413,6 +2432,23 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     casos y ver fallar la prueba nombrándolo.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho:** `TextContrastTests` recoge **todo** `Foreground` que venga de un recurso: en atributo, en
+    `Setter` y desde código (`Resources["…"]`). Además recoge cualquier `*TextFillColor*Brush` nombrado,
+    con el nombre anclado y sin leer comentarios.
+    - Cada pincel tiene que resolverse a un color medido, de `FluentTextPalette` o del gris propio. Si no,
+      necesita un motivo escrito en `FluentTextPalette.ExemptionReason`.
+    - `SystemFillColorCriticalBrush` se declara con los valores del `generic.xaml` de la 1.8: `#C42B1C`
+      en claro y `#FF99A4` en oscuro. Pasa.
+    - El acento queda **exento con su motivo**, que remite a `T13-15`.
+    - `NoTextIsDimmedWithOpacity` prohíbe la `Opacity` en un `TextBlock`: en el atributo, en un estilo de
+      `TextBlock` y en un `new TextBlock { … }`. **No ve** la opacidad de un contenedor ni un
+      `x.Opacity = …` suelto, y así queda escrito en el test.
+    - **Verificado en negativo:**
+      - Sin declarar el rojo crítico ni exentar el acento, el barrido falla nombrando los seis archivos:
+        `ConfirmDialog`, `MainWindow` y `PresetsDialog` por el rojo; `AboutDialog`, `AppTheme` y
+        `WhatsNewDialog` por el acento.
+      - Con las opacidades de antes, falla con las catorce.
+      - Dos pruebas más fijan los casos: el nombre se lee entero y los comentarios no se miden.
 
 - [ ] **[T13-03] *Reinicializar* se confirma con un botón que dice «Formatear»** · Alta
   - **Área:** UI / prevención de errores
@@ -2636,6 +2672,53 @@ ofrece y luego se niega, y qué hay que repetir a mano.
       ([MainWindow.xaml:340](src/FormatDiskPro/UI/MainWindow.xaml#L340)); se renderizó para comprobarlo.
       `E9D5` (lista de comprobación) encaja con tres casillas.
   - **Qué hacer:** limpiar los cuatro. Lo tipográfico mueve el layout: pasada de galería después.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-17] La etiqueta deshabilitada de las opciones toma el gris del tema de Windows, no el de la app** · Media · *sin reproducir*
+  - **Área:** UI / tema
+  - **Ubicación:** [MainWindow.FormatOptions.cs:249](src/FormatDiskPro/UI/MainWindow.FormatOptions.cs#L249)
+  - **Qué pasa:** al deshabilitar un bloque de opciones, sus etiquetas se pintan con
+    `Application.Current.Resources["TextFillColorDisabledBrush"]`.
+    - Ese diccionario resuelve los recursos de tema con el tema **de la aplicación**, que sigue al de
+      Windows. El tema elegido en *Configuración* se fuerza en el elemento raíz (`root.RequestedTheme`).
+      El propio [MainWindow.Preferences.cs:287](src/FormatDiskPro/UI/MainWindow.Preferences.cs#L287)
+      documenta esa diferencia para otro caso.
+    - Con Windows en oscuro y la app forzada a claro, la etiqueta saldría en `#5DFFFFFF`: blanco
+      translúcido sobre una tarjeta clara, es decir, invisible.
+    - Salió al hacer `T13-01`, donde la etiqueta de Salud tenía el mismo riesgo y se resolvió con un estilo.
+  - **Qué hacer:** reproducirlo con Windows en oscuro y la app en claro. Si se confirma, que la etiqueta
+    tome el pincel de un estilo o de sus propios recursos, que sí siguen su tema.
+  - **Criterio de aceptación:** la etiqueta deshabilitada se ve en las cuatro combinaciones de tema de
+    Windows y de la app.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-18] *Reinicializar* rechaza el plan sin decir por qué, y el sistema sugerido lleva a ese rechazo** · Media
+  - **Área:** UX / mensajes de error
+  - **Ubicación:** [MainWindow.Operations.cs:414-419](src/FormatDiskPro/UI/MainWindow.Operations.cs#L414-L419) ·
+    `reinit.invalidPlan` en [Localization.cs](src/FormatDiskPro/Localization/Localization.cs) ·
+    `PlanProblem` en [PartitionPlan.cs](src/FormatDiskPro/Core/PartitionPlan.cs)
+  - **Qué pasa, reproducido** (2026-09-18, con la USB de pruebas actual: disco de 59,8 GB en tres
+    particiones, *BIOS FLASH*, *Booteable* y *Utilidades*):
+    - Con `F:` (28,5 GB) elegida, el selector sugiere **FAT32**, porque decide por el tamaño del
+      **volumen**.
+    - *Reinicializar* trabaja sobre el **disco físico entero**. `PartitionPlan.Validate` rechaza una FAT32
+      de 59,8 GB (`Fat32VolumeTooLarge`), y la app solo dice «La distribución de particiones pedida no es
+      válida para este disco. No se ha modificado nada.».
+    - El motivo exacto va al historial (`REINIT REJECTED …`), pero no a quien lo lee en pantalla, que no
+      sabe que tiene que cambiar el sistema de archivos o marcar la FAT32 pequeña.
+    - Lo destapó la galería. La toma `reinit` de `tools/capture-screenshots.ps1` falla en los dos temas
+      con esta USB, porque espera la confirmación y aparece el rechazo.
+  - **Qué hacer:**
+    - Un mensaje por `PlanProblem`, al menos para los que puede provocar el formulario: FAT32 de más de
+      32 GB, FAT de más de 2 GB, que no quepa y etiqueta no válida. Cada uno debe decir **qué cambiar**,
+      por ejemplo: «FAT32 no admite volúmenes de más de 32 GB y el disco mide 59,8 GB: elige exFAT o NTFS,
+      o marca la partición FAT32 pequeña». En los 5 idiomas.
+    - Que la toma `reinit` de la galería elija un sistema de archivos válido en vez de depender del
+      sugerido.
+  - **Criterio de aceptación:** con esa USB, FAT32 y `F:` elegidos, el rechazo nombra el límite y la
+    salida. Una prueba unitaria garantiza que todo `PlanProblem` alcanzable tiene su texto.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
@@ -3049,6 +3132,7 @@ restauran.
 |---|---|---|
 | 2026-09-18 | **T2-10** (revisada) | **Hay CI**, al hacerse público el repositorio: compilación Release con `-warnaserror`, unitarias y compilación —no ejecución— de las pruebas de UI en cada push a `master` y cada PR, más CodeQL y Dependabot para las acciones. Acciones fijadas a un commit, `actionlint` sin errores, y la secuencia del CI verificada en local antes de publicarla (626 pruebas, 0 advertencias, 46 s). El resumen de cada ejecución dice lo que no ejecutó: es la respuesta a la objeción que tumbó la primera versión. La puerta de publicación no cambia. |
 | 2026-09-18 | — | **Se abre el [Tier 13](#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18)** con **16 tareas** (3 Altas · 7 Medias · 6 Bajas), de una auditoría de UI/UX que **midió** en lugar de mirar: contraste sobre los fondos de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. El barrido de `T12-01` tenía tres puntos ciegos —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como si fuera texto primario, un pincel de texto que no busca y la `Opacity`— y por ellos pasaron cinco textos por debajo de AA. |
+| 2026-09-18 | **T13-02**, **T13-01** | El barrido de contraste **ya ve lo que se le escapaba**. Recoge todo `Foreground` de un recurso (XAML, `Setter` y código) con el nombre anclado y sin leer comentarios, mide `SystemFillColorCriticalBrush` (`#C42B1C` / `#FF99A4`), exige un motivo escrito a cada exención (el acento, que remite a `T13-15`) y **prohíbe la `Opacity` en un texto**. Verificado en negativo: sin la declaración ni la exención falla nombrando seis archivos, y con las opacidades de antes, las catorce. Las catorce pasan a pinceles medidos: `AppMutedTextBrush` las cinco que no llegaban a AA, `TextFillColorSecondaryBrush` las de 0,7–0,85 y texto primario las de 0,9. **Nueva `T13-17`**, sin reproducir: una etiqueta deshabilitada toma el gris del tema de Windows y no el de la app. Unitarias **630** (629 pasan · 1 se omite). UI con la USB: **36/37** en la primera pasada; el fallo de `HealthDialog_OpensForTestDrive`, justo tras el benchmark, no se reprodujo ni sola ni con su clase entera. **Nueva `T13-18`**: *Reinicializar* rechaza sin decir por qué. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

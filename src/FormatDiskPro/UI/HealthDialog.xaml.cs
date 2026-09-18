@@ -200,7 +200,7 @@ public sealed partial class HealthDialog : ContentDialog
 
         var lbl = new TextBlock
         {
-            Text = label, FontSize = 13, Opacity = 0.7, TextWrapping = TextWrapping.Wrap,
+            Text = label, Style = (Style)Resources["HealthRowLabelStyle"],
         };
         var val = new TextBlock
         {

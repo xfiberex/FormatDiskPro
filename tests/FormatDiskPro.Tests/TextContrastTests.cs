@@ -23,6 +23,11 @@ namespace FormatDiskPro.Tests;
 /// <see cref="SeverityPalette.All"/> es enumerable en vez de una tanda de comprobaciones sueltas: añadir
 /// un color a la app tiene que ser lo mismo que ponerlo bajo test, sin un segundo paso que se pueda
 /// olvidar.</para>
+///
+/// <para><b>Tres puntos ciegos que tuvo</b> (`T13-02`), y por los que pasaron cinco textos por debajo de
+/// AA: leía los nombres sin anclar (el acento salía medido como texto primario), solo buscaba pinceles
+/// llamados <c>TextFillColor…</c> (el rojo de error, <c>SystemFillColorCriticalBrush</c>, pinta texto y no
+/// se medía) y no miraba la <c>Opacity</c>, que cambia el color de verdad sin cambiar el pincel.</para>
 /// </remarks>
 public sealed class TextContrastTests
 {
@@ -48,52 +53,116 @@ public sealed class TextContrastTests
                      && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))];
     }
 
-    private static readonly Regex TextBrush =
-        new(@"TextFillColor(\w+)Brush", RegexOptions.Compiled);
+    /// <summary>Code-behind de la interfaz (<c>UI/*.cs</c>), sin lo generado.</summary>
+    private static List<string> AppUiCodeFiles()
+    {
+        string ui = Path.Combine(RepoRoot(), "src", "FormatDiskPro", "UI");
+        return [.. Directory.EnumerateFiles(ui, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.EndsWith(".g.cs", StringComparison.Ordinal) && !f.EndsWith(".g.i.cs", StringComparison.Ordinal))];
+    }
 
     /// <summary>
-    /// Todo pincel de texto de Fluent usado en el XAML de la app cumple el 4,5:1 de WCAG AA en los dos
-    /// temas — salvo el de deshabilitado, que la propia norma exime.
+    /// El XAML sin comentarios. El barrido de `T12-01` leía también los comentarios, y en uno de
+    /// <c>AppTheme.xaml</c> «medía» un color que no pinta nada (`T13-02`).
+    /// </summary>
+    /// <remarks>Conserva los saltos de línea, para que los números de línea de los fallos sigan siendo los del archivo.</remarks>
+    internal static string WithoutXmlComments(string xaml)
+        => Regex.Replace(xaml, "<!--.*?-->", m => new string('\n', m.Value.Count(c => c == '\n')), RegexOptions.Singleline);
+
+    // Todos anclan el nombre ENTERO. `TextFillColor(\w+)Brush` sin anclar encontraba
+    // «TextFillColorPrimaryBrush» dentro de «AccentTextFillColorPrimaryBrush» y medía el acento de cada
+    // usuario como si fuera texto casi negro (16,65:1): un aprobado falso (`T13-02`).
+    internal static readonly Regex AnyTextFillBrush =
+        new(@"\b\w*TextFillColor\w*Brush\b", RegexOptions.Compiled);
+    private static readonly Regex ForegroundAttribute =
+        new(@"\bForeground=""\{(?:Theme|Static)Resource\s+(\w+)\s*\}""", RegexOptions.Compiled);
+    private static readonly Regex ForegroundSetter =
+        new(@"<Setter\s+Property=""Foreground""\s+Value=""\{(?:Theme|Static)Resource\s+(\w+)\s*\}""", RegexOptions.Compiled);
+    private static readonly Regex ForegroundFromCode =
+        new(@"\bForeground\s*=\s*\(\s*Brush\s*\)[^;]*?Resources\[""(\w+)""\]", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Todo pincel que la app usa como color de texto, con el archivo donde aparece: todo
+    /// <c>Foreground</c> de un recurso —en atributo, en <c>Setter</c> o desde código— y todo
+    /// <c>*TextFillColor*Brush</c> nombrado en el XAML, esté donde esté.
+    /// </summary>
+    private static List<(string File, string Brush)> TextBrushUsages()
+    {
+        var usages = new List<(string, string)>();
+
+        foreach (string file in AppXamlFiles())
+        {
+            string xaml = WithoutXmlComments(File.ReadAllText(file));
+            string name = Path.GetFileName(file);
+            foreach (Regex rx in (Regex[])[ForegroundAttribute, ForegroundSetter])
+                foreach (Match m in rx.Matches(xaml)) usages.Add((name, m.Groups[1].Value));
+            foreach (Match m in AnyTextFillBrush.Matches(xaml)) usages.Add((name, m.Value));
+        }
+
+        foreach (string file in AppUiCodeFiles())
+            foreach (Match m in ForegroundFromCode.Matches(File.ReadAllText(file)))
+                usages.Add((Path.GetFileName(file), m.Groups[1].Value));
+
+        return [.. usages.Distinct()];
+    }
+
+    /// <summary>
+    /// Color real de un pincel de texto: los de Fluent, de <see cref="FluentTextPalette"/>; el gris propio,
+    /// de <see cref="SeverityPalette.MutedText"/>, del que <see cref="TheMutedBrushInXaml_MatchesTheMeasuredColor"/>
+    /// garantiza que es copia exacta.
+    /// </summary>
+    private static bool TryResolve(string brush, bool dark, out Color color)
+    {
+        if (brush == "AppMutedTextBrush")
+        {
+            color = SeverityPalette.MutedText(dark);
+            return true;
+        }
+        return FluentTextPalette.TryGet(brush, dark, out color);
+    }
+
+    /// <summary>
+    /// Todo color de texto que la app toma de un recurso cumple el 4,5:1 de WCAG AA en los dos temas, o
+    /// está exento con su motivo escrito en <see cref="FluentTextPalette.ExemptionReason"/>.
     /// </summary>
     [Fact]
-    public void EveryFluentTextBrushUsedInXaml_MeetsAA()
+    public void EveryTextBrushUsed_MeetsAA()
     {
         var files = AppXamlFiles();
 
         // Un barrido que no encuentra archivos pasaría siempre: eso es lo que hay que evitar aquí.
         Assert.True(files.Count >= 8, $"Solo se encontraron {files.Count} XAML: el barrido no está mirando donde debe.");
 
+        var usages = TextBrushUsages();
+        Assert.Contains(usages, u => u.Brush == "SystemFillColorCriticalBrush");
+
         var offenders = new List<string>();
         var unknown = new List<string>();
 
-        foreach (string file in files)
+        foreach ((string file, string brush) in usages)
         {
-            string text = File.ReadAllText(file);
-            foreach (Match m in TextBrush.Matches(text))
+            if (FluentTextPalette.ExemptionReason(brush) is not null) continue;
+
+            foreach (bool dark in (bool[])[false, true])
             {
-                string brush = m.Value;
-                if (FluentTextPalette.IsExemptFromNormalText(brush)) continue;
-
-                foreach (bool dark in (bool[])[false, true])
+                if (!TryResolve(brush, dark, out Color color))
                 {
-                    if (!FluentTextPalette.TryGet(brush, dark, out Color color))
-                    {
-                        unknown.Add($"{Path.GetFileName(file)}: {brush}");
-                        break;
-                    }
-
-                    var entry = new PaletteColor(brush, color, dark, ContrastRequirement.NormalText);
-                    double ratio = SeverityPalette.ContrastAgainstReference(entry);
-                    if (ratio < entry.MinimumRatio)
-                        offenders.Add(
-                            $"{Path.GetFileName(file)}: {brush} en tema {(dark ? "oscuro" : "claro")} " +
-                            $"da {ratio:F2}:1, por debajo de {entry.MinimumRatio:F1}:1");
+                    unknown.Add($"{file}: {brush}");
+                    break;
                 }
+
+                var entry = new PaletteColor(brush, color, dark, ContrastRequirement.NormalText);
+                double ratio = SeverityPalette.ContrastAgainstReference(entry);
+                if (ratio < entry.MinimumRatio)
+                    offenders.Add(
+                        $"{file}: {brush} en tema {(dark ? "oscuro" : "claro")} " +
+                        $"da {ratio:F2}:1, por debajo de {entry.MinimumRatio:F1}:1");
             }
         }
 
         Assert.True(unknown.Count == 0,
-            "La app usa colores de texto que nadie ha medido. Declara su valor en FluentTextPalette:\n  "
+            "La app usa colores de texto que nadie ha medido. Declara su valor en FluentTextPalette, o su "
+            + "excepción, con el motivo, en FluentTextPalette.ExemptionReason:\n  "
             + string.Join("\n  ", unknown.Distinct()));
 
         Assert.True(offenders.Count == 0,
@@ -101,6 +170,76 @@ public sealed class TextContrastTests
             + "SeverityPalette.MutedText, que está medido:\n  "
             + string.Join("\n  ", offenders.Distinct()));
     }
+
+    /// <summary>
+    /// El nombre del pincel se lee entero: el acento no se confunde con el texto primario.
+    /// </summary>
+    [Theory]
+    [InlineData("Foreground=\"{ThemeResource AccentTextFillColorPrimaryBrush}\"", "AccentTextFillColorPrimaryBrush")]
+    [InlineData("Value=\"{ThemeResource TextFillColorSecondaryBrush}\"", "TextFillColorSecondaryBrush")]
+    public void TheBrushName_IsReadWhole(string xaml, string expected)
+        => Assert.Equal(new[] { expected }, AnyTextFillBrush.Matches(xaml).Select(m => m.Value).ToArray());
+
+    /// <summary>Lo comentado no se mide: no pinta nada.</summary>
+    [Fact]
+    public void XmlComments_AreNotSwept()
+        => Assert.Empty(AnyTextFillBrush.Matches(WithoutXmlComments(
+            "<!-- usa TextFillColorTertiaryBrush -->\n<TextBlock Text=\"x\" />")));
+
+    // `Opacity` en un TextBlock: en XAML (atributo del elemento, o Setter de un estilo de TextBlock) y en
+    // código (inicializador de un `new TextBlock`).
+    private static readonly Regex TextBlockOpacityAttribute =
+        new(@"<TextBlock\b[^>]*?\bOpacity=""[^""]*""", RegexOptions.Compiled | RegexOptions.Singleline);
+    private static readonly Regex TextBlockStyle =
+        new(@"<Style\b[^>]*\bTargetType=""TextBlock""[^>]*>(.*?)</Style>", RegexOptions.Compiled | RegexOptions.Singleline);
+    private static readonly Regex OpacitySetter =
+        new(@"<Setter\s+Property=""Opacity""", RegexOptions.Compiled);
+    private static readonly Regex NewTextBlockWithOpacity =
+        new(@"new\s+TextBlock\s*(?:\(\s*\))?\s*\{[^}]*?\bOpacity\s*=", RegexOptions.Compiled | RegexOptions.Singleline);
+
+    /// <summary>
+    /// Ningún texto se atenúa con <c>Opacity</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué se prohíbe en vez de medirse</b> (`T13-01`/`T13-02`). La opacidad compone el color
+    /// con lo que haya DETRÁS, y el barrido solo sabe medir un pincel contra el fondo de referencia: un
+    /// <c>TextFillColorPrimaryBrush</c> al 0,55 salía como 16,65:1 y en pantalla daba 3,83:1. Así entraron
+    /// cinco textos por debajo de AA, entre ellos el cronómetro de las operaciones largas. Un gris que se
+    /// quiere más suave tiene su pincel medido: <c>AppMutedTextBrush</c> o
+    /// <c>TextFillColorSecondaryBrush</c>.</para>
+    /// <para><b>Lo que no ve:</b> la opacidad puesta en un contenedor (un <c>StackPanel</c> atenúa todo lo
+    /// que lleva dentro) o asignada con <c>x.Opacity = …</c> fuera de un inicializador.</para>
+    /// </remarks>
+    [Fact]
+    public void NoTextIsDimmedWithOpacity()
+    {
+        var offenders = new List<string>();
+
+        foreach (string file in AppXamlFiles())
+        {
+            string xaml = WithoutXmlComments(File.ReadAllText(file));
+            string name = Path.GetFileName(file);
+
+            foreach (Match m in TextBlockOpacityAttribute.Matches(xaml))
+                offenders.Add($"{name}:{LineOf(xaml, m.Index)}: TextBlock con Opacity");
+            foreach (Match style in TextBlockStyle.Matches(xaml))
+                if (OpacitySetter.IsMatch(style.Groups[1].Value))
+                    offenders.Add($"{name}:{LineOf(xaml, style.Index)}: estilo de TextBlock con Opacity");
+        }
+
+        foreach (string file in AppUiCodeFiles())
+        {
+            string code = File.ReadAllText(file);
+            foreach (Match m in NewTextBlockWithOpacity.Matches(code))
+                offenders.Add($"{Path.GetFileName(file)}:{LineOf(code, m.Index)}: new TextBlock con Opacity");
+        }
+
+        Assert.True(offenders.Count == 0,
+            "Texto atenuado con Opacity: su contraste real no lo mide nadie. Usa AppMutedTextBrush o "
+            + "TextFillColorSecondaryBrush, que están medidos:\n  " + string.Join("\n  ", offenders));
+    }
+
+    private static int LineOf(string text, int index) => text.AsSpan(0, index).Count('\n') + 1;
 
     /// <summary>
     /// El terciario de Fluent sigue midiéndose por debajo de AA en claro.

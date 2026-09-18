@@ -54,19 +54,32 @@ public static class FluentTextPalette
                                                   : Color.FromArgb(0x72, 0x00, 0x00, 0x00),
             "TextFillColorDisabledBrush"  => dark ? Color.FromArgb(0x5D, 0xFF, 0xFF, 0xFF)
                                                   : Color.FromArgb(0x5C, 0x00, 0x00, 0x00),
+            // No se llama «TextFillColor…», pero pinta TEXTO: la instrucción de la confirmación y los errores
+            // de etiqueta y de presets. El barrido de `T12-01` solo buscaba ese nombre y no lo veía (`T13-02`).
+            "SystemFillColorCriticalBrush" => dark ? Color.FromArgb(0xFF, 0xFF, 0x99, 0xA4)
+                                                   : Color.FromArgb(0xFF, 0xC4, 0x2B, 0x1C),
             _ => default,
         };
         return color.A != 0;
     }
 
     /// <summary>
-    /// Pinceles de texto de Fluent que <b>no</b> tienen que cumplir el 4,5:1 del texto normal.
+    /// Por qué un pincel de texto <b>no</b> tiene que cumplir el 4,5:1 del texto normal, o <c>null</c> si
+    /// tiene que cumplirlo.
     /// </summary>
     /// <remarks>
-    /// Solo hay uno, y su excepción es la de la propia norma: WCAG 2.x (1.4.3) no exige contraste a los
-    /// controles <b>deshabilitados</b>, porque su bajo contraste <i>es</i> la información. Cualquier otra
-    /// entrada aquí habría que justificarla por escrito; la lista corta es la que la hace útil.
+    /// La excepción se devuelve <b>escrita</b> a propósito: una lista de nombres sin motivo es un alias
+    /// silencioso, y por un alias así —el barrido leía <c>AccentTextFillColorPrimaryBrush</c> como si fuera
+    /// el texto primario— pasó un color sin medir (`T13-02`). La lista corta es la que la hace útil.
     /// </remarks>
-    public static bool IsExemptFromNormalText(string brushName)
-        => brushName == "TextFillColorDisabledBrush";
+    public static string? ExemptionReason(string brushName) => brushName switch
+    {
+        "TextFillColorDisabledBrush" =>
+            "WCAG 2.x (1.4.3) no exige contraste a los controles deshabilitados: su bajo contraste es la información.",
+        "AccentTextFillColorPrimaryBrush" =>
+            "Sale del color de acento que elige cada usuario (SystemAccentColorDark2 en claro, SystemAccentColorLight3 "
+            + "en oscuro), así que no hay un valor que medir de antemano; Fluent lo deriva para que sirva de texto. "
+            + "Usarlo en los títulos de sección es una decisión abierta: T13-15.",
+        _ => null,
+    };
 }

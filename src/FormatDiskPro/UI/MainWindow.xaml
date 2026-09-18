@@ -432,7 +432,8 @@
                                TextTrimming="CharacterEllipsis" FontSize="12.5"
                                AutomationProperties.LiveSetting="Polite" />
                     <TextBlock x:Name="ElapsedText" Grid.Column="1" HorizontalAlignment="Right"
-                               VerticalAlignment="Center" Opacity="0.55" FontSize="12" />
+                               VerticalAlignment="Center" FontSize="12"
+                               Foreground="{ThemeResource AppMutedTextBrush}" />
                 </Grid>
 
                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2,0,0" ColumnSpacing="10">

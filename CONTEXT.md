@@ -161,8 +161,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Publicado | **v1.26.0** (2026-09-01) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tiers abiertos | **Tier 13 — Lo que solo se ve midiendo**, abierto el **2026-09-18**, **0/16** (3 Altas · 7 Medias · 6 Bajas), de una auditoría de UI/UX hecha midiendo: contraste sobre los fondos reales de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. Lo que más enseña es que el barrido de `T12-01` tiene **tres puntos ciegos** —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como texto primario, `SystemFillColorCriticalBrush` y la `Opacity`— y que por ellos pasaron **cinco textos por debajo de AA**; lo más grave de cara al usuario, que *Reinicializar* se confirma con un botón que dice «Formatear». Ver [`ROADMAP.md`](ROADMAP.md#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18) · **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 7/7**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— la barra de desplazamiento aparece cuando hay algo que desplazar, y **`T12-07` retira la franja de rendimiento entera** —revierte `T11-01` y `T11-04`— porque su justificación de partida era falsa: el cronómetro del pie ya escribía velocidad y ETA · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
-| Tareas abiertas | **17**: las **16 del Tier 13** y **`T10-02`, bloqueada a propósito** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). `T10-02` no sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
+| Tiers abiertos | **Tier 13 — Lo que solo se ve midiendo**, abierto el **2026-09-18**, **2/18** (3 Altas · 9 Medias · 6 Bajas; hechas `T13-02` y `T13-01`, y `T13-17` y `T13-18` añadidas al hacerlas), de una auditoría de UI/UX hecha midiendo: contraste sobre los fondos reales de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. Lo que más enseña es que el barrido de `T12-01` tiene **tres puntos ciegos** —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como texto primario, `SystemFillColorCriticalBrush` y la `Opacity`— y que por ellos pasaron **cinco textos por debajo de AA**; lo más grave de cara al usuario, que *Reinicializar* se confirma con un botón que dice «Formatear». Ver [`ROADMAP.md`](ROADMAP.md#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18) · **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 7/7**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— la barra de desplazamiento aparece cuando hay algo que desplazar, y **`T12-07` retira la franja de rendimiento entera** —revierte `T11-01` y `T11-04`— porque su justificación de partida era falsa: el cronómetro del pie ya escribía velocidad y ETA · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
+| Tareas abiertas | **17**: **16 del Tier 13** y **`T10-02`, bloqueada a propósito** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). `T10-02` no sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
@@ -436,6 +436,72 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-09-18 — `T13-02` y `T13-01`: el barrido de contraste deja de tener puntos ciegos
+
+**Primero el test y luego el arreglo**, para que el test demuestre que ve lo que antes no veía. El barrido
+de `T12-01` buscaba `TextFillColor(\w+)Brush` sin anclar y en todo el texto, comentarios incluidos. Por eso
+tenía tres puntos ciegos:
+- **Un aprobado falso.** Dentro de `AccentTextFillColorPrimaryBrush` encontraba `TextFillColorPrimaryBrush`
+  y medía el acento de cada usuario como texto casi negro.
+- **Un color de texto que no veía.** `SystemFillColorCriticalBrush`, el rojo de los errores, no se llama
+  `TextFillColor…`.
+- **La `Opacity`.** Cambia el color real sin cambiar el pincel, y por ahí pasaron cinco textos por debajo
+  de AA. El peor, el cronómetro del pie, daba 3,83:1.
+
+**Cómo queda** ([TextContrastTests.cs](tests/FormatDiskPro.Tests/TextContrastTests.cs)):
+- Recoge todo `Foreground` que venga de un recurso: en atributo, en `Setter` y desde código
+  (`Resources["…"]`). Además recoge cualquier `*TextFillColor*Brush` nombrado, con `\b` a los dos lados y
+  sin comentarios.
+- Cada pincel tiene que resolverse a un color medido. Si no, necesita un motivo escrito en
+  `FluentTextPalette.ExemptionReason`. Hay dos exenciones: *deshabilitado*, que exime la propia norma, y
+  el *acento*, que no se puede medir de antemano y remite a `T13-15`.
+- `NoTextIsDimmedWithOpacity` **prohíbe** atenuar texto con `Opacity`, en vez de intentar medirlo. La
+  opacidad compone con lo que haya detrás, y el barrido solo conoce el fondo de referencia.
+- **Límite, escrito en el test:** no ve la opacidad de un contenedor ni un `x.Opacity = …` fuera de un
+  inicializador.
+
+**Verificado en negativo:**
+- Sin declarar el rojo ni exentar el acento, el barrido falla nombrando seis archivos.
+- Con las opacidades de antes, falla con las catorce, con archivo y línea.
+
+**Las catorce opacidades** pasan a pinceles medidos:
+- 0,55–0,6 → `AppMutedTextBrush`;
+- 0,7–0,85 → `TextFillColorSecondaryBrush`;
+- 0,9 → texto primario. Son los párrafos de *Acerca de*, y el 0,9 estaba más cerca del primario.
+
+**Trampa que salió de paso:** en esta app, **un pincel de tema no se saca de
+`Application.Current.Resources` desde código.** Ese diccionario resuelve con el tema de Windows, y el
+tema elegido se fuerza en cada elemento con `RequestedTheme`.
+- La etiqueta de fila de Salud, creada en código, toma ahora un **estilo** del propio diálogo: el
+  `ThemeResource` de un `Setter` se resuelve con el tema del elemento.
+- El mismo patrón sigue en [MainWindow.FormatOptions.cs:249](src/FormatDiskPro/UI/MainWindow.FormatOptions.cs#L249)
+  con `TextFillColorDisabledBrush`. Queda anotado como `T13-17`, sin reproducir.
+
+Unitarias **630** (629 pasan · 1 se omite) · build Release 0/0 con `-warnaserror` · pruebas de UI
+compiladas, no ejecutadas.
+
+**Visto en pantalla.** Galería del publish *self-contained*, en los dos temas: Salud, Historial, Presets,
+Acerca de y Confirmar, esta última sobre la USB de pruebas. Contraste medido sobre los píxeles de las
+capturas, contra el fondo real del diálogo (`#F3F3F3` / `#202020`):
+- el gris propio: 4,73 en claro y 5,79:1 en oscuro;
+- el secundario: 5,93 y 10,15:1;
+- el rojo de la confirmación: 5,10 y 8,03:1, con exactamente los hex declarados en `FluentTextPalette`.
+
+La etiqueta de fila de Salud sale `#CCCCCC` en oscuro, así que el estilo sigue el tema forzado.
+
+**Sin captura:**
+- El cronómetro del pie solo aparece durante una operación. Usa el mismo pincel, así que se ha calculado:
+  `#6C6C6C` sobre el pie `#F9F9F9` da unos 5,0:1.
+- La toma de *Reinicializar* falla con esta USB, y no por estar en uso. Con `F:` elegida se sugiere
+  FAT32, *Reinicializar* actúa sobre el disco entero (59,8 GB) y el plan se rechaza por
+  `Fat32VolumeTooLarge`, con un mensaje que no dice por qué. Es **`T13-18`**. Con NTFS elegido, la
+  confirmación se ve bien y sigue diciendo «Formatear» (`T13-03`).
+
+**Pruebas de UI con la USB** (`Category!=Slow`, sobre el publish): **36/37**. Falló
+`HealthDialog_OpensForTestDrive` en 15 ms, justo después del benchmark. Sola pasa, y con su clase entera
+(el benchmark incluido) también: es intermitente, no reproducido. No se guardó su mensaje, así que si
+vuelve a salir hay que capturarlo antes de tocar nada.
 
 ### 2026-09-18 — El README, a la mitad y al día
 

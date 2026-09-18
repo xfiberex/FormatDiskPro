@@ -15,7 +15,18 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **Cinco textos no se leían bien en tema claro**, por debajo del contraste mínimo de WCAG AA: el
+  cronómetro, la velocidad y el tiempo restante del pie durante una operación larga, el recuento y la fecha
+  de cada entrada del historial, el aviso de historial vacío y la nota de valores no disponibles en *Salud
+  del disco*. Estaban atenuados con transparencia y ahora usan un gris medido.
+
 ### Interno
+
+- **La prueba de contraste mide ya todos los colores de texto.** Incluye el rojo de los mensajes de error,
+  deja de confundir el color de acento con el texto normal y rechaza cualquier texto atenuado con
+  transparencia, que era el hueco por el que entraron los cinco de arriba.
 
 - **Integración continua en GitHub Actions, ahora que el repositorio es público.** Cada push a `master` y
   cada pull request compilan en Release sin advertencias, ejecutan las pruebas unitarias y **compilan** las
