@@ -198,7 +198,9 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
     el resumen de cada ejecución dice lo que **no** ejecutó y qué unitarias se omitieron, con su motivo.
   - **`.github/workflows/codeql.yml`**: CodeQL sobre la app (no sobre las pruebas), en cada cambio y cada
     semana. La lista de alertas solo la ve quien tiene permiso de escritura, así que no choca con la
-    divulgación privada de `SECURITY.md`.
+    divulgación privada de `SECURITY.md`. Va con `build-mode: manual` porque el código que genera el XAML
+    solo existe tras compilar; el aviso «Cannot build an overlay-base database» que deja en cada ejecución
+    es la consecuencia esperada (sin análisis incremental en los PR), **no** un motivo para pasar a `none`.
   - **`.github/dependabot.yml`**: **solo** las acciones, que van fijadas a un commit. NuGet no: el Windows
     App SDK se sube a mano (ver *Build y publicación*).
   - **Lo que no cambia:** la puerta de calidad sigue siendo **`release.ps1 -UiTests` desde una terminal
