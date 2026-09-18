@@ -437,6 +437,30 @@ ni mueve datos).
 
 ---
 
+### 2026-09-18 — El README, a la mitad y al día
+
+A petición del mantenedor, el README pasa de **395 a ~200 líneas**. Ahora se lee primero como usuario
+(qué hace, cómo se instala y se usa) y después como desarrollador. **Se ha ido lo que ya vive en otro
+sitio**:
+- el párrafo de una pantalla sobre qué cubren las unitarias, porque lo cuentan las propias pruebas y este
+  archivo;
+- el árbol archivo por archivo, que es §2 y que ya estaba desfasado: le faltaban `FluentTextPalette`,
+  `HistoryRotation`, `PartitionPlan`, `ProcessRunner`… y ahora es una tabla de capas;
+- el detalle de firma y de flags, que está en el `Get-Help` de cada script.
+
+Las capturas secundarias van en un `<details>`, y la ventana principal queda a la vista. Los workflows
+tienen tabla propia e insignia de CodeQL.
+
+**Lo que estaba mal, contrastado con el código:**
+- el botón se llamaba «Iniciar» en tres sitios, cuando es *Formatear X:* desde `T12-02`;
+- *Apoyar el proyecto* se situaba en *Ayuda*, y está en *Acerca de…*;
+- al menú *Configuración* le faltaba *Buscar actualizaciones al iniciar*;
+- el ejemplo `-CertPassword ****` no funcionaba, porque el parámetro es `SecureString` desde `T3-09`;
+- la verificación de capacidad no escribe «toda la unidad», sino el espacio libre.
+
+La advertencia de que *Reinicializar* hay que fotografiarlo sobre la USB (`-Drive`) seguía solo en el
+README; ahí sigue, porque el `Get-Help` del script no la recoge.
+
 ### 2026-09-18 — Tier 13 (auditoría de UI/UX con medición) y CI para el repositorio público
 
 **Se abre el Tier 13 con 16 tareas, ninguna hecha todavía.** Sale de una auditoría de UI/UX que **midió** en
