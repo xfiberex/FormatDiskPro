@@ -1,0 +1,148 @@
+# Compilación y unitarias: el CI de un repositorio PÚBLICO.
+#
+# Existe desde el 2026-09-18 y revierte en parte la decisión del 2026-08-15 (`T2-10`, ROADMAP.md →
+# *Decisiones cerradas*). Aquella decisión daba por asumido que «un PR externo no ejecuta nada hasta que el
+# mantenedor lo corre en su máquina». Con el repositorio abierto, eso deja sin red justo al código que no
+# escribió el mantenedor.
+#
+# Lo que NO cambia de aquella decisión, y este workflow respeta:
+#   · Las pruebas de UI NO se ejecutan aquí: lanzan el .exe real elevado, y las que tocan una unidad
+#     necesitan la USB de pruebas. Solo se COMPILAN. Viven fuera de FormatDiskPro.slnx a propósito, y por
+#     eso un error de compilación en ellas no aparecía en ningún sitio (CONTEXT.md §4, la trampa del
+#     2026-08-16).
+#   · La puerta de publicación sigue siendo `release.ps1 -UiTests` desde una terminal elevada.
+#   · La objeción de fondo era que «un check verde que solo cubre las unitarias afirma más de lo que
+#     prueba». Por eso el nombre del workflow dice lo que cubre (es el texto de la insignia del README), y el
+#     resumen de cada ejecución dice lo que NO se ejecutó y qué unitarias se omitieron, con su motivo.
+#
+# Windows y no ubuntu: la app es WinUI 3 (net10.0-windows10.0.19041.0).
+# `pwsh` (PowerShell 7) y no `powershell` (5.1): el 5.1 lee un script sin BOM con la página de códigos ANSI
+# (la trampa de CONTEXT.md §4) y el resumen lleva acentos.
+# Las acciones van fijadas a un commit, con su versión al lado: una etiqueta se puede mover, un commit no.
+# Las mantiene al día Dependabot (.github/dependabot.yml).
+
+name: Compilación y unitarias
+
+# Ninguna prueba lee un .md ni nada de docs/ (comprobado el 2026-09-18: leen XAML, fuentes C#, LICENSE y
+# THIRD-PARTY-NOTICES.txt). Si alguna empieza a hacerlo, hay que quitar este filtro o su cambio no se
+# probará. Y si algún día se exige este check para fusionar, un PR solo de documentación se quedaría
+# esperándolo: habría que quitarlo también.
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['**.md', 'docs/**']
+  pull_request:
+    branches: [master]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Compilación + unitarias (UI solo compilada)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Instalar el SDK de .NET 10
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restaurar
+        run: dotnet restore FormatDiskPro.slnx
+
+      # -warnaserror: el proyecto compila a 0 advertencias y ese es el listón (CONTRIBUTING.md). Se excluyen
+      # NU1901–NU1904 (vulnerabilidades publicadas de paquetes NuGet): aparecen y desaparecen por
+      # publicaciones de terceros y tumbarían PRs que no tienen nada que ver.
+      - name: Compilar (Release, sin advertencias)
+        id: build
+        run: dotnet build FormatDiskPro.slnx -c Release --no-restore -warnaserror -nowarn:NU1901,NU1902,NU1903,NU1904
+
+      - name: Pruebas unitarias
+        id: tests
+        run: dotnet test FormatDiskPro.slnx -c Release --no-build --nologo --logger "trx;LogFileName=unitarias.trx" --results-directory artifacts/tests
+
+      # También si fallan las unitarias: una sola ejecución dice todo lo que está roto.
+      - name: Compilar las pruebas de UI (sin ejecutarlas)
+        id: uibuild
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet build tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj -c Release -warnaserror -nowarn:NU1901,NU1902,NU1903,NU1904
+
+      - name: Resumen (qué se ha comprobado y qué no)
+        if: ${{ always() }}
+        env:
+          BUILD: ${{ steps.build.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+          UI_BUILD: ${{ steps.uibuild.outcome }}
+        run: |
+          function Icon([string]$outcome) {
+            switch ($outcome) { 'success' { '✅' } 'failure' { '❌' } 'cancelled' { '⏹️ cancelado' } default { '⏭️ no se llegó a ejecutar' } }
+          }
+
+          $unit = Icon $env:TESTS
+          $detail = @()
+          $trx = Get-ChildItem -Path artifacts/tests -Filter *.trx -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($trx) {
+            # XmlDocument.Load, como release.ps1 (T2-12): no depende de la codificación con la que se abra.
+            $xml = [System.Xml.XmlDocument]::new()
+            $xml.Load($trx.FullName)
+            $results = @($xml.TestRun.Results.UnitTestResult)
+            $passed  = @($results | Where-Object outcome -eq 'Passed').Count
+            $failed  = @($results | Where-Object outcome -eq 'Failed')
+            $skipped = @($results | Where-Object outcome -eq 'NotExecuted')
+            $unit = "$unit $passed de $($results.Count) pasan · $($failed.Count) " +
+                    $(if ($failed.Count -eq 1) { 'falla' } else { 'fallan' }) + " · $($skipped.Count) " +
+                    $(if ($skipped.Count -eq 1) { 'omitida' } else { 'omitidas' })
+            if ($failed.Count -gt 0) {
+              $detail += @('', '**Unitarias que fallan** (el detalle está en el artefacto `resultados-unitarias`):', '')
+              $detail += @($failed | Select-Object -First 20 | ForEach-Object { "- ``$($_.testName)``" })
+            }
+            if ($skipped.Count -gt 0) {
+              $detail += @('', '**Unitarias omitidas, y por qué:**', '')
+              $detail += @($skipped | ForEach-Object {
+                $reason = $_.Output.ErrorInfo.Message
+                $reason = if ($reason) { ($reason -replace '\s+', ' ').Trim() } else { 'sin motivo declarado' }
+                "- ``$($_.testName)``: $reason"
+              })
+            }
+          }
+
+          $context = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/blob/$env:GITHUB_SHA/CONTEXT.md"
+          $md = @(
+            '## Qué comprueba este check, y qué no'
+            ''
+            '| Paso | Resultado |'
+            '|---|---|'
+            "| Compilación Release de la app y de las unitarias, **sin advertencias** | $(Icon $env:BUILD) |"
+            "| Pruebas unitarias | $unit |"
+            "| Pruebas de UI: **compilación** | $(Icon $env:UI_BUILD) |"
+            '| Pruebas de UI: **ejecución** | ⚠️ **No se ejecutan aquí**: lanzan el `.exe` real elevado, y las que tocan una unidad necesitan la USB de pruebas |'
+            ''
+            "> Este check **no sustituye** a la puerta de publicación, que sigue siendo ``release.ps1 -UiTests`` desde una terminal elevada ([CONTEXT.md §4]($context))."
+          ) + $detail
+          ($md -join "`n") + "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      # Se sube siempre: el informe interesante es el de una ejecución en rojo.
+      - name: Publicar los resultados
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: resultados-unitarias
+          path: artifacts/tests
+          if-no-files-found: warn
+          retention-days: 14

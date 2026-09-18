@@ -11,10 +11,10 @@
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Estado, versión y pruebas** | **No se repiten aquí, a propósito** — viven en [§3 *Estado actual*](#3-estado-actual), que es su única fuente |
-| **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 |
+| **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 · GitHub Actions (compilación + unitarias, CodeQL) |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — lo pendiente, por tiers · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | **2026-09-01** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
+| **Última actualización** | **2026-09-18** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
 
 > **Esta tabla no lleva estado, y es deliberado (`T9-14`).** Llevaba versión publicada, recuento de pruebas
 > y tiers abiertos —todo duplicado de §3 y del [`ROADMAP.md`](ROADMAP.md)—, y llegó a contradecir a la fila
@@ -94,9 +94,10 @@ src/FormatDiskPro/
 ├─ installer/       installer.iss (Inno Setup) + build-installer.ps1 → Output/ (gitignored)
 └─ Program.cs       Punto de entrada
 
-tests/FormatDiskPro.Tests/    563 pruebas xUnit sobre Core y los Services (con IProcessRunner falso)
-tests/FormatDiskPro.UiTests/  30 pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
+tests/FormatDiskPro.Tests/    Pruebas xUnit sobre Core y los Services (con IProcessRunner falso); recuento en §3
+tests/FormatDiskPro.UiTests/  Pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
 tools/capture-screenshots.ps1 Regenera docs/screenshots/ conduciendo la app por UI Automation
+.github/workflows/            CI: compilación + unitarias (las de UI solo se COMPILAN) y CodeQL — ver §4
 CHANGELOG.md                  Qué cambió en cada versión (Keep a Changelog); el corte exige su sección
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
 FormatDiskPro.slnx            Solución: app + Tests. UiTests NO está incluido, a propósito.
@@ -117,7 +118,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 - **Fuera de `FormatDiskPro.slnx` a propósito:** si estuvieran dentro, el `dotnet test` de los unitarios los
   arrastraría siempre, y necesitan condiciones que no toda máquina tiene. Se lanzan por ruta, o con
-  `release.ps1 -UiTests`.
+  `release.ps1 -UiTests`. El CI (desde el 2026-09-18) los **compila** en cada push y PR, pero **no los
+  ejecuta**.
 - **Exigen terminal ELEVADA.** UIPI bloquea que un proceso no elevado automatice la ventana de uno que sí lo
   está, y la app es `requireAdministrator`. `AppFixture` lo comprueba y falla con un mensaje claro en vez de
   colgarse.
@@ -145,21 +147,22 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   particiones). El «`dotnet test` a secas» no es la forma neutra de correr esta suite: es la forma lenta.
 - **Recuerda compilar el proyecto de UI aparte** (`dotnet build tests\FormatDiskPro.UiTests\...csproj`): no
   está en el `.slnx`, así que `--no-build` tras un `dotnet build FormatDiskPro.slnx` ejecuta el **DLL
-  anterior**. Ver §4.
+  anterior**. Ver §4. El CI ya lo compila, así que un error de compilación no pasa desapercibido; pero en
+  local la trampa del `--no-build` sigue en pie.
 
 ## 3. Estado actual
 
 | | |
 |---|---|
 | Build | 0 advertencias / 0 errores |
-| Unitarias | **626 / 626** (625 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 3 de `T12-01`; las 41 de `T11-01` se fueron con la franja en `T12-07`) · se ejecutan **en local**, nunca en CI (ver §4) |
+| Unitarias | **626 / 626** (625 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 3 de `T12-01`; las 41 de `T11-01` se fueron con la franja en `T12-07`) · se ejecutan en local y, desde el 2026-09-18, también en el **CI** de GitHub Actions, en cada push a `master` y cada PR (ver §4) |
 | UI tests | **2026-09-01, con la USB (`utilidades`), en el corte de la v1.26.0: 34 pasan / 3 se omiten / 0 fallan** en ~2 min — la pasada que cubre los Tiers 11 y 12 (barra de acciones, cabecera de unidad, franja de rendimiento, pie con «Formatear I:», presets y galón de scroll). Las 3 omitidas son opt-in (`ALLOW_YANK` ×2, `ALLOW_DESTRUCTIVE`). Historial: **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
 | Instalador | Verificado por SHA-256 (hash emparejado con su instalador) y probado **end-to-end** (limpia + in-place) |
 | Publicado | **v1.26.0** (2026-09-01) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tiers abiertos | **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 7/7**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— la barra de desplazamiento aparece cuando hay algo que desplazar, y **`T12-07` retira la franja de rendimiento entera** —revierte `T11-01` y `T11-04`— porque su justificación de partida era falsa: el cronómetro del pie ya escribía velocidad y ETA · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
-| Tareas abiertas | **Una, y bloqueada a propósito: `T10-02`** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). No sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
+| Tiers abiertos | **Tier 13 — Lo que solo se ve midiendo**, abierto el **2026-09-18**, **0/16** (3 Altas · 7 Medias · 6 Bajas), de una auditoría de UI/UX hecha midiendo: contraste sobre los fondos reales de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. Lo que más enseña es que el barrido de `T12-01` tiene **tres puntos ciegos** —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como texto primario, `SystemFillColorCriticalBrush` y la `Opacity`— y que por ellos pasaron **cinco textos por debajo de AA**; lo más grave de cara al usuario, que *Reinicializar* se confirma con un botón que dice «Formatear». Ver [`ROADMAP.md`](ROADMAP.md#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18) · **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 7/7**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— la barra de desplazamiento aparece cuando hay algo que desplazar, y **`T12-07` retira la franja de rendimiento entera** —revierte `T11-01` y `T11-04`— porque su justificación de partida era falsa: el cronómetro del pie ya escribía velocidad y ETA · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
+| Tareas abiertas | **17**: las **16 del Tier 13** y **`T10-02`, bloqueada a propósito** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). `T10-02` no sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
 > **La tabla de tiers completados vivía aquí duplicada** de la del [`ROADMAP.md`](ROADMAP.md#-estado), y se
@@ -182,14 +185,27 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   un espacio de trabajo: ningún contenido gana con más ancho y el layout de tarjetas ya cabe entero. No portar
   `WindowSizing`/`ContentScroller` de WingetUSoft: allí la ventana lista paquetes en una tabla y lo
   necesitaba; aquí resolvería un problema que no existe.
-- **El testing de este proyecto es LOCAL: no hay CI, ni GitHub Actions, ni workflows — firme (2026-08-15).**
-  La auditoría propuso un CI de solo unitarias (`T2-10`); se implementó, se revirtió y la tarea queda
-  **descartada**. El motivo no es el coste: en esta app la prueba que vale es la que **ejerce el binario
-  real** contra hardware real (elevación + USB de pruebas), y eso **no cabe en un runner hospedado**. Un ✅
-  verde que solo cubre los unitarios afirma más de lo que prueba — exactamente el problema que `T2-12`
-  acaba de corregir en el otro extremo del proceso. La puerta de calidad es
-  **`release.ps1 -UiTests` desde una terminal elevada**, y esa puerta ya existe. Consecuencia asumida: un
-  PR externo no ejecuta nada hasta que el mantenedor lo corre en su máquina.
+- **Las pruebas de UI son LOCALES; desde el 2026-09-18 hay CI de compilación + unitarias.** La auditoría
+  propuso un CI de solo unitarias (`T2-10`); se implementó, se revirtió y quedó descartado el 2026-08-15. El
+  motivo no era el coste: en esta app la prueba que vale es la que **ejerce el binario real** contra
+  hardware real (elevación + USB de pruebas), y eso **no cabe en un runner hospedado**; un ✅ verde que solo
+  cubre los unitarios afirma más de lo que prueba — el problema que `T2-12` corrigió en el otro extremo del
+  proceso. La consecuencia asumida era que un PR externo no ejecutaba nada hasta que el mantenedor lo
+  corriera en su máquina, y **al hacerse público el repositorio dejó de ser asumible**. Desde entonces:
+  - **`.github/workflows/ci.yml`** («Compilación y unitarias»): en cada push a `master` y cada PR, compila en
+    Release con `-warnaserror`, ejecuta las unitarias y **compila, sin ejecutarlas,** las pruebas de UI. La
+    objeción de 2026-08-15 se atiende en el propio check: su nombre es el texto de la insignia del README, y
+    el resumen de cada ejecución dice lo que **no** ejecutó y qué unitarias se omitieron, con su motivo.
+  - **`.github/workflows/codeql.yml`**: CodeQL sobre la app (no sobre las pruebas), en cada cambio y cada
+    semana. La lista de alertas solo la ve quien tiene permiso de escritura, así que no choca con la
+    divulgación privada de `SECURITY.md`.
+  - **`.github/dependabot.yml`**: **solo** las acciones, que van fijadas a un commit. NuGet no: el Windows
+    App SDK se sube a mano (ver *Build y publicación*).
+  - **Lo que no cambia:** la puerta de calidad sigue siendo **`release.ps1 -UiTests` desde una terminal
+    elevada**. El CI no la sustituye ni la acorta.
+  - **Dos trampas del CI.** Ninguna prueba lee un `.md` ni nada de `docs/`, y por eso los workflows se saltan
+    esos cambios: si una empieza a hacerlo, hay que quitar el filtro. Y los pasos van en `pwsh` (7), no en
+    `powershell` (5.1), que lee los scripts sin BOM con la página ANSI (ver *Trampas de PowerShell 5.1*).
 - **Protección de unidades:** SOLO se protege el **disco de sistema** (`IsSystemDrive()`). El resto
   —removibles, discos de datos fijos, RAM— **sí** se pueden formatear.
 - **No se firma el instalador** (#13, 2026-06-24; **reafirmado el 2026-08-16 al descartar `T4-03`**):
@@ -272,7 +288,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   `dotnet test --no-build`, se ejecuta la **DLL vieja** y el resultado sale en verde sin haber probado lo
   nuevo — ocurrió el 2026-08-16 con `T5-05`. Al tocar ese proyecto: `dotnet build
   tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj` **explícitamente**, o `dotnet test` sobre su
-  `.csproj` **sin** `--no-build`.
+  `.csproj` **sin** `--no-build`. **Desde el 2026-09-18 el CI compila ese proyecto en cada push y PR**, así
+  que un error de compilación ya aparece ahí; la trampa del `--no-build` en local sigue en pie.
 
 ### Trampas de PowerShell 5.1 (las tres nacieron de un fallo real)
 
@@ -335,6 +352,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Regenerar capturas del README (**terminal elevada**) | `.\tools\capture-screenshots.ps1` |
 | Generar instalador | `src\FormatDiskPro\installer\build-installer.ps1` |
 | **Publicar versión** | `.\release.ps1 -Version X.Y.Z -UiTests` (`-DryRun` para simular) |
+| CI (GitHub Actions) | Automático en cada push a `master` y cada PR; a mano: *Actions → Compilación y unitarias → Run workflow* |
 
 `release.ps1` hace: validar → tests (unitarias + UI si `-UiTests`) → bump `<Version>` → build del instalador →
 commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su `.sha256`**.
@@ -350,13 +368,14 @@ commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su 
 
 ## 6. Qué queda fuera, y por qué
 
-**No queda ninguna tarea abierta** —el estado vivo está en §3, esta sección es solo el alcance—. Los tres frentes del proyecto están cerrados:
+Las tareas abiertas y el estado vivo están en §3; esta sección es solo el alcance. Los tres frentes del proyecto están cerrados:
 producto (Tiers 1–9, 2026-07-13), auditoría de calidad (2026-08-16) y Tier 5 «Ocurrencias» (2026-08-16).
 
 Lo que falta, falta **a propósito**. Las decisiones y su porqué viven en §4 y en *Decisiones cerradas* del
 [`ROADMAP.md`](ROADMAP.md); en resumen: la app corre **siempre elevada** (`asInvoker` descartado), la
 ventana es de **tamaño fijo**, no se **firma** el instalador (`#13`/`T4-03` — de ahí que el `.sha256` sea
-obligatorio), no hay **CI** (`T2-10`: las pruebas son locales) y *Reinicializar* **no es un gestor de
+obligatorio), las pruebas de UI **no corren en CI** (`T2-10`: necesitan la app elevada y la USB; el CI, desde
+el 2026-09-18, cubre compilación y unitarias) y *Reinicializar* **no es un gestor de
 particiones** (`T5-04`: crea layouts sobre un disco que se está borrando entero; nunca redimensiona, fusiona
 ni mueve datos).
 
@@ -415,6 +434,47 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-09-18 — Tier 13 (auditoría de UI/UX con medición) y CI para el repositorio público
+
+**Se abre el Tier 13 con 16 tareas, ninguna hecha todavía.** Sale de una auditoría de UI/UX que **midió** en
+vez de mirar: contraste sobre los fondos reales muestreados de las capturas, anchos de texto con la fuente
+real (calibrado: 104 px medidos = 104 px en pantalla) y el alto efectivo de la ventana según el escalado.
+
+- **Lo que más enseña: el barrido de `T12-01` tiene tres puntos ciegos.** Ese barrido existe para que no
+  entre un color de texto sin medir. Pero su regex no está anclado y mide `AccentTextFillColorPrimaryBrush`
+  como si fuera el texto primario (16,65:1: un aprobado falso), no busca `SystemFillColorCriticalBrush`, y
+  no ve la `Opacity`. Por ahí pasaron **cinco textos por debajo de AA** en tema claro, entre ellos el
+  cronómetro del pie (3,83:1): la línea que `T12-07` defendió como la señal de vida de una operación larga.
+- **Lo más grave de cara al usuario:** *Reinicializar* se confirma con un botón que dice «Formatear». Es lo
+  que `T6-01` dejó a medias: hizo obligatorio el título, no el verbo.
+- **Una medición que cambia prioridades:** la ventana **no mide 900 DIP** en la mayoría de portátiles.
+  `SizeAndCenterWindow` la acota al área de trabajo: 656 DIP en una 1080p al 150 %. El pliegue es mayor que
+  en la galería, y `T13-10` localiza ~150 DIP sin tocar el tamaño fijo.
+
+Detalle y criterios de aceptación, en el [ROADMAP](ROADMAP.md#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18).
+
+**CI: se revisa `T2-10` porque el repositorio es público.** La decisión del 2026-08-15 se apoyaba en una
+consecuencia asumida —un PR externo no ejecuta nada hasta que el mantenedor lo corre en su máquina— que, con
+el repositorio abierto, deja sin red justo al código que no escribió el mantenedor. Se recupera el workflow
+revertido y se le añade lo que respondía a la objeción de entonces («un ✅ que solo cubre las unitarias
+afirma más de lo que prueba»):
+
+- **El check dice lo que cubre y lo que no.** Se llama «Compilación y unitarias» —es el texto de su
+  insignia en el README— y el resumen de cada ejecución lista lo que no se ejecutó (las pruebas de UI) y qué
+  unitarias se omitieron, con el motivo que declara su atributo, como hace `release.ps1` desde `T2-12`.
+- **Compila las pruebas de UI sin ejecutarlas.** Es la trampa de §4 —el proyecto está fuera de la solución
+  y un error de compilación en él no aparecía en ninguna parte— cerrada donde sí se nota.
+- **CodeQL** sobre la app, y **Dependabot solo para las acciones**, que van fijadas a un commit. NuGet queda
+  fuera a propósito: el Windows App SDK se sube a mano.
+- **Verificado antes de publicarlo:** la secuencia exacta del CI en local (restauración, compilación con
+  `-warnaserror`, 626 pruebas, 46 s), el proyecto de UI compilado con `-warnaserror` (0 advertencias), el
+  script del resumen ejecutado en tres escenarios —verde, una unitaria rota sobre un `.trx` manipulado y la
+  compilación rota— y `actionlint` sin errores. **Lo que no se ha podido verificar es la primera ejecución
+  en GitHub**: el repositorio no había ejecutado nunca un workflow.
+
+**De paso:** el árbol de §2 ya no lleva recuentos de pruebas (decía 563 y 30, y hoy son 626 y 38): el
+recuento vive en §3, por lo mismo que la cabecera dejó de llevar estado en `T9-14`.
 
 ### 2026-09-01 — `T12-07`: la franja de rendimiento se retira, porque el problema que resolvía no existía
 

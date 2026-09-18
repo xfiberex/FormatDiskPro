@@ -16,19 +16,36 @@
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
 > | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
 >
-> Al final de la Parte 2 hay además seis tiers que **no** son parte de la auditoría (que sigue siendo de
+> Al final de la Parte 2 hay además nueve tiers que **no** son parte de la auditoría (que sigue siendo de
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
 > entregado, **Tier 6 — Refinado de UX/UI** (`T6-01`–`T6-15`), cerrado también, **Tier 7 — Consistencia
 > y descubribilidad de la UI** (`T7-01`–`T7-09`) y **Tier 8 — Lo que solo se ve usando la app**
 > (`T8-01`–`T8-06`), ambos cerrados el 2026-08-26, y **Tier 9 — Re-auditoría transversal con la app en
 > marcha** (`T9-01`–`T9-20`), **abierto y cerrado el 2026-08-26**: 20 tareas (1 Alta · 9 Medias · 10 Bajas),
-> **20/20 completadas**. Y **Tier 10 — Lo que solo aparece al publicar** (`T10-01`–`T10-02`), **abierto el
-> 2026-08-26** y el único con trabajo pendiente: no nace de una revisión, sino del corte de la v1.25.0.
+> **20/20 completadas**. **Tier 10 — Lo que solo aparece al publicar** (`T10-01`–`T10-02`), abierto el
+> 2026-08-26 al cortar la v1.25.0, con `T10-02` bloqueada a propósito. **Tier 11 — Rendimiento y jerarquía
+> de la ventana principal** (`T11-01`–`T11-04`) y **Tier 12 — Lo que la ventana no dice**
+> (`T12-01`–`T12-07`), abiertos y cerrados el 2026-09-01. Y **Tier 13 — Lo que solo se ve midiendo**
+> (`T13-01`–`T13-16`), **abierto el 2026-09-18** por una auditoría de UI/UX.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
 ## 🏁 Estado
 
+> **Se abre el [Tier 13](#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18)** el **2026-09-18**, con
+> **16 tareas** (3 Altas · 7 Medias · 6 Bajas, dos de ellas decisiones de diseño), de una auditoría de UI/UX
+> hecha **midiendo**: contraste sobre los fondos reales de las capturas, anchos de texto con la fuente real y
+> el alto efectivo de la ventana según el escalado. Lo más revelador: el barrido de contraste de `T12-01`
+> tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
+> usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
+>
+> **El mismo día se revisa `T2-10`: hay CI.** El repositorio es público, y la decisión del 2026-08-15 daba
+> por asumido que un PR externo no ejecutaría nada hasta que el mantenedor lo corriera en su máquina. Ahora
+> cada push a `master` y cada PR compilan en Release sin advertencias, ejecutan las unitarias y
+> **compilan** —sin ejecutarlas— las pruebas de UI; aparte, CodeQL. Las pruebas de UI siguen siendo locales
+> y la puerta de publicación sigue siendo `release.ps1 -UiTests`. Ver
+> *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*.
+>
 > **Se abrió y se cerró el [Tier 11](#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01)**
 > el **2026-09-01**, **4/4**. No sale de un fallo sino de una petición de producto sobre la ventana
 > principal, y las cuatro tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01`, el pie
@@ -43,7 +60,7 @@
 > omitidas son de opt-in (`ALLOW_YANK` ×2, `ALLOW_DESTRUCTIVE`), no falta de hardware. Regenerar la
 > galería es además lo que destapó que el arreglo de `T12-06` no hacía nada.
 >
-> **Queda una tarea abierta, y está bloqueada a propósito**: `T10-02`, en el
+> **Fuera del Tier 13 queda una tarea abierta, y está bloqueada a propósito**: `T10-02`, en el
 > **[Tier 10](#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26)**. El tier se abrió el
 > **2026-08-26** al cortar la v1.25.0, cuando la puerta de cobertura abortó el corte con un informe vacío
 > cuya causa **sigue sin conocerse**. `T10-01` (2026-08-27) no la busca: se ocupa de que la próxima vez
@@ -285,7 +302,8 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
     en `true` **y** fijar el publicador esperado. Lo primero sin lo segundo reabre el agujero que `T1-08`
     cerró. Esa condición **ya la vigila un test tripwire** que falla si se hace a medias, así que está
     mejor custodiada por el build que por una casilla sin marcar.
-- **CI con GitHub Actions — descartado (2026-07-12).** Un runner hospedado **no puede** ejecutar los UI tests
+- **CI con GitHub Actions — descartado (2026-07-12) y revisado (2026-09-18): hoy hay CI de compilación +
+  unitarias, y las pruebas de UI siguen siendo locales.** La historia, en orden: un runner hospedado **no puede** ejecutar los UI tests
   (necesitan sesión elevada y la USB física de pruebas), así que solo duplicaría los unitarios que
   `release.ps1` ya corre antes de cada corte, con menos cobertura. Misma decisión que en WingetUSoft.
   **Reafirmado y ampliado el 2026-08-15: NO habrá CI de ningún tipo, tampoco de solo unitarias.** La
@@ -293,6 +311,15 @@ Adoptar cualquiera de estos sería **cambiar el alcance del producto**:
   local**. La prueba que vale aquí es la que ejerce la app real, y esa no cabe en un runner; un ✅ verde
   que solo cubre los unitarios afirma más de lo que prueba. La puerta de calidad es
   `release.ps1 -UiTests` desde terminal elevada.
+  **Revisada el 2026-09-18, al hacerse público el repositorio: hay CI de compilación + unitarias.** La
+  decisión anterior daba por asumido que un PR externo no ejecutaría nada hasta que el mantenedor lo
+  corriera, y con el repositorio abierto eso deja sin red justo al código que él no escribió. Lo que
+  **sigue en pie**: las pruebas de UI no corren en un runner —el CI solo las **compila**, que es además la
+  trampa de §4 de `CONTEXT.md` que ninguna compilación de la solución detectaba—, y la puerta de publicación
+  sigue siendo `release.ps1 -UiTests`. La objeción del ✅ que afirma de más se atiende en el propio check:
+  el workflow se llama «Compilación y unitarias» —es el texto de su insignia en el README— y el resumen de
+  cada ejecución dice lo que no ejecutó y qué unitarias se omitieron. Con él entraron CodeQL y Dependabot,
+  este solo para las acciones: el Windows App SDK se sigue subiendo a mano. Ver `.github/workflows/`.
 
 ---
 
@@ -747,7 +774,8 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
     falta 2 MB para que exista, pero el respaldo existe justamente para no dejar rastro en el `%AppData%`
     del usuario, y una excepción «que casi nunca pasa» es como se cuelan.
 
-- [x] ~~**[T2-10] CI de solo unitarias en GitHub Actions**~~ — ❌ **DESCARTADA (2026-08-15)**
+- [x] **[T2-10] CI de solo unitarias en GitHub Actions** — ❌ descartada el 2026-08-15 · ✅ **revisada y hecha
+  el 2026-09-18**, al hacerse público el repositorio (ver el último punto)
   - **Área:** DevOps
   - **Ubicación:** `.github/` (hoy solo contiene `FUNDING.yml`)
   - **Qué hacer:** la decisión de 2026-07-12 descartó CI porque un runner hospedado no puede correr los UI
@@ -769,6 +797,11 @@ corto—, pero **añade funcionalidad**, cosa que ninguna tarea `T0`–`T4` hace
   - **Consecuencia asumida:** en un PR externo, los unitarios no se ejecutan hasta que el mantenedor los
     corre. El proyecto es de un solo mantenedor y el corte no sale sin pasar por `release.ps1`, así que la
     puerta sigue existiendo — está en local, no en GitHub.
+  - **Revisada el 2026-09-18: esa consecuencia dejó de ser asumible.** Con el repositorio público, los PR
+    externos son el caso normal, no la excepción. `.github/workflows/ci.yml` recupera este workflow y le
+    añade lo que respondía a la objeción: **compila** —sin ejecutarlas— las pruebas de UI, y el resumen de
+    cada ejecución dice lo que no ejecutó. La puerta de publicación no cambia. Detalle en
+    *Decisiones cerradas*.
 
 - [x] **[T2-12] Que el corte diga cuánta cobertura de UI llevó realmente**
   - **Área:** DevOps / QA
@@ -2300,6 +2333,348 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ---
 
+## 🔬 Tier 13 — Lo que solo se ve midiendo *(abierto 2026-09-18)*
+
+> **De dónde sale.** De una auditoría de UI/UX pedida el 2026-09-18, con el Tier 12 cerrado y la v1.26.0
+> publicada. Se hizo sobre el XAML y el code-behind de la ventana y de los ocho diálogos, las 12 capturas
+> de la galería, y la plantilla (`generic.xaml`) y los metadatos del Windows App SDK 1.8 que usa el
+> proyecto — y **midiendo**, no a ojo: contraste sobre los fondos reales muestreados de las capturas
+> (fórmula WCAG, componiendo el alfa como `SeverityPalette.ContrastAgainstReference`), anchos de texto con
+> la fuente real (calibrado contra la captura: 104 px medidos = 104 px en pantalla) y el alto efectivo de
+> la ventana según el escalado.
+>
+> **Lo que más enseña:** el barrido de contraste de `T12-01` —que existe para que no pueda entrar un color
+> de texto sin medir— tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Es la
+> tercera vez que la medición del color se queda corta por el mismo lado: `T1-04` pasó de una función al
+> inventario, `T12-01` pasó del inventario al XAML, y el XAML tiene más formas de poner un gris que la que
+> `T12-01` buscaba.
+>
+> **No reabre nada de *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*** ni lo que el Tier 12
+> descartó (encoger el aviso de unidad protegida, quitar «Cerrar»): el tamaño fijo se respeta, y `T13-10`
+> busca el alto **dentro** de él.
+>
+> **Base:** v1.26.0 · unitarias **626/626** (625 pasan · 1 se omite) · build Release 0/0 con
+> `-warnaserror` · UI sin volver a ejecutar (la última pasada, 2026-09-01: 34 pasan / 3 omitidas / 0 fallan).
+
+### Defectos — la interfaz dice algo que no es cierto, o no se lee
+
+- [ ] **[T13-01] Cinco textos no llegan a WCAG AA en tema claro, y están atenuados con `Opacity`** · Alta
+  - **Área:** Accesibilidad / contraste
+  - **Ubicación:** [MainWindow.xaml:434](src/FormatDiskPro/UI/MainWindow.xaml#L434) (`ElapsedText`) ·
+    [HistoryDialog.xaml:32](src/FormatDiskPro/UI/HistoryDialog.xaml#L32), [51](src/FormatDiskPro/UI/HistoryDialog.xaml#L51),
+    [62](src/FormatDiskPro/UI/HistoryDialog.xaml#L62) · [HealthDialog.xaml:21](src/FormatDiskPro/UI/HealthDialog.xaml#L21)
+  - **Qué pasa, medido.** Fondos muestreados de las capturas (pie `#F9F9F9`/`#272727`, diálogo
+    `#F3F3F3`/`#202020`), texto primario de Fluent (`#E4000000` / `#FFFFFF`) compuesto con la opacidad:
+
+    | Texto | Opacidad | Claro | Oscuro |
+    |---|---:|---:|---:|
+    | Cronómetro · velocidad · ETA del pie | 0,55 | **3,83:1** | 5,56:1 |
+    | Historial: «41 de 41», la fecha de **cada fila**, «Sin operaciones registradas» | 0,6 | **4,42:1** | 6,68:1 |
+    | Salud: «Algunos valores no están disponibles…» | 0,6 | **4,42:1** | 6,68:1 |
+
+  - **El peor es justo el que más importa:** el cronómetro es la línea que `T12-07` identificó como *la*
+    señal de vida de una operación de 40 minutos — y la razón para retirar la franja de rendimiento.
+  - **Hay nueve más con `Opacity`** (0,7–0,9: *Acerca de*, presets, las filas de Salud —una de ellas desde
+    código, [HealthDialog.xaml.cs:203](src/FormatDiskPro/UI/HealthDialog.xaml.cs#L203)—, el detalle del
+    historial). Pasan (6,13:1 a 11,99:1), pero **nadie los mide**, que es el problema de `T13-02`.
+  - **Qué hacer:** quitar la `Opacity` de los catorce. Los cinco que no llegan, a `AppMutedTextBrush` (ya
+    medido: 5,07 / 5,03:1); los otros nueve, al escalón que les corresponda (`TextFillColorSecondaryBrush`,
+    6,17 / 9,09:1, o el mismo gris).
+  - **Criterio de aceptación:** con `T13-02` hecho, el barrido falla con cualquiera de las catorce
+    opacidades puesta y pasa sin ellas.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna (se verifica con `T13-02`)
+
+- [ ] **[T13-02] El barrido de contraste de `T12-01` tiene tres puntos ciegos** · Alta
+  - **Área:** Accesibilidad / pruebas
+  - **Ubicación:** [TextContrastTests.cs:51-52](tests/FormatDiskPro.Tests/TextContrastTests.cs#L51-L52)
+    (el regex) · [TextContrastTests.cs:74](tests/FormatDiskPro.Tests/TextContrastTests.cs#L74) ·
+    [Core/FluentTextPalette.cs](src/FormatDiskPro/Core/FluentTextPalette.cs)
+  - **1. Un aprobado falso.** El regex `TextFillColor(\w+)Brush` no está anclado: dentro de
+    `AccentTextFillColorPrimaryBrush` encuentra `TextFillColorPrimaryBrush` y lo mide como texto casi negro
+    (**16,65:1**). Pasa así en los títulos e iconos de sección
+    ([AppTheme.xaml:110](src/FormatDiskPro/UI/Theme/AppTheme.xaml#L110), [122](src/FormatDiskPro/UI/Theme/AppTheme.xaml#L122)),
+    en *Acerca de* y en *Novedades*, y en un quinto sitio que es un **comentario**
+    ([AppTheme.xaml:9](src/FormatDiskPro/UI/Theme/AppTheme.xaml#L9)): el barrido lee también los comentarios.
+    Ese color sale del **acento de cada usuario** (`SystemAccentColorDark2` en claro, `SystemAccentColorLight3`
+    en oscuro, según el `generic.xaml` de la 1.8), así que no se puede medir de antemano: debe ser una
+    **excepción declarada y justificada por escrito**, como `TextFillColorDisabledBrush` — no un alias
+    silencioso.
+  - **2. Un color de texto que no ve.** `SystemFillColorCriticalBrush` pinta texto en tres sitios —la
+    instrucción de la confirmación ([ConfirmDialog.xaml:24](src/FormatDiskPro/UI/ConfirmDialog.xaml#L24)),
+    el error de etiqueta ([MainWindow.xaml:328](src/FormatDiskPro/UI/MainWindow.xaml#L328)) y el de presets
+    ([PresetsDialog.xaml:23](src/FormatDiskPro/UI/PresetsDialog.xaml#L23))— y el regex no lo busca. Hoy pasa
+    (la re-auditoría del 2026-08-26 midió uno a mano: 5,1:1), pero nada impide que deje de hacerlo.
+  - **3. Una forma de poner un gris que no mira:** `Opacity` sobre un `TextBlock` (`T13-01`).
+  - **Qué hacer:** que el barrido recorra todo `Foreground="{ThemeResource X}"` con el nombre **entero**
+    (anclado), exija que `X` esté declarado —o exento con su motivo escrito—, quite los comentarios XML antes
+    de buscar y falle ante `Opacity` en un `TextBlock`, en el XAML y en el código.
+  - **Criterio de aceptación:** **verificado en negativo**, como `T12-01`: reintroducir cada uno de los tres
+    casos y ver fallar la prueba nombrándolo.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-03] *Reinicializar* se confirma con un botón que dice «Formatear»** · Alta
+  - **Área:** UI / prevención de errores
+  - **Ubicación:** [ConfirmDialog.xaml.cs:32](src/FormatDiskPro/UI/ConfirmDialog.xaml.cs#L32) · llamantes:
+    [MainWindow.xaml.cs:437](src/FormatDiskPro/UI/MainWindow.xaml.cs#L437) (formatear) y
+    [MainWindow.Operations.cs:435](src/FormatDiskPro/UI/MainWindow.Operations.cs#L435) (reinicializar)
+  - **Qué pasa:** `PrimaryButtonText = L.T("btn.start")` —«Formatear»— para las **dos** operaciones. En
+    `reinit-light.png`: título «Confirmar reinicialización», cuerpo «Se borrará TODO el disco físico…»,
+    botón «Formatear». Y en cuanto la letra coincide, `Enter` ejecuta la reinicialización con ese rótulo.
+  - **Es el fallo que `T6-01` dejó a medias.** El `<remarks>` de esa misma clase hizo **obligatorio** el
+    título para que una operación destructiva no pudiera «heredar el nombre equivocado por omisión». El
+    verbo del botón lo sigue heredando.
+  - **Qué hacer:** el verbo, parámetro obligatorio del constructor, nombrando la unidad como en `T12-02`
+    («Reinicializar I:» / «Formatear I:»). Claves nuevas × 5 idiomas.
+  - **Criterio de aceptación:** una prueba que falle si los dos diálogos comparten el texto del botón
+    primario, como la que `T6-01` puso a los títulos.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-04] La tabla de la confirmación solo está alineada en español** · Media
+  - **Área:** UI / i18n
+  - **Ubicación:** [MainWindow.xaml.cs:427-435](src/FormatDiskPro/UI/MainWindow.xaml.cs#L427-L435) ·
+    [ConfirmDialog.xaml:20-21](src/FormatDiskPro/UI/ConfirmDialog.xaml#L20-L21)
+  - **Qué pasa, medido:** el resumen se alinea con **espacios a mano**, en Consolas, para la longitud de las
+    etiquetas en español (el valor cae a 12 caracteres del margen en las cinco filas). En los otros cuatro
+    idiomas no cuadra: EN 11 / 16 / 12 / 9 / 12, FR 13 / 12 / 12 / 7 / 12, PT 13 / 12 / 12 / 10 / 12,
+    IT 11 / 12 / 12 / 13 / 12. Es el último diálogo antes de borrar un disco. Y la prosa de las
+    reinicializaciones va en el mismo bloque monoespaciado, que se lee como un volcado de consola.
+  - **Qué hacer:** que `ConfirmDialog` reciba filas (etiqueta, valor) y las pinte en un `Grid` de dos
+    columnas —como ya hace `HealthDialog`—, con el aviso en un `InfoBar` de severidad Error (o un párrafo) y
+    la prosa en la fuente normal. Revisar las pruebas de UI que lean `SummaryText`.
+  - **Criterio de aceptación:** ningún espacio de relleno en las cadenas; capturas en ES y EN con las
+    columnas alineadas.
+  - **Esfuerzo:** medio
+  - **Depende de:** `T13-03` (mismo constructor)
+
+- [ ] **[T13-05] El resumen del pie recorta justo «Borrado seguro»** · Media
+  - **Área:** UI / i18n
+  - **Ubicación:** [MainWindow.xaml:447-449](src/FormatDiskPro/UI/MainWindow.xaml#L447-L449) ·
+    [MainWindow.FormatOptions.cs:415-424](src/FormatDiskPro/UI/MainWindow.FormatOptions.cs#L415-L424)
+  - **Qué pasa, medido** con Segoe UI Variable a 12 px, calibrado contra la captura: el hueco del medio mide
+    **~192 DIP** (452 − 110 − 130 − 2×10). Con borrado seguro activo, el resumen mide **201 px** en ES,
+    179 en EN, **227** en PT, **222** en FR y **224** en IT — y hasta **258** con `exFAT · 128 KB ·
+    completo`. Se recorta el final, que es el borrado seguro: la opción que convierte segundos en horas y
+    que está bajo el pliegue. Es exactamente el caso para el que existe `T12-03`. El tooltip lo dice
+    entero, pero un tooltip exige pasar el ratón por encima.
+  - **Qué hacer:** dos líneas (`TextWrapping="Wrap"` + `MaxLines="2"`: caben en el alto del botón), o el
+    borrado seguro al principio.
+  - **Criterio de aceptación:** captura en PT, FR e IT con el borrado seguro activo y la palabra entera.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-06] Salud: «Desgaste (SSD): 0 % — Normal», en verde, en un disco duro** · Media
+  - **Área:** UI / veracidad del dato
+  - **Ubicación:** [HealthDialog.xaml.cs:93-95](src/FormatDiskPro/UI/HealthDialog.xaml.cs#L93-L95) ·
+    [Core/SmartInfo.cs:108](src/FormatDiskPro/Core/SmartInfo.cs#L108) (`HasSpindle`, el espejo)
+  - **Qué pasa:** `T6-03` quitó la fila de rotación en los SSD porque es «una pregunta que no aplica», pero
+    no hizo el caso contrario: la fila de desgaste se añade **siempre**, y en un HDD el contador vale 0.
+    `health-light.png` lo enseña: «Tipo de medio: HDD» y, cuatro filas más abajo, «Desgaste (SSD): 0 % —
+    Normal» en verde.
+  - **Qué hacer:** `SmartInfo.HasWear`, pura y en `Core`, espejo de `HasSpindle`: oculta la fila con medio
+    HDD o con RPM > 0; sin señal, la muestra (no afirmar lo que no se sabe).
+  - **Criterio de aceptación:** unitarias sobre las tres señales, como las de `T6-03`, y comprobación
+    visual sobre el HDD de la galería.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-07] Historial: un *CRASH* sale como «Info», y 9 de los 14 tipos de entrada son «Operación»** · Media
+  - **Área:** UI / clasificación del historial
+  - **Ubicación:** [Core/HistoryEntry.cs:214-231](src/FormatDiskPro/Core/HistoryEntry.cs#L214-L231) ·
+    [App.xaml.cs:47](src/FormatDiskPro/App.xaml.cs#L47) (`CRASH:`)
+  - **Qué pasa, contado:** la app escribe **14** prefijos y solo **5** tienen categoría (FORMAT, WIPE,
+    VERIFY, EJECT, UPDATE). REINIT —la operación más destructiva—, CHKDSK, BENCH, UNLOCK, HEALTH, CRASH,
+    SETTINGS, WHATSNEW y DISKSIZE caen en «Operación», así que el filtro **no puede aislar una
+    reinicialización**. Y `CRASH:` no lleva OK/FAIL/ERROR, así que sale «Operación · Info» con el icono ⓘ
+    (`history-light.png`, con una `XamlParseException`). `T3-11` arregló que una caída partiera el
+    historial precisamente para que «el registro que uno va a consultar cuando algo ha ido mal» sirviera;
+    sigue rotulado como información.
+  - **Qué hacer:** categorías para lo que la app ya escribe y `CRASH` → Error. Claves nuevas × 5 idiomas.
+    **Cambia el CSV:** esas filas dejan de decir `Other`; va al CHANGELOG. Las entradas ya escritas se
+    releen bien, porque se clasifica por prefijo: no hay migración.
+  - **Criterio de aceptación:** una prueba que **barra el código fuente** buscando los prefijos de
+    `History.Log(` —como `LocalizationCoverageTests` barre las tablas de cadenas— y falle si alguno cae en
+    `Other` sin que nadie lo haya decidido.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-08] Las pistas de los campos no llegan al lector de pantalla** · Media
+  - **Área:** Accesibilidad
+  - **Ubicación:** [MainWindow.xaml:308](src/FormatDiskPro/UI/MainWindow.xaml#L308) (`FsDescText`) y
+    [316](src/FormatDiskPro/UI/MainWindow.xaml#L316) (`AllocHintText`) · el patrón ya existe en
+    [MainWindow.xaml.cs:158](src/FormatDiskPro/UI/MainWindow.xaml.cs#L158)
+  - **Qué pasa:** las dos pistas no están enlazadas a su combo. El error de etiqueta sí lo está, y por el
+    mismo motivo (`T2-02`: el lector leía «Etiqueta del volumen» y nada más). La ayuda que `T7-03` añadió
+    para «el único campo esotérico» existe solo para quien ve.
+  - **Qué hacer:** el mismo `AutomationProperties.GetDescribedBy(...).Add(...)` en los dos combos. Revisar
+    de paso `RestNoteText` y `SmallFat32HintText`, que tienen la misma forma.
+  - **Criterio de aceptación:** una prueba de UI que lea el `DescribedBy` de los dos combos, como la de
+    `T2-02`.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-09] Alto contraste: el principio de `T12-01` solo se aplica a un pincel** · Media
+  - **Área:** Accesibilidad
+  - **Ubicación:** [MainWindow.xaml.cs:722](src/FormatDiskPro/UI/MainWindow.xaml.cs#L722) (progreso) ·
+    [MainWindow.DriveInfo.cs:182-184](src/FormatDiskPro/UI/MainWindow.DriveInfo.cs#L182-L184) y
+    [198](src/FormatDiskPro/UI/MainWindow.DriveInfo.cs#L198) (salud),
+    [374](src/FormatDiskPro/UI/MainWindow.DriveInfo.cs#L374) (unidad protegida),
+    [413-414](src/FormatDiskPro/UI/MainWindow.DriveInfo.cs#L413-L414) (ocupación) ·
+    [HealthDialog.xaml.cs:169](src/FormatDiskPro/UI/HealthDialog.xaml.cs#L169) ·
+    [HistoryDialog.xaml.cs:248](src/FormatDiskPro/UI/HistoryDialog.xaml.cs#L248) ·
+    [MainWindow.Preferences.cs:293](src/FormatDiskPro/UI/MainWindow.Preferences.cs#L293) (barra de título)
+  - **Qué pasa:** «en alto contraste manda el color del sistema» (`T12-01`) vale para `AppMutedTextBrush`,
+    que tiene su entrada `HighContrast` en `AppTheme.xaml`. Pero el código fija colores de `SeverityPalette`
+    eligiendo **solo** por `_darkMode`, y no hay ni una referencia a `HighContrast` ni a
+    `AccessibilitySettings` en todo el C#.
+  - **Sin verificar con la app en marcha** — es un riesgo por lectura del código (p. ej., el texto rojo de
+    la unidad protegida sobre el resaltado de selección de un tema de contraste). Lo primero es mirarlo.
+  - **Qué hacer:** comprobarlo con un tema de contraste de Windows y capturarlo. Si se confirma: con
+    `AccessibilitySettings.HighContrast` activo, **no** fijar `Foreground`/`Fill` (`ClearValue`) y dejar
+    mandar al tema — el significado ya lo lleva el texto (1.4.1) —, y escuchar `HighContrastChanged`.
+  - **Criterio de aceptación:** capturas de la ventana, Salud e Historial en un tema de contraste sin ningún
+    color propio.
+  - **Esfuerzo:** medio
+  - **Depende de:** ninguna
+
+### La ventana, en el alto que tiene de verdad
+
+- [ ] **[T13-10] En la mayoría de portátiles la ventana no mide 900 DIP, y hay ~150 DIP recuperables** · Media
+  - **Área:** UI / densidad
+  - **Ubicación:** [MainWindow.xaml.cs:196-211](src/FormatDiskPro/UI/MainWindow.xaml.cs#L196-L211)
+    (`SizeAndCenterWindow`) · [MainWindow.xaml.cs:127](src/FormatDiskPro/UI/MainWindow.xaml.cs#L127) ·
+    [MainWindow.xaml:10](src/FormatDiskPro/UI/MainWindow.xaml#L10), [262-283](src/FormatDiskPro/UI/MainWindow.xaml#L262-L283),
+    [316](src/FormatDiskPro/UI/MainWindow.xaml#L316), [330-332](src/FormatDiskPro/UI/MainWindow.xaml#L330-L332),
+    [425-436](src/FormatDiskPro/UI/MainWindow.xaml#L425-L436)
+  - **Qué pasa, calculado con el propio `SizeAndCenterWindow`:** la ventana se acota al área de trabajo. Una
+    pantalla 1080p al **150 %** da **656 DIP**; al 125 %, 800; una de 1366×768 al 100 %, 704. La galería se
+    hace a 900, así que el pliegue de `T12-03` y `T12-06` es mayor de lo que enseñan las capturas: a 656 DIP
+    se ve la tarjeta de unidad y media de la de configuración, y *Opciones de formato* queda a dos pantallas.
+  - **Qué hacer, sin tocar el tamaño fijo:**
+
+    | Cambio | DIP |
+    |---|---:|
+    | Barra de título `Tall` → estándar. Microsoft recomienda la alta cuando lleva contenido interactivo; esta solo lleva icono y título | 16 |
+    | Pie en reposo: la `ProgressBar` parada (una raya paralela al borde del pie) y la fila de estado vacía, visibles solo desde `BeginOperation`. Hacerlas visibles **antes** de anunciar: un elemento `Collapsed` no está en el árbol UIA (`T2-02`) | ~37 |
+    | «Restaurar valores predeterminados», un botón a todo el ancho para una acción rara → primera entrada del botón *Presets*, en la misma tarjeta | ~44 |
+    | Ocupación: el total sale dos veces (20 px arriba y en «Usado X / **total**») → barra + «230,7 GB usados · 235,1 GB libres» | ~22 |
+    | Pista del clúster, tres líneas cuya primera frase deja de ser verdad al cambiar el valor → marcar el recomendado **en la lista** («4 KB (recomendado)», como el diálogo de formato de Windows) y dejar una línea | ~32 |
+
+  - **~150 DIP son más o menos la tarjeta *Opciones de formato***, que hoy queda entera bajo el pliegue
+    incluso a 900.
+  - **Dos cuidados:** la marca del recomendado no debe llegar al resumen del pie ni a la confirmación, que
+    siguen usando el tamaño a secas (`T13-05` ya va justo de ancho). Y es compatible con la prueba de
+    `T7-03` ([LocalizationTests.cs:234](tests/FormatDiskPro.Tests/LocalizationTests.cs#L234)): esa impide
+    nombrar un elemento «Predeterminado» que **no existe**; aquí se marca uno que sí.
+  - **Criterio de aceptación:** una captura de la galería a **656 DIP** (un parámetro de alto en
+    `capture-screenshots.ps1`) antes y después.
+  - **Esfuerzo:** medio
+  - **Depende de:** ninguna
+
+### Desactualizado
+
+- [ ] **[T13-11] Windows App SDK: dos *servicing* de la 1.8 pendientes, y la 2.x estable** · Baja
+  - **Área:** Dependencias
+  - **Ubicación:** [FormatDiskPro.csproj:36](src/FormatDiskPro/FormatDiskPro.csproj#L36)
+  - **Qué pasa (NuGet, 2026-09-18):** el proyecto fija `1.8.260529003`. Después salieron `1.8.260710003`
+    (2026-07-14) y **`1.8.260804001`** (2026-08-13). La **2.x es estable desde el 2026-04-29** (2.0.1) y la
+    actual es la **2.5.1** (2026-09-16).
+  - **Qué hacer:** fiel a la versión exacta (§4 de `CONTEXT.md`: subir es deliberado y probado): primero el
+    *servicing* de la 1.8, con la puerta completa (`release.ps1 -UiTests`, instalador y galería); la 2.x,
+    como tarea aparte, con la skill `dotnet-upgrade` y sus cambios incompatibles leídos. `FluentTextPalette`
+    ancla los valores de los tokens de texto: si la 2.x los cambia, fallará su prueba, que es lo que tiene
+    que pasar.
+  - **Esfuerzo:** bajo (*servicing*) · medio-alto (2.x)
+  - **Depende de:** ninguna
+
+- [ ] **[T13-12] Botones de la barra de título: ocho colores a mano donde ya hay API** · Baja
+  - **Área:** UI / plataforma
+  - **Ubicación:** [MainWindow.Preferences.cs:284-313](src/FormatDiskPro/UI/MainWindow.Preferences.cs#L284-L313) ·
+    [MainWindow.xaml.cs:123-126](src/FormatDiskPro/UI/MainWindow.xaml.cs#L123-L126)
+  - **Qué pasa:** `UpdateCaptionButtonColors` fija ocho propiedades con colores propios; es la «única
+    excepción» a la regla de colores de `AppTheme.xaml` y de `CONTEXT.md` §4. `AppWindowTitleBar.PreferredTheme`
+    (`TitleBarTheme.Light` / `Dark` / `UseDefaultAppMode`) existe desde la 1.7 y está en los metadatos de la
+    1.8. Además, **dos comentarios se contradicen**: el del constructor dice que WinUI tematiza esos botones
+    solo, y el del método que no. Y el «compromiso: el botón Cerrar deja de ponerse rojo» lo desmiente la
+    documentación de Microsoft: *«The close button always uses the system-defined color for those states.»*
+  - **Qué hacer:** probar `PreferredTheme` con la app en marcha —cambio de tema en caliente, tema forzado
+    contrario al del sistema y alto contraste—. Si funciona, fuera el método y la excepción (y su mención en
+    `AppTheme.xaml` y §4). Si no, corregir al menos los dos comentarios.
+  - **Sin verificar con la app en marcha.**
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-13] Idioma y tema: casillas con exclusión a mano donde hay un control para eso** · Baja
+  - **Área:** UI / plataforma
+  - **Ubicación:** [MainWindow.xaml:64-75](src/FormatDiskPro/UI/MainWindow.xaml#L64-L75) ·
+    [MainWindow.Preferences.cs:139-144](src/FormatDiskPro/UI/MainWindow.Preferences.cs#L139-L144) y
+    [226-230](src/FormatDiskPro/UI/MainWindow.Preferences.cs#L226-L230)
+  - **Qué pasa:** `ToggleMenuFlyoutItem` con `SyncThemeMenu` y cinco `IsChecked` para que solo haya uno
+    marcado. `RadioMenuFlyoutItem` con `GroupName` (en los metadatos de la 1.8) pinta el punto de «uno de N»
+    y hace la exclusión solo.
+  - **Qué hacer:** sustituirlos conservando los `x:Name` (las pruebas de UI los buscan por `AutomationId`).
+    Ojo: `MainWindowActions.ClickMenuPath` los pulsa por el patrón *Toggle*; comprobar qué expone el
+    nuevo control y ajustarlo si hace falta.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-14] Restos de estilo** · Baja
+  - **Área:** UI / mantenimiento
+  - **Qué pasa:**
+    - **26 `CornerRadius` que repiten los valores por defecto** de la 1.8 (`ControlCornerRadius` = 4,
+      `OverlayCornerRadius` = 8, en su `generic.xaml`): 12 estilos de botón de diálogo —los 10 `BasedOn
+      DefaultButtonStyle` sobran enteros; los 2 de acento solo necesitan el `BasedOn`—, 7 `CornerRadius="8"`
+      en los `ContentDialog` y 7 `CornerRadius="4"` en botones de `PresetsDialog`.
+    - **Tamaños fuera de la rampa tipográfica de Fluent**: 12,5 ([MainWindow.xaml:432](src/FormatDiskPro/UI/MainWindow.xaml#L432),
+      [ConfirmDialog.xaml:20](src/FormatDiskPro/UI/ConfirmDialog.xaml#L20)) y 13 (`InfoTextStyle` y cuatro
+      diálogos), entre el Caption de 12 y el Body de 14.
+    - **Pistas en cursiva** (`HintTextStyle`): Windows 11 escribe las descripciones en regular y color
+      secundario.
+    - **La tarjeta *Opciones de formato* lleva el glifo `E74E`, que es el disquete de «Guardar»**
+      ([MainWindow.xaml:340](src/FormatDiskPro/UI/MainWindow.xaml#L340)); se renderizó para comprobarlo.
+      `E9D5` (lista de comprobación) encaja con tres casillas.
+  - **Qué hacer:** limpiar los cuatro. Lo tipográfico mueve el layout: pasada de galería después.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+### A considerar — decisiones de diseño, no defectos
+
+- [ ] **[T13-15] Títulos de sección en color de acento: tienen el color de un enlace** · Baja · *decisión del mantenedor*
+  - **Área:** UI / lenguaje visual
+  - **Ubicación:** [AppTheme.xaml:107-124](src/FormatDiskPro/UI/Theme/AppTheme.xaml#L107-L124)
+  - **Qué pasa:** en la 1.8, `HyperlinkButtonForeground` **es** `AccentTextFillColorPrimaryBrush`. En
+    *Opciones de formato*, el título y el enlace «Reinicializar unidad ahora…»
+    ([MainWindow.xaml:395](src/FormatDiskPro/UI/MainWindow.xaml#L395)) son del mismo color, y solo uno se
+    pulsa. Con el acento en rojo, cada título parece un aviso; y no se puede medir (`T13-02`). La
+    Configuración de Windows escribe sus títulos en semibold y color de texto primario.
+  - **Qué hacer:** decidir. Si se cambia, el título a texto primario y el icono en acento (objeto gráfico,
+    3:1). Si se mantiene —es el estilo Win11Debloat que se adoptó en la v1.3.0—, dejar escrita la decisión y
+    la exención de `T13-02`.
+  - **Esfuerzo:** bajo
+  - **Depende de:** `T13-02` (su exención depende de esto)
+
+- [ ] **[T13-16] Las preferencias viven en submenús** · Baja · *decisión del mantenedor*
+  - **Área:** UI / patrones
+  - **Ubicación:** [MainWindow.xaml:63-80](src/FormatDiskPro/UI/MainWindow.xaml#L63-L80)
+  - **Qué pasa:** idioma y tema en submenús, más dos casillas dentro de un menú, es el patrón de las
+    aplicaciones Win32. Las de Windows 11 (Bloc de notas, Paint, Terminal) tienen una página de ajustes: un
+    `ComboBox` para el idioma, `RadioButtons` para el tema y `ToggleSwitch` para los avisos.
+  - **Qué hacer:** valorar un diálogo *Configuración…* con los anchos comunes de `T6-07`. Los presets ya
+    bajaron a su tarjeta (`T12-04`). Es el cambio más grande del tier y el menos urgente, y obliga a
+    rehacer `SettingsTests`.
+  - **Esfuerzo:** medio
+  - **Depende de:** ninguna (si se hace, `T13-13` sobra)
+
+### Revisado y sin hallazgo
+
+- **El marco de foco del diálogo de chkdsk** —que se construye en código y no pasa por
+  `DialogContentPadding`— sale **entero**: ampliado ×6 sobre la captura.
+- **Los aceleradores Alt de los menús** no chocan en ninguno de los cinco idiomas.
+
+---
+
 ## 🔤 Tier 12 — Lo que la ventana no dice *(abierto 2026-09-01)*
 
 > **De dónde sale.** De una revisión de UI/UX pedida después de cerrar el Tier 11. El primer hallazgo no
@@ -2672,6 +3047,8 @@ restauran.
 
 | Fecha | Tarea | Notas |
 |---|---|---|
+| 2026-09-18 | **T2-10** (revisada) | **Hay CI**, al hacerse público el repositorio: compilación Release con `-warnaserror`, unitarias y compilación —no ejecución— de las pruebas de UI en cada push a `master` y cada PR, más CodeQL y Dependabot para las acciones. Acciones fijadas a un commit, `actionlint` sin errores, y la secuencia del CI verificada en local antes de publicarla (626 pruebas, 0 advertencias, 46 s). El resumen de cada ejecución dice lo que no ejecutó: es la respuesta a la objeción que tumbó la primera versión. La puerta de publicación no cambia. |
+| 2026-09-18 | — | **Se abre el [Tier 13](#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18)** con **16 tareas** (3 Altas · 7 Medias · 6 Bajas), de una auditoría de UI/UX que **midió** en lugar de mirar: contraste sobre los fondos de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. El barrido de `T12-01` tenía tres puntos ciegos —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como si fuera texto primario, un pincel de texto que no busca y la `Opacity`— y por ellos pasaron cinco textos por debajo de AA. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

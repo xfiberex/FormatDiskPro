@@ -1,0 +1,20 @@
+# Dependabot: mantiene al día las acciones de GitHub, que los workflows fijan a un commit.
+#
+# SOLO las acciones, a propósito: los paquetes NuGet NO. El Windows App SDK va fijado a una versión exacta,
+# y subirlo es un cambio deliberado y probado (CONTEXT.md §4: con un comodín apareció, de un día para otro,
+# el archivo que rompió el instalador por MAX_PATH). Un PR automático por cada versión nueva empujaría justo
+# en la dirección contraria.
+#
+# Un solo PR al mes con todas las acciones juntas: son cuatro, y cambian a la vez.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      acciones:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
+      include: scope

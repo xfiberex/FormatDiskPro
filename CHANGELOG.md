@@ -13,6 +13,19 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
+## [Sin publicar]
+
+### Interno
+
+- **Integración continua en GitHub Actions, ahora que el repositorio es público.** Cada push a `master` y
+  cada pull request compilan en Release sin advertencias, ejecutan las pruebas unitarias y **compilan** las
+  de UI, sin ejecutarlas: esas lanzan la app real con permisos de administrador, y las que tocan una unidad
+  necesitan la USB de pruebas. El resumen de cada ejecución dice lo que no se ejecutó. La puerta de
+  publicación no cambia: sigue siendo `release.ps1 -UiTests`, en local.
+- **Análisis de seguridad con CodeQL** del código de la app, en cada cambio y una vez por semana.
+- **Dependabot** mantiene al día las acciones de GitHub, que los workflows fijan a un commit. Los paquetes
+  NuGet quedan fuera a propósito: el Windows App SDK se sube a mano y con pruebas.
+
 ## [1.26.0] — 2026-09-01
 
 **Una revisión de la ventana principal: qué se ve primero, qué se lee y qué dice el botón que borra

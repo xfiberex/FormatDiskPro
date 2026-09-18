@@ -4,6 +4,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 ![Plataforma](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)
 ![Licencia](https://img.shields.io/github/license/xfiberex/FormatDiskPro?label=licencia&color=green)
+[![Compilación y unitarias](https://github.com/xfiberex/FormatDiskPro/actions/workflows/ci.yml/badge.svg)](https://github.com/xfiberex/FormatDiskPro/actions/workflows/ci.yml)
 
 Herramienta de formateo y **gestión de unidades** para Windows con soporte para **5 sistemas de archivos**, diagnóstico **S.M.A.R.T. avanzado**, verificación de capacidad real, comprobación de errores (chkdsk), detección de protección de escritura, actualizaciones automáticas y protección del disco de sistema.
 
@@ -247,6 +248,12 @@ de una operación** — no borran nada, pero comprueban que la app sobrevive a p
 lugar de cerrarse sin avisar. Para incluirlos en un corte de versión:
 `.\release.ps1 -Version X.Y.Z -UiTests`.
 
+**Integración continua.** En cada push a `master` y en cada pull request, GitHub Actions compila en Release
+sin advertencias, ejecuta las pruebas unitarias y **compila** las de UI, sin ejecutarlas: un runner no tiene
+la USB de pruebas, y esas pruebas lanzan la app real con permisos de administrador. Por eso el check se llama
+*Compilación y unitarias*, y el resumen de cada ejecución dice lo que no ejecutó. Además, CodeQL analiza el
+código de la app. La puerta de publicación sigue siendo `release.ps1 -UiTests`, en local.
+
 Las pruebas unitarias (xUnit) cubren la lógica pura aislada en `Core` y los helpers testeables de `Services`: construcción de comandos de formato, blindaje anti-inyección, parseo de progreso, longitud de etiqueta, consistencia de presets, comparación de versiones, persistencia de configuración, cálculo de velocidad/ETA, patrón y número de pasadas del borrado seguro, parseo del historial (más filtro y exportación CSV, con neutralización de fórmulas) y del detalle S.M.A.R.T. (más umbrales de severidad), **verificación del instalador descargado** (SHA-256 contra un servidor HTTP local, rechazo del hash que no coincide y del release sin hash), **contraste WCAG de todos los colores semánticos** en ambos temas (el barrido recorre el inventario `SeverityPalette.All()`, compone el alfa sobre el fondo y exige 4.5:1 al texto y 3:1 a los objetos gráficos, midiendo contra el color **adyacente** cuando lo que hay que distinguir es un color de otro —el espacio usado del libre en la barra de ocupación— y no del fondo), **comparación de letras de unidad invariante de cultura** (la guarda que impide formatear el disco de sistema, verificada bajo cultura turca), **saneado del nombre de asset** antes de componer la ruta de descarga del instalador, interpretación del código de salida de chkdsk, elección de estilo de partición (MBR/GPT) y parseo de la reinicialización, planificación/velocidad/IOPS del benchmark, conversión de las notas de versión (Markdown → texto plano: énfasis pareado, y los párrafos reunidos sin pegar viñetas ni encabezados), **el formato de números por idioma** (con la contrapartida: cambiar de idioma no mueve la cultura del hilo —por ahí volvería el fallo de la guarda turca— y el CSV exportado sale idéntico en los cinco), validación y renombrado de nombres de presets personalizados, clasificación de eventos de cambio de dispositivo, **los caminos de error de las operaciones largas** (detección de unidad falsificada reproducida sin unidad falsificada: bloque corrompido, lectura corta, cancelación con limpieza; y que lo que registra un fallo se vuelva a leer como **una** entrada de historial aunque la excepción traiga una traza de pila multilínea), completitud de las traducciones (5 idiomas, incluidas las descripciones de sistema de archivos y los nombres de los presets integrados) **y un barrido del propio código fuente que falla si aparece una tabla de cadenas fuera de `Localization/`** — la forma que tomó el último texto que se quedó sin traducir, y mapeo de códigos de idioma y de cultura del sistema, y la decisión de aviso al terminar.
 
 ## Uso
@@ -340,6 +347,7 @@ src/FormatDiskPro/
 tests/FormatDiskPro.Tests/     Pruebas xUnit sobre la lógica de Core y los helpers de Services
 tests/FormatDiskPro.UiTests/  Pruebas de UI con FlaUI/UIA3 sobre la app real (fuera de la solución)
 tools/capture-screenshots.ps1 Regenera las capturas del README conduciendo la app por UI Automation
+.github/workflows/            CI (compilación + unitarias; las pruebas de UI solo se compilan) y CodeQL
 docs/screenshots/             Capturas del README (generadas, no editadas a mano)
 ROADMAP.md                    Hoja de ruta de características (tiers)
 CHANGELOG.md                  Qué cambió en cada versión (Keep a Changelog)

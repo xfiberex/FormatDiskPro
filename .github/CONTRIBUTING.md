@@ -37,9 +37,15 @@ ausente no es un fallo. Las que borran datos o desmontan la unidad solo corren c
 (`FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`, `FORMATDISKPRO_ALLOW_YANK=1`) — **no las actives sobre una unidad que
 te importe**.
 
-> **No hay CI.** El testing de este proyecto es local, por decisión firme: la prueba que vale aquí es la
-> que ejerce el binario real contra hardware real, y eso no cabe en un runner. No envíes PRs que añadan
-> GitHub Actions o workflows. Si tu cambio necesita una comprobación automática, el sitio es `release.ps1`.
+> **Qué hace el CI, y qué no.** Cada PR ejecuta en GitHub Actions el check *Compilación y unitarias*:
+> compila en Release sin advertencias, ejecuta las unitarias y **compila** las pruebas de UI, pero **no las
+> ejecuta**: un runner no tiene la USB de pruebas, y la prueba que vale aquí es la que ejerce el binario real
+> contra hardware real. Su resumen dice lo que no ejecutó. Si tu PR toca la UI, sigue haciendo falta correr
+> las pruebas de UI en tu máquina y decir en el PR cuáles se omitieron. La puerta de publicación es
+> `release.ps1 -UiTests`, en local.
+>
+> Los cambios en `.github/workflows/` se revisan con especial cuidado: se ejecutan con los permisos del
+> repositorio.
 
 ## Cómo está organizado
 
@@ -61,8 +67,9 @@ Convenciones que hay tests vigilando —y que fallarán si las saltas—:
 ## Pull requests
 
 1. Una idea por PR. Si toca varias cosas, sepáralas en commits (o en PRs).
-2. `dotnet build -c Release` en **0/0** y `dotnet test` en verde. Si tocas UI, corre también los UI tests
-   desde terminal elevada y di en el PR qué se omitió.
+2. `dotnet build -c Release` en **0/0** y `dotnet test` en verde; el CI del PR lo comprueba también. Si
+   tocas UI, corre además los UI tests desde terminal elevada y di en el PR qué se omitió: el CI solo los
+   compila.
 3. **Añade la prueba que falla sin tu arreglo.** En este proyecto se verifica por reversión: si no has
    visto tu test fallar, no es una red, es una suposición.
 4. Si cambias comportamiento o una convención, actualiza [`CONTEXT.md`](../CONTEXT.md) (Estado actual +
@@ -72,8 +79,8 @@ Convenciones que hay tests vigilando —y que fallarán si las saltas—:
 ## Qué no se va a aceptar
 
 Está en el roadmap, pero por si acaso: creador de USB booteable desde ISO, gestor de particiones completo,
-clonado/imagen de discos, ventana redimensionable, elevación `asInvoker` y CI. No es falta de ganas: cada
-uno tiene su porqué escrito.
+clonado/imagen de discos, ventana redimensionable y elevación `asInvoker`. No es falta de ganas: cada uno
+tiene su porqué escrito.
 
 ## Reportar problemas
 
