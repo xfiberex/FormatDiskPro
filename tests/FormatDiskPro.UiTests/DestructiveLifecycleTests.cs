@@ -124,6 +124,42 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
     }
 
     /// <summary>
+    /// `T13-03`: lo que `T6-01` arregló en el título seguía roto en el botón. Reinicializar se confirmaba
+    /// con «Formatear», y en cuanto la letra coincide, <c>Enter</c> lo pulsa: es el verbo de lo que se
+    /// ejecuta, no un adorno.
+    ///
+    /// <para>Mismo criterio de caja negra que la prueba del título: no se ancla el texto en español.
+    /// Se exige que cada operación tenga su propio verbo y que los dos nombren la unidad, como el botón
+    /// principal de la ventana (`T12-02`).</para>
+    /// </summary>
+    [TestDriveFact]
+    public void ConfirmDialogs_EachDestructiveOperationHasItsOwnVerb_NamingTheDrive()
+    {
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        SelectTestDrive(letter);
+
+        string formatVerb;
+        MainWindowActions.Button(Window, "StartButton").Invoke();
+        try   { formatVerb = DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Name.Trim(); }
+        finally { DialogHelper.SafeCloseAnyDialog(fixture); }
+
+        string reinitVerb;
+        MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuReinit");
+        try   { reinitVerb = DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Name.Trim(); }
+        finally { DialogHelper.SafeCloseAnyDialog(fixture); }
+
+        output.WriteLine($"Botón de formatear:      '{formatVerb}'");
+        output.WriteLine($"Botón de reinicializar:  '{reinitVerb}'");
+
+        Assert.False(formatVerb == reinitVerb,
+            $"Formatear y reinicializar se confirman con el mismo botón ('{formatVerb}'): reinicializar borra " +
+            "el disco físico entero, y quien pulsa Enter tiene que leer lo que va a pasar.");
+        foreach (string verb in (string[])[formatVerb, reinitVerb])
+            Assert.True(verb.Contains($"{letter}:", StringComparison.OrdinalIgnoreCase),
+                $"El botón '{verb}' no nombra la unidad ({letter}:), como sí hace el de la ventana principal.");
+    }
+
+    /// <summary>
     /// `T6-02`: el campo de confirmación llevaba como <c>PlaceholderText</c> la propia letra que hay que
     /// teclear. Una letra gris dentro de una caja vacía es indistinguible de una escrita —el campo se leía
     /// como ya relleno— y además ponía la respuesta dentro del hueco donde hay que transcribirla, que es

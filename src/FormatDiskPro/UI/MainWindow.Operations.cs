@@ -432,7 +432,8 @@ public sealed partial class MainWindow
                       FormatLogic.FormatBytes(partitionSizeBytes!.Value), restFs, restSize)
                 : L.T("reinit.summaryFat32Small", item.Letter, FormatLogic.FormatBytes(partitionSizeBytes!.Value)))
             : L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
-        var confirm = new ConfirmDialog(item.Letter, L.T("confirm.titleReinit"), summary)
+        var confirm = new ConfirmDialog(item.Letter, L.T("confirm.titleReinit"),
+                                        L.T("btn.reinit.drive", $"{item.Letter}:"), summary)
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
 

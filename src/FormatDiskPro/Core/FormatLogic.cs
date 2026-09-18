@@ -188,6 +188,27 @@ public static partial class FormatLogic
         return string.Format(culture ?? L.Culture, "{0:0.#} {1}", v, u[i]);
     }
 
+    /// <summary>
+    /// Resumen de una configuración de formato, «NTFS · 4 KB · rápido + Borrado seguro», que solo se puede
+    /// partir en líneas <b>entre</b> datos, nunca dentro de uno.
+    /// </summary>
+    /// <remarks>
+    /// `T13-05`: el pie tiene ~192 DIP para este texto y en portugués, francés e italiano no cabe en una
+    /// línea. Recortado, lo que se perdía era justo el final, el borrado seguro: la opción que convierte
+    /// segundos en horas. Con dos líneas cabe, pero partiendo por cualquier espacio se leía «rápido +
+    /// Borrado» arriba y «seguro» abajo. Los espacios de dentro de cada dato pasan a ser de no separación
+    /// (U+00A0), y los de alrededor de <c>·</c> y <c>+</c> quedan como puntos de corte.
+    /// </remarks>
+    /// <param name="fileSystem">Sistema de archivos.</param>
+    /// <param name="allocationUnit">Tamaño de clúster, tal como lo muestra el selector.</param>
+    /// <param name="modes">Modo y añadidos, p. ej. «rápido», «Borrado seguro». El primero es el modo.</param>
+    public static string FormatSummary(string fileSystem, string allocationUnit, IEnumerable<string> modes)
+    {
+        static string Together(string part) => part.Replace(' ', ' ');
+        string mode = string.Join(" + ", modes.Select(Together));
+        return $"{Together(fileSystem)} · {Together(allocationUnit)} · {mode}";
+    }
+
     // es: "por ciento" · pt: "por cento" · it: "per cento" · fr: "pour cent" · de: "Prozent".
     // `percent` va antes que `per\s*cento` a propósito: son prefijos distintos y no se solapan (el
     // italiano lleva espacio), pero el orden deja claro cuál es cuál.

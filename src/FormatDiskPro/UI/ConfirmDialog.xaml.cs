@@ -14,6 +14,11 @@ namespace FormatDiskPro.UI;
 /// se anunciaba como «Confirmar formato»: el cuerpo explicaba una cosa y el título prometía otra menos
 /// grave. Con el título obligatorio, una tercera operación destructiva no puede heredar el nombre
 /// equivocado por omisión: quien la añada tiene que decidirlo.
+///
+/// <para><b>El verbo del botón, por lo mismo</b> (`T13-03`). `T6-01` hizo obligatorio el título y dejó
+/// el botón en <c>btn.start</c>: reinicializar se confirmaba con «Formatear», y en cuanto la letra
+/// coincide <c>Enter</c> pulsa ese botón. Ahora también es un parámetro obligatorio, y los llamantes
+/// nombran la unidad, como el botón principal de la ventana (`T12-02`).</para>
 /// </remarks>
 public sealed partial class ConfirmDialog : ContentDialog
 {
@@ -21,20 +26,35 @@ public sealed partial class ConfirmDialog : ContentDialog
 
     /// <param name="driveLetter">Letra que hay que teclear para habilitar el botón primario.</param>
     /// <param name="title">Título del diálogo: debe nombrar la operación que se va a ejecutar.</param>
-    /// <param name="summary">Detalle de lo que se va a destruir.</param>
-    public ConfirmDialog(char driveLetter, string title, string summary)
+    /// <param name="primaryButtonText">
+    /// Texto del botón que ejecuta la operación: su verbo y la unidad, p. ej. «Reinicializar F:».
+    /// </param>
+    /// <param name="summary">Qué se va a destruir, en prosa.</param>
+    /// <param name="details">
+    /// Filas (etiqueta, valor) que se pintan en dos columnas bajo el resumen. Van aparte, y no alineadas
+    /// con espacios dentro del texto, porque la longitud de las etiquetas cambia con el idioma (`T13-04`).
+    /// </param>
+    /// <param name="note">Aclaración opcional al pie del detalle.</param>
+    public ConfirmDialog(char driveLetter, string title, string primaryButtonText, string summary,
+                         IReadOnlyList<(string Label, string Value)>? details = null, string? note = null)
     {
         InitializeComponent();
 
         _letter = char.ToUpper(driveLetter).ToString();
 
         Title              = title;
-        PrimaryButtonText  = L.T("btn.start");
+        PrimaryButtonText  = primaryButtonText;
         CloseButtonText    = L.T("btn.cancel");
         DefaultButton      = ContentDialogButton.None;
         IsPrimaryButtonEnabled = false;
 
         SummaryText.Text = summary;
+        AddDetails(details ?? []);
+        if (!string.IsNullOrEmpty(note))
+        {
+            NoteText.Text = note;
+            NoteText.Visibility = Visibility.Visible;
+        }
         PromptText.Text  = L.T("confirm.prompt", _letter);
         // El placeholder NO lleva la letra (T6-02). Lo hacía, y hacía dos daños: el campo se leía como si
         // ya estuviera relleno —una letra gris dentro de una caja vacía es indistinguible de una escrita—
@@ -61,5 +81,26 @@ public sealed partial class ConfirmDialog : ContentDialog
         };
 
         Opened += (_, _) => InputBox.Focus(FocusState.Programmatic);
+    }
+
+    private void AddDetails(IReadOnlyList<(string Label, string Value)> details)
+    {
+        if (details.Count == 0) return;
+
+        var labelStyle = (Style)Resources["ConfirmRowLabelStyle"];
+        var valueStyle = (Style)Resources["ConfirmRowValueStyle"];
+        for (int row = 0; row < details.Count; row++)
+        {
+            DetailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var label = new TextBlock { Text = details[row].Label, Style = labelStyle };
+            var value = new TextBlock { Text = details[row].Value, Style = valueStyle };
+            Grid.SetRow(label, row);
+            Grid.SetRow(value, row);
+            Grid.SetColumn(value, 1);
+            DetailsGrid.Children.Add(label);
+            DetailsGrid.Children.Add(value);
+        }
+        DetailsGrid.Visibility = Visibility.Visible;
     }
 }

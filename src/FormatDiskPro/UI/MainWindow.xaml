@@ -444,10 +444,13 @@
                          una ventana de alto fijo: sin esto se puede pulsar Formatear sin haber visto
                          nunca las opciones con las que se formatea. Se oculta durante la operación —ahí
                          manda StatusText, que además es la región activa del pie— y el detalle completo
-                         (compresión incluida) está en su tooltip. -->
+                         (compresión incluida) está en su tooltip.
+                         Hasta dos líneas (`T13-05`): en PT, FR e IT no cabe en una, y lo que se recortaba era
+                         el borrado seguro. Dos líneas de 12 px caben en el alto del botón. -->
                     <TextBlock x:Name="FormatSummaryText" Grid.Column="1"
                                HorizontalAlignment="Right" VerticalAlignment="Center"
-                               Style="{StaticResource DriveMetaStyle}" />
+                               Style="{StaticResource DriveMetaStyle}"
+                               TextWrapping="Wrap" MaxLines="2" TextAlignment="Right" />
                     <Button x:Name="StartButton" Grid.Column="2" Content="Iniciar" MinWidth="130"
                             Style="{StaticResource AccentButtonStyle}"
                             Click="StartButton_Click" />

@@ -161,6 +161,8 @@ public static class L
         // y el control que lo dispara era el único sitio de la pantalla donde el destino no aparecía.
         ["btn.start"]        = ["Formatear", "Format", "Formatar", "Formater", "Formatta"],
         ["btn.start.drive"]  = ["Formatear {0}", "Format {0}", "Formatar {0}", "Formater {0}", "Formatta {0}"],
+        // Botón de la confirmación de Reinicializar (`T13-03`): su propio verbo, no el de formatear.
+        ["btn.reinit.drive"] = ["Reinicializar {0}", "Reinitialize {0}", "Reinicializar {0}", "Réinitialiser {0}", "Reinizializza {0}"],
         // Resumen de lo que se va a hacer, junto al botón que lo hace (`T12-03`). La tarjeta de opciones
         // queda bajo el pliegue en una ventana de alto fijo, así que sin esto se puede lanzar un formateo
         // sin haber visto nunca las opciones con las que se lanza.

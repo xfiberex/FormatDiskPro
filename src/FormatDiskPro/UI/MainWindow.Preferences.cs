@@ -90,7 +90,13 @@ public sealed partial class MainWindow
         SetSubOptionEnabled(on, [WipePassesLbl], WipePassesPicker);
     }
 
-    private void SecureWipeCheck_Toggled(object sender, RoutedEventArgs e) => UpdateWipePassesEnabled();
+    // También repinta el pie (`T13-05`): el resumen enseña el borrado seguro, y esta era la única opción
+    // del resumen que no llegaba a FormatOption_Changed — marcarla dejaba el pie diciendo «rápido».
+    private void SecureWipeCheck_Toggled(object sender, RoutedEventArgs e)
+    {
+        UpdateWipePassesEnabled();
+        FormatOption_Changed(sender, e);
+    }
 
     private void WipePassesPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {

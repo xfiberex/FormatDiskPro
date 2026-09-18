@@ -52,6 +52,36 @@ public sealed class FormatOptionsUiTests
         Assert.False(picker.IsEnabled);
     }
 
+    /// <summary>
+    /// El resumen del pie cambia en cuanto se marca el borrado seguro (`T13-05`).
+    /// </summary>
+    /// <remarks>
+    /// Es la opción que convierte segundos en horas, y la única del resumen que no lo repintaba: la
+    /// casilla solo avisaba a <c>SecureWipeCheck_Toggled</c>, y el pie seguía diciendo «rápido» hasta
+    /// que cambiara otra opción. Se compara el texto antes y después, sin anclar el idioma.
+    /// </remarks>
+    [NonSystemDriveFact]
+    public void FooterSummary_ChangesWhenSecureWipeIsToggled()
+    {
+        MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+        var summary = MainWindowActions.Require(Window, "FormatSummaryText");
+        string without = summary.Name;
+
+        try
+        {
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", true);
+            string with = summary.Name;
+
+            Assert.False(with == without,
+                $"El pie sigue diciendo '{without}' con el borrado seguro marcado.");
+            Assert.StartsWith(without, with);
+        }
+        finally
+        {
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+        }
+    }
+
     [NonSystemDriveFact]
     public void CompressCheck_OnlyEnabledForNtfs()
     {

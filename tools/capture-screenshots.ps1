@@ -280,6 +280,12 @@ function Expand-Element($element) {
     $element.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern).Expand()
 }
 
+# Deja una casilla marcada (idempotente: si ya lo está, no la toca).
+function Set-CheckedOn($element) {
+    $toggle = $element.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+    if ($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On) { $toggle.Toggle() }
+}
+
 function Save-WindowPng($hwnd, [string]$path) {
     [void][Win32Capture]::SetForegroundWindow($hwnd)
     Start-Sleep -Milliseconds 900   # deja que el DWM termine de repintar la ventana ya en primer plano
@@ -509,6 +515,10 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
         @{ Name = 'main';      Setup = $null }
         @{ Name = 'main-exfat'; Setup = { param($w,$h) Select-ComboItem $w 'FileSystemPicker' 'exFAT' } }
         @{ Name = 'main-fat32'; Needs = 'fat32'; Setup = { param($w,$h) Select-ComboItem $w 'FileSystemPicker' 'FAT32' } }
+        # El resumen del pie en su caso más largo (`T13-05`): con borrado seguro no cabe en una línea en
+        # PT/FR/IT, y lo que se recortaba era justo «borrado seguro». Hay que mirarlo en esos idiomas.
+        @{ Name = 'main-secure'; Setup = { param($w,$h)
+                Set-CheckedOn (Find-ByAutomationId $w 'SecureWipeCheck'); Start-Sleep -Milliseconds 600 } }
         @{ Name = 'health';    Setup = { param($w,$h)
                 Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
                 Invoke-Element (Find-ByAutomationId $w 'MnuHealth')
@@ -558,7 +568,7 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
 
     if ($Only) {
         $shots = $shots | Where-Object { $Only -contains $_.Name }
-        if (-not $shots) { throw "El filtro -Only no coincide con ninguna toma. Válidas: main, main-exfat, main-fat32, health, history, checkdisk, reinit, presets, whatsnew, license, thirdparty, about, confirm." }
+        if (-not $shots) { throw "El filtro -Only no coincide con ninguna toma. Válidas: main, main-exfat, main-fat32, main-secure, health, history, checkdisk, reinit, presets, whatsnew, license, thirdparty, about, confirm." }
     }
 
     $themes = if ($Theme -eq 'both') { @('light', 'dark') } else { @($Theme) }

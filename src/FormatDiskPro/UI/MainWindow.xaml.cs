@@ -424,17 +424,20 @@ public sealed partial class MainWindow : Window
         // La opción de FAT32 pequeña solo aplica a Reinicializar unidad: si está marcada, avisar aquí
         // para que nadie formatee creyendo que obtendrá la partición pequeña.
         bool smallFat32Ignored = SmallFat32Check.Visibility == Visibility.Visible && SmallFat32Check.IsChecked == true;
-        string summary =
-            $"{L.T("confirm.warning")}\n\n" +
-            $"  {L.T("confirm.drive")}:   {driveItem.DisplayText}\n" +
-            $"  {L.T("confirm.fs")}:  {fs}\n" +
-            $"  {L.T("confirm.cluster")}:  {AllocUnitPicker.SelectedItem}\n" +
-            $"  {L.T("confirm.label")}: {(string.IsNullOrEmpty(label) ? L.T("confirm.nolabel") : label)}\n" +
-            $"  {L.T("confirm.mode")}:     {(quick ? L.T("fmt.quick") : L.T("fmt.full"))}" +
-            (secure ? $" + {L.T("confirm.secure")}" + (securePasses > 1 ? $" ×{securePasses}" : "") : "") +
-            (smallFat32Ignored ? $"\n\n{L.T("confirm.smallFat32Ignored")}" : "");
+        string mode = (quick ? L.T("fmt.quick") : L.T("fmt.full")) +
+            (secure ? $" + {L.T("confirm.secure")}" + (securePasses > 1 ? $" ×{securePasses}" : "") : "");
+        (string, string)[] details =
+        [
+            (L.T("confirm.drive"),   driveItem.DisplayText),
+            (L.T("confirm.fs"),      fs),
+            (L.T("confirm.cluster"), AllocUnitPicker.SelectedItem?.ToString() ?? ""),
+            (L.T("confirm.label"),   string.IsNullOrEmpty(label) ? L.T("confirm.nolabel") : label),
+            (L.T("confirm.mode"),    mode),
+        ];
 
-        var dlg = new ConfirmDialog(driveItem.Letter, L.T("confirm.title"), summary)
+        var dlg = new ConfirmDialog(driveItem.Letter, L.T("confirm.title"),
+                                    L.T("btn.start.drive", $"{driveItem.Letter}:"), L.T("confirm.warning"),
+                                    details, smallFat32Ignored ? L.T("confirm.smallFat32Ignored") : null)
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
 

@@ -364,4 +364,30 @@ public sealed class FormatLogicTests : IDisposable
         }
         finally { CultureInfo.CurrentCulture = prevCulture; L.Set(prevLang); }
     }
+
+    // ── Resumen del pie (`T13-05`) ──
+
+    [Fact]
+    public void FormatSummary_ReadsAsBefore_WithTheSeparators()
+        => Assert.Equal("NTFS · 4 KB · rápido + Borrado seguro",
+                        FormatLogic.FormatSummary("NTFS", "4 KB", ["rápido", "Borrado seguro"]));
+
+    /// <summary>
+    /// El texto solo se puede partir entre datos: los únicos espacios normales son los que rodean a
+    /// <c>·</c> y <c>+</c>. Un dato de varias palabras («Apagamento seguro», «Effacement sécurisé»,
+    /// «128 KB») no puede quedar mitad en una línea y mitad en otra.
+    /// </summary>
+    [Theory]
+    [InlineData("exFAT", "128 KB", "completo", "Borrado seguro")]
+    [InlineData("NTFS", "4 KB", "rápida", "Apagamento seguro")]
+    [InlineData("NTFS", "4 KB", "rapide", "Effacement sécurisé")]
+    public void FormatSummary_BreaksOnlyBetweenParts(string fs, string alloc, string mode, string extra)
+    {
+        string summary = FormatLogic.FormatSummary(fs, alloc, [mode, extra]);
+
+        string[] parts = summary.Split([" · ", " + "], StringSplitOptions.None);
+        Assert.Equal(4, parts.Length);
+        Assert.All(parts, p => Assert.DoesNotContain(' ', p));
+        Assert.Equal(extra.Replace(' ', ' '), parts[^1]);
+    }
 }

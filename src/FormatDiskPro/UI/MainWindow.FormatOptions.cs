@@ -414,13 +414,13 @@ public sealed partial class MainWindow
     /// <param name="full">Incluir la compresión.</param>
     private string CurrentFormatSummary(bool full = false)
     {
-        string fs   = FileSystemPicker.SelectedItem?.ToString() ?? "";
-        string mode = QuickFormatCheck.IsChecked == true ? L.T("fmt.quick") : L.T("fmt.full");
+        string fs = FileSystemPicker.SelectedItem?.ToString() ?? "";
+        var modes = new List<string> { QuickFormatCheck.IsChecked == true ? L.T("fmt.quick") : L.T("fmt.full") };
 
-        if (full && CompressCheck.IsChecked == true) mode += " + " + L.T("fmt.compress");
-        if (SecureWipeCheck.IsChecked == true)       mode += " + " + L.T("confirm.secure");
+        if (full && CompressCheck.IsChecked == true) modes.Add(L.T("fmt.compress"));
+        if (SecureWipeCheck.IsChecked == true)       modes.Add(L.T("confirm.secure"));
 
-        return $"{fs} · {AllocUnitPicker.SelectedItem} · {mode}";
+        return FormatLogic.FormatSummary(fs, AllocUnitPicker.SelectedItem?.ToString() ?? "", modes);
     }
 
     /// <summary>

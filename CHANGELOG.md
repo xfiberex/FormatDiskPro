@@ -17,6 +17,20 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Corregido
 
+- **Marcar «Borrado seguro» no se reflejaba en el resumen junto al botón *Formatear*.** Seguía diciendo
+  solo «rápido» hasta que cambiaba otra opción, aunque el borrado seguro puede alargar la operación horas.
+  Ahora se actualiza al momento.
+- **Ese resumen cortaba «Borrado seguro» en portugués, francés e italiano.** Ahora usa dos líneas cuando
+  hace falta, y nunca parte un dato por la mitad.
+
+- **La confirmación de *Reinicializar unidad* se aceptaba con un botón que decía «Formatear».**
+  Reinicializar borra el disco físico entero, no solo la partición, y el botón no lo decía. Ahora nombra
+  la operación y la unidad (*Reinicializar F:*), y el de formatear también nombra la unidad
+  (*Formatear F:*).
+- **La tabla de la confirmación de formato solo estaba alineada en español.** En inglés, portugués,
+  francés e italiano las columnas no cuadraban. Ahora es una tabla de verdad, en la fuente normal de la
+  interfaz, y se alinea en los cinco idiomas.
+
 - **Cinco textos no se leían bien en tema claro**, por debajo del contraste mínimo de WCAG AA: el
   cronómetro, la velocidad y el tiempo restante del pie durante una operación larga, el recuento y la fecha
   de cada entrada del historial, el aviso de historial vacío y la nota de valores no disponibles en *Salud

@@ -26,7 +26,7 @@
 > 2026-08-26 al cortar la v1.25.0, con `T10-02` bloqueada a propósito. **Tier 11 — Rendimiento y jerarquía
 > de la ventana principal** (`T11-01`–`T11-04`) y **Tier 12 — Lo que la ventana no dice**
 > (`T12-01`–`T12-07`), abiertos y cerrados el 2026-09-01. Y **Tier 13 — Lo que solo se ve midiendo**
-> (`T13-01`–`T13-18`), **abierto el 2026-09-18** por una auditoría de UI/UX.
+> (`T13-01`–`T13-19`), **abierto el 2026-09-18** por una auditoría de UI/UX.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
@@ -39,11 +39,13 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 2/18.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 5/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
 > `T13-18`: *Reinicializar* rechaza un plan FAT32 demasiado grande con un mensaje que no dice por qué.
+> Después, `T13-03` y `T13-04`: *Reinicializar* se confirma con «Reinicializar F:», y la tabla de la
+> confirmación pasa de espacios en Consolas a un `Grid`, alineada en los cinco idiomas.
 >
 > **El mismo día se revisa `T2-10`: hay CI.** El repositorio es público, y la decisión del 2026-08-15 daba
 > por asumido que un PR externo no ejecutaría nada hasta que el mantenedor lo corriera en su máquina. Ahora
@@ -2450,7 +2452,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
       - Con las opacidades de antes, falla con las catorce.
       - Dos pruebas más fijan los casos: el nombre se lee entero y los comentarios no se miden.
 
-- [ ] **[T13-03] *Reinicializar* se confirma con un botón que dice «Formatear»** · Alta
+- [x] **[T13-03] *Reinicializar* se confirma con un botón que dice «Formatear»** — **hecho (2026-09-18)** · Alta
   - **Área:** UI / prevención de errores
   - **Ubicación:** [ConfirmDialog.xaml.cs:32](src/FormatDiskPro/UI/ConfirmDialog.xaml.cs#L32) · llamantes:
     [MainWindow.xaml.cs:437](src/FormatDiskPro/UI/MainWindow.xaml.cs#L437) (formatear) y
@@ -2467,8 +2469,14 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     primario, como la que `T6-01` puso a los títulos.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho:** el texto del botón es un parámetro **obligatorio** de `ConfirmDialog`, como el título.
+    - Formatear usa `btn.start.drive` (*Formatear F:*) y reinicializar usa la clave nueva
+      `btn.reinit.drive` (*Reinicializar F:*), en los 5 idiomas.
+    - **Verificado por reversión** con la USB de pruebas. `ConfirmDialogs_EachDestructiveOperationHasItsOwnVerb_NamingTheDrive`
+      falló contra la versión anterior («Formatear» en los dos botones) y pasa con la nueva («Formatear F:» /
+      «Reinicializar F:»). También exige que los dos nombren la unidad.
 
-- [ ] **[T13-04] La tabla de la confirmación solo está alineada en español** · Media
+- [x] **[T13-04] La tabla de la confirmación solo está alineada en español** — **hecho (2026-09-18)** · Media
   - **Área:** UI / i18n
   - **Ubicación:** [MainWindow.xaml.cs:427-435](src/FormatDiskPro/UI/MainWindow.xaml.cs#L427-L435) ·
     [ConfirmDialog.xaml:20-21](src/FormatDiskPro/UI/ConfirmDialog.xaml#L20-L21)
@@ -2484,8 +2492,31 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     columnas alineadas.
   - **Esfuerzo:** medio
   - **Depende de:** `T13-03` (mismo constructor)
+  - **Hecho:** `ConfirmDialog` recibe la prosa aparte y, opcionalmente, filas (etiqueta, valor) y una nota.
+    - Las filas se pintan en un `Grid` de dos columnas: etiqueta en el gris secundario y valor en
+      seminegrita. Las dos toman estilos del propio diálogo, no pinceles de
+      `Application.Current.Resources` (`T13-17`).
+    - Todo va en la fuente normal. Consolas y los espacios de relleno desaparecen de la confirmación de
+      formato.
+    - Se queda un párrafo, no un `InfoBar`: la instrucción en rojo ya está justo debajo, y dos avisos
+      seguidos restaban peso al que pide actuar.
+    - **Visto en pantalla**, con capturas del publish sobre la USB, en ES y EN y en los dos temas. Las
+      columnas cuadran en los dos idiomas.
+    - Nadie más leía `SummaryText`, y las pruebas de UI de las confirmaciones pasan (5 de 5; la destructiva,
+      omitida por opt-in).
+    - **Queda aparte:** las capturas del README de estos dos diálogos muestran aún la versión anterior.
+      No se han sustituido solas porque las 12 se hicieron a otra escala (484 px de ancho frente a 607) y
+      el README mezclaría tamaños. Se regeneran juntas.
+    - **Ciclo destructivo completo** (`FullLifecycle_FormatThenReinit_OnDedicatedTestUsb`, con
+      `ALLOW_DESTRUCTIVE` y la USB vaciada por el mantenedor):
+      - **Pasa** en 1 min 14 s: formatear, reinicializar, FAT32 de 1 GB sin asignar el resto, y FAT32 de
+        1 GB más exFAT (2 particiones, 0 MB sin asignar).
+      - Una pasada anterior, que empezaba desde las **tres** particiones de siempre, falló en el paso 3,
+        justo después de que reinicializar cambiara la letra de `F:` a `D:`.
+      - El mensaje se perdió (la salida iba filtrada y la prueba restaura `history.log`), así que queda
+        **sin diagnosticar**. Para reproducirlo hay que partir otra vez de varias particiones.
 
-- [ ] **[T13-05] El resumen del pie recorta justo «Borrado seguro»** · Media
+- [x] **[T13-05] El resumen del pie recorta justo «Borrado seguro»** — **hecho (2026-09-18)** · Media
   - **Área:** UI / i18n
   - **Ubicación:** [MainWindow.xaml:447-449](src/FormatDiskPro/UI/MainWindow.xaml#L447-L449) ·
     [MainWindow.FormatOptions.cs:415-424](src/FormatDiskPro/UI/MainWindow.FormatOptions.cs#L415-L424)
@@ -2500,6 +2531,18 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Criterio de aceptación:** captura en PT, FR e IT con el borrado seguro activo y la palabra entera.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho:** el resumen admite dos líneas (`TextWrapping="Wrap"`, `MaxLines="2"`, alineado a la derecha).
+    - `FormatLogic.FormatSummary` une los espacios de **dentro** de cada dato con U+00A0, así que solo se
+      corta entre datos: «rápido +» / «Borrado seguro», nunca «Borrado» / «seguro». Tiene pruebas
+      unitarias.
+    - **Al comprobarlo salió un defecto mayor:** marcar el borrado seguro **no repintaba el pie**. La
+      casilla solo avisaba a `SecureWipeCheck_Toggled`, no a `FormatOption_Changed`, así que el pie seguía
+      diciendo «rápido» hasta que cambiara otra opción. Era la única opción del resumen así, y justo la
+      que convierte segundos en horas: `T12-03` no se cumplía para ella.
+      - **Verificado por reversión:** `FooterSummary_ChangesWhenSecureWipeIsToggled` falló contra el
+        publish anterior («El pie sigue diciendo 'NTFS · 4 KB · rápido'…») y pasa con el arreglo.
+    - `tools/capture-screenshots.ps1` gana la toma `main-secure`. Capturas en los cinco idiomas: la
+      palabra sale entera en ES, PT, FR e IT (dos líneas) y en EN cabe en una.
 
 - [ ] **[T13-06] Salud: «Desgaste (SSD): 0 % — Normal», en verde, en un disco duro** · Media
   - **Área:** UI / veracidad del dato
@@ -2719,6 +2762,25 @@ ofrece y luego se niega, y qué hay que repetir a mano.
       sugerido.
   - **Criterio de aceptación:** con esa USB, FAT32 y `F:` elegidos, el rechazo nombra el límite y la
     salida. Una prueba unitaria garantiza que todo `PlanProblem` alcanzable tiene su texto.
+  - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-19] Un segundo `StartButton_Click` con un diálogo abierto acaba en `CRASH`** · Baja · *sin reproducir*
+  - **Área:** Robustez
+  - **Ubicación:** `StartButton_Click` en [MainWindow.xaml.cs](src/FormatDiskPro/UI/MainWindow.xaml.cs) ·
+    [App.xaml.cs:47](src/FormatDiskPro/App.xaml.cs#L47)
+  - **Qué pasa:** el historial real del mantenedor tiene, del 2026-09-18 a las 19:00:41 y en mitad de una
+    tanda de capturas de la galería, un `CRASH: COMException (0x80000019) … Only a single ContentDialog can
+    be open at any time`, con la pila en `ContentDialog.ShowAsync` ← `StartButton_Click`.
+    - `StartButton_Click` abre diálogos (`ShowInfoAsync`, `ConfirmDialog`) sin comprobar si ya hay uno
+      abierto.
+    - Con el ratón no se llega, porque el diálogo modal tapa la ventana. Por UI Automation, o si otro
+      diálogo se abre por su cuenta (actualización, novedades), sí.
+    - El manejador global marca la excepción como manejada, así que la app **no se cierra**. Pero queda un
+      `CRASH` en el historial, que además sale como «Info» (`T13-07`).
+  - **Qué hacer:** reproducirlo (UIA: invocar `StartButton` dos veces seguidas, o con un diálogo abierto).
+    Si se confirma, pasar los `ShowAsync` de la ventana por un único punto que no abra un segundo diálogo
+    mientras haya uno abierto.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
@@ -3133,6 +3195,8 @@ restauran.
 | 2026-09-18 | **T2-10** (revisada) | **Hay CI**, al hacerse público el repositorio: compilación Release con `-warnaserror`, unitarias y compilación —no ejecución— de las pruebas de UI en cada push a `master` y cada PR, más CodeQL y Dependabot para las acciones. Acciones fijadas a un commit, `actionlint` sin errores, y la secuencia del CI verificada en local antes de publicarla (626 pruebas, 0 advertencias, 46 s). El resumen de cada ejecución dice lo que no ejecutó: es la respuesta a la objeción que tumbó la primera versión. La puerta de publicación no cambia. |
 | 2026-09-18 | — | **Se abre el [Tier 13](#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18)** con **16 tareas** (3 Altas · 7 Medias · 6 Bajas), de una auditoría de UI/UX que **midió** en lugar de mirar: contraste sobre los fondos de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. El barrido de `T12-01` tenía tres puntos ciegos —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como si fuera texto primario, un pincel de texto que no busca y la `Opacity`— y por ellos pasaron cinco textos por debajo de AA. |
 | 2026-09-18 | **T13-02**, **T13-01** | El barrido de contraste **ya ve lo que se le escapaba**. Recoge todo `Foreground` de un recurso (XAML, `Setter` y código) con el nombre anclado y sin leer comentarios, mide `SystemFillColorCriticalBrush` (`#C42B1C` / `#FF99A4`), exige un motivo escrito a cada exención (el acento, que remite a `T13-15`) y **prohíbe la `Opacity` en un texto**. Verificado en negativo: sin la declaración ni la exención falla nombrando seis archivos, y con las opacidades de antes, las catorce. Las catorce pasan a pinceles medidos: `AppMutedTextBrush` las cinco que no llegaban a AA, `TextFillColorSecondaryBrush` las de 0,7–0,85 y texto primario las de 0,9. **Nueva `T13-17`**, sin reproducir: una etiqueta deshabilitada toma el gris del tema de Windows y no el de la app. Unitarias **630** (629 pasan · 1 se omite). UI con la USB: **36/37** en la primera pasada; el fallo de `HealthDialog_OpensForTestDrive`, justo tras el benchmark, no se reprodujo ni sola ni con su clase entera. **Nueva `T13-18`**: *Reinicializar* rechaza sin decir por qué. |
+| 2026-09-18 | **T13-03**, **T13-04** | **La confirmación de Reinicializar dice lo que hace.** El verbo del botón pasa a ser parámetro obligatorio de `ConfirmDialog`, como el título desde `T6-01`: *Formatear F:* y *Reinicializar F:* (clave nueva `btn.reinit.drive` × 5). Verificado por reversión con la USB: la prueba de UI nueva falló contra la versión anterior («Formatear» en los dos) y pasa con la nueva. La tabla de la confirmación de formato deja Consolas y los espacios de relleno y pasa a un `Grid` de dos columnas; capturas en ES y EN, en los dos temas, con las columnas alineadas. Las capturas del README de estos diálogos quedan por regenerar, con las 12 a la vez. |
+| 2026-09-18 | **T13-05** | El resumen del pie pasa a dos líneas y solo se corta entre datos (`FormatLogic.FormatSummary`, U+00A0 dentro de cada uno). Al comprobarlo, **marcar el borrado seguro no repintaba el pie**: la única opción del resumen que no llegaba a `FormatOption_Changed`. Verificado por reversión con una prueba de UI nueva. Toma `main-secure` en la galería; capturas en los cinco idiomas con la palabra entera. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |
