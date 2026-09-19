@@ -746,8 +746,16 @@ public sealed partial class MainWindow : Window
     /// <para>Se llama al arrancar y en cada cambio de tema, porque el color depende del tema efectivo y
     /// no del estado de la operación.</para>
     /// </remarks>
+    /// <summary>
+    /// El verde de la barra de progreso (`T12-05`), salvo en alto contraste, donde la barra se queda con
+    /// los colores del tema (`T13-09`): su estado ya lo dicen el texto del pie y el <c>ShowError</c> del
+    /// propio control, que en contraste se pinta con la paleta del sistema.
+    /// </summary>
     private void ApplyProgressColor()
-        => FormatProgress.Foreground = new SolidColorBrush(SeverityPalette.For(SmartLevel.Ok, _darkMode));
+    {
+        if (HighContrast.IsActive) FormatProgress.ClearValue(ProgressBar.ForegroundProperty);
+        else FormatProgress.Foreground = new SolidColorBrush(SeverityPalette.For(SmartLevel.Ok, _darkMode));
+    }
 
     /// <summary>Fija el estado visible y lo anuncia: es el hito de <b>inicio</b> de una operación.</summary>
     private void SetStatusAndAnnounce(string text)

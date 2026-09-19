@@ -177,6 +177,14 @@ public sealed partial class MainWindow
         {
             ClearHealthColor();
         }
+        else if (HighContrast.IsActive)
+        {
+            // En un tema de contraste manda su paleta (`T13-09`). El texto lo reajusta WinUI solo; el
+            // punto es una figura, así que hay que cederlo a mano. La palabra de al lado —«Normal»,
+            // «Atención», «Crítico»— es la que lleva el significado.
+            InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
+            InfoHealthDot.Fill = HighContrast.Ink;
+        }
         else
         {
             var brush = HealthDialog.LevelBrush(level, _darkMode);
@@ -195,7 +203,9 @@ public sealed partial class MainWindow
     private void ClearHealthColor()
     {
         InfoHealthText.ClearValue(TextBlock.ForegroundProperty);
-        InfoHealthDot.Fill = new SolidColorBrush(SeverityPalette.NeutralFill(_darkMode));
+        InfoHealthDot.Fill = HighContrast.IsActive
+            ? HighContrast.Ink
+            : new SolidColorBrush(SeverityPalette.NeutralFill(_darkMode));
     }
 
     /// <summary>
@@ -406,8 +416,23 @@ public sealed partial class MainWindow
 
         CapacityColumns.ColumnDefinitions[0].Width = new GridLength(usedPct, GridUnitType.Star);
         CapacityColumns.ColumnDefinitions[1].Width = new GridLength(100 - usedPct, GridUnitType.Star);
-        CapacityUsedFill.Background = CapacityBrush(usedPct);
-        CapacityBar.Background      = new SolidColorBrush(SeverityPalette.TrackFill(_darkMode));
+        if (HighContrast.IsActive)
+        {
+            // La paleta del tema, no la nuestra (`T13-09`). Con los colores propios, la parte usada salía
+            // en el ámbar de la app y la libre en un gris que casi no se distinguía del fondo del tema
+            // *Blanco*. El contorno es lo que hace visible el hueco: en contraste, las figuras se delimitan
+            // con el color del texto, no con un relleno más claro.
+            CapacityUsedFill.Background = HighContrast.Highlight;
+            CapacityBar.Background      = HighContrast.Surface;
+            CapacityBar.BorderBrush     = HighContrast.Ink;
+            CapacityBar.BorderThickness = new Thickness(1);
+        }
+        else
+        {
+            CapacityUsedFill.Background = CapacityBrush(usedPct);
+            CapacityBar.Background      = new SolidColorBrush(SeverityPalette.TrackFill(_darkMode));
+            CapacityBar.BorderThickness = new Thickness(0);
+        }
         // Las dos mitades de la barra, en una línea (`T13-10`). El rótulo «Ocupación» y el «/ total» se
         // fueron con la fila de arriba: el total está dos líneas más arriba, en grande, y repetirlo
         // costaba 22 DIP en una ventana que ya no llega a enseñar «Opciones de formato».

@@ -13,6 +13,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
+## [Sin publicar]
+
+### Corregido
+
+- **Con un tema de contraste de Windows, la aplicación seguía pintando algunos colores propios.** La barra
+  de ocupación usaba su ámbar y su parte libre casi no se distinguía del fondo del tema; el punto de salud
+  salía verde. Ahora, con contraste activo, esos elementos usan los colores del tema —y la barra gana un
+  contorno—, igual que ya hacían los textos.
+
 ## [1.27.0] — 2026-09-19
 
 **Lo que solo se ve midiendo.** Una auditoría de accesibilidad y densidad de la interfaz, hecha con
@@ -740,6 +749,7 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.27.0...HEAD
 [1.27.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.27.0
 [1.26.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.26.0
 [1.25.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.25.0

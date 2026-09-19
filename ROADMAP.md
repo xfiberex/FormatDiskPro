@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 9/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 10/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2620,7 +2620,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     - **Verificado por reversión:** sin los dos enlaces, falla nombrando cada combo («FileSystemPicker no
       expone DescribedBy: su pista vuelve a existir solo para quien la ve»).
 
-- [ ] **[T13-09] Alto contraste: el principio de `T12-01` solo se aplica a un pincel** · Media
+- [x] **[T13-09] Alto contraste: el principio de `T12-01` solo se aplica a un pincel** — **hecho (2026-09-19)** · Media
   - **Área:** Accesibilidad
   - **Ubicación:** [MainWindow.xaml.cs:722](src/FormatDiskPro/UI/MainWindow.xaml.cs#L722) (progreso) ·
     [MainWindow.DriveInfo.cs:182-184](src/FormatDiskPro/UI/MainWindow.DriveInfo.cs#L182-L184) y
@@ -2643,6 +2643,27 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     color propio.
   - **Esfuerzo:** medio
   - **Depende de:** ninguna
+  - **Mirado primero, con el tema *Blanco* en marcha, y el riesgo era MENOR de lo que decía la lectura del
+    código:** WinUI aplica por su cuenta el *high contrast adjustment* al **texto**, así que el historial
+    salía entero del mismo gris (`#3D3D3D`) aunque cada fila lleve su pincel, y las métricas de *Salud*
+    también. El texto rojo de la unidad protegida no era el problema.
+  - **Lo que sí quedaba pintado con la paleta propia es lo que NO es texto**, medido sobre la captura:
+    - la barra de ocupación, en el ámbar de la app (`#9D5D00`), con la parte libre en un gris (`#E0E0E0`)
+      que casi no se distinguía del fondo del tema (`#FFFAEF`);
+    - el punto de salud, en verde (`#0F7B0F`);
+    - la barra de progreso (verde de `T12-05`) y los ocho colores de los botones de la barra de título.
+  - **Hecho:** `UI/HighContrast` responde por `SystemParametersInfo` —y no por `AccessibilitySettings`,
+    que nace atada a un `CoreWindow` que una app de escritorio no tiene— y da los pinceles del tema.
+    Con contraste activo se cede el color:
+    - ocupación: relleno con el **resaltado** del tema, fondo con el de ventana y **contorno** con el del
+      texto, que es lo que vuelve visible el hueco;
+    - punto de salud: color de texto del tema (la palabra de al lado ya dice «Normal»);
+    - barra de progreso: `ClearValue`, la pinta su estilo;
+    - botones de la barra de título: **ninguno** de los ocho colores, que es cromo de ventana.
+    - Se repinta al entrar o salir de contraste: `ApplyTheme` vuelve a pasar por la ocupación.
+  - **Verificado, midiendo los píxeles de la captura:** el relleno pasa de `#9D5D00` a `#903909`, que es el
+    resaltado del sistema; la parte libre, al fondo de ventana con contorno; el punto, a `#3D3D3D`. Y sin
+    contraste todo vuelve a la paleta medida, sin contorno.
 
 ### La ventana, en el alto que tiene de verdad
 
@@ -3250,6 +3271,7 @@ restauran.
 | 2026-09-19 | **T13-07** | El historial pasa de 5 categorías a 11 más `Other`, con una **tabla recorrible** (`HistoryEntry.CategoryByPrefix`) que una prueba contrasta contra el código fuente: registrar algo nuevo obliga a decidir su categoría. El barrido destapó **16** palabras clave, no las 14 contadas a mano (`EXPORT` y `HISTORY` faltaban). `CRASH` pasa a resultado Error: ya no sale como «Info» en el registro que se consulta cuando algo ha ido mal. Verificado por reversión. Cambia el CSV: esas filas dejan de decir `Other`. |
 | 2026-09-19 | **T13-08** | Las pistas de los campos se enlazan con su control por `DescribedBy`: los dos combos de formato y, de paso, la casilla de FAT32 pequeña y el selector del sobrante. La ayuda que `T7-03` añadió para «el único campo esotérico» dejaba fuera a quien no ve. Verificado por reversión. Con la sesión elevada se validan además `T13-06` y `T13-07` en la app real, y la suite de UI queda en **36/39** (3 omitidas por opt-in, 0 fallos). |
 | 2026-09-19 | **T13-10** | Cinco cambios de densidad sin tocar el tamaño de diseño: barra de título estándar, pie en reposo sin barra ni fila de estado, «Restaurar valores predeterminados» dentro de la lista de presets, la ocupación en una línea y el clúster recomendado marcado en la lista («4 KB (recomendado)») con la pista en una línea. El script de capturas gana `-WindowHeightDip` para fotografiar lo que se ve en una pantalla baja: a 656 DIP se pasa de ver hasta la descripción del sistema de archivos a ver el selector de clúster. Suite de UI **39/41 con las destructivas incluidas**. |
+| 2026-09-19 | **T13-09** | Mirado con el tema de contraste *Blanco* en marcha: WinUI ya reajusta el **texto** solo, y lo que quedaba con la paleta propia era lo que no es texto — la barra de ocupación (ámbar, con la parte libre casi invisible sobre el fondo del tema), el punto de salud, la barra de progreso y los ocho colores de los botones de la barra de título. Con contraste activo se cede el color al tema, y la ocupación gana contorno. Medido en los píxeles: el relleno pasa del ámbar propio al resaltado del sistema. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

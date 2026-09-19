@@ -284,6 +284,10 @@ public sealed partial class MainWindow
         else                         ClearHealthColor();
 
         ApplyProgressColor();
+
+        // La barra de ocupación también cambia de paleta al entrar o salir de alto contraste (`T13-09`),
+        // y sus colores se deciden al pintarla: hay que volver a pasar por ahí.
+        if (DrivePicker.SelectedItem is DriveViewModel current) UpdateInfo(current.Info);
     }
 
     // Tematiza los botones de caption (minimizar/maximizar/cerrar) según el tema EFECTIVO.
@@ -299,7 +303,24 @@ public sealed partial class MainWindow
     {
         var titleBar = AppWindow.TitleBar;
 
-        Color fg          = dark ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(255, 0x19, 0x19, 0x19);
+        // En alto contraste no se fija ninguno (`T13-09`): los botones de la barra de título son cromo de
+        // ventana y el tema de contraste ya los pinta con su paleta. Poner los nuestros —empezando por un
+        // fondo transparente— era justo lo que ese tema viene a impedir. `null` devuelve cada color a su
+        // valor por omisión, que es el del sistema.
+        if (HighContrast.IsActive)
+        {
+            titleBar.ButtonForegroundColor         = null;
+            titleBar.ButtonHoverForegroundColor    = null;
+            titleBar.ButtonPressedForegroundColor  = null;
+            titleBar.ButtonInactiveForegroundColor = null;
+            titleBar.ButtonBackgroundColor         = null;
+            titleBar.ButtonInactiveBackgroundColor = null;
+            titleBar.ButtonHoverBackgroundColor    = null;
+            titleBar.ButtonPressedBackgroundColor  = null;
+            return;
+        }
+
+        Color fg         = dark ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(255, 0x19, 0x19, 0x19);
         Color inactiveFg  = dark ? Color.FromArgb(255, 0x9B, 0x9B, 0x9B) : Color.FromArgb(255, 0x86, 0x86, 0x86);
         Color transparent = Color.FromArgb(0, 0, 0, 0);
         // Overlays sutiles acordes al tema efectivo: blanco sobre oscuro, negro sobre claro.
