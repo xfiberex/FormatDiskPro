@@ -142,12 +142,12 @@ public sealed partial class MainWindow
     private static char? ParseDriveLetter(string? s)
         => !string.IsNullOrEmpty(s) && char.IsLetter(s[0]) ? char.ToUpperInvariant(s[0]) : null;
 
+    /// <summary>
+    /// Marca en el menú el modo de tema activo. Basta con marcar uno: son <c>RadioMenuFlyoutItem</c> del
+    /// mismo <c>GroupName</c>, así que marcar desmarca a los demás (`T13-13`).
+    /// </summary>
     private void SyncThemeMenu()
-    {
-        MnuThemeAuto.IsChecked  =  _autoTheme;
-        MnuThemeLight.IsChecked = !_autoTheme && !_darkMode;
-        MnuThemeDark.IsChecked  = !_autoTheme &&  _darkMode;
-    }
+        => (_autoTheme ? MnuThemeAuto : _darkMode ? MnuThemeDark : MnuThemeLight).IsChecked = true;
 
     private void ApplyLanguage()
     {
@@ -228,11 +228,15 @@ public sealed partial class MainWindow
         // y la barra está oculta mientras no la haya.
         UpdateLabelHint();   // refresca el hint visible (si lo hay) al cambiar de idioma
 
-        MnuLangEs.IsChecked = L.Current == AppLang.Es;
-        MnuLangEn.IsChecked = L.Current == AppLang.En;
-        MnuLangPt.IsChecked = L.Current == AppLang.Pt;
-        MnuLangFr.IsChecked = L.Current == AppLang.Fr;
-        MnuLangIt.IsChecked = L.Current == AppLang.It;
+        // Un solo marcado, como en SyncThemeMenu: el GroupName del RadioMenuFlyoutItem desmarca al resto.
+        (L.Current switch
+        {
+            AppLang.En => MnuLangEn,
+            AppLang.Pt => MnuLangPt,
+            AppLang.Fr => MnuLangFr,
+            AppLang.It => MnuLangIt,
+            _          => MnuLangEs,
+        }).IsChecked = true;
 
         // Reconstruir el menú de presets para refrescar la etiqueta «Gestionar presets…».
         BuildPresetsMenu();

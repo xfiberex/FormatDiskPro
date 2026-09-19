@@ -64,16 +64,16 @@
             </MenuBarItem>
             <MenuBarItem x:Name="MnuConfig" Title="Configuración">
                 <MenuFlyoutSubItem x:Name="MnuLang" Text="Idioma">
-                    <ToggleMenuFlyoutItem x:Name="MnuLangEs" Text="Español"  IsChecked="True" Click="MnuLangEs_Click" />
-                    <ToggleMenuFlyoutItem x:Name="MnuLangEn" Text="English"               Click="MnuLangEn_Click" />
-                    <ToggleMenuFlyoutItem x:Name="MnuLangPt" Text="Português"             Click="MnuLangPt_Click" />
-                    <ToggleMenuFlyoutItem x:Name="MnuLangFr" Text="Français"              Click="MnuLangFr_Click" />
-                    <ToggleMenuFlyoutItem x:Name="MnuLangIt" Text="Italiano"              Click="MnuLangIt_Click" />
+                    <RadioMenuFlyoutItem GroupName="LangGroup" x:Name="MnuLangEs" Text="Español"  IsChecked="True" Click="MnuLangEs_Click" />
+                    <RadioMenuFlyoutItem GroupName="LangGroup" x:Name="MnuLangEn" Text="English"               Click="MnuLangEn_Click" />
+                    <RadioMenuFlyoutItem GroupName="LangGroup" x:Name="MnuLangPt" Text="Português"             Click="MnuLangPt_Click" />
+                    <RadioMenuFlyoutItem GroupName="LangGroup" x:Name="MnuLangFr" Text="Français"              Click="MnuLangFr_Click" />
+                    <RadioMenuFlyoutItem GroupName="LangGroup" x:Name="MnuLangIt" Text="Italiano"              Click="MnuLangIt_Click" />
                 </MenuFlyoutSubItem>
                 <MenuFlyoutSubItem x:Name="MnuTheme" Text="Tema">
-                    <ToggleMenuFlyoutItem x:Name="MnuThemeAuto"  Text="Automático" IsChecked="True" Click="MnuThemeAuto_Click" />
-                    <ToggleMenuFlyoutItem x:Name="MnuThemeLight" Text="Claro"                       Click="MnuThemeLight_Click" />
-                    <ToggleMenuFlyoutItem x:Name="MnuThemeDark"  Text="Oscuro"                      Click="MnuThemeDark_Click" />
+                    <RadioMenuFlyoutItem GroupName="ThemeGroup" x:Name="MnuThemeAuto"  Text="Automático" IsChecked="True" Click="MnuThemeAuto_Click" />
+                    <RadioMenuFlyoutItem GroupName="ThemeGroup" x:Name="MnuThemeLight" Text="Claro"                       Click="MnuThemeLight_Click" />
+                    <RadioMenuFlyoutItem GroupName="ThemeGroup" x:Name="MnuThemeDark"  Text="Oscuro"                      Click="MnuThemeDark_Click" />
                 </MenuFlyoutSubItem>
                 <MenuFlyoutSubItem x:Name="MnuPresets" Text="Presets" />
                 <MenuFlyoutSeparator />

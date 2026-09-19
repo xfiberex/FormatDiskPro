@@ -22,6 +22,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   salía verde. Ahora, con contraste activo, esos elementos usan los colores del tema —y la barra gana un
   contorno—, igual que ya hacían los textos.
 
+### Cambiado
+
+- **Los menús *Idioma* y *Tema* marcan la opción activa con un punto de opción**, en vez de una marca de
+  verificación: es una elección de una entre varias, no una casilla que se enciende y se apaga.
+
 ## [1.27.0] — 2026-09-19
 
 **Lo que solo se ve midiendo.** Una auditoría de accesibilidad y densidad de la interfaz, hecha con

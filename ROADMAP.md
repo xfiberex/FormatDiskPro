@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 10/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 11/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2755,7 +2755,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T13-13] Idioma y tema: casillas con exclusión a mano donde hay un control para eso** · Baja
+- [x] **[T13-13] Idioma y tema: casillas con exclusión a mano donde hay un control para eso** — **hecho (2026-09-19)** · Baja
   - **Área:** UI / plataforma
   - **Ubicación:** [MainWindow.xaml:64-75](src/FormatDiskPro/UI/MainWindow.xaml#L64-L75) ·
     [MainWindow.Preferences.cs:139-144](src/FormatDiskPro/UI/MainWindow.Preferences.cs#L139-L144) y
@@ -2768,6 +2768,21 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     nuevo control y ajustarlo si hace falta.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho.** Los ocho ítems pasan a `RadioMenuFlyoutItem` con su `GroupName` (`LangGroup`, `ThemeGroup`),
+    y la exclusión a mano se va: `SyncThemeMenu` y el bloque de idioma marcan **solo el activo**, de cinco y
+    tres asignaciones a una.
+  - **Dos cosas medidas con la app en marcha, las dos contra lo que decía esta ficha:**
+    - **El árbol de automatización no cambia.** El peer de `RadioMenuFlyoutItem` en la 1.8 sigue siendo
+      `MenuItem` con patrón *Toggle*, igual que el del `ToggleMenuFlyoutItem` — no `RadioButton` con
+      `SelectionItem`, que es lo que se esperaba. `ClickMenuPath` no necesita ningún ajuste, y un lector de
+      pantalla anuncia lo mismo que antes. Lo que sí cambia es lo que se ve: el **punto de opción** en vez
+      de la marca de verificación (capturado con el submenú *Tema* abierto).
+    - **El `GroupName` no hace falta** para que funcione: quitándolo de los ocho la prueba sigue pasando,
+      porque WinUI acota el grupo por defecto a cada flyout — no se mezclan idioma y tema. Se deja por ser
+      explícito.
+  - **Verificado por reversión:** prueba de UI nueva (`TheChoiceMenus_LeaveExactlyOneMarkedInEachGroup`):
+    con los `ToggleMenuFlyoutItem` de antes y el marcado de uno solo, «Automático» se queda marcado junto a
+    «Oscuro» y la prueba falla; con el cambio, exactamente uno en cada submenú.
 
 - [ ] **[T13-14] Restos de estilo** · Baja
   - **Área:** UI / mantenimiento
@@ -3272,6 +3287,7 @@ restauran.
 | 2026-09-19 | **T13-08** | Las pistas de los campos se enlazan con su control por `DescribedBy`: los dos combos de formato y, de paso, la casilla de FAT32 pequeña y el selector del sobrante. La ayuda que `T7-03` añadió para «el único campo esotérico» dejaba fuera a quien no ve. Verificado por reversión. Con la sesión elevada se validan además `T13-06` y `T13-07` en la app real, y la suite de UI queda en **36/39** (3 omitidas por opt-in, 0 fallos). |
 | 2026-09-19 | **T13-10** | Cinco cambios de densidad sin tocar el tamaño de diseño: barra de título estándar, pie en reposo sin barra ni fila de estado, «Restaurar valores predeterminados» dentro de la lista de presets, la ocupación en una línea y el clúster recomendado marcado en la lista («4 KB (recomendado)») con la pista en una línea. El script de capturas gana `-WindowHeightDip` para fotografiar lo que se ve en una pantalla baja: a 656 DIP se pasa de ver hasta la descripción del sistema de archivos a ver el selector de clúster. Suite de UI **39/41 con las destructivas incluidas**. |
 | 2026-09-19 | **T13-09** | Mirado con el tema de contraste *Blanco* en marcha: WinUI ya reajusta el **texto** solo, y lo que quedaba con la paleta propia era lo que no es texto — la barra de ocupación (ámbar, con la parte libre casi invisible sobre el fondo del tema), el punto de salud, la barra de progreso y los ocho colores de los botones de la barra de título. Con contraste activo se cede el color al tema, y la ocupación gana contorno. Medido en los píxeles: el relleno pasa del ámbar propio al resaltado del sistema. |
+| 2026-09-19 | **T13-13** | Los ocho ítems de *Idioma* y *Tema* pasan a `RadioMenuFlyoutItem`: la exclusión la hace el control y el código marca solo el activo. Dos cosas salieron al revés de lo previsto, medidas con la app en marcha: el peer en la 1.8 **sigue siendo** `MenuItem` con *Toggle* (no `RadioButton`), así que la accesibilidad no cambia y `ClickMenuPath` tampoco; y el `GroupName` **no hace falta**, porque WinUI acota el grupo por defecto a cada flyout. Lo que sí gana el usuario es el punto de opción en vez de la marca de verificación. Verificado por reversión con una prueba de UI nueva. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |
