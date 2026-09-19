@@ -83,17 +83,56 @@ public sealed partial class MainWindow
 
         AllocUnitPicker.Items.Clear();
         _allocBytes.Clear();
+        _allocLabels.Clear();
 
         foreach (long size in cfg.Sizes)
         {
             string label = size >= 1024 * 1024 ? $"{size / (1024 * 1024)} MB"
                          : size >= 1024 ? $"{size / 1024} KB" : $"{size} bytes";
-            AllocUnitPicker.Items.Add(label);
             _allocBytes.Add(size);
+            _allocLabels.Add(label);
         }
 
         int defIdx = Array.IndexOf(cfg.Sizes, cfg.Default);
-        AllocUnitPicker.SelectedIndex = defIdx >= 0 ? defIdx : 0;
+        _allocRecommended = defIdx >= 0 ? defIdx : 0;
+        RefreshAllocationLabels();
+        AllocUnitPicker.SelectedIndex = _allocRecommended;
+    }
+
+    /// <summary>
+    /// Escribe los tamaños en el selector, marcando el recomendado: «4 KB (recomendado)».
+    /// </summary>
+    /// <remarks>
+    /// <para>`T13-10`. La pista de debajo decía «el valor preseleccionado es el recomendado», tres líneas
+    /// cuya primera frase <b>deja de ser verdad</b> en cuanto alguien cambia el valor. En la lista, la
+    /// marca sigue siendo cierta siempre, y es lo que hace el diálogo de formato de Windows.</para>
+    ///
+    /// <para><b>La marca no sale de la lista.</b> El resumen del pie y la confirmación usan
+    /// <see cref="SelectedAllocLabel"/>, el tamaño a secas: el pie ya va justo de ancho (`T13-05`) y la
+    /// confirmación enseña lo que se va a aplicar, no de dónde salió.</para>
+    ///
+    /// <para>Se rehace al cambiar de idioma, porque la marca es texto traducido: <c>ApplyLanguage</c> la
+    /// llama.</para>
+    /// </remarks>
+    private void RefreshAllocationLabels()
+    {
+        if (_allocLabels.Count == 0) return;
+
+        int selected = AllocUnitPicker.SelectedIndex;
+        AllocUnitPicker.Items.Clear();
+        for (int i = 0; i < _allocLabels.Count; i++)
+            AllocUnitPicker.Items.Add(i == _allocRecommended
+                ? L.T("alloc.recommended", _allocLabels[i])
+                : _allocLabels[i]);
+
+        if (selected >= 0 && selected < _allocLabels.Count) AllocUnitPicker.SelectedIndex = selected;
+    }
+
+    /// <summary>Tamaño de clúster seleccionado, sin la marca de recomendado.</summary>
+    private string SelectedAllocLabel()
+    {
+        int i = AllocUnitPicker.SelectedIndex;
+        return i >= 0 && i < _allocLabels.Count ? _allocLabels[i] : "";
     }
 
     private void UpdateFsDescription()
@@ -383,6 +422,16 @@ public sealed partial class MainWindow
     {
         items.Clear();
 
+        // «Restaurar valores predeterminados» abre la lista (`T13-10`). Era un botón a todo el ancho de la
+        // tarjeta —44 DIP permanentes— para una acción que se usa en contadas ocasiones, y es lo mismo que
+        // un preset: deja la configuración en un estado conocido. Va PRIMERO porque es el punto de partida,
+        // antes de los presets que se apartan de él.
+        var restore = new MenuFlyoutItem { Text = L.T("btn.restore") };
+        AutomationProperties.SetAutomationId(restore, "RestoreDefaultsItem");
+        restore.Click += RestoreButton_Click;
+        items.Add(restore);
+        items.Add(new MenuFlyoutSeparator());
+
         foreach (var preset in Presets.All)
             items.Add(MakePresetItem(preset));
 
@@ -420,7 +469,7 @@ public sealed partial class MainWindow
         if (full && CompressCheck.IsChecked == true) modes.Add(L.T("fmt.compress"));
         if (SecureWipeCheck.IsChecked == true)       modes.Add(L.T("confirm.secure"));
 
-        return FormatLogic.FormatSummary(fs, AllocUnitPicker.SelectedItem?.ToString() ?? "", modes);
+        return FormatLogic.FormatSummary(fs, SelectedAllocLabel(), modes);
     }
 
     /// <summary>
@@ -480,6 +529,10 @@ public sealed partial class MainWindow
     private MenuFlyoutItem MakePresetItem(FormatPreset preset)
     {
         var item = new MenuFlyoutItem { Text = Presets.DisplayName(preset), Tag = preset };
+        // Los integrados llevan su clave como AutomationId: es lo único estable que tienen (el texto
+        // cambia con el idioma y el nombre de un preset propio lo elige quien lo guarda), y sin ella una
+        // prueba de UI solo puede buscarlos por el texto en español.
+        if (preset.NameKey is string key) AutomationProperties.SetAutomationId(item, key);
         item.Click += MnuPreset_Click;
         return item;
     }

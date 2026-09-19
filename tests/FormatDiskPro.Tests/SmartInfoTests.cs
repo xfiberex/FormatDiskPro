@@ -74,6 +74,52 @@ public sealed class SmartInfoTests
         => Assert.False(SmartInfo.HasSpindle(null));
 
     /// <summary>
+    /// `T13-06`: el espejo. La fila de desgaste se añadía siempre, y en un disco duro el contador vale 0:
+    /// «Desgaste (SSD): 0 % — Normal», en verde, bajo «Tipo de medio: HDD».
+    /// </summary>
+    [Theory]
+    // RPM > 0 es el disco diciendo «giro»: no hay celdas que se gasten, aunque el medio venga mal puesto.
+    [InlineData("Healthy|SATA|HDD|7200|||||",        false)]
+    [InlineData("Healthy|SATA|SSD|5400|||||",        false)]
+    // RPM = 0 es «no giro»: el desgaste sí aplica.
+    [InlineData("Healthy|NVMe|SSD|0|||||",           true)]
+    [InlineData("Healthy|SATA|HDD|0|||||",           true)]
+    // Sin RPM, decide el medio.
+    [InlineData("Healthy|USB|HDD||||||",             false)]
+    [InlineData("Healthy|USB|SSD||||||",             true)]
+    [InlineData("Healthy|USB|Unspecified||||||",     true)]
+    public void HasWear_DecidesWhetherTheRowMakesSense(string line, bool expected)
+        => Assert.Equal(expected, SmartInfo.HasWear(SmartInfo.Parse(line)));
+
+    /// <summary>
+    /// Sin señal, la fila se muestra como «no disponible»: esconderla afirmaría que el disco gira.
+    /// </summary>
+    [Fact]
+    public void HasWear_WithoutAnySignal_ShowsTheRow()
+        => Assert.True(SmartInfo.HasWear(SmartInfo.Parse("?|?|?||||||")));
+
+    /// <summary>Sin disco no hay fila que pintar: no debe lanzar.</summary>
+    [Fact]
+    public void HasWear_WithoutDisk_IsFalse()
+        => Assert.False(SmartInfo.HasWear(null));
+
+    /// <summary>
+    /// Las dos filas son excluyentes salvo cuando no se sabe nada, donde se muestran las dos como «no
+    /// disponible». Nunca se esconden las dos: eso dejaría la pregunta sin responder por los dos lados.
+    /// </summary>
+    [Theory]
+    [InlineData("Healthy|SATA|HDD|7200|||||")]
+    [InlineData("Healthy|NVMe|SSD|0|||||")]
+    [InlineData("Healthy|USB|HDD||||||")]
+    [InlineData("Healthy|USB|SSD||||||")]
+    [InlineData("?|?|?||||||")]
+    public void SpindleAndWear_AreNeverBothHidden(string line)
+    {
+        var info = SmartInfo.Parse(line);
+        Assert.True(SmartInfo.HasSpindle(info) || SmartInfo.HasWear(info));
+    }
+
+    /// <summary>
     /// `T6-04`: «32161 h» no responde a la pregunta que hace esa fila («¿cuánto ha vivido este disco?»).
     /// La unidad se elige por tramos para que el número tenga magnitud útil, con los cortes a DOS
     /// unidades y no a una: con 33 días se dice «33,5 días», no «1,1 meses».

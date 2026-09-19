@@ -216,12 +216,18 @@ public sealed partial class HistoryDialog : ContentDialog
 
     private static string CategoryText(HistoryCategory c) => c switch
     {
-        HistoryCategory.Format     => L.T("history.cat.format"),
-        HistoryCategory.SecureWipe => L.T("history.cat.wipe"),
-        HistoryCategory.Verify     => L.T("history.cat.verify"),
-        HistoryCategory.Eject      => L.T("history.cat.eject"),
-        HistoryCategory.Update     => L.T("history.cat.update"),
-        _                          => L.T("history.cat.other"),
+        HistoryCategory.Format       => L.T("history.cat.format"),
+        HistoryCategory.SecureWipe   => L.T("history.cat.wipe"),
+        HistoryCategory.Reinit       => L.T("history.cat.reinit"),
+        HistoryCategory.CheckDisk    => L.T("history.cat.chkdsk"),
+        HistoryCategory.Verify       => L.T("history.cat.verify"),
+        HistoryCategory.Benchmark    => L.T("history.cat.benchmark"),
+        HistoryCategory.Health       => L.T("history.cat.health"),
+        HistoryCategory.WriteProtect => L.T("history.cat.unlock"),
+        HistoryCategory.Eject        => L.T("history.cat.eject"),
+        HistoryCategory.Update       => L.T("history.cat.update"),
+        HistoryCategory.App          => L.T("history.cat.app"),
+        _                            => L.T("history.cat.other"),
     };
 
     private static string ResultText(HistoryResult r) => r switch

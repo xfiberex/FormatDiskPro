@@ -340,7 +340,7 @@ public sealed partial class MainWindow
             FileSystemPicker.IsEnabled  = false;
             AllocUnitPicker.IsEnabled   = false;
             VolumeLabelBox.IsEnabled    = false;
-            RestoreButton.IsEnabled     = false;
+            PresetsButton.IsEnabled     = false;   // lleva dentro «Restaurar valores predeterminados» (`T13-10`)
             StartButton.IsEnabled       = false;
             QuickFormatCheck.IsEnabled  = false;
             CompressCheck.IsEnabled     = false;
@@ -353,7 +353,7 @@ public sealed partial class MainWindow
             FileSystemPicker.IsEnabled  = true;
             AllocUnitPicker.IsEnabled   = true;
             VolumeLabelBox.IsEnabled    = true;
-            RestoreButton.IsEnabled     = true;
+            PresetsButton.IsEnabled     = true;
             StartButton.IsEnabled       = true;
             QuickFormatCheck.IsEnabled  = true;
             SecureWipeCheck.IsEnabled   = true;
@@ -383,10 +383,6 @@ public sealed partial class MainWindow
             SetInfo(InfoTotalText, FormatBytes(total), "info.total");
             SetInfo(InfoFsText,    drive.DriveFormat,  "info.fs");
             SetInfo(InfoTypeText,  DriveTypeName(drive.DriveType), "info.type");
-            // El espacio libre CONSERVA su rótulo visible, y es la única excepción: va debajo de la
-            // barra, junto a «Usado 815,3 GB / 930,5 GB», y ahí un número suelto no se sabría de cuál
-            // de los dos es.
-            InfoFreeText.Text = L.T("info.free", FormatBytes(free));
             RenderCapacity(total, free);
         }
         catch { ClearInfo(); }
@@ -412,7 +408,10 @@ public sealed partial class MainWindow
         CapacityColumns.ColumnDefinitions[1].Width = new GridLength(100 - usedPct, GridUnitType.Star);
         CapacityUsedFill.Background = CapacityBrush(usedPct);
         CapacityBar.Background      = new SolidColorBrush(SeverityPalette.TrackFill(_darkMode));
-        CapacityText.Text           = L.T("info.usedOf", FormatBytes(used), FormatBytes(total));
+        // Las dos mitades de la barra, en una línea (`T13-10`). El rótulo «Ocupación» y el «/ total» se
+        // fueron con la fila de arriba: el total está dos líneas más arriba, en grande, y repetirlo
+        // costaba 22 DIP en una ventana que ya no llega a enseñar «Opciones de formato».
+        InfoFreeText.Text           = L.T("info.usedFree", FormatBytes(used), FormatBytes(free));
         CapacityPanel.Visibility    = Visibility.Visible;
 
         // El nombre accesible lleva el dato, no solo la etiqueta: un Border no expone valor de rango como
@@ -449,7 +448,7 @@ public sealed partial class MainWindow
         SetInfo(InfoTypeText,   dash, "info.type");
         SetInfo(InfoHealthText, dash, "info.health");
         SetInfo(InfoBusText,    dash, "info.bus");
-        InfoFreeText.Text = L.T("info.free", dash);
+        InfoFreeText.Text = L.T("info.usedFree", dash, dash);
         ClearHealthColor();
         CapacityPanel.Visibility = Visibility.Collapsed;
     }

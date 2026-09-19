@@ -13,35 +13,64 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
-## [Sin publicar]
+## [1.27.0] — 2026-09-19
+
+**Lo que solo se ve midiendo.** Una auditoría de accesibilidad y densidad de la interfaz, hecha con
+mediciones y no a ojo: contraste sobre los colores reales de la pantalla, anchos de texto con la fuente
+real y el alto que la ventana tiene de verdad en un portátil. De ahí salen nueve arreglos, y varios de
+ellos existían desde hacía versiones sin que ninguna prueba pudiera verlos.
 
 ### Corregido
 
+- **La confirmación de *Reinicializar unidad* se aceptaba con un botón que decía «Formatear».**
+  Reinicializar borra el disco físico entero, no solo la partición seleccionada, y el botón no lo decía.
+  Ahora nombra la operación y la unidad (*Reinicializar F:*), y el de formatear también nombra la suya
+  (*Formatear F:*).
+- **Cinco textos no se leían bien en tema claro**, por debajo del contraste mínimo de WCAG AA: el
+  cronómetro, la velocidad y el tiempo restante del pie durante una operación larga, el recuento y la
+  fecha de cada entrada del historial, el aviso de historial vacío y la nota de valores no disponibles en
+  *Salud del disco*. Estaban atenuados con transparencia y ahora usan un gris medido.
 - **Marcar «Borrado seguro» no se reflejaba en el resumen junto al botón *Formatear*.** Seguía diciendo
   solo «rápido» hasta que cambiaba otra opción, aunque el borrado seguro puede alargar la operación horas.
   Ahora se actualiza al momento.
-- **Ese resumen cortaba «Borrado seguro» en portugués, francés e italiano.** Ahora usa dos líneas cuando
-  hace falta, y nunca parte un dato por la mitad.
-
-- **La confirmación de *Reinicializar unidad* se aceptaba con un botón que decía «Formatear».**
-  Reinicializar borra el disco físico entero, no solo la partición, y el botón no lo decía. Ahora nombra
-  la operación y la unidad (*Reinicializar F:*), y el de formatear también nombra la unidad
-  (*Formatear F:*).
+- **Ese mismo resumen cortaba «Borrado seguro» en portugués, francés e italiano.** Ahora usa dos líneas
+  cuando hace falta, y nunca parte un dato por la mitad.
 - **La tabla de la confirmación de formato solo estaba alineada en español.** En inglés, portugués,
   francés e italiano las columnas no cuadraban. Ahora es una tabla de verdad, en la fuente normal de la
   interfaz, y se alinea en los cinco idiomas.
+- **En un disco duro, *Salud del disco* mostraba «Desgaste (SSD): 0 % — Normal» en verde.** El desgaste de
+  SSD no aplica a un disco que gira, y ese 0 % se leía como «como nuevo». Ahora la fila solo aparece
+  cuando la unidad tiene celdas que se gastan.
+- **Una caída de la aplicación aparecía en el historial como información, con su icono ⓘ.** Ahora se marca
+  como error, que es lo que se busca al abrir el historial después de un problema.
+- **Con un lector de pantalla no se oían las ayudas de los campos.** Las explicaciones del sistema de
+  archivos, del tamaño de clúster, de la partición FAT32 pequeña y del resto del disco están escritas
+  debajo de cada control, pero no se anunciaban al llegar a él. Ahora sí.
 
-- **Cinco textos no se leían bien en tema claro**, por debajo del contraste mínimo de WCAG AA: el
-  cronómetro, la velocidad y el tiempo restante del pie durante una operación larga, el recuento y la fecha
-  de cada entrada del historial, el aviso de historial vacío y la nota de valores no disponibles en *Salud
-  del disco*. Estaban atenuados con transparencia y ahora usan un gris medido.
+### Cambiado
+
+- **Cabe más en la ventana, sobre todo en pantallas bajas.** En un portátil 1080p al 150 % la ventana mide
+  656 puntos en vez de los 900 de diseño, y buena parte del contenido quedaba bajo el pliegue. Se han
+  recuperado unos 150: barra de título estándar, el pie sin barra de progreso ni fila de estado mientras
+  no hay operación, la ocupación en una línea («16 KB usados · 2 GB libres») y una pista más corta para el
+  tamaño de clúster.
+- **El tamaño de clúster recomendado se marca en la propia lista** («4 KB (recomendado)»), como en el
+  diálogo de formato de Windows. Antes lo decía una nota debajo, que dejaba de ser cierta en cuanto se
+  cambiaba el valor.
+- **«Restaurar valores predeterminados» se ha movido** del botón de la tarjeta a la primera entrada de la
+  lista de *Presets*, que es donde están las demás configuraciones de un clic.
+- **El historial distingue once tipos de operación, en vez de cinco.** Reinicializar, comprobar errores,
+  benchmark, estado del disco, protección de escritura y las entradas de la propia aplicación tenían todas
+  la misma etiqueta, «Operación», así que el filtro no podía aislarlas. **En el CSV exportado** esas filas
+  ya no dicen `Other`, sino su categoría; las entradas antiguas se releen igual, sin conversión.
 
 ### Interno
 
 - **La prueba de contraste mide ya todos los colores de texto.** Incluye el rojo de los mensajes de error,
   deja de confundir el color de acento con el texto normal y rechaza cualquier texto atenuado con
-  transparencia, que era el hueco por el que entraron los cinco de arriba.
-
+  transparencia, que era el hueco por el que entraron los cinco textos de arriba.
+- **Una prueba recorre el código buscando lo que la aplicación escribe en el historial** y falla si algo no
+  tiene categoría decidida. Al estrenarla aparecieron dos registros que nadie había contado.
 - **Integración continua en GitHub Actions, ahora que el repositorio es público.** Cada push a `master` y
   cada pull request compilan en Release sin advertencias, ejecutan las pruebas unitarias y **compilan** las
   de UI, sin ejecutarlas: esas lanzan la app real con permisos de administrador, y las que tocan una unidad
@@ -711,7 +740,7 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.26.0...HEAD
+[1.27.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.27.0
 [1.26.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.26.0
 [1.25.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.25.0
 [1.24.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.24.1

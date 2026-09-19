@@ -90,9 +90,13 @@ public sealed partial class HealthDialog : ContentDialog
             info.TemperatureC is int t ? L.T("health.unit.temp", t) : L.T("health.na"),
             SmartInfo.TemperatureLevel(info.TemperatureC));
         AddRow(L.T("health.hours"),   PowerOnHoursText(info.PowerOnHours));
-        AddMetricRow(L.T("health.wear"),
-            info.WearPercent is int w ? L.T("health.unit.percent", w) : L.T("health.na"),
-            SmartInfo.WearLevel(info.WearPercent));
+        // Y la del desgaste solo si hay celdas que gastar (`T13-06`), espejo de la del eje: en un disco
+        // que gira el contador vale 0, y «Desgaste (SSD): 0 % — Normal» en verde se lee como «como
+        // nuevo» cuando en realidad la pregunta no aplica.
+        if (SmartInfo.HasWear(info))
+            AddMetricRow(L.T("health.wear"),
+                info.WearPercent is int w ? L.T("health.unit.percent", w) : L.T("health.na"),
+                SmartInfo.WearLevel(info.WearPercent));
         AddMetricRow(L.T("health.readErr"),
             info.ReadErrors?.ToString() ?? L.T("health.na"), SmartInfo.ErrorLevel(info.ReadErrors));
         AddMetricRow(L.T("health.writeErr"),

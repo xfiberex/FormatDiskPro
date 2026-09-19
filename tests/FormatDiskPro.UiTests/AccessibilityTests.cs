@@ -29,7 +29,19 @@ public sealed class AccessibilityTests(AppFixture fixture)
     [Fact]
     public void StatusText_IsAPoliteLiveRegion()
     {
-        var status = MainWindowActions.Require(Window, "StatusText");
+        // Desde `T13-10` el pie en reposo no ocupa sitio: la fila de estado aparece cuando hay algo que
+        // decir. Hay que provocar un mensaje primero — igual que la prueba del error de etiqueta tiene
+        // que provocar el error—, porque un elemento Collapsed no está en el árbol de automatización.
+        // Aplicar un preset es lo más inocuo que escribe estado: solo mueve los controles de formato.
+        MainWindowActions.ClickMenuPath(Window, "MnuConfig", "MnuPresets", "preset.builtin.windowsData");
+
+        var status = Retry.WhileNull(
+            () => Window.FindFirstDescendant(cf => cf.ByAutomationId("StatusText")),
+            timeout: TimeSpan.FromSeconds(5),
+            interval: TimeSpan.FromMilliseconds(200),
+            ignoreException: true).Result
+            ?? throw new InvalidOperationException(
+                "Aplicar un preset no hizo aparecer StatusText: el pie no está diciendo nada.");
 
         Assert.True(status.FrameworkAutomationElement.LiveSetting.TryGetValue(out LiveSetting live),
             "StatusText no expone LiveSetting: la barra de estado ha dejado de ser una región activa.");
@@ -86,5 +98,31 @@ public sealed class AccessibilityTests(AppFixture fixture)
         {
             box.Text = original;
         }
+    }
+
+    /// <summary>
+    /// `T13-08`: las pistas de los dos combos de formato tampoco llegaban al lector de pantalla. Están
+    /// debajo del control y en gris, sin relación programática: desde el combo no había forma de saber
+    /// que existen. La de <c>AllocUnitPicker</c> es la que `T7-03` añadió por ser «el único campo
+    /// esotérico sin ayuda», y hasta ahora solo ayudaba a quien ve.
+    ///
+    /// <para>Se comprueba también que el texto no está vacío: un <c>DescribedBy</c> que apunta a un
+    /// control sin contenido es un vínculo que no dice nada, y pasaría igual.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("FileSystemPicker", "FsDescText")]
+    [InlineData("AllocUnitPicker",  "AllocHintText")]
+    public void FieldHints_AreLinkedToTheirControl(string controlId, string hintId)
+    {
+        var control = MainWindowActions.Require(Window, controlId);
+        var hint = MainWindowActions.Require(Window, hintId);
+
+        Assert.False(string.IsNullOrWhiteSpace(hint.Name),
+            $"{hintId} está vacío: el vínculo apuntaría a un texto que no dice nada.");
+
+        Assert.True(control.FrameworkAutomationElement.DescribedBy.TryGetValue(out AutomationElement[]? describedBy),
+            $"{controlId} no expone DescribedBy: su pista vuelve a existir solo para quien la ve.");
+        Assert.NotNull(describedBy);
+        Assert.Contains(describedBy, e => e.AutomationId == hintId);
     }
 }

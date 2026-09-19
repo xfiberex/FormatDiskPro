@@ -55,7 +55,13 @@ param(
 
     # Filtra la galería a un subconjunto de tomas por nombre (p. ej. -Only checkdisk,confirm). Útil
     # para reverificar un diálogo concreto sin re-lanzar las 24 tomas. Solo aplica con -Gallery.
-    [string[]]$Only
+    [string[]]$Only,
+
+    # Alto de ventana, en DIP, para fotografiar lo que se ve en una pantalla más baja que esta (`T13-10`).
+    # La app pide 900 DIP pero se acota al área de trabajo: una 1080p al 150 % deja 656, y una de 1366x768
+    # al 100 %, 704. Sin esto, la galería siempre enseña la ventana entera y el pliegue real no se ve.
+    # La ventana no es redimensionable por el usuario (por diseño), pero sí desde fuera.
+    [int]$WindowHeightDip
 )
 
 $ErrorActionPreference = 'Stop'
@@ -79,6 +85,7 @@ using System.Runtime.InteropServices;
 public static class Win32Capture
 {
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+    [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int w, int h, bool repaint);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -462,15 +469,21 @@ function Find-MenuItemByName($window, [string]$name, [int]$timeoutSec = 5) {
     throw "No se encontró el ítem de menú '$name'."
 }
 
-# Lanza el .exe, encuentra y coloca su ventana (tamaño fijo por diseño: solo se posiciona), y espera a
-# que la tarjeta de unidad se rellene. Devuelve un objeto con el proceso, el elemento y el hwnd.
+# Lanza el .exe, encuentra y coloca su ventana (tamaño fijo por diseño: solo se posiciona, salvo que se
+# pida -WindowHeightDip), y espera a que la tarjeta de unidad se rellene. Devuelve un objeto con el
+# proceso, el elemento y el hwnd.
 function Start-AppInstance([string]$exePath) {
     $proc = Start-Process -FilePath $exePath -PassThru
     $window = Find-MainWindow $proc.Id
     $hwnd = [IntPtr]$window.Current.NativeWindowHandle
     [void][Win32Capture]::ShowWindow($hwnd, 9)   # SW_RESTORE
     $r = $window.Current.BoundingRectangle
-    [void][Win32Capture]::MoveWindow($hwnd, 80, 30, [int]$r.Width, [int]$r.Height, $true)
+    $h = [int]$r.Height
+    if ($WindowHeightDip -gt 0) {
+        # DIP -> píxeles con el escalado de ESTA pantalla, que es lo que la app usa para dimensionarse.
+        $h = [int][Math]::Round($WindowHeightDip * ([Win32Capture]::GetDpiForWindow($hwnd) / 96.0))
+    }
+    [void][Win32Capture]::MoveWindow($hwnd, 80, 30, [int]$r.Width, $h, $true)
     Start-Sleep -Seconds 2
     return [pscustomobject]@{ Proc = $proc; Window = $window; Hwnd = $hwnd }
 }

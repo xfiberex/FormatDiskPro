@@ -129,7 +129,10 @@ public static class L
         // Pista bajo el selector de unidad de asignación (T7-03). No nombra ninguna opción de la lista:
         // el combo se puebla con tamaños ("4 KB", "64 KB"), no con un elemento «Predeterminado» — lo que
         // hay es un valor PRESELECCIONADO por sistema de archivos (ver UpdateAllocationUnits).
-        ["alloc.hint"]       = ["El valor preseleccionado es el recomendado para este sistema de archivos. Un clúster grande favorece los archivos grandes; uno pequeño desperdicia menos espacio con muchos archivos pequeños.", "The preselected value is the recommended one for this file system. A large cluster favours large files; a small one wastes less space with many small files.", "O valor pré-selecionado é o recomendado para este sistema de arquivos. Um cluster grande favorece arquivos grandes; um pequeno desperdiça menos espaço com muitos arquivos pequenos.", "La valeur présélectionnée est celle recommandée pour ce système de fichiers. Un grand cluster favorise les fichiers volumineux ; un petit gaspille moins d'espace avec de nombreux petits fichiers.", "Il valore preselezionato è quello consigliato per questo file system. Un cluster grande favorisce i file di grandi dimensioni; uno piccolo spreca meno spazio con molti file piccoli."],
+        // Una línea (`T13-10`): la frase «el valor preseleccionado es el recomendado» dejaba de ser
+        // verdad en cuanto alguien cambiaba el valor, y ahora el recomendado se marca en la propia lista.
+        ["alloc.hint"]       = ["Un clúster grande favorece los archivos grandes; uno pequeño desperdicia menos espacio con muchos archivos pequeños.", "A large cluster favours large files; a small one wastes less space with many small files.", "Um cluster grande favorece arquivos grandes; um pequeno desperdiça menos espaço com muitos arquivos pequenos.", "Un grand cluster favorise les fichiers volumineux ; un petit gaspille moins d'espace avec de nombreux petits fichiers.", "Un cluster grande favorisce i file di grandi dimensioni; uno piccolo spreca meno spazio con molti file piccoli."],
+        ["alloc.recommended"] = ["{0} (recomendado)", "{0} (recommended)", "{0} (recomendado)", "{0} (recommandé)", "{0} (consigliato)"],
         // Sin dos puntos (T6-06): es un `Header` de campo, como `fs.label` y `alloc.label` justo encima.
         // Era el único de los tres que puntuaba, y se notaba al verlos en fila.
         ["label.label"]      = ["Etiqueta del volumen", "Volume label", "Rótulo do volume", "Nom de volume", "Etichetta del volume"],
@@ -196,15 +199,14 @@ public static class L
         ["drive.none"]       = ["No hay unidades — conecta un dispositivo", "No drives — connect a device", "Sem unidades — conecte um dispositivo", "Aucun lecteur — connectez un périphérique", "Nessuna unità — collega un dispositivo"],
 
         ["info.total"]       = ["Total: {0}", "Total: {0}", "Total: {0}", "Total : {0}", "Totale: {0}"],
-        ["info.free"]        = ["Libre: {0}", "Free: {0}", "Livre: {0}", "Libre : {0}", "Libero: {0}"],
         ["info.fs"]          = ["Sistema actual: {0}", "Current FS: {0}", "Sistema atual: {0}", "Système actuel : {0}", "Sistema attuale: {0}"],
         ["info.type"]        = ["Tipo: {0}", "Type: {0}", "Tipo: {0}", "Type : {0}", "Tipo: {0}"],
         ["info.health"]      = ["Salud: {0}", "Health: {0}", "Saúde: {0}", "Santé : {0}", "Stato: {0}"],
         ["info.bus"]         = ["Conexión: {0}", "Bus: {0}", "Conexão: {0}", "Connexion : {0}", "Connessione: {0}"],
         ["info.used"]        = ["Espacio utilizado: {0} %", "Used space: {0}%", "Espaço utilizado: {0} %", "Espace utilisé : {0} %", "Spazio utilizzato: {0} %"],
         // Bloque de la barra de ocupación: etiqueta a la izquierda, cuánto se usa de cuánto a la derecha.
-        ["info.capacity"]    = ["Ocupación", "Usage", "Ocupação", "Utilisation", "Utilizzo"],
-        ["info.usedOf"]      = ["Usado {0} / {1}", "Used {0} / {1}", "Usado {0} / {1}", "Utilisé {0} / {1}", "Usato {0} / {1}"],
+        // Las dos mitades de la barra en una línea (`T13-10`): el total ya está arriba, en grande.
+        ["info.usedFree"]    = ["{0} usados · {1} libres", "{0} used · {1} free", "{0} usados · {1} livres", "{0} utilisés · {1} libres", "{0} usati · {1} liberi"],
         ["info.dash"]        = ["–", "–", "–", "–", "–"],
         ["info.loading"]     = ["consultando…", "querying…", "consultando…", "interrogation…", "interrogazione…"],
 
@@ -294,6 +296,14 @@ public static class L
         ["history.cat.eject"]    = ["Expulsión", "Eject", "Ejeção", "Éjection", "Espulsione"],
         ["history.cat.update"]   = ["Actualización", "Update", "Atualização", "Mise à jour", "Aggiornamento"],
         ["history.cat.other"]    = ["Operación", "Operation", "Operação", "Opération", "Operazione"],
+        // Categorías del historial que faltaban (`T13-07`): sin ellas, el filtro no podía aislar ni una
+        // reinicialización ni una caída, y nueve de los dieciséis registros caían en «Operación».
+        ["history.cat.reinit"]   = ["Reinicialización", "Reinitialization", "Reinicialização", "Réinitialisation", "Reinizializzazione"],
+        ["history.cat.chkdsk"]   = ["Comprobación de errores", "Error check", "Verificação de erros", "Vérification d'erreurs", "Controllo errori"],
+        ["history.cat.benchmark"]= ["Benchmark", "Benchmark", "Benchmark", "Benchmark", "Benchmark"],
+        ["history.cat.health"]   = ["Estado del disco", "Disk status", "Estado do disco", "État du disque", "Stato del disco"],
+        ["history.cat.unlock"]   = ["Protección de escritura", "Write protection", "Proteção contra gravação", "Protection en écriture", "Protezione da scrittura"],
+        ["history.cat.app"]      = ["Aplicación", "Application", "Aplicativo", "Application", "Applicazione"],
         ["history.res.ok"]        = ["Correcto", "Success", "Sucesso", "Réussi", "Riuscito"],
         ["history.res.fail"]      = ["Fallo", "Failed", "Falha", "Échec", "Non riuscito"],
         ["history.res.error"]     = ["Error", "Error", "Erro", "Erreur", "Errore"],

@@ -113,6 +113,28 @@ public sealed record SmartInfo(
     }
 
     /// <summary>
+    /// ¿Tiene esta unidad celdas que se gasten? <c>false</c> en un disco que gira, donde el desgaste de
+    /// SSD no es un dato que falte: es una pregunta que no aplica. Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>El espejo de <see cref="HasSpindle"/></b> (`T13-06`). `T6-03` quitó la rotación en los
+    /// SSD, pero la fila de desgaste se añadía siempre: en un disco duro el contador vale 0 y la
+    /// interfaz decía «Desgaste (SSD): 0 % — Normal», en verde, cuatro filas más abajo de «Tipo de
+    /// medio: HDD». Un 0 % en verde se lee como «como nuevo», y ahí no significa nada.</para>
+    ///
+    /// <para>Mismas dos señales y mismo orden: <b>RPM &gt; 0</b> es el disco diciendo «giro», así que
+    /// manda; si no reporta RPM, decide el tipo de medio. Y, como allí, sin ninguna señal la respuesta
+    /// es <c>true</c>: la fila se muestra como <i>no disponible</i>, porque esconderla por
+    /// desconocimiento afirmaría que el disco gira sin saberlo.</para>
+    /// </remarks>
+    public static bool HasWear(SmartInfo? info)
+    {
+        if (info is null) return false;
+        if (info.SpindleSpeedRpm is uint rpm) return rpm == 0;
+        return !info.Media.Contains("HDD", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Clasifica una temperatura (°C) en niveles: ≤ 50 normal, 51–60 atención, &gt; 60 crítico.
     /// <c>null</c> → <see cref="SmartLevel.Unknown"/>. Lógica pura.
     /// </summary>

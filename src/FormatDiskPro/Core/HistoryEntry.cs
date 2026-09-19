@@ -4,8 +4,42 @@ using System.Text.RegularExpressions;
 
 namespace FormatDiskPro;
 
-/// <summary>Categoría de una operación registrada en el historial.</summary>
-public enum HistoryCategory { Format, SecureWipe, Verify, Eject, Update, Other }
+/// <summary>
+/// Categoría de una entrada del historial, en el orden en que se ofrecen en el filtro: primero lo que
+/// escribe en el disco, luego lo que solo lo lee, y al final la propia aplicación.
+/// </summary>
+/// <remarks>
+/// `T13-07`: había cinco, y la app escribía dieciséis prefijos distintos. Los otros once caían en
+/// <see cref="Other"/>, así que el filtro no podía aislar <b>una reinicialización</b> —la operación más
+/// destructiva de la app—, ni una comprobación de errores, ni una caída.
+/// </remarks>
+public enum HistoryCategory
+{
+    /// <summary>Formateo de un volumen.</summary>
+    Format,
+    /// <summary>Borrado seguro del espacio libre.</summary>
+    SecureWipe,
+    /// <summary>Reinicialización del disco físico.</summary>
+    Reinit,
+    /// <summary>Comprobación o reparación del sistema de archivos (chkdsk).</summary>
+    CheckDisk,
+    /// <summary>Verificación de la capacidad real.</summary>
+    Verify,
+    /// <summary>Benchmark de lectura/escritura.</summary>
+    Benchmark,
+    /// <summary>Consultas de estado del disco: S.M.A.R.T. y tamaño.</summary>
+    Health,
+    /// <summary>Protección de escritura.</summary>
+    WriteProtect,
+    /// <summary>Expulsión de una unidad.</summary>
+    Eject,
+    /// <summary>Actualizaciones y novedades de versión.</summary>
+    Update,
+    /// <summary>La propia aplicación: preferencias, historial y caídas.</summary>
+    App,
+    /// <summary>Lo que no encaja en ninguna: una línea escrita por otro programa, o de una versión futura.</summary>
+    Other,
+}
 
 /// <summary>Resultado de una operación registrada en el historial.</summary>
 public enum HistoryResult { Ok, Fail, Error, Cancelled, Info }
@@ -211,18 +245,59 @@ public sealed partial record HistoryEntry(
         return v.IndexOfAny(['"', ',', '\n', '\r']) < 0 ? v : "\"" + v.Replace("\"", "\"\"") + "\"";
     }
 
-    private static HistoryCategory ParseCategory(string message) => message switch
+    /// <summary>
+    /// Cada palabra clave con la que la app abre una línea del historial, y su categoría.
+    /// </summary>
+    /// <remarks>
+    /// <para>Es una <b>tabla</b> y no una cadena de <c>StartsWith</c> por lo mismo que
+    /// <c>SeverityPalette.All()</c> es enumerable: para poder recorrerla. <c>HistoryPrefixTests</c> barre
+    /// el código fuente buscando cada <c>Log("PALABRA…</c> y falla si alguna no está aquí, así que añadir
+    /// un registro nuevo obliga a decidir su categoría en vez de dejarlo caer en
+    /// <see cref="HistoryCategory.Other"/> sin que nadie lo note (`T13-07`).</para>
+    ///
+    /// <para>Se clasifica por la palabra clave, así que <b>las líneas ya escritas se releen bien</b>: no
+    /// hay migración del archivo.</para>
+    /// </remarks>
+    public static readonly IReadOnlyDictionary<string, HistoryCategory> CategoryByPrefix =
+        new Dictionary<string, HistoryCategory>(StringComparer.Ordinal)
+        {
+            ["FORMAT"]   = HistoryCategory.Format,
+            ["WIPE"]     = HistoryCategory.SecureWipe,
+            ["REINIT"]   = HistoryCategory.Reinit,
+            ["CHKDSK"]   = HistoryCategory.CheckDisk,
+            ["VERIFY"]   = HistoryCategory.Verify,
+            ["BENCH"]    = HistoryCategory.Benchmark,
+            ["HEALTH"]   = HistoryCategory.Health,
+            // El tamaño del disco se consulta al seleccionar la unidad y al planificar una
+            // reinicialización: es la misma pregunta de estado que S.M.A.R.T., no una operación aparte.
+            ["DISKSIZE"] = HistoryCategory.Health,
+            ["UNLOCK"]   = HistoryCategory.WriteProtect,
+            ["EJECT"]    = HistoryCategory.Eject,
+            ["UPDATE"]   = HistoryCategory.Update,
+            ["WHATSNEW"] = HistoryCategory.Update,
+            ["SETTINGS"] = HistoryCategory.App,
+            ["HISTORY"]  = HistoryCategory.App,
+            ["EXPORT"]   = HistoryCategory.App,
+            ["CRASH"]    = HistoryCategory.App,
+        };
+
+    /// <summary>Palabra clave con la que empieza el mensaje, sin el <c>:</c> final.</summary>
+    private static string Keyword(string message)
     {
-        _ when message.StartsWith("FORMAT", StringComparison.Ordinal) => HistoryCategory.Format,
-        _ when message.StartsWith("WIPE",   StringComparison.Ordinal) => HistoryCategory.SecureWipe,
-        _ when message.StartsWith("VERIFY", StringComparison.Ordinal) => HistoryCategory.Verify,
-        _ when message.StartsWith("EJECT",  StringComparison.Ordinal) => HistoryCategory.Eject,
-        _ when message.StartsWith("UPDATE", StringComparison.Ordinal) => HistoryCategory.Update,
-        _                                                             => HistoryCategory.Other,
-    };
+        int end = message.IndexOfAny([' ', ':']);
+        return end < 0 ? message : message[..end];
+    }
+
+    private static HistoryCategory ParseCategory(string message) =>
+        CategoryByPrefix.TryGetValue(Keyword(message), out HistoryCategory c) ? c : HistoryCategory.Other;
 
     private static HistoryResult ParseResult(string message)
     {
+        // Una caída es un error, aunque su línea no lleve la palabra: `CRASH: System.…Exception` salía
+        // como «Info», con el icono ⓘ, en el registro que uno consulta justo cuando algo ha ido mal
+        // (`T13-07`).
+        if (Keyword(message) == "CRASH") return HistoryResult.Error;
+
         if (HasToken(message, "CANCELLED")) return HistoryResult.Cancelled;
         if (HasToken(message, "ERROR"))     return HistoryResult.Error;
         if (HasToken(message, "FAIL"))      return HistoryResult.Fail;

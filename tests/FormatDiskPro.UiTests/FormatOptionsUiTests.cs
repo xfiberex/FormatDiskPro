@@ -94,13 +94,17 @@ public sealed class FormatOptionsUiTests
         MainWindowActions.SelectComboText(Window, "FileSystemPicker", "NTFS");
     }
 
+    /// <summary>
+    /// Restaurar los valores predeterminados sigue funcionando desde donde vive ahora: la primera entrada
+    /// de la lista de presets (`T13-10`), en vez de un botón a todo el ancho de la tarjeta.
+    /// </summary>
     [NonSystemDriveFact]
-    public void RestoreButton_ResetsOptionsToDefaults()
+    public void RestoreDefaults_ResetsOptionsToDefaults()
     {
         MainWindowActions.SetChecked(Window, "QuickFormatCheck", false);
         MainWindowActions.SetChecked(Window, "SecureWipeCheck", true);
 
-        MainWindowActions.Button(Window, "RestoreButton").Invoke();
+        MainWindowActions.ClickMenuPath(Window, "MnuConfig", "MnuPresets", "RestoreDefaultsItem");
 
         Assert.Equal(ToggleState.On, MainWindowActions.CheckBox(Window, "QuickFormatCheck").ToggleState);
         Assert.Equal(ToggleState.Off, MainWindowActions.CheckBox(Window, "SecureWipeCheck").ToggleState);

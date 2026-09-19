@@ -7,7 +7,9 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
+            <!-- 32, la altura estándar de la barra de título: Microsoft recomienda la alta (48) cuando
+                 lleva contenido interactivo, y esta solo lleva icono y título (`T13-10`). -->
+            <RowDefinition Height="32" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -262,24 +264,19 @@
                         <StackPanel x:Name="CapacityPanel" Spacing="6" Margin="0,2,0,0"
                                     Visibility="Collapsed">
                             <Border Style="{StaticResource CardDividerStyle}" />
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                                <TextBlock x:Name="CapacityLbl" Grid.Column="0"
-                                           Style="{StaticResource InfoTextStyle}" Text="Ocupación" />
-                                <TextBlock x:Name="CapacityText" Grid.Column="1"
-                                           HorizontalAlignment="Right"
-                                           Style="{StaticResource InfoTextStyle}"
-                                           AutomationProperties.AccessibilityView="Raw" />
-                            </Grid>
+                            <!-- Sin fila de rótulo (`T13-10`): decía «Ocupación · Usado 16 KB / 2 GB», y ese
+                                 total ya está dos líneas más arriba, en grande. Lo que la barra no dice —
+                                 cuánto se usa y cuánto queda— cabe en la línea de debajo. Son ~22 DIP. -->
                             <Border x:Name="CapacityBar" Height="6" CornerRadius="2"
                                     AutomationProperties.AccessibilityView="Content">
                                 <Grid x:Name="CapacityColumns" ColumnDefinitions="0*,100*">
                                     <Border x:Name="CapacityUsedFill" Grid.Column="0" CornerRadius="2" />
                                 </Grid>
                             </Border>
-                            <!-- El espacio libre baja aquí: es la otra mitad de lo que dice la barra, y
-                                 arriba estaba a tres líneas de distancia del dato con el que se compara. -->
+                            <!-- Las dos mitades de lo que dice la barra, en una línea y en el mismo orden
+                                 que la barra las pinta: usado y libre. -->
                             <TextBlock x:Name="InfoFreeText" Style="{StaticResource DriveMetaStyle}"
-                                       Text="Libre: –" />
+                                       Text="– · –" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -327,9 +324,6 @@
                                    AutomationProperties.LiveSetting="Assertive"
                                    Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
 
-                        <Button x:Name="RestoreButton" Content="Restaurar valores predeterminados"
-                                HorizontalAlignment="Stretch" Margin="0,2,0,0"
-                                Click="RestoreButton_Click" />
                     </StackPanel>
                 </Border>
 
@@ -422,9 +416,15 @@
         <Border Grid.Row="3" Style="{StaticResource FooterBarStyle}">
             <StackPanel Spacing="8">
 
-                <ProgressBar x:Name="FormatProgress" />
+                <!-- El pie en reposo no ocupa sitio (`T13-10`): una barra parada es una raya paralela al
+                     borde del pie, y la fila de estado, un hueco vacío. Son ~37 DIP que en una pantalla
+                     baja se le quitan a «Opciones de formato». La barra aparece en BeginOperation y la
+                     fila, en cuanto hay algo que decir —también fuera de una operación: preset aplicado,
+                     unidad expulsada…—. Se hacen visibles ANTES de anunciar: un elemento Collapsed no
+                     está en el árbol de automatización (`T2-02`). -->
+                <ProgressBar x:Name="FormatProgress" Visibility="Collapsed" />
 
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Grid x:Name="StatusRow" ColumnDefinitions="*,Auto" ColumnSpacing="8" Visibility="Collapsed">
                     <!-- Región activa: el estado cambia durante minutos u horas sin que nada mueva el
                          foco. Polite (no Assertive) porque el progreso no debe interrumpir lo que el
                          usuario esté leyendo; los HITOS se anuncian aparte, con AnnounceStatus. -->

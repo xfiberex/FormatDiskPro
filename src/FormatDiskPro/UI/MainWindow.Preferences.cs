@@ -185,11 +185,11 @@ public sealed partial class MainWindow
         MnuAbout.Text    = L.T("menu.about");
 
         UnitGroupLbl.Text       = L.T("section.drive");
-        CapacityLbl.Text        = L.T("info.capacity");
         FormatGroupLbl.Text     = L.T("section.format");
         FileSystemPicker.Header = L.T("fs.label");
         AllocUnitPicker.Header  = L.T("alloc.label");
         AllocHintText.Text      = L.T("alloc.hint");
+        RefreshAllocationLabels();   // la marca «(recomendado)» es texto traducido
         VolumeLabelBox.Header   = L.T("label.label");
         OptionsGroupLbl.Text = L.T("options.group");
         QuickFormatCheck.Content = L.T("opt.quick");
@@ -206,7 +206,6 @@ public sealed partial class MainWindow
         // al construir. La preferencia persistida manda, así que la selección sobrevive al cambio.
         InitRestPickers();
         UpdateSmallFat32Hint();
-        RestoreButton.Content    = L.T("btn.restore");
         // StartButton NO se escribe aquí: su texto depende del idioma Y de la unidad seleccionada
         // (`T12-02`), así que lo escribe UpdateFooterSummary, al que llega ApplyLanguage por medio de
         // UpdateToolsMenuAvailability. Dos dueños dejarían el nombre de la unidad perdido o pegado dos

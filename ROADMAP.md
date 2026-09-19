@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 5/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 9/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2544,7 +2544,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     - `tools/capture-screenshots.ps1` gana la toma `main-secure`. Capturas en los cinco idiomas: la
       palabra sale entera en ES, PT, FR e IT (dos líneas) y en EN cabe en una.
 
-- [ ] **[T13-06] Salud: «Desgaste (SSD): 0 % — Normal», en verde, en un disco duro** · Media
+- [x] **[T13-06] Salud: «Desgaste (SSD): 0 % — Normal», en verde, en un disco duro** — **hecho (2026-09-19)**, *sin ver en un HDD* · Media
   - **Área:** UI / veracidad del dato
   - **Ubicación:** [HealthDialog.xaml.cs:93-95](src/FormatDiskPro/UI/HealthDialog.xaml.cs#L93-L95) ·
     [Core/SmartInfo.cs:108](src/FormatDiskPro/Core/SmartInfo.cs#L108) (`HasSpindle`, el espejo)
@@ -2558,8 +2558,15 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     visual sobre el HDD de la galería.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho:** `SmartInfo.HasWear`, pura y espejo exacto de `HasSpindle`: mismas dos señales y mismo
+    orden. RPM > 0 manda («giro», así que no hay celdas que gastar); sin RPM decide el medio; sin ninguna
+    señal se muestra la fila como *no disponible*, porque esconderla afirmaría que el disco gira.
+    - Unitarias sobre las tres señales (7 casos), más una que fija lo que ninguna de las dos funciones
+      dice por sí sola: **las filas de eje y de desgaste nunca se esconden las dos a la vez**.
+    - **Falta verlo en un HDD.** Esta máquina solo tiene un SSD NVMe y la USB de pruebas. Queda para
+      cuando haya un disco que gire conectado.
 
-- [ ] **[T13-07] Historial: un *CRASH* sale como «Info», y 9 de los 14 tipos de entrada son «Operación»** · Media
+- [x] **[T13-07] Historial: un *CRASH* sale como «Info», y 9 de los 14 tipos de entrada son «Operación»** — **hecho (2026-09-19)** · Media
   - **Área:** UI / clasificación del historial
   - **Ubicación:** [Core/HistoryEntry.cs:214-231](src/FormatDiskPro/Core/HistoryEntry.cs#L214-L231) ·
     [App.xaml.cs:47](src/FormatDiskPro/App.xaml.cs#L47) (`CRASH:`)
@@ -2578,8 +2585,20 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     `Other` sin que nadie lo haya decidido.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho:** `HistoryEntry.CategoryByPrefix`, una tabla recorrible, sustituye a la cadena de
+    `StartsWith`. Las categorías pasan de 5 a 11 más `Other`: se añaden Reinicialización, Comprobación de
+    errores, Benchmark, Estado del disco, Protección de escritura y Aplicación, con sus claves × 5 idiomas.
+    - **Eran 16 prefijos, no 14.** El barrido encontró dos que la auditoría no vio: `EXPORT` y `HISTORY`.
+      Es justo lo que separa medir de contar a mano.
+    - `CRASH` pasa a resultado **Error**, y la clasificación es por palabra clave completa, así que
+      `CRASHED` de otro programa no se cuela.
+    - **Verificado por reversión:** quitando `CHKDSK` de la tabla, el barrido falla nombrando archivo y
+      palabra («MainWindow.Operations.cs: CHKDSK»).
+    - Segunda prueba en el otro sentido: la tabla no puede declarar palabras que la app ya no escribe.
+    - **Cambia el CSV exportado:** esas filas dejaban de decir `Other`. Va en el CHANGELOG. Las entradas
+      ya escritas se releen bien, porque se clasifica por la palabra clave: no hay migración.
 
-- [ ] **[T13-08] Las pistas de los campos no llegan al lector de pantalla** · Media
+- [x] **[T13-08] Las pistas de los campos no llegan al lector de pantalla** — **hecho (2026-09-19)** · Media
   - **Área:** Accesibilidad
   - **Ubicación:** [MainWindow.xaml:308](src/FormatDiskPro/UI/MainWindow.xaml#L308) (`FsDescText`) y
     [316](src/FormatDiskPro/UI/MainWindow.xaml#L316) (`AllocHintText`) · el patrón ya existe en
@@ -2593,6 +2612,13 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     `T2-02`.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho:** `DescribedBy` en los dos combos y, revisadas las otras dos, también en `SmallFat32Check`
+    (su pista) y en `RestPicker` (la nota del sobrante). Describir un elemento oculto no molesta: mientras
+    está `Collapsed` ni siquiera aparece en el árbol de automatización.
+    - La prueba exige además que la pista **no esté vacía**: un vínculo a un control sin texto pasaría
+      igual sin decir nada.
+    - **Verificado por reversión:** sin los dos enlaces, falla nombrando cada combo («FileSystemPicker no
+      expone DescribedBy: su pista vuelve a existir solo para quien la ve»).
 
 - [ ] **[T13-09] Alto contraste: el principio de `T12-01` solo se aplica a un pincel** · Media
   - **Área:** Accesibilidad
@@ -2620,7 +2646,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ### La ventana, en el alto que tiene de verdad
 
-- [ ] **[T13-10] En la mayoría de portátiles la ventana no mide 900 DIP, y hay ~150 DIP recuperables** · Media
+- [x] **[T13-10] En la mayoría de portátiles la ventana no mide 900 DIP, y hay ~150 DIP recuperables** — **hecho (2026-09-19)** · Media
   - **Área:** UI / densidad
   - **Ubicación:** [MainWindow.xaml.cs:196-211](src/FormatDiskPro/UI/MainWindow.xaml.cs#L196-L211)
     (`SizeAndCenterWindow`) · [MainWindow.xaml.cs:127](src/FormatDiskPro/UI/MainWindow.xaml.cs#L127) ·
@@ -2651,6 +2677,29 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     `capture-screenshots.ps1`) antes y después.
   - **Esfuerzo:** medio
   - **Depende de:** ninguna
+  - **Hecho, los cinco cambios**, sin tocar el tamaño de diseño:
+    - Barra de título **estándar** (32) en vez de `Tall` (48).
+    - **Pie en reposo:** la barra de progreso aparece en `BeginOperation` y la fila de estado, cuando hay
+      algo que decir. La fila se gobierna con un callback sobre `StatusText.Text` y no desde cada
+      asignación: hay más de treinta repartidas por cinco archivos, y una sin enterarse dejaría el
+      cronómetro sin sitio. Las dos se hacen visibles **antes** de anunciar (`T2-02`).
+    - **Restaurar valores predeterminados** deja de ser un botón a todo el ancho y pasa a ser la primera
+      entrada de la lista de presets, en las dos listas (la tarjeta y *Configuración*).
+    - **Ocupación** en una línea: «16 KB usados · 2 GB libres». El rótulo y el «/ total» se van, porque el
+      total ya está dos líneas más arriba y en grande.
+    - **Clúster recomendado marcado en la lista** («4 KB (recomendado)»), y la pista baja a una línea. La
+      marca **no** sale de la lista: el pie y la confirmación usan `SelectedAllocLabel()`, el tamaño a
+      secas. Se rehace al cambiar de idioma.
+  - **Capturas a 656 DIP, antes y después** (`-WindowHeightDip`, nuevo en el script): antes se veía hasta
+    la descripción del sistema de archivos; ahora, hasta el selector de clúster con su marca. A 900 DIP se
+    llega ya al campo de etiqueta. *Opciones de formato* sigue pidiendo desplazarse: los ~150 DIP la
+    acercan, no la suben del todo.
+  - **De paso:** los presets integrados llevan su clave como `AutomationId`; era lo único estable que
+    tenían para que una prueba los invoque sin depender del idioma.
+  - **Pruebas:** dos de UI actualizadas —restaurar, que ahora vive en el menú, y la región activa del pie,
+    que necesita provocar un mensaje porque en reposo la fila no existe en el árbol UIA—. Suite completa
+    **39/41 con las destructivas incluidas** (2 omitidas por opt-in), con el ciclo de formatear +
+    reinicializar + FAT32 pequeña + dos particiones en 2 m 22 s.
 
 ### Desactualizado
 
@@ -3197,6 +3246,10 @@ restauran.
 | 2026-09-18 | **T13-02**, **T13-01** | El barrido de contraste **ya ve lo que se le escapaba**. Recoge todo `Foreground` de un recurso (XAML, `Setter` y código) con el nombre anclado y sin leer comentarios, mide `SystemFillColorCriticalBrush` (`#C42B1C` / `#FF99A4`), exige un motivo escrito a cada exención (el acento, que remite a `T13-15`) y **prohíbe la `Opacity` en un texto**. Verificado en negativo: sin la declaración ni la exención falla nombrando seis archivos, y con las opacidades de antes, las catorce. Las catorce pasan a pinceles medidos: `AppMutedTextBrush` las cinco que no llegaban a AA, `TextFillColorSecondaryBrush` las de 0,7–0,85 y texto primario las de 0,9. **Nueva `T13-17`**, sin reproducir: una etiqueta deshabilitada toma el gris del tema de Windows y no el de la app. Unitarias **630** (629 pasan · 1 se omite). UI con la USB: **36/37** en la primera pasada; el fallo de `HealthDialog_OpensForTestDrive`, justo tras el benchmark, no se reprodujo ni sola ni con su clase entera. **Nueva `T13-18`**: *Reinicializar* rechaza sin decir por qué. |
 | 2026-09-18 | **T13-03**, **T13-04** | **La confirmación de Reinicializar dice lo que hace.** El verbo del botón pasa a ser parámetro obligatorio de `ConfirmDialog`, como el título desde `T6-01`: *Formatear F:* y *Reinicializar F:* (clave nueva `btn.reinit.drive` × 5). Verificado por reversión con la USB: la prueba de UI nueva falló contra la versión anterior («Formatear» en los dos) y pasa con la nueva. La tabla de la confirmación de formato deja Consolas y los espacios de relleno y pasa a un `Grid` de dos columnas; capturas en ES y EN, en los dos temas, con las columnas alineadas. Las capturas del README de estos diálogos quedan por regenerar, con las 12 a la vez. |
 | 2026-09-18 | **T13-05** | El resumen del pie pasa a dos líneas y solo se corta entre datos (`FormatLogic.FormatSummary`, U+00A0 dentro de cada uno). Al comprobarlo, **marcar el borrado seguro no repintaba el pie**: la única opción del resumen que no llegaba a `FormatOption_Changed`. Verificado por reversión con una prueba de UI nueva. Toma `main-secure` en la galería; capturas en los cinco idiomas con la palabra entera. |
+| 2026-09-19 | **T13-06** | `SmartInfo.HasWear`, espejo de `HasSpindle`: la fila de desgaste de SSD desaparece en un disco que gira, donde el contador vale 0 y «0 % — Normal» en verde se leía como «como nuevo». Unitarias sobre las tres señales, más una que fija que las dos filas nunca se esconden a la vez. **Sin ver en un HDD**: no hay ninguno conectado. |
+| 2026-09-19 | **T13-07** | El historial pasa de 5 categorías a 11 más `Other`, con una **tabla recorrible** (`HistoryEntry.CategoryByPrefix`) que una prueba contrasta contra el código fuente: registrar algo nuevo obliga a decidir su categoría. El barrido destapó **16** palabras clave, no las 14 contadas a mano (`EXPORT` y `HISTORY` faltaban). `CRASH` pasa a resultado Error: ya no sale como «Info» en el registro que se consulta cuando algo ha ido mal. Verificado por reversión. Cambia el CSV: esas filas dejan de decir `Other`. |
+| 2026-09-19 | **T13-08** | Las pistas de los campos se enlazan con su control por `DescribedBy`: los dos combos de formato y, de paso, la casilla de FAT32 pequeña y el selector del sobrante. La ayuda que `T7-03` añadió para «el único campo esotérico» dejaba fuera a quien no ve. Verificado por reversión. Con la sesión elevada se validan además `T13-06` y `T13-07` en la app real, y la suite de UI queda en **36/39** (3 omitidas por opt-in, 0 fallos). |
+| 2026-09-19 | **T13-10** | Cinco cambios de densidad sin tocar el tamaño de diseño: barra de título estándar, pie en reposo sin barra ni fila de estado, «Restaurar valores predeterminados» dentro de la lista de presets, la ocupación en una línea y el clúster recomendado marcado en la lista («4 KB (recomendado)») con la pista en una línea. El script de capturas gana `-WindowHeightDip` para fotografiar lo que se ve en una pantalla baja: a 656 DIP se pasa de ver hasta la descripción del sistema de archivos a ver el selector de clúster. Suite de UI **39/41 con las destructivas incluidas**. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

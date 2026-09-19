@@ -92,6 +92,12 @@ public sealed partial class MainWindow : Window
     private DispatcherTimer _elapsedTimer = null!;
     private readonly ObservableCollection<DriveViewModel> _driveItems = new();
     private readonly List<long> _allocBytes = new();
+
+    /// <summary>Tamaños de clúster tal cual («4 KB»), sin la marca de recomendado (`T13-10`).</summary>
+    private readonly List<string> _allocLabels = new();
+
+    /// <summary>Índice del tamaño recomendado para el sistema de archivos elegido.</summary>
+    private int _allocRecommended;
     // Tamaño del DISCO físico de la unidad seleccionada, cuando se ha podido consultar (ver
     // LoadDiskSizeAsync). Es el tope de la partición FAT32 pequeña: Info.TotalSize mide el volumen.
     private long? _selectedDiskSizeBytes;
@@ -124,7 +130,10 @@ public sealed partial class MainWindow : Window
         // (minimize/maximize/close) buttons automatically, following the content's
         // effective theme — including when the user forces Light/Dark from the menu.
         ExtendsContentIntoTitleBar = true;
-        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        // Altura estándar, no Tall (`T13-10`): Microsoft recomienda la alta para barras con contenido
+        // interactivo, y esta solo lleva el icono y el título. Son 16 DIP de los ~150 que se recuperan
+        // para que «Opciones de formato» quepa en una pantalla baja.
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Standard;
 
         Title = "FormatDiskPro";
         SetSystemBackdrop();
@@ -156,6 +165,22 @@ public sealed partial class MainWindow : Window
         // sabía por qué no le dejaban continuar. DescribedBy es una colección y no admite x:Reference en
         // XAML de WinUI, así que se enlaza aquí, una sola vez.
         AutomationProperties.GetDescribedBy(VolumeLabelBox).Add(LabelErrorText);
+
+        // Y lo mismo con las pistas de los demás campos (`T13-08`). Están debajo de su control y en gris:
+        // quien no las ve no sabía siquiera que existen. La de `AllocUnitPicker` es la que `T7-03` añadió
+        // porque era «el único campo esotérico sin ayuda» — y hasta ahora solo ayudaba a quien ve.
+        // Las dos de reinicializar viven ocultas hasta que aplican; describir un elemento Collapsed no
+        // molesta, porque ni siquiera está en el árbol de automatización mientras lo está.
+        // La fila de estado del pie se muestra sola cuando hay algo que decir, y se retira cuando el
+        // texto se vacía (`T13-10`). Va por callback y no por cada asignación de StatusText.Text —hay
+        // más de treinta repartidas por cinco archivos— para que no pueda quedarse una sin enterarse.
+        StatusText.RegisterPropertyChangedCallback(TextBlock.TextProperty, (_, _) => UpdateStatusRowVisibility());
+        UpdateStatusRowVisibility();
+
+        AutomationProperties.GetDescribedBy(FileSystemPicker).Add(FsDescText);
+        AutomationProperties.GetDescribedBy(AllocUnitPicker).Add(AllocHintText);
+        AutomationProperties.GetDescribedBy(SmallFat32Check).Add(SmallFat32HintText);
+        AutomationProperties.GetDescribedBy(RestPicker).Add(RestNoteText);
 
         ((FrameworkElement)Content).ActualThemeChanged += OnActualThemeChanged;
 
@@ -430,7 +455,7 @@ public sealed partial class MainWindow : Window
         [
             (L.T("confirm.drive"),   driveItem.DisplayText),
             (L.T("confirm.fs"),      fs),
-            (L.T("confirm.cluster"), AllocUnitPicker.SelectedItem?.ToString() ?? ""),
+            (L.T("confirm.cluster"), SelectedAllocLabel()),
             (L.T("confirm.label"),   string.IsNullOrEmpty(label) ? L.T("confirm.nolabel") : label),
             (L.T("confirm.mode"),    mode),
         ];
@@ -731,8 +756,23 @@ public sealed partial class MainWindow : Window
         AnnounceStatus(text);
     }
 
+    /// <summary>
+    /// La fila de estado ocupa sitio solo cuando dice algo (`T13-10`).
+    /// </summary>
+    /// <remarks>
+    /// El cronómetro vive en la misma fila, y sin texto de estado no tiene nada que acompañar: durante
+    /// una operación siempre hay estado, porque <see cref="BeginOperation"/> lo escribe antes de arrancar.
+    /// </remarks>
+    private void UpdateStatusRowVisibility()
+        => StatusRow.Visibility = string.IsNullOrEmpty(StatusText.Text) ? Visibility.Collapsed : Visibility.Visible;
+
     private void BeginOperation()
     {
+        // Antes de nada, y antes de anunciar: un elemento Collapsed no está en el árbol de automatización,
+        // así que la barra tiene que existir ya cuando el lector de pantalla vaya a mirarla.
+        FormatProgress.Visibility = Visibility.Visible;
+        StatusRow.Visibility = Visibility.Visible;
+
         _isBusy = true;
         // SetControlsEnabled(false) NO pasa por UpdateToolsMenuAvailability, así que el resumen del pie
         // se quedaría puesto compitiendo con StatusText. Al terminar lo repinta EndOperation, que sí
@@ -855,7 +895,7 @@ public sealed partial class MainWindow : Window
         FileSystemPicker.IsEnabled  = canFormat;
         AllocUnitPicker.IsEnabled   = canFormat;
         VolumeLabelBox.IsEnabled    = canFormat;
-        RestoreButton.IsEnabled     = canFormat;
+        PresetsButton.IsEnabled     = canFormat;
         StartButton.IsEnabled       = canFormat;
         QuickFormatCheck.IsEnabled  = canFormat;
         SecureWipeCheck.IsEnabled   = canFormat;
