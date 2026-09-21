@@ -290,4 +290,38 @@ public sealed class TextContrastTests
             Assert.Equal(hex, match.Groups[1].Value.ToUpperInvariant());
         }
     }
+
+    /// <summary>
+    /// El título de una tarjeta se pinta con un pincel <b>medible</b>, no con el color de acento (`T13-15`,
+    /// decisión del mantenedor del 2026-09-21).
+    /// </summary>
+    /// <remarks>
+    /// <para>Dos motivos, y el segundo pesa más. <b>Uno:</b> en la 1.8, `HyperlinkButtonForeground` <i>es</i>
+    /// `AccentTextFillColorPrimaryBrush`, así que el título de *Opciones de formato* y el enlace
+    /// «Reinicializar unidad ahora…» que tiene debajo salían exactamente del mismo color, y solo uno se
+    /// pulsa. <b>Dos:</b> el acento lo elige cada usuario, así que no hay valor que medir de antemano — en
+    /// el equipo del mantenedor es rojo, y cada título de una app que formatea discos se leía como un
+    /// aviso.</para>
+    /// <para>El acento no desaparece: se queda en el <b>icono</b> de cada sección, que es un objeto
+    /// gráfico (3:1, no 4,5:1) y además decorativo (`AccessibilityView=Raw`). Por eso esta prueba mira el
+    /// estilo del título y no el del icono.</para>
+    /// </remarks>
+    [Fact]
+    public void SectionTitles_UseAMeasurableBrush_NotTheAccent()
+    {
+        string theme = WithoutXmlComments(
+            File.ReadAllText(Path.Combine(RepoRoot(), "src", "FormatDiskPro", "UI", "Theme", "AppTheme.xaml")));
+
+        var style = Regex.Match(theme,
+            @"<Style\s+x:Key=""SectionTitleStyle""[^>]*>(.*?)</Style>", RegexOptions.Singleline);
+        Assert.True(style.Success, "No se encontró SectionTitleStyle en AppTheme.xaml.");
+
+        var foreground = Regex.Match(style.Groups[1].Value,
+            @"<Setter\s+Property=""Foreground""\s+Value=""\{(?:Theme|Static)Resource\s+(\w+)\s*\}""");
+        Assert.True(foreground.Success, "SectionTitleStyle no fija Foreground.");
+
+        string brush = foreground.Groups[1].Value;
+        Assert.Null(FluentTextPalette.ExemptionReason(brush));   // medible: sin exención
+        Assert.True(TryResolve(brush, dark: false, out _), $"{brush} no se puede resolver a un color.");
+    }
 }

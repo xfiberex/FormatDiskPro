@@ -79,7 +79,8 @@ public static class FluentTextPalette
         "AccentTextFillColorPrimaryBrush" =>
             "Sale del color de acento que elige cada usuario (SystemAccentColorDark2 en claro, SystemAccentColorLight3 "
             + "en oscuro), así que no hay un valor que medir de antemano; Fluent lo deriva para que sirva de texto. "
-            + "Usarlo en los títulos de sección es una decisión abierta: T13-15.",
+            + "Desde T13-15 ya no tiñe los títulos de sección —ahí quedó el icono, que es objeto gráfico—: lo que "
+            + "sigue usándolo como TEXTO son los encabezados de Acerca de… y Novedades.",
         _ => null,
     };
 }

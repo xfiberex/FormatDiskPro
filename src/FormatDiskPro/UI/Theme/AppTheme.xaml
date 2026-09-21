@@ -104,7 +104,11 @@
         <Setter Property="Padding" Value="16,14" />
     </Style>
 
-    <!-- Icono del encabezado de sección: tintado con el color de acento de Windows -->
+    <!--
+        Icono del encabezado de sección: aquí SÍ va el color de acento (`T13-15`). Es un objeto gráfico
+        —3:1, no el 4,5:1 del texto— y además decorativo, así que el acento se conserva en la ventana sin
+        competir con los enlaces ni teñir la palabra que hay que leer.
+    -->
     <Style x:Key="SectionIconStyle" TargetType="FontIcon">
         <Setter Property="FontSize" Value="16" />
         <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}" />
@@ -115,11 +119,19 @@
         <Setter Property="AutomationProperties.AccessibilityView" Value="Raw" />
     </Style>
 
-    <!-- Título del encabezado de sección: color de acento + semibold (estilo Win11Debloat) -->
+    <!--
+        Título del encabezado de sección: texto primario en semibold, como los de la Configuración de
+        Windows. Era el color de acento (estilo Win11Debloat, v1.3.0) y se cambió en `T13-15`, decisión del
+        mantenedor del 2026-09-21: en la 1.8 `HyperlinkButtonForeground` ES `AccentTextFillColorPrimaryBrush`,
+        así que este título y el enlace «Reinicializar unidad ahora…» salían del mismo color y solo uno se
+        pulsa; y el acento lo elige cada usuario, así que no hay valor que medir —con el acento en rojo, cada
+        título de una app que formatea discos se leía como un aviso—. El acento se queda en el icono.
+        `SectionTitles_UseAMeasurableBrush_NotTheAccent` fija la decisión.
+    -->
     <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 

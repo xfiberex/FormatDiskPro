@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 15/20.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 17/20.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2951,7 +2951,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ### A considerar — decisiones de diseño, no defectos
 
-- [ ] **[T13-15] Títulos de sección en color de acento: tienen el color de un enlace** · Baja · *decisión del mantenedor*
+- [x] **[T13-15] Títulos de sección en color de acento: tienen el color de un enlace** — **decidido y hecho (2026-09-21)** · Baja
   - **Área:** UI / lenguaje visual
   - **Ubicación:** [AppTheme.xaml:107-124](src/FormatDiskPro/UI/Theme/AppTheme.xaml#L107-L124)
   - **Qué pasa:** en la 1.8, `HyperlinkButtonForeground` **es** `AccentTextFillColorPrimaryBrush`. En
@@ -2964,8 +2964,17 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     la exención de `T13-02`.
   - **Esfuerzo:** bajo
   - **Depende de:** `T13-02` (su exención depende de esto)
+  - **Decisión del mantenedor (2026-09-21): se cambia.** El título pasa a **texto primario en semibold**,
+    como los de la Configuración de Windows, y el color de acento se queda en el **icono** de la sección
+    —objeto gráfico (3:1) y decorativo (`AccessibilityView=Raw`)—, así que el acento sigue en la ventana
+    sin competir con el enlace que tiene debajo ni teñir la palabra que hay que leer.
+  - **Verificado por reversión:** `SectionTitles_UseAMeasurableBrush_NotTheAccent` lee `SectionTitleStyle`
+    del XAML y exige que su pincel **no** tenga exención y se pueda resolver a un color. Con el acento
+    falla; con el cambio pasa. Galería en los dos temas.
+  - **La exención de `T13-02` se estrecha, no desaparece:** el acento sigue usándose como **texto** en los
+    encabezados de *Acerca de…* y *Novedades*, y así queda escrito en `FluentTextPalette.ExemptionReason`.
 
-- [ ] **[T13-16] Las preferencias viven en submenús** · Baja · *decisión del mantenedor*
+- [x] **[T13-16] Las preferencias viven en submenús** — **decidido (2026-09-21): se quedan** · Baja
   - **Área:** UI / patrones
   - **Ubicación:** [MainWindow.xaml:63-80](src/FormatDiskPro/UI/MainWindow.xaml#L63-L80)
   - **Qué pasa:** idioma y tema en submenús, más dos casillas dentro de un menú, es el patrón de las
@@ -2976,6 +2985,13 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     rehacer `SettingsTests`.
   - **Esfuerzo:** medio
   - **Depende de:** ninguna (si se hace, `T13-13` sobra)
+  - **Decisión del mantenedor (2026-09-21): se quedan los menús.** Son **cuatro** preferencias —idioma,
+    tema y dos avisos—. Un diálogo entero para cuatro controles añade una superficie que mantener y
+    traducir en cinco idiomas, y aleja lo que hoy se cambia en dos clics. `T13-13` ya les dio el control
+    correcto (`RadioMenuFlyoutItem`, con su punto de «uno de N»).
+  - **Cuándo reabrirlo:** si las preferencias crecen —o si alguna deja de caber en un menú, como una ruta
+    o un número—, la página pasa a valer la pena. Escrito aquí para que la próxima vez no haya que volver
+    a razonarlo desde cero.
 
 ### Revisado y sin hallazgo
 
@@ -3372,6 +3388,7 @@ restauran.
 | 2026-09-21 | **T13-14** | Tres restos de estilo menos: la tipografía vuelve a la rampa de Fluent (12,5 y los seis 13 → **14**, el Body), las pistas dejan la cursiva —el pincel se queda, porque el gris atenuado es el tercer escalón medido en `T12-01`— y la tarjeta *Opciones de formato* cambia el disquete de «Guardar» por una lista de comprobación. **El cuarto hallazgo era falso:** los 26 `CornerRadius` no repetían ningún valor por defecto — al quitarlos, los diálogos y sus botones salieron con las esquinas rectas en las 18 tomas de galería, así que se devolvieron. Leer `generic.xaml` no bastaba; lo que decidió fue mirar la ventana. |
 | 2026-09-21 | **T13-18** | El rechazo de *Reinicializar* deja de ser una frase para todo: `Core/PlanRejection` reparte cada `PlanProblem` en su texto y sus valores —el límite y el tamaño del volumen culpable—, con siete mensajes nuevos en los cinco idiomas y 22 pruebas que barren el enum entero. Los cinco motivos que el formulario no puede producir se quedan con el genérico a propósito. La USB de hoy (29,3 GB) no reproduce el caso original, así que se reprodujo el mismo defecto por la otra vía —`D:` de 1020 MB ofrece FAT, y el disco mide 29,3 GB—: el diálogo ya nombra el límite, el tamaño y la salida. La toma `reinit` de la galería elige NTFS y deja de depender de lo que sugiera el selector. |
 | 2026-09-21 | **T13-11** | Windows App SDK al último *servicing* de la 1.8 (`1.8.260529003` → `1.8.260804001`), con la puerta completa: `-warnaserror` sin avisos, 685/686 unitarias, UI 39/42, **instalador compilado** (58,9 MB + `.sha256`) y galería de 28 tomas idéntica píxel a píxel. El conjunto de archivos publicados no cambia (509 y 509), que era el riesgo por el que la versión está clavada desde la v1.15.0. El salto a la 2.x se aparta a `T13-20`: otro riesgo, otro corte. |
+| 2026-09-21 | **T13-15**, **T13-16** | **Las dos decisiones del tier, resueltas.** `T13-15`: los títulos de tarjeta pasan a texto primario en semibold y el acento se queda en el icono —en la 1.8 el pincel del acento **es** el del enlace, así que el título de *Opciones de formato* y «Reinicializar unidad ahora…» salían del mismo color, y con el acento en rojo cada título se leía como un aviso—. Verificado por reversión con una prueba que lee el estilo del XAML y exige un pincel medible. `T13-16`: **los menús se quedan**; cuatro preferencias no justifican una página de ajustes, y queda escrito cuándo reabrirlo. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

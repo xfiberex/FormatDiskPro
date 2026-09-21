@@ -36,6 +36,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **Las descripciones bajo los campos se leen mejor:** dejan la cursiva, y el texto de estado y algunas
   líneas de los diálogos crecen un punto hasta el tamaño normal de Windows.
 - **La tarjeta *Opciones de formato* estrena icono**, una lista de comprobación en vez de un disquete.
+- **Los títulos de cada tarjeta se leen en el color del texto**, no en el de acento del sistema: con un
+  acento rojo parecían avisos, y se confundían con los enlaces, que son del mismo color. El acento se
+  mantiene en el icono de cada sección.
 
 ## [1.27.0] — 2026-09-19
 
