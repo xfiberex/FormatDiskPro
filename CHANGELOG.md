@@ -15,6 +15,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.28.0] — 2026-09-21
+
+**Que el color no diga lo que no es, y que un «no» venga con su porqué.** La segunda mitad de la
+auditoría de interfaz que abrió la 1.27.0. Tres cosas que se veían mal —el tema de contraste de Windows
+ignorado en lo que no es texto, el botón de cerrar sin su rojo, los títulos con el color de un enlace— y
+una que se leía peor: cuando *Reinicializar unidad* rechazaba lo pedido, no decía por qué ni qué cambiar.
+
 ### Corregido
 
 - **Con un tema de contraste de Windows, la aplicación seguía pintando algunos colores propios.** La barra
@@ -767,7 +774,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.27.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.28.0...HEAD
+[1.28.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.0
 [1.27.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.27.0
 [1.26.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.26.0
 [1.25.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.25.0
