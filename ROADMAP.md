@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 13/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 14/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2857,7 +2857,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
 
-- [ ] **[T13-18] *Reinicializar* rechaza el plan sin decir por qué, y el sistema sugerido lleva a ese rechazo** · Media
+- [x] **[T13-18] *Reinicializar* rechaza el plan sin decir por qué, y el sistema sugerido lleva a ese rechazo** — **hecho (2026-09-21)** · Media
   - **Área:** UX / mensajes de error
   - **Ubicación:** [MainWindow.Operations.cs:414-419](src/FormatDiskPro/UI/MainWindow.Operations.cs#L414-L419) ·
     `reinit.invalidPlan` en [Localization.cs](src/FormatDiskPro/Localization/Localization.cs) ·
@@ -2884,6 +2884,23 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     salida. Una prueba unitaria garantiza que todo `PlanProblem` alcanzable tiene su texto.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho.** `Core/PlanRejection` reparte cada `PlanProblem` en su clave de texto y sus argumentos —el
+    límite y el tamaño del **volumen culpable**, sacado de `EffectiveSizes`, que es el mismo cálculo que
+    validó el plan—. Siete mensajes nuevos × 5 idiomas. Los cinco motivos que el formulario no puede
+    producir se quedan con el genérico a propósito: si aparecieran serían un fallo de la aplicación, y
+    escribirle al usuario una instrucción que no puede seguir sería mentirle. Cuáles son está en
+    `PlanRejection.FromTheForm`, que es lo que recorre la prueba.
+  - **22 pruebas unitarias** que barren el enum entero: cada motivo tiene texto en los cinco idiomas, sin
+    `{0}` sin sustituir, y los del formulario no pueden quedarse en el genérico. Añadir un `PlanProblem`
+    obliga a decidir qué se le dice a quien lo provoque. **Verificado por reversión:** al quitar el reparto
+    de `Fat32VolumeTooLarge` caen tres.
+  - **Visto en la app real (2026-09-21).** La USB de hoy mide 29,3 GB, así que FAT32 entera **sí** es
+    válida y el caso original no se reproduce con ella. Se reprodujo el **mismo defecto por la otra vía**:
+    `D:` (1020 MB) hace que el selector ofrezca **FAT** —decide por el volumen—, y *Reinicializar* valida
+    el disco entero. El diálogo dice: «FAT no admite volúmenes de más de 2 GB, y el que se crearía mide
+    29,3 GB. Elige FAT32, exFAT o NTFS. No se ha modificado nada.» Límite, tamaño y salida.
+  - **La toma `reinit` de la galería ya no depende de la sugerencia:** elige NTFS, que vale para cualquier
+    tamaño de disco. Antes fotografiaba el rechazo en vez de la confirmación.
 
 - [ ] **[T13-19] Un segundo `StartButton_Click` con un diálogo abierto acaba en `CRASH`** · Baja · *sin reproducir*
   - **Área:** Robustez
@@ -3325,6 +3342,7 @@ restauran.
 | 2026-09-19 | **T13-13** | Los ocho ítems de *Idioma* y *Tema* pasan a `RadioMenuFlyoutItem`: la exclusión la hace el control y el código marca solo el activo. Dos cosas salieron al revés de lo previsto, medidas con la app en marcha: el peer en la 1.8 **sigue siendo** `MenuItem` con *Toggle* (no `RadioButton`), así que la accesibilidad no cambia y `ClickMenuPath` tampoco; y el `GroupName` **no hace falta**, porque WinUI acota el grupo por defecto a cada flyout. Lo que sí gana el usuario es el punto de opción en vez de la marca de verificación. Verificado por reversión con una prueba de UI nueva. |
 | 2026-09-21 | **T13-12** | Los ocho colores de los botones de la barra de título se van: `AppWindowTitleBar.PreferredTheme` hace lo mismo desde la 1.7, y con él desaparece la «única excepción» a que los colores vivan en un sitio. Comprobado con la app en marcha y Windows en oscuro: forzando *Claro* en caliente los glifos salen negros, en contraste manda el tema, y el botón *Cerrar* **vuelve a ponerse rojo** al pasar el ratón — el «compromiso» que documentaba el método era real, y lo causaba fijar a mano el fondo hover. Sin prueba automática: es cromo de ventana fuera del árbol XAML. |
 | 2026-09-21 | **T13-14** | Tres restos de estilo menos: la tipografía vuelve a la rampa de Fluent (12,5 y los seis 13 → **14**, el Body), las pistas dejan la cursiva —el pincel se queda, porque el gris atenuado es el tercer escalón medido en `T12-01`— y la tarjeta *Opciones de formato* cambia el disquete de «Guardar» por una lista de comprobación. **El cuarto hallazgo era falso:** los 26 `CornerRadius` no repetían ningún valor por defecto — al quitarlos, los diálogos y sus botones salieron con las esquinas rectas en las 18 tomas de galería, así que se devolvieron. Leer `generic.xaml` no bastaba; lo que decidió fue mirar la ventana. |
+| 2026-09-21 | **T13-18** | El rechazo de *Reinicializar* deja de ser una frase para todo: `Core/PlanRejection` reparte cada `PlanProblem` en su texto y sus valores —el límite y el tamaño del volumen culpable—, con siete mensajes nuevos en los cinco idiomas y 22 pruebas que barren el enum entero. Los cinco motivos que el formulario no puede producir se quedan con el genérico a propósito. La USB de hoy (29,3 GB) no reproduce el caso original, así que se reprodujo el mismo defecto por la otra vía —`D:` de 1020 MB ofrece FAT, y el disco mide 29,3 GB—: el diálogo ya nombra el límite, el tamaño y la salida. La toma `reinit` de la galería elige NTFS y deja de depender de lo que sugiera el selector. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

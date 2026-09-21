@@ -415,7 +415,10 @@ public sealed partial class MainWindow
         if (!planCheck.Ok)
         {
             _services.History.Log($"REINIT REJECTED {item.Letter}: {planCheck.Problem} (partición {planCheck.PartitionIndex})");
-            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.invalidPlan"));
+            // El motivo, y qué cambiar para salir de él, también en pantalla y no solo en el historial
+            // (`T13-18`). El reparto de textos vive en PlanRejection, donde se prueba sin ventana.
+            var (rejectionKey, rejectionArgs) = PlanRejection.Describe(planCheck, plan, diskSizeBytes);
+            await ShowInfoAsync(L.T("reinit.title"), L.T(rejectionKey, rejectionArgs));
             return;
         }
 

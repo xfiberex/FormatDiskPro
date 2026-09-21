@@ -23,6 +23,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   contorno—, igual que ya hacían los textos.
 - **El botón de cerrar de la barra de título vuelve a ponerse rojo** al pasar el ratón por encima, como en
   cualquier otra ventana de Windows.
+- **Cuando *Reinicializar unidad* rechaza lo que se le pide, ahora dice por qué y qué cambiar.** Antes
+  respondía siempre que la distribución «no es válida para este disco», sin más: si el sistema de archivos
+  elegido no admite un volumen tan grande como el disco, el mensaje nombra el límite, el tamaño que se iba
+  a crear y las alternativas.
 
 ### Cambiado
 

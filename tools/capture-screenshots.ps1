@@ -548,7 +548,13 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
         # antes el numero de disco fisico del objetivo Y el de Windows (dos llamadas a PowerShell) para
         # la guarda de "no es el disco del sistema". Con una espera fija de 1,2 s la foto salia con la
         # ventana principal y sin dialogo; se espera al InputBox de ConfirmDialog, como el resto de tomas.
+        # El sistema de archivos se elige aqui, y no se deja el que sugiera el selector (`T13-18`): el
+        # selector decide por el tamano del VOLUMEN y Reinicializar trabaja sobre el DISCO entero, asi que
+        # sobre una USB particionada la sugerencia puede ser un plan invalido. Cuando lo era, esta toma
+        # fotografiaba el rechazo en vez de la confirmacion, y fallaba esperando el InputBox. NTFS vale
+        # para cualquier tamano de disco.
         @{ Name = 'reinit';    Needs = 'removable'; Setup = { param($w,$h)
+                Select-ComboItem $w 'FileSystemPicker' 'NTFS'; Start-Sleep -Milliseconds 400
                 Expand-Element (Find-ByAutomationId $w 'MnuTools'); Start-Sleep -Milliseconds 500
                 Invoke-Element (Find-ByAutomationId $w 'MnuReinit')
                 [void](Find-ByAutomationId $w 'InputBox' 30); Start-Sleep -Milliseconds 800 } }
