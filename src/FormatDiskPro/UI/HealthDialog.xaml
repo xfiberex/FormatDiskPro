@@ -28,7 +28,7 @@
     </ContentDialog.Resources>
 
     <StackPanel Spacing="10" Padding="{StaticResource DialogContentPadding}" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
-        <TextBlock x:Name="StatusText" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        <TextBlock x:Name="StatusText" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         <StackPanel x:Name="RowsPanel" Spacing="6" />
         <TextBlock x:Name="NoteText" FontSize="12" Foreground="{ThemeResource AppMutedTextBrush}" TextWrapping="Wrap" />
     </StackPanel>

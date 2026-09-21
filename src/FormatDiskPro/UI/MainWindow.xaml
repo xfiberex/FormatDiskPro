@@ -331,7 +331,8 @@
                 <Border Style="{StaticResource AppCardStyle}">
                     <StackPanel Spacing="8">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE74E;" Style="{StaticResource SectionIconStyle}" />
+                            <!-- Lista de comprobación, no el disquete de «Guardar» que había antes (`T13-14`) -->
+                            <FontIcon Glyph="&#xE9D5;" Style="{StaticResource SectionIconStyle}" />
                             <TextBlock x:Name="OptionsGroupLbl" Text="Opciones de formato" Style="{StaticResource SectionTitleStyle}" />
                         </StackPanel>
                         <CheckBox x:Name="QuickFormatCheck" Content="Formato rápido" IsChecked="True"
@@ -429,7 +430,7 @@
                          foco. Polite (no Assertive) porque el progreso no debe interrumpir lo que el
                          usuario esté leyendo; los HITOS se anuncian aparte, con AnnounceStatus. -->
                     <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextWrapping="NoWrap"
-                               TextTrimming="CharacterEllipsis" FontSize="12.5"
+                               TextTrimming="CharacterEllipsis" FontSize="14"
                                AutomationProperties.LiveSetting="Polite" />
                     <TextBlock x:Name="ElapsedText" Grid.Column="1" HorizontalAlignment="Right"
                                VerticalAlignment="Center" FontSize="12"

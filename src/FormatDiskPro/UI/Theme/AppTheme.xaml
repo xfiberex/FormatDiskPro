@@ -125,7 +125,9 @@
 
     <!-- Texto de datos dentro de la tarjeta de unidad (etiqueta + valor, atenuado) -->
     <Style x:Key="InfoTextStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="13" />
+        <!-- 14 = Body de Fluent (`T13-14`). Era 13, a medio camino entre el Caption de 12 y el Body, que
+             no es ningún paso de la rampa. La jerarquía de la tarjeta queda en 20 / 14 / 12. -->
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -153,10 +155,15 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- Descripción del sistema de archivos: pista atenuada y cursiva -->
+    <!--
+        Descripción del sistema de archivos y demás pistas: atenuadas, en redonda.
+        La cursiva se fue en `T13-14`: Windows 11 escribe las descripciones de sus campos en redonda, y en
+        un bloque de varias líneas se lee peor. El pincel NO cambia al secundario de Fluent: el gris de
+        AppMutedTextBrush es el tercer escalón de la jerarquía, elegido y medido en `T12-01` (5,07:1 y
+        5,03:1), y estas pistas son justo el nivel más callado.
+    -->
     <Style x:Key="HintTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="FontStyle" Value="Italic" />
         <Setter Property="Foreground" Value="{ThemeResource AppMutedTextBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>

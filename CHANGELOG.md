@@ -28,6 +28,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 - **Los menús *Idioma* y *Tema* marcan la opción activa con un punto de opción**, en vez de una marca de
   verificación: es una elección de una entre varias, no una casilla que se enciende y se apaga.
+- **Las descripciones bajo los campos se leen mejor:** dejan la cursiva, y el texto de estado y algunas
+  líneas de los diálogos crecen un punto hasta el tamaño normal de Windows.
+- **La tarjeta *Opciones de formato* estrena icono**, una lista de comprobación en vez de un disquete.
 
 ## [1.27.0] — 2026-09-19
 

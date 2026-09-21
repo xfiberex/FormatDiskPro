@@ -24,7 +24,7 @@
                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
         <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto"
                       HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-            <TextBlock x:Name="NotesText" TextWrapping="Wrap" FontSize="13" />
+            <TextBlock x:Name="NotesText" TextWrapping="Wrap" FontSize="14" />
         </ScrollViewer>
     </StackPanel>
 </ContentDialog>

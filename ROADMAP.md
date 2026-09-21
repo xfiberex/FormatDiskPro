@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 12/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 13/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2799,7 +2799,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     con los `ToggleMenuFlyoutItem` de antes y el marcado de uno solo, «Automático» se queda marcado junto a
     «Oscuro» y la prueba falla; con el cambio, exactamente uno en cada submenú.
 
-- [ ] **[T13-14] Restos de estilo** · Baja
+- [x] **[T13-14] Restos de estilo** — **hecho (2026-09-21)** · Baja · *tres de cuatro; el cuarto era falso*
   - **Área:** UI / mantenimiento
   - **Qué pasa:**
     - **26 `CornerRadius` que repiten los valores por defecto** de la 1.8 (`ControlCornerRadius` = 4,
@@ -2817,6 +2817,26 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **Qué hacer:** limpiar los cuatro. Lo tipográfico mueve el layout: pasada de galería después.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Hecho tres de los cuatro, y el primero resultó FALSO.**
+  - **Los 26 `CornerRadius` no eran redundantes, y se han devuelto.** Se quitaron los 26 y la galería del
+    antes y el después lo enseñó en las 18 tomas de diálogo: sin el `CornerRadius="8"` de la raíz, el
+    `ContentDialog` sale con las **esquinas rectas**; sin los estilos de botón, los botones del diálogo
+    salen **rectos** también. Lo que dice `generic.xaml` sobre `ControlCornerRadius` y `OverlayCornerRadius`
+    no llega hasta aquí: el `ContentDialog` no propaga esos valores a su raíz ni a sus botones. Leer los
+    valores por defecto no basta; **la comprobación era mirar la ventana**, y eso es lo que cambió el
+    resultado.
+  - **Los otros tres, hechos:**
+    - **Tipografía en la rampa:** el 12,5 del estado del pie y los seis 13 (`InfoTextStyle` y cuatro
+      diálogos) pasan a **14**, el Body de Fluent. La jerarquía de la tarjeta de unidad queda en 20 / 14 / 12.
+      El 12,5 de `ConfirmDialog` ya no existía: se lo llevó por delante `T13-04` al rehacer la tabla.
+    - **Pistas en redonda:** fuera la cursiva de `HintTextStyle` (9 usos). El **pincel no cambia** al
+      secundario de Fluent como sugería la ficha: `AppMutedTextBrush` es el tercer escalón de la jerarquía,
+      elegido y medido en `T12-01`, y estas pistas son el nivel más callado a propósito.
+    - **El glifo:** `E74E` (disquete de «Guardar») → `E9D5` (lista de comprobación), que es lo que hay en
+      esa tarjeta. Los dos se renderizaron para compararlos, y la tarjeta se fotografió con la ventana
+      desplazada hasta ella.
+  - **Verificación:** galería completa antes y después (28 tomas, los dos temas), unitarias 663/664 y la
+    suite de UI al completo, **39/42** (3 omitidas por opt-in).
 
 - [ ] **[T13-17] La etiqueta deshabilitada de las opciones toma el gris del tema de Windows, no el de la app** · Media · *sin reproducir*
   - **Área:** UI / tema
@@ -3304,6 +3324,7 @@ restauran.
 | 2026-09-19 | **T13-09** | Mirado con el tema de contraste *Blanco* en marcha: WinUI ya reajusta el **texto** solo, y lo que quedaba con la paleta propia era lo que no es texto — la barra de ocupación (ámbar, con la parte libre casi invisible sobre el fondo del tema), el punto de salud, la barra de progreso y los ocho colores de los botones de la barra de título. Con contraste activo se cede el color al tema, y la ocupación gana contorno. Medido en los píxeles: el relleno pasa del ámbar propio al resaltado del sistema. |
 | 2026-09-19 | **T13-13** | Los ocho ítems de *Idioma* y *Tema* pasan a `RadioMenuFlyoutItem`: la exclusión la hace el control y el código marca solo el activo. Dos cosas salieron al revés de lo previsto, medidas con la app en marcha: el peer en la 1.8 **sigue siendo** `MenuItem` con *Toggle* (no `RadioButton`), así que la accesibilidad no cambia y `ClickMenuPath` tampoco; y el `GroupName` **no hace falta**, porque WinUI acota el grupo por defecto a cada flyout. Lo que sí gana el usuario es el punto de opción en vez de la marca de verificación. Verificado por reversión con una prueba de UI nueva. |
 | 2026-09-21 | **T13-12** | Los ocho colores de los botones de la barra de título se van: `AppWindowTitleBar.PreferredTheme` hace lo mismo desde la 1.7, y con él desaparece la «única excepción» a que los colores vivan en un sitio. Comprobado con la app en marcha y Windows en oscuro: forzando *Claro* en caliente los glifos salen negros, en contraste manda el tema, y el botón *Cerrar* **vuelve a ponerse rojo** al pasar el ratón — el «compromiso» que documentaba el método era real, y lo causaba fijar a mano el fondo hover. Sin prueba automática: es cromo de ventana fuera del árbol XAML. |
+| 2026-09-21 | **T13-14** | Tres restos de estilo menos: la tipografía vuelve a la rampa de Fluent (12,5 y los seis 13 → **14**, el Body), las pistas dejan la cursiva —el pincel se queda, porque el gris atenuado es el tercer escalón medido en `T12-01`— y la tarjeta *Opciones de formato* cambia el disquete de «Guardar» por una lista de comprobación. **El cuarto hallazgo era falso:** los 26 `CornerRadius` no repetían ningún valor por defecto — al quitarlos, los diálogos y sus botones salieron con las esquinas rectas en las 18 tomas de galería, así que se devolvieron. Leer `generic.xaml` no bastaba; lo que decidió fue mirar la ventana. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

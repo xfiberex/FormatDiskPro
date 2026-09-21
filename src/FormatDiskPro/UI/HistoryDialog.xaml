@@ -46,7 +46,7 @@
                                   FontSize="16" VerticalAlignment="Top" Margin="0,2,0,0" />
                         <StackPanel Grid.Column="1" Spacing="2">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13"
+                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="14"
                                            Foreground="{x:Bind Accent}" />
                                 <TextBlock Text="{x:Bind Time}" FontSize="12"
                                            Foreground="{ThemeResource AppMutedTextBrush}"
