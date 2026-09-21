@@ -56,10 +56,9 @@ public sealed record PaletteColor(
 /// el XAML y comprueba lo que hay puesto de verdad. Es el mismo principio que <see cref="All"/>: lo que
 /// se muestra tiene que estar bajo medición, venga de donde venga.</para>
 ///
-/// <para><b>Qué NO entra aquí:</b> los colores de los botones de caption de la barra de título
-/// (<c>MainWindow.UpdateCaptionButtonColors</c>). No comunican significado —son cromo de ventana— y sus
-/// estados hover/pressed son superposiciones translúcidas sobre el material del sistema (Mica/Acrylic),
-/// no sobre la tarjeta: no hay un fondo fijo contra el que medirlos.</para>
+/// <para><b>Qué NO entra aquí:</b> los colores de los botones de caption de la barra de título. No
+/// comunican significado —son cromo de ventana— y desde `T13-12` tampoco son nuestros: los pinta Windows,
+/// y <c>MainWindow.ApplyTitleBarTheme</c> solo le dice con qué tema (<c>PreferredTheme</c>).</para>
 /// </remarks>
 public static class SeverityPalette
 {

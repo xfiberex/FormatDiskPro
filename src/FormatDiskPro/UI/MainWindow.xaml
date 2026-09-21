@@ -15,7 +15,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Row 0: Custom title bar drag area (caption buttons themed automatically by WinUI) -->
+        <!-- Row 0: Custom title bar drag area (los botones de caption los pinta WinUI; el tema se le dice con PreferredTheme) -->
         <Grid x:Name="AppTitleBar" Grid.Row="0">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                         Margin="14,0,0,0" Spacing="12">

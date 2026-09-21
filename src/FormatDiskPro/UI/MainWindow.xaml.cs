@@ -126,9 +126,9 @@ public sealed partial class MainWindow : Window
         // A partir de aquí los campos que genera el XAML existen todos. Antes NO: ver _uiBuilt.
         _uiBuilt = true;
 
-        // Window-level title bar extension: WinUI draws and themes the caption
-        // (minimize/maximize/close) buttons automatically, following the content's
-        // effective theme — including when the user forces Light/Dark from the menu.
+        // La ventana dibuja su propia barra de título. Los botones de caption (minimizar, maximizar,
+        // cerrar) los sigue pintando WinUI, pero por omisión con el tema del SISTEMA, no con el de la
+        // app: quien elige el tema efectivo es `ApplyTitleBarTheme` con `PreferredTheme`.
         ExtendsContentIntoTitleBar = true;
         // Altura estándar, no Tall (`T13-10`): Microsoft recomienda la alta para barras con contenido
         // interactivo, y esta solo lleva el icono y el título. Son 16 DIP de los ~150 que se recuperan

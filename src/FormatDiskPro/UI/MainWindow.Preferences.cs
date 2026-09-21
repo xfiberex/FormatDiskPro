@@ -277,7 +277,7 @@ public sealed partial class MainWindow
     private void ApplyTheme(bool dark)
     {
         _darkMode = dark;
-        UpdateCaptionButtonColors(dark);
+        ApplyTitleBarTheme(dark);
 
         foreach (var vm in _driveItems)
             vm.ForegroundBrush = DriveBrush(vm.IsProtected);
@@ -294,51 +294,21 @@ public sealed partial class MainWindow
         if (DrivePicker.SelectedItem is DriveViewModel current) UpdateInfo(current.Info);
     }
 
-    // Tematiza los botones de caption (minimizar/maximizar/cerrar) según el tema EFECTIVO.
-    // Con ExtendsContentIntoTitleBar a nivel de Window, WinUI NO refresca de forma fiable estos
-    // botones en un cambio de tema en caliente, y sus colores POR DEFECTO siguen el tema del
-    // SISTEMA (no el RequestedTheme forzado de la app); al forzar Claro con Windows en Oscuro (o
-    // viceversa) el fondo hover/pressed quedaba con el tema contrario. Por eso fijamos TODOS los
-    // colores —incluidos los fondos hover/pressed— derivándolos del tema efectivo (no de UISettings,
-    // que reflejaba el modo de app del sistema y causaba el contraste incorrecto).
-    // Compromiso: al fijar el fondo hover, el botón Cerrar deja de ponerse rojo (la API es global
-    // para todos los botones de caption); se prioriza la consistencia con el tema forzado.
-    private void UpdateCaptionButtonColors(bool dark)
-    {
-        var titleBar = AppWindow.TitleBar;
-
-        // En alto contraste no se fija ninguno (`T13-09`): los botones de la barra de título son cromo de
-        // ventana y el tema de contraste ya los pinta con su paleta. Poner los nuestros —empezando por un
-        // fondo transparente— era justo lo que ese tema viene a impedir. `null` devuelve cada color a su
-        // valor por omisión, que es el del sistema.
-        if (HighContrast.IsActive)
-        {
-            titleBar.ButtonForegroundColor         = null;
-            titleBar.ButtonHoverForegroundColor    = null;
-            titleBar.ButtonPressedForegroundColor  = null;
-            titleBar.ButtonInactiveForegroundColor = null;
-            titleBar.ButtonBackgroundColor         = null;
-            titleBar.ButtonInactiveBackgroundColor = null;
-            titleBar.ButtonHoverBackgroundColor    = null;
-            titleBar.ButtonPressedBackgroundColor  = null;
-            return;
-        }
-
-        Color fg         = dark ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(255, 0x19, 0x19, 0x19);
-        Color inactiveFg  = dark ? Color.FromArgb(255, 0x9B, 0x9B, 0x9B) : Color.FromArgb(255, 0x86, 0x86, 0x86);
-        Color transparent = Color.FromArgb(0, 0, 0, 0);
-        // Overlays sutiles acordes al tema efectivo: blanco sobre oscuro, negro sobre claro.
-        Color hover       = dark ? Color.FromArgb(0x17, 255, 255, 255) : Color.FromArgb(0x17, 0, 0, 0);
-        Color pressed     = dark ? Color.FromArgb(0x0F, 255, 255, 255) : Color.FromArgb(0x0F, 0, 0, 0);
-
-        titleBar.ButtonForegroundColor         = fg;
-        titleBar.ButtonHoverForegroundColor    = fg;
-        titleBar.ButtonPressedForegroundColor  = fg;
-        titleBar.ButtonInactiveForegroundColor = inactiveFg;
-
-        titleBar.ButtonBackgroundColor         = transparent;
-        titleBar.ButtonInactiveBackgroundColor = transparent;
-        titleBar.ButtonHoverBackgroundColor    = hover;
-        titleBar.ButtonPressedBackgroundColor  = pressed;
-    }
+    /// <summary>
+    /// Pone los botones de la barra de título (minimizar, maximizar, cerrar) en el tema <b>efectivo</b>
+    /// de la app, no en el de Windows.
+    /// </summary>
+    /// <remarks>
+    /// <para>Con <c>ExtendsContentIntoTitleBar</c>, los colores por omisión de esos botones siguen el tema
+    /// del <b>sistema</b>: al forzar Claro con Windows en Oscuro (o al revés) quedaban del tema contrario.
+    /// Antes se corregía fijando los ocho colores a mano, la única excepción a la regla de que los colores
+    /// viven en <c>AppTheme.xaml</c>. Desde la 1.7 hay API para justo esto, <c>PreferredTheme</c>, y con
+    /// ella la excepción se va (`T13-12`).</para>
+    /// <para><b>En alto contraste</b>, <c>UseDefaultAppMode</c> (`T13-09`): los botones son cromo de
+    /// ventana y el tema de contraste ya los pinta con su paleta.</para>
+    /// </remarks>
+    private void ApplyTitleBarTheme(bool dark)
+        => AppWindow.TitleBar.PreferredTheme = HighContrast.IsActive ? TitleBarTheme.UseDefaultAppMode
+                                             : dark                  ? TitleBarTheme.Dark
+                                                                     : TitleBarTheme.Light;
 }
