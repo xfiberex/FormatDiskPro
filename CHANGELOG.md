@@ -30,6 +30,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Cambiado
 
+- **Actualizado el Windows App SDK** a la última corrección de servicio de la 1.8 (1.8.260804001).
 - **Los menús *Idioma* y *Tema* marcan la opción activa con un punto de opción**, en vez de una marca de
   verificación: es una elección de una entre varias, no una casilla que se enciende y se apaga.
 - **Las descripciones bajo los campos se leen mejor:** dejan la cursiva, y el texto de estado y algunas

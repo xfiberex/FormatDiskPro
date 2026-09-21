@@ -33,7 +33,7 @@
     en que se compile.
   -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260529003" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260804001" />
   </ItemGroup>
 
   <!-- Exponer los miembros internal al proyecto de pruebas (p. ej. el diccionario de traducciones L.Map). -->

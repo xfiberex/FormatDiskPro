@@ -11,7 +11,7 @@
 |---|---|
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Estado, versión y pruebas** | **No se repiten aquí, a propósito** — viven en [§3 *Estado actual*](#3-estado-actual), que es su única fuente |
-| **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260529003**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 · GitHub Actions (compilación + unitarias, CodeQL) |
+| **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **1.8.260804001**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 · GitHub Actions (compilación + unitarias, CodeQL) |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — lo pendiente, por tiers · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
 | **Última actualización** | **2026-09-21** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
@@ -161,7 +161,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | Publicado | **v1.27.0** (2026-09-19) · `master` sin trabajo pendiente de publicar |
 | Auditoría | 2026-08-13 — **CERRADA el 2026-08-16**: 39/40 completadas + 2 descartadas (`T2-10` CI, `T4-03` firma) · **0 abiertas** ([`ROADMAP.md`](ROADMAP.md) Parte 2) |
 | Ocurrencias | **Tier 5 CERRADO (2026-08-16)**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas · `T5-04` (N particiones) **descartada** por decisión de producto — el motor admite N, lo limitado es la interfaz |
-| Tiers abiertos | **Tier 13 — Lo que solo se ve midiendo**, abierto el **2026-09-18**, **14/19** (3 Altas · 9 Medias · 7 Bajas; hechas `T13-01` a `T13-10`, `T13-12` a `T13-14` y `T13-18`, y `T13-17` a `T13-19` añadidas al hacerlas), de una auditoría de UI/UX hecha midiendo: contraste sobre los fondos reales de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. Lo que más enseña es que el barrido de `T12-01` tiene **tres puntos ciegos** —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como texto primario, `SystemFillColorCriticalBrush` y la `Opacity`— y que por ellos pasaron **cinco textos por debajo de AA**; lo más grave de cara al usuario, que *Reinicializar* se confirma con un botón que dice «Formatear». Ver [`ROADMAP.md`](ROADMAP.md#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18) · **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 7/7**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— la barra de desplazamiento aparece cuando hay algo que desplazar, y **`T12-07` retira la franja de rendimiento entera** —revierte `T11-01` y `T11-04`— porque su justificación de partida era falsa: el cronómetro del pie ya escribía velocidad y ETA · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
+| Tiers abiertos | **Tier 13 — Lo que solo se ve midiendo**, abierto el **2026-09-18**, **15/20** (3 Altas · 9 Medias · 8 Bajas; hechas `T13-01` a `T13-14` y `T13-18`, y `T13-17` a `T13-19` añadidas al hacerlas), de una auditoría de UI/UX hecha midiendo: contraste sobre los fondos reales de las capturas, anchos de texto con la fuente real y el alto efectivo de la ventana. Lo que más enseña es que el barrido de `T12-01` tiene **tres puntos ciegos** —un regex sin anclar que mide `AccentTextFillColorPrimaryBrush` como texto primario, `SystemFillColorCriticalBrush` y la `Opacity`— y que por ellos pasaron **cinco textos por debajo de AA**; lo más grave de cara al usuario, que *Reinicializar* se confirma con un botón que dice «Formatear». Ver [`ROADMAP.md`](ROADMAP.md#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18) · **Tier 12 — Lo que la ventana no dice**, abierto y **cerrado el 2026-09-01, 7/7**, de una revisión de UI/UX. Su primer hallazgo **no es una preferencia**: `TextFillColorTertiaryBrush` da **3,29:1** en tema claro —por debajo del 4,5:1 de WCAG AA— y pintaba 18 controles de la ventana principal, y el barrido de contraste no podía verlo porque solo medía los colores propios. Los otros cinco: el botón primario nombra la unidad («Formatear H:»), el pie resume lo que se aplicará, los presets bajan a la tarjeta que configuran, la **barra de progreso deja de usar el acento del sistema** —en un equipo con acento rojo el éxito y el fallo eran el mismo color— la barra de desplazamiento aparece cuando hay algo que desplazar, y **`T12-07` retira la franja de rendimiento entera** —revierte `T11-01` y `T11-04`— porque su justificación de partida era falsa: el cronómetro del pie ya escribía velocidad y ETA · **Tier 11 — Rendimiento y jerarquía de la ventana principal**, abierto y **cerrado el 2026-09-01, 4/4**. No sale de un fallo sino de una petición de producto sobre la ventana principal, y las tres tareas atacan la misma raíz —**qué se ve y con qué peso**—: `T11-01` (el pie enseña disco, CPU y RAM mientras corre la operación), `T11-02` (salud, benchmark e historial salen del menú a una barra de acciones), `T11-03` (la tarjeta de unidad se ordena por importancia) y `T11-04` (ese panel deja de ser un desplegable: compactado a tres columnas cabe en una línea, y con eso desapareció el motivo de poder plegarlo). La **galería está regenerada** (2026-09-01): las 12 capturas del README rehechas con la app real, y fue justo eso lo que destapó que el arreglo de `T12-06` no hacía nada. Ver [`ROADMAP.md`](ROADMAP.md#-tier-11--rendimiento-y-jerarquía-de-la-ventana-principal-abierto-2026-09-01) |
 | Tareas abiertas | **6**: **5 del Tier 13** y **`T10-02`, bloqueada a propósito** ([Tier 10](ROADMAP.md#-tier-10--lo-que-solo-aparece-al-publicar-abierto-2026-08-26), abierto el **2026-08-26**). `T10-02` no sale de una revisión sino de **publicar**: al cortar la v1.25.0 la puerta de cobertura abortó el corte con el informe **vacío** y el arreglo de `T8-06` puesto, y **no se reprodujo en tres intentos**. `T10-01` (2026-08-27) hizo que la próxima vez queden pruebas y que el mensaje deje de culpar al paquete equivocado; `T10-02` es **la causa**, y espera a que vuelva a ocurrir. El **Tier 9** —re-auditoría transversal de las 12 áreas, ejecutada sobre la máquina— se abrió y se cerró el **2026-08-26**, **20/20**. De sus 20 tareas **ninguna era un fallo de las operaciones de disco**: la única **Alta** (`T9-01`) estaba en el corte de versión, que podía publicar un instalador sin correspondencia con el commit etiquetado, y las dos más reveladoras (`T9-04`/`T9-05`) estaban en la propia herramienta de auditoría, que perdía en silencio 4 de sus 26 capturas —incluida la del diálogo destructivo—. Ver [`ROADMAP.md`](ROADMAP.md#️-tier-9--re-auditoría-transversal-con-la-app-en-marcha-abierto-2026-08-26) |
 | Tiers cerrados | El **Tier 8** cerró el **2026-08-26**, 6/6: salió de una captura del historial en uso —cuatro `EXPORT ERROR:` sin nada detrás— y encontró que ***Exportar CSV* nunca funcionó en ninguna versión publicada** (`T8-01`), que los errores podían salir vacíos (`T8-02`) y que otros dos botones podían no hacer nada (`T8-03`). El **Tier 7** cerró el mismo día, 9/9: `T7-08` era la comprobación a ojo que FlaUI no podía medir, y dio **no** —WinUI no pinta el tooltip de un control deshabilitado—, así que el motivo de `T7-02` bajó al texto visible del ítem — y mirar ese menú arreglado abrió `T7-09`, el marco de foco recortado en los seis diálogos. Antes, la revisión con la app en marcha (`T7-06`) desmintió la sospecha de partida —los `ListView` sí se recorren con teclado— y abrió `T7-07`. El **Tier 6** cerró el 2026-08-17, 15/15. Producto, auditoría y Tier 5: cerrados |
 
@@ -265,7 +265,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 ### Build y publicación
 
 - **Publicación self-contained** (`WindowsAppSDKSelfContained=true`): el usuario final no instala .NET.
-- **`Microsoft.WindowsAppSDK` con versión EXACTA (`1.8.260529003`) — no volver a `1.8.*`.** Con comodín, NuGet
+- **`Microsoft.WindowsAppSDK` con versión EXACTA (`1.8.260804001`) — no volver a `1.8.*`.** Con comodín, NuGet
   resuelve el paquete más nuevo y **el conjunto de archivos publicados cambia solo**, sin tocar el repo. Así
   apareció, de un día para otro, el archivo que rompió el build (ver MAX_PATH). Subir de versión debe ser
   **deliberado y probado**, no un efecto colateral de la fecha en que se compile.
@@ -439,6 +439,29 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-09-21 — `T13-11`: Windows App SDK al último *servicing* de la 1.8
+
+`1.8.260529003` → **`1.8.260804001`**. La versión está clavada desde la v1.15.0 porque con `1.8.*` el
+conjunto de archivos publicados cambiaba solo, y un nombre larguísimo reventó el `MAX_PATH` del
+instalador. Subir es deliberado, así que se pasó la **puerta completa**, y nada se movió:
+
+| Comprobación | Resultado |
+|---|---|
+| Compilación `-warnaserror` | 0 avisos |
+| Unitarias | **685 / 686** (1 se omite) |
+| Suite de UI | **39 / 42** (3 omitidas por opt-in) |
+| Instalador | compilado, **58,9 MB** + `.sha256` |
+| Archivos publicados | **509 antes y 509 después** — la única diferencia es el `mscordaccore` del runtime de .NET, que no viene de este paquete |
+| Galería (28 tomas) | idéntica **píxel a píxel**, salvo `reinit`, que cambia por `T13-18` |
+
+La primera pasada de UI dio un fallo intermitente (`Benchmark_CompletesForTestDrive`: «no se encontró
+DrivePicker» a los 17 ms); en solitario y en una segunda pasada completa, verde. Es el intermitente ya
+conocido, no el salto.
+
+`FluentTextPalette` era la señal a vigilar —ancla los valores de los tokens de texto de Fluent— y no se
+movió. **El salto a la 2.x se aparta a `T13-20`**: es estable desde abril y va por la 2.5.1, pero es otro
+riesgo y merece su propio corte.
 
 ### 2026-09-21 — `T13-18`: el rechazo de *Reinicializar* dice qué cambiar
 

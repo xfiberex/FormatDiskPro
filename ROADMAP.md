@@ -26,7 +26,7 @@
 > 2026-08-26 al cortar la v1.25.0, con `T10-02` bloqueada a propósito. **Tier 11 — Rendimiento y jerarquía
 > de la ventana principal** (`T11-01`–`T11-04`) y **Tier 12 — Lo que la ventana no dice**
 > (`T12-01`–`T12-07`), abiertos y cerrados el 2026-09-01. Y **Tier 13 — Lo que solo se ve midiendo**
-> (`T13-01`–`T13-19`), **abierto el 2026-09-18** por una auditoría de UI/UX.
+> (`T13-01`–`T13-20`), **abierto el 2026-09-18** por una auditoría de UI/UX.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 14/19.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 15/20.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2724,7 +2724,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
 
 ### Desactualizado
 
-- [ ] **[T13-11] Windows App SDK: dos *servicing* de la 1.8 pendientes, y la 2.x estable** · Baja
+- [x] **[T13-11] Windows App SDK: dos *servicing* de la 1.8 pendientes, y la 2.x estable** — **el *servicing*, hecho (2026-09-21)**; la 2.x pasa a `T13-20` · Baja
   - **Área:** Dependencias
   - **Ubicación:** [FormatDiskPro.csproj:36](src/FormatDiskPro/FormatDiskPro.csproj#L36)
   - **Qué pasa (NuGet, 2026-09-18):** el proyecto fija `1.8.260529003`. Después salieron `1.8.260710003`
@@ -2737,6 +2737,20 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     que pasar.
   - **Esfuerzo:** bajo (*servicing*) · medio-alto (2.x)
   - **Depende de:** ninguna
+  - **Hecho el *servicing*: `1.8.260529003` → `1.8.260804001`** (el último de la 1.8; `1.8.260710003` se
+    salta por en medio). Puerta completa, y **nada se movió**:
+    - Compilación con `-warnaserror`: 0 avisos. Unitarias **685/686**. Suite de UI **39/42** (3 omitidas
+      por opt-in) — la primera pasada dio un fallo intermitente (`Benchmark_CompletesForTestDrive`, «no se
+      encontró DrivePicker» a los 17 ms); en solitario y en una segunda pasada completa, verde. No es del
+      salto: es el intermitente ya conocido.
+    - **Instalador compilado**, que es el motivo de que la versión esté clavada: 58,9 MB con su `.sha256`.
+      El conjunto de archivos publicados es **el mismo** (509 y 509); la única diferencia es el
+      `mscordaccore` del runtime de .NET, que no viene de este paquete. El nombre largo que reventó el
+      `MAX_PATH` en su día sigue ahí, y sigue sin dar guerra publicando en `%TEMP%`.
+    - **Galería de 28 tomas**: idéntica píxel a píxel salvo `reinit`, que cambia por `T13-18` y no por
+      esto.
+  - **`FluentTextPalette` no se movió**, que era la señal a vigilar: si el paquete hubiera cambiado los
+    tokens de texto, su prueba lo habría dicho.
 
 - [x] **[T13-12] Botones de la barra de título: ocho colores a mano donde ya hay API** — **hecho (2026-09-21)** · Baja
   - **Área:** UI / plataforma
@@ -2919,6 +2933,20 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     Si se confirma, pasar los `ShowAsync` de la ventana por un único punto que no abra un segundo diálogo
     mientras haya uno abierto.
   - **Esfuerzo:** bajo
+  - **Depende de:** ninguna
+
+- [ ] **[T13-20] Windows App SDK 2.x: el salto mayor** · Baja
+  - **Área:** Dependencias
+  - **Ubicación:** [FormatDiskPro.csproj:36](src/FormatDiskPro/FormatDiskPro.csproj#L36)
+  - **De dónde sale:** de `T13-11`, que dejó hecho el *servicing* de la 1.8 y apartó esto a propósito: son
+    dos cambios de riesgo muy distinto y no deben ir en el mismo corte.
+  - **Qué pasa (NuGet, 2026-09-21):** la 2.x es estable desde el 2026-04-29 (2.0.1) y va por la **2.5.1**.
+    El proyecto está en la última 1.8 (`1.8.260804001`).
+  - **Qué hacer:** con la skill `dotnet-upgrade` y los cambios incompatibles leídos **antes** de tocar
+    nada. Después, la misma puerta que pasó el *servicing*: `-warnaserror`, unitarias, suite de UI,
+    instalador y galería. `FluentTextPalette` ancla los valores de los tokens de texto: si la 2.x los
+    cambia, su prueba falla, que es lo que tiene que pasar.
+  - **Esfuerzo:** medio-alto
   - **Depende de:** ninguna
 
 ### A considerar — decisiones de diseño, no defectos
@@ -3343,6 +3371,7 @@ restauran.
 | 2026-09-21 | **T13-12** | Los ocho colores de los botones de la barra de título se van: `AppWindowTitleBar.PreferredTheme` hace lo mismo desde la 1.7, y con él desaparece la «única excepción» a que los colores vivan en un sitio. Comprobado con la app en marcha y Windows en oscuro: forzando *Claro* en caliente los glifos salen negros, en contraste manda el tema, y el botón *Cerrar* **vuelve a ponerse rojo** al pasar el ratón — el «compromiso» que documentaba el método era real, y lo causaba fijar a mano el fondo hover. Sin prueba automática: es cromo de ventana fuera del árbol XAML. |
 | 2026-09-21 | **T13-14** | Tres restos de estilo menos: la tipografía vuelve a la rampa de Fluent (12,5 y los seis 13 → **14**, el Body), las pistas dejan la cursiva —el pincel se queda, porque el gris atenuado es el tercer escalón medido en `T12-01`— y la tarjeta *Opciones de formato* cambia el disquete de «Guardar» por una lista de comprobación. **El cuarto hallazgo era falso:** los 26 `CornerRadius` no repetían ningún valor por defecto — al quitarlos, los diálogos y sus botones salieron con las esquinas rectas en las 18 tomas de galería, así que se devolvieron. Leer `generic.xaml` no bastaba; lo que decidió fue mirar la ventana. |
 | 2026-09-21 | **T13-18** | El rechazo de *Reinicializar* deja de ser una frase para todo: `Core/PlanRejection` reparte cada `PlanProblem` en su texto y sus valores —el límite y el tamaño del volumen culpable—, con siete mensajes nuevos en los cinco idiomas y 22 pruebas que barren el enum entero. Los cinco motivos que el formulario no puede producir se quedan con el genérico a propósito. La USB de hoy (29,3 GB) no reproduce el caso original, así que se reprodujo el mismo defecto por la otra vía —`D:` de 1020 MB ofrece FAT, y el disco mide 29,3 GB—: el diálogo ya nombra el límite, el tamaño y la salida. La toma `reinit` de la galería elige NTFS y deja de depender de lo que sugiera el selector. |
+| 2026-09-21 | **T13-11** | Windows App SDK al último *servicing* de la 1.8 (`1.8.260529003` → `1.8.260804001`), con la puerta completa: `-warnaserror` sin avisos, 685/686 unitarias, UI 39/42, **instalador compilado** (58,9 MB + `.sha256`) y galería de 28 tomas idéntica píxel a píxel. El conjunto de archivos publicados no cambia (509 y 509), que era el riesgo por el que la versión está clavada desde la v1.15.0. El salto a la 2.x se aparta a `T13-20`: otro riesgo, otro corte. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |
