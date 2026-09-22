@@ -31,9 +31,16 @@
     ruta del publish pasara de MAX_PATH y reventaba la compilacion del instalador con Inno Setup.
     Subir de version debe ser un cambio deliberado, con sus pruebas, no un efecto colateral de la fecha
     en que se compile.
+
+    2.x desde la v1.29.0 (`T13-20`). La 2.x ya no lleva fecha en el numero: es SemVer, y la version del
+    paquete ES la del SDK. El salto no rompio nada —compilacion sin avisos, 689 unitarias, 40 de UI,
+    instalador y galeria identica pixel a pixel—, pero el paquete trae 9 archivos mas de Windows AI y
+    Search que esta app no usa, y el instalador pasa de 58,9 a 61,7 MB. La 2.x permite referenciar
+    subpaquetes sueltos (Microsoft.WindowsAppSDK.WinUI, .Foundation) en vez del metapaquete, pero cada
+    uno va por su version (2.3.9, 2.3.12 el dia del salto) y mezclarlas contradice el parrafo de arriba.
   -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260804001" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
   </ItemGroup>
 
   <!-- Exponer los miembros internal al proyecto de pruebas (p. ej. el diccionario de traducciones L.Map). -->

@@ -15,6 +15,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **Actualizado el Windows App SDK a la versión 2.5.1** (antes 1.8). Para quien usa la aplicación no
+  cambia nada; el instalador crece unos 3 MB.
+
 ## [1.28.1] — 2026-09-22
 
 **Dos fallos que no se veían hasta buscarlos.** Los dos salieron de revisar hallazgos que llevaban días

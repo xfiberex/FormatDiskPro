@@ -26,7 +26,8 @@
 > 2026-08-26 al cortar la v1.25.0, con `T10-02` bloqueada a propósito. **Tier 11 — Rendimiento y jerarquía
 > de la ventana principal** (`T11-01`–`T11-04`) y **Tier 12 — Lo que la ventana no dice**
 > (`T12-01`–`T12-07`), abiertos y cerrados el 2026-09-01. Y **Tier 13 — Lo que solo se ve midiendo**
-> (`T13-01`–`T13-20`), **abierto el 2026-09-18** por una auditoría de UI/UX.
+> (`T13-01`–`T13-20`), **abierto el 2026-09-18 y cerrado el 2026-09-22, 20/20**, por una auditoría
+> de UI/UX.
 >
 > **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues.
 
@@ -39,7 +40,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 19/20.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 20/20 — CERRADO.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2973,7 +2974,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     unitaria que barre `UI/` y exige que **ningún** `ShowAsync` esquive la compuerta — porque un
     `ShowAsync` suelto no rompe nada el día que se escribe, sino el día que dos diálogos coinciden.
 
-- [ ] **[T13-20] Windows App SDK 2.x: el salto mayor** · Baja
+- [x] **[T13-20] Windows App SDK 2.x: el salto mayor** — **hecho (2026-09-22)** · Baja
   - **Área:** Dependencias
   - **Ubicación:** [FormatDiskPro.csproj:36](src/FormatDiskPro/FormatDiskPro.csproj#L36)
   - **De dónde sale:** de `T13-11`, que dejó hecho el *servicing* de la 1.8 y apartó esto a propósito: son
@@ -2986,6 +2987,33 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     cambia, su prueba falla, que es lo que tiene que pasar.
   - **Esfuerzo:** medio-alto
   - **Depende de:** ninguna
+  - **Hecho: `1.8.260804001` → `2.5.1`.** Y salió **más barato de lo previsto**: ni una línea de código
+    cambió.
+  - **Lo primero fue leer, y ahí está el primer hallazgo:** las notas de la 2.0 y el anuncio **no
+    documentan cambios incompatibles**. Enumeran API nuevas y el cambio de versionado (SemVer 2.0.0: la
+    versión del paquete ES la del SDK, sin fecha), y remiten a unas notas de migración que no los
+    detallan. Así que lo que decidió el salto fue la puerta, no la documentación.
+  - **La puerta, entera:**
+
+    | Comprobación | Resultado |
+    |---|---|
+    | Compilación `-warnaserror` | 0 avisos, 0 errores |
+    | Unitarias | **689 / 690** (1 se omite) |
+    | Suite de UI | **40 / 43** (3 omitidas por opt-in) |
+    | Instalador | compilado, **61,7 MB** (+2,8) |
+    | Galería (28 tomas) | **idéntica**: 18 píxeles de diferencia como mucho, sobre el mismo código |
+
+  - **La galería se comparó bien:** se capturó con la 1.8 **y el código de hoy**, no con la galería vieja
+    del *servicing*, que es de antes de `T13-15` y habría mezclado dos cambios.
+  - **Lo que sí cambia es el equipaje:** 509 → **518 archivos** publicados. Los 9 nuevos son de Windows
+    AI y Search (`Microsoft.Windows.AI.Video`, `Microsoft.Windows.Search`…), que esta app no usa. La 2.x
+    permite referenciar **subpaquetes** en vez del metapaquete, pero cada uno lleva su propia versión
+    (`WinUI` 2.3.9, `Foundation` 2.3.12 el día del salto) y mezclarlas contradice la regla de versión
+    exacta del `.csproj`. Queda anotado ahí por si algún día pesa.
+  - **El mínimo de Windows no baja:** la documentación mantiene Windows 10 1809 en adelante, y el TFM de
+    este proyecto ya exige 19041.
+  - **Y el nombre largo que originó el pin** (`…AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll`,
+    75 caracteres) **ya no está**: el más largo de la 2.5.1 mide 67.
 
 ### A considerar — decisiones de diseño, no defectos
 
@@ -3429,6 +3457,7 @@ restauran.
 | 2026-09-21 | **T13-15**, **T13-16** | **Las dos decisiones del tier, resueltas.** `T13-15`: los títulos de tarjeta pasan a texto primario en semibold y el acento se queda en el icono —en la 1.8 el pincel del acento **es** el del enlace, así que el título de *Opciones de formato* y «Reinicializar unidad ahora…» salían del mismo color, y con el acento en rojo cada título se leía como un aviso—. Verificado por reversión con una prueba que lee el estilo del XAML y exige un pincel medible. `T13-16`: **los menús se quedan**; cuatro preferencias no justifican una página de ajustes, y queda escrito cuándo reabrirlo. |
 | 2026-09-22 | **T13-17** | **Reproducido**: con Windows en oscuro y la app en claro, la etiqueta «Pasadas:» deshabilitada salía a **1,07:1** —invisible—, porque su pincel venía de `Application.Current.Resources`, que resuelve con el tema de la APLICACIÓN y no con el del elemento. Ahora cambia de estilo (`HintTextDisabledStyle`), que sí toma el tema del elemento. Por el camino apareció un segundo caso del mismo fallo, el encabezado *Novedades* del diálogo de actualización. Dos pruebas nuevas: una prohíbe el patrón en todo el código de UI —la raíz, no el síntoma— y otra fija la suposición de estilo que hace `SetSubOptionEnabled`. Visto en las cuatro combinaciones de tema. |
 | 2026-09-22 | **T13-19** | **Reproducido**: dos invocaciones seguidas de *Formatear* por UIA dejaban dos `CRASH` en el historial (WinUI no admite dos `ContentDialog` a la vez, y estos flujos son `async void`). Los 13 `ShowAsync` de la ventana pasan ahora por `ShowOneAsync`, que descarta el segundo y lo apunta en el historial. La primera versión abría la compuerta demasiado tarde —al volver de `ShowAsync`, un salto de despachador después del cierre— y tumbó tres pruebas de la suite; ahora se abre en `Closing`. Dos pruebas: la de UI que cuenta los `CRASH` y una unitaria que prohíbe esquivar la compuerta. |
+| 2026-09-22 | **T13-20** | **Windows App SDK 1.8 → 2.5.1**, el salto mayor, sin tocar una línea de código. Las notas de la 2.0 **no documentan cambios incompatibles** —enumeran API nuevas y el cambio a SemVer—, así que lo que decidió fue la puerta: `-warnaserror` sin avisos, 689 unitarias, 40 de UI, instalador compilado y galería idéntica (capturada con la 1.8 **y el código de hoy**, para no mezclar dos cambios). El equipaje crece: 509 → 518 archivos, +2,8 MB de componentes de Windows AI y Search que esta app no usa; los subpaquetes de la 2.x lo evitarían pero van por versiones distintas. **Tier 13 cerrado, 20/20.** |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |
