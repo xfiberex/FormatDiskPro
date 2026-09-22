@@ -15,6 +15,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.28.1] — 2026-09-22
+
+**Dos fallos que no se veían hasta buscarlos.** Los dos salieron de revisar hallazgos que llevaban días
+anotados sin reproducir, y los dos estaban ahí de verdad: uno dejaba un fallo escrito en el historial y el
+otro hacía desaparecer texto de la ventana. Sin cambios de funcionamiento: solo correcciones.
+
 ### Corregido
 
 - **Pulsar dos veces seguidas un botón que abre un aviso dejaba un fallo anotado en el historial.** La
@@ -784,7 +790,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.28.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.28.1...HEAD
+[1.28.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.1
 [1.28.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.0
 [1.27.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.27.0
 [1.26.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.26.0
