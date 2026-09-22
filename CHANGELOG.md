@@ -15,6 +15,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.29.0] — 2026-09-22
+
+**La base, al día.** La aplicación pasa a la versión 2 del Windows App SDK, el componente de Microsoft
+sobre el que está construida. No cambia nada de lo que se ve ni de lo que se hace: se comprobó con la
+aplicación delante, pantalla por pantalla, que todo queda exactamente igual. El instalador crece unos 3 MB
+porque el nuevo componente trae piezas añadidas por Microsoft.
+
 ### Cambiado
 
 - **Actualizado el Windows App SDK a la versión 2.5.1** (antes 1.8). Para quien usa la aplicación no
@@ -795,7 +802,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.28.1...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.29.0...HEAD
+[1.29.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.29.0
 [1.28.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.1
 [1.28.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.0
 [1.27.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.27.0
