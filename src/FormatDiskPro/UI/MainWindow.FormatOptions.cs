@@ -555,7 +555,7 @@ public sealed partial class MainWindow
         var current     = new FormatPreset("", fs, allocBytes, quick, compress, secure);
 
         var dlg = new PresetsDialog(current, CurrentFormatSummary(full: true), _settings) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
         BuildPresetsMenu();
     }
 

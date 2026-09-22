@@ -39,7 +39,7 @@
 > tiene tres puntos ciegos, y por ellos pasaron **cinco textos por debajo de AA**. Lo más grave de cara al
 > usuario: *Reinicializar* se confirma con un botón que dice «Formatear».
 >
-> **Progreso del Tier 13: 18/20.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
+> **Progreso del Tier 13: 19/20.** El mismo día se hacen `T13-02` y `T13-01`. El barrido ya ve el rojo de
 > error, se niega a leer el acento como texto primario y prohíbe atenuar texto con `Opacity`. Las catorce
 > opacidades pasan a pinceles medidos. Al hacerlas aparece `T13-17`, sin reproducir: una etiqueta que toma
 > su gris del tema de Windows en vez del de la app. Y al revisarlo en pantalla, con la USB de pruebas, aparece
@@ -2934,7 +2934,7 @@ ofrece y luego se niega, y qué hay que repetir a mano.
   - **La toma `reinit` de la galería ya no depende de la sugerencia:** elige NTFS, que vale para cualquier
     tamaño de disco. Antes fotografiaba el rechazo en vez de la confirmación.
 
-- [ ] **[T13-19] Un segundo `StartButton_Click` con un diálogo abierto acaba en `CRASH`** · Baja · *sin reproducir*
+- [x] **[T13-19] Un segundo `StartButton_Click` con un diálogo abierto acaba en `CRASH`** — **reproducido y hecho (2026-09-22)** · Baja
   - **Área:** Robustez
   - **Ubicación:** `StartButton_Click` en [MainWindow.xaml.cs](src/FormatDiskPro/UI/MainWindow.xaml.cs) ·
     [App.xaml.cs:47](src/FormatDiskPro/App.xaml.cs#L47)
@@ -2952,6 +2952,26 @@ ofrece y luego se niega, y qué hay que repetir a mano.
     mientras haya uno abierto.
   - **Esfuerzo:** bajo
   - **Depende de:** ninguna
+  - **Reproducido (2026-09-22).** Invocando `StartButton` dos veces seguidas por UIA, el historial pasa de
+    uno a **dos** `CRASH`. La prueba mira el historial y no «la ventana sigue viva», porque viva ya estaba:
+    la red global de `App` atrapa la excepción y el único rastro es esa línea.
+  - **Hecho.** Los **13** `ShowAsync` de la ventana pasan por `ShowOneAsync`, que no abre un segundo
+    diálogo mientras haya uno abierto y deja constancia (`DIALOG SKIPPED`, categoría *App*). Devuelve
+    `None`, que es lo que ya devuelve un diálogo cerrado sin elegir: quien confirmaba con `== Primary`
+    entiende el rechazo sin cambiar una línea.
+  - **Se descarta en vez de encolar:** el segundo diálogo responde a una acción que el usuario puede
+    repetir al cerrar el primero, y encolarlo le haría aparecer un diálogo «solo» un rato después. Que
+    quede en el historial es lo que lo distingue de tragarse el error.
+  - **Un tropiezo que enseñó algo del control:** la primera versión abría la compuerta al volver de
+    `ShowAsync`, y entre el cierre del diálogo y esa vuelta hay un salto por la cola del despachador.
+    Cerrar un diálogo y pulsar Ctrl+H acto seguido caía en ese hueco: **tres pruebas de la suite fallaron**
+    y el historial lo dijo con todas las letras («'Historial de operaciones' … ya había otro abierto:
+    'Licencia'», en el mismo segundo). Ahora la compuerta se abre en el evento `Closing`. WinUI, por su
+    parte, sí admite abrir el siguiente una vez empezado el cierre; lo que no admite es que haya dos a la
+    vez.
+  - **Verificado por reversión**, y con dos pruebas: la de UI que cuenta los `CRASH` del historial, y una
+    unitaria que barre `UI/` y exige que **ningún** `ShowAsync` esquive la compuerta — porque un
+    `ShowAsync` suelto no rompe nada el día que se escribe, sino el día que dos diálogos coinciden.
 
 - [ ] **[T13-20] Windows App SDK 2.x: el salto mayor** · Baja
   - **Área:** Dependencias
@@ -3408,6 +3428,7 @@ restauran.
 | 2026-09-21 | **T13-11** | Windows App SDK al último *servicing* de la 1.8 (`1.8.260529003` → `1.8.260804001`), con la puerta completa: `-warnaserror` sin avisos, 685/686 unitarias, UI 39/42, **instalador compilado** (58,9 MB + `.sha256`) y galería de 28 tomas idéntica píxel a píxel. El conjunto de archivos publicados no cambia (509 y 509), que era el riesgo por el que la versión está clavada desde la v1.15.0. El salto a la 2.x se aparta a `T13-20`: otro riesgo, otro corte. |
 | 2026-09-21 | **T13-15**, **T13-16** | **Las dos decisiones del tier, resueltas.** `T13-15`: los títulos de tarjeta pasan a texto primario en semibold y el acento se queda en el icono —en la 1.8 el pincel del acento **es** el del enlace, así que el título de *Opciones de formato* y «Reinicializar unidad ahora…» salían del mismo color, y con el acento en rojo cada título se leía como un aviso—. Verificado por reversión con una prueba que lee el estilo del XAML y exige un pincel medible. `T13-16`: **los menús se quedan**; cuatro preferencias no justifican una página de ajustes, y queda escrito cuándo reabrirlo. |
 | 2026-09-22 | **T13-17** | **Reproducido**: con Windows en oscuro y la app en claro, la etiqueta «Pasadas:» deshabilitada salía a **1,07:1** —invisible—, porque su pincel venía de `Application.Current.Resources`, que resuelve con el tema de la APLICACIÓN y no con el del elemento. Ahora cambia de estilo (`HintTextDisabledStyle`), que sí toma el tema del elemento. Por el camino apareció un segundo caso del mismo fallo, el encabezado *Novedades* del diálogo de actualización. Dos pruebas nuevas: una prohíbe el patrón en todo el código de UI —la raíz, no el síntoma— y otra fija la suposición de estilo que hace `SetSubOptionEnabled`. Visto en las cuatro combinaciones de tema. |
+| 2026-09-22 | **T13-19** | **Reproducido**: dos invocaciones seguidas de *Formatear* por UIA dejaban dos `CRASH` en el historial (WinUI no admite dos `ContentDialog` a la vez, y estos flujos son `async void`). Los 13 `ShowAsync` de la ventana pasan ahora por `ShowOneAsync`, que descarta el segundo y lo apunta en el historial. La primera versión abría la compuerta demasiado tarde —al volver de `ShowAsync`, un salto de despachador después del cierre— y tumbó tres pruebas de la suite; ahora se abre en `Closing`. Dos pruebas: la de UI que cuenta los `CRASH` y una unitaria que prohíbe esquivar la compuerta. |
 | 2026-09-01 | **T12-07** | **Se retira la franja de rendimiento entera** (`T11-01` + `T11-04`). El motivo de peso: su justificación de partida era **falsa** — se defendió con «la única señal de vida era una barra de progreso» y el cronómetro del pie **ya escribía velocidad y ETA**, para las mismas dos operaciones. La fila de Disco duplicaba la línea de debajo; CPU y RAM decoraban. Cada fila fallaba por un motivo distinto, así que no había subconjunto que salvar. Fuera ~34 px permanentes, un servicio Win32, 41 pruebas y 55 cadenas (**626 unitarias**). Sobrevive lo que se sostiene solo: el color de la barra de progreso, el galón de scroll y `MutedText`. Lección: una petición de producto no exime de comprobar el problema que dice resolver. |
 | 2026-09-01 | **T12-05** y **T12-06** | **`T12-05` salió de una captura del usuario**: un benchmark que terminó BIEN dejaba la barra llena y roja, igual que uno fallido — `FormatProgress` usaba el color de **acento del sistema** y en ese equipo el acento es rojo, así que `ShowError` no distinguía nada. Es la decisión que `CapacityBrush` ya había tomado («no debe usar el color de ACENTO del sistema»), sin aplicar aquí. Ahora el verde de `SeverityPalette` significa que va bien y el rojo que no, en cualquier equipo; **verificado en los dos estados** con la app en marcha, porque fijar `Foreground` a mano podía haber ganado al estado de error del control. `T12-06`: la barra de desplazamiento se deja a la vista cuando hay algo que desplazar — el degradado que se probó primero se descartó **con la app delante** (sobre Mica no hay fondo opaco que igualar y se leía como una franja clara). Y una corrección: el benchmark **no** alimenta la fila de Disco y no debe — su progreso es por ventana y contradiría su propia mediana. |
 | 2026-09-01 | **T12-01** a **T12-04** | **Se abre y se cierra el Tier 12**, de una revisión de UI/UX. El primero es un **defecto medido**: `TextFillColorTertiaryBrush` da **3,29:1** en claro —por debajo de AA— y pintaba 18 controles, entre ellos las pistas que explican qué clúster elegir. El barrido no podía verlo porque solo medía los colores propios, que es **el mismo fallo que ese inventario existe para evitar**: ahora `TextContrastTests` recorre el XAML y mide lo que hay puesto, y `SeverityPalette.MutedText` (5,07:1 / 5,03:1) conserva el tercer nivel de jerarquía en vez de borrarlo. **Verificado en negativo.** Los otros tres: el botón primario pasa de «Iniciar» a **«Formatear H:»** (era el único control capaz de destruir un disco sin nombrarlo), el pie resume **`NTFS · 4 KB · rápido`** porque las opciones quedan bajo el pliegue y el botón no, y los presets bajan a la tarjeta que configuran. +3 unitarias (667). |

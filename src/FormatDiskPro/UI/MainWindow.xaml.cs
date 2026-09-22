@@ -288,6 +288,54 @@ public sealed partial class MainWindow : Window
 
     // ── Dialog helpers ────────────────────────────────────────────
 
+    /// <summary>
+    /// Diálogo abierto ahora mismo, o <c>null</c>. Es la compuerta de <see cref="ShowOneAsync"/>.
+    /// </summary>
+    private ContentDialog? _openDialog;
+
+    /// <summary>
+    /// Abre un <see cref="ContentDialog"/> <b>solo si no hay otro abierto</b>; si lo hay, no lo abre y
+    /// devuelve <see cref="ContentDialogResult.None"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué</b> (`T13-19`). WinUI admite un único <c>ContentDialog</c> a la vez: el segundo
+    /// lanza <c>COMException 0x80000019</c>. Y estos flujos son <c>async void</c>, así que esa excepción
+    /// no la recoge nadie: termina en la red global de <see cref="App"/>, que deja la app viva pero
+    /// escribe un <c>CRASH</c> en el historial. Pasó de verdad, en mitad de una tanda de capturas.</para>
+    ///
+    /// <para><b>No es una carrera teórica:</b> con el ratón no se llega —el modal tapa la ventana—, pero
+    /// por UI Automation sí, y sobre todo cuando un diálogo se abre <b>solo</b> (novedades al estrenar
+    /// versión, aviso de actualización) justo mientras alguien pulsa un botón.</para>
+    ///
+    /// <para><b>Por qué descartar y no encolar.</b> El segundo diálogo siempre responde a una acción que
+    /// el usuario puede repetir en cuanto cierre el primero, y encolarlo le haría aparecer un diálogo
+    /// «solo» un rato después, sin saber a qué contesta. Se deja rastro en el historial para que no sea
+    /// un silencio: ahí está la diferencia con tragarse el error.</para>
+    ///
+    /// <para><c>None</c> es lo que ya devuelve un diálogo cerrado sin elegir nada, así que quien confirma
+    /// con <c>== ContentDialogResult.Primary</c> entiende el rechazo sin cambiar una línea.</para>
+    /// </remarks>
+    private async Task<ContentDialogResult> ShowOneAsync(ContentDialog dialog)
+    {
+        if (_openDialog is not null)
+        {
+            _services.History.Log($"DIALOG SKIPPED: '{dialog.Title}' (ya había otro abierto: '{_openDialog.Title}')");
+            return ContentDialogResult.None;
+        }
+
+        _openDialog = dialog;
+        // La compuerta se abre en cuanto el diálogo EMPIEZA a cerrarse, y no al volver de ShowAsync.
+        // Entre las dos cosas hay un salto por la cola del despachador, y ahí cabe de sobra otra acción
+        // del usuario: cerrar un diálogo y pulsar Ctrl+H acto seguido llegaba con la compuerta todavía
+        // cerrada, y el historial no se abría. Medido en la suite de UI, donde fallaron tres pruebas por
+        // esto. WinUI, por su parte, sí admite abrir el siguiente una vez empezado el cierre — lo que no
+        // admite es que haya dos abiertos a la vez, que es lo que esto evita.
+        void ReleaseGate(ContentDialog sender, ContentDialogClosingEventArgs args) => _openDialog = null;
+        dialog.Closing += ReleaseGate;
+        try     { return await dialog.ShowAsync(); }
+        finally { dialog.Closing -= ReleaseGate; _openDialog = null; }
+    }
+
     private Task ShowInfoAsync(string title, string message) =>
         ShowDialogAsync(title, message, null, null, L.T("btn.close"));
 
@@ -303,7 +351,7 @@ public sealed partial class MainWindow : Window
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
         };
-        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        return await ShowOneAsync(dlg) == ContentDialogResult.Primary;
     }
 
     /// <summary>
@@ -344,7 +392,7 @@ public sealed partial class MainWindow : Window
         };
         if (primary is not null)   dlg.PrimaryButtonText   = primary;
         if (secondary is not null) dlg.SecondaryButtonText = secondary;
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
     }
 
     // ── Window closing ────────────────────────────────────────────
@@ -464,7 +512,7 @@ public sealed partial class MainWindow : Window
                                     L.T("btn.start.drive", $"{driveItem.Letter}:"), L.T("confirm.warning"),
                                     details, smallFat32Ignored ? L.T("confirm.smallFat32Ignored") : null)
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
-        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await ShowOneAsync(dlg) != ContentDialogResult.Primary) return;
 
         await RunFormatAsync(driveItem.Letter, fs, allocBytes, label, quick, compress, secure, securePasses);
     }

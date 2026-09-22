@@ -279,6 +279,9 @@ public sealed partial record HistoryEntry(
             ["HISTORY"]  = HistoryCategory.App,
             ["EXPORT"]   = HistoryCategory.App,
             ["CRASH"]    = HistoryCategory.App,
+            // Un diálogo que no se llegó a abrir porque ya había otro (`T13-19`). Es la única
+            // huella de que algo se descartó, y por eso se escribe en vez de callarlo.
+            ["DIALOG"]   = HistoryCategory.App,
         };
 
     /// <summary>Palabra clave con la que empieza el mensaje, sin el <c>:</c> final.</summary>

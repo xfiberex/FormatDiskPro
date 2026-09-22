@@ -144,7 +144,7 @@ public sealed partial class MainWindow
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
         };
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
     }
 
     // ── Write protection (#7) ─────────────────────────────────────
@@ -266,7 +266,7 @@ public sealed partial class MainWindow
         }
         modeDlg.Content = panel;
 
-        await modeDlg.ShowAsync();
+        await ShowOneAsync(modeDlg);
         if (repairChoice is null) return;   // Cancelar (botón Cerrar, Esc o clic fuera)
         bool repair = repairChoice.Value;
 
@@ -438,7 +438,7 @@ public sealed partial class MainWindow
         var confirm = new ConfirmDialog(item.Letter, L.T("confirm.titleReinit"),
                                         L.T("btn.reinit.drive", $"{item.Letter}:"), summary)
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
-        if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await ShowOneAsync(confirm) != ContentDialogResult.Primary) return;
 
         BeginOperation();
         FormatProgress.IsIndeterminate = true;

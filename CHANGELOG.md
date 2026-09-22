@@ -17,6 +17,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Corregido
 
+- **Pulsar dos veces seguidas un botón que abre un aviso dejaba un fallo anotado en el historial.** La
+  aplicación seguía funcionando, pero intentaba abrir dos ventanas de diálogo a la vez, que Windows no
+  permite. Ahora el segundo aviso no se abre y queda registrado.
 - **Con el tema de la aplicación distinto al de Windows, algunas etiquetas apagadas no se veían.** Con
   Windows en oscuro y la aplicación en claro, la etiqueta «Pasadas:» del borrado seguro salía en blanco
   sobre fondo claro. Ahora toma el color del tema de la propia aplicación, y lo mismo el encabezado

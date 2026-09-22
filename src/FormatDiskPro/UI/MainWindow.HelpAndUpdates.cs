@@ -38,13 +38,13 @@ public sealed partial class MainWindow
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
         };
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
     }
 
     private async void MnuAbout_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new AboutDialog(_services.Updates) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
     }
 
     private async void MnuLicense_Click(object sender, RoutedEventArgs e)
@@ -54,7 +54,7 @@ public sealed partial class MainWindow
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
         };
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
     }
 
     private async void MnuThirdParty_Click(object sender, RoutedEventArgs e)
@@ -64,7 +64,7 @@ public sealed partial class MainWindow
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
         };
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
     }
 
     // ── Updates ───────────────────────────────────────────────────
@@ -115,7 +115,7 @@ public sealed partial class MainWindow
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
         };
-        await dlg.ShowAsync();
+        await ShowOneAsync(dlg);
     }
 
     private async Task CheckForUpdatesAsync(bool manual)
@@ -214,7 +214,7 @@ public sealed partial class MainWindow
             XamlRoot = Content.XamlRoot,
             RequestedTheme = CurrentTheme,
         };
-        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        return await ShowOneAsync(dlg) == ContentDialogResult.Primary;
     }
 
     private async Task DownloadAndRunUpdateAsync(ReleaseInfo rel)
