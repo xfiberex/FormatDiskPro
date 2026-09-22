@@ -15,6 +15,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **Con el tema de la aplicación distinto al de Windows, algunas etiquetas apagadas no se veían.** Con
+  Windows en oscuro y la aplicación en claro, la etiqueta «Pasadas:» del borrado seguro salía en blanco
+  sobre fondo claro. Ahora toma el color del tema de la propia aplicación, y lo mismo el encabezado
+  *Novedades* del aviso de actualización.
+
 ## [1.28.0] — 2026-09-21
 
 **Que el color no diga lo que no es, y que un «no» venga con su porqué.** La segunda mitad de la

@@ -180,6 +180,19 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
+    <!--
+        La misma pista, apagada: la lleva la etiqueta de un sub-bloque de opciones mientras está
+        deshabilitado (`SetSubOptionEnabled`). Es un ESTILO y no un pincel sacado de
+        `Application.Current.Resources`, y ahí está el arreglo de `T13-17`: aquel diccionario resuelve con
+        el tema de la APLICACIÓN —que sigue al de Windows—, así que con Windows en oscuro y la app forzada
+        a claro la etiqueta salía en blanco translúcido sobre una tarjeta clara (1,07:1, invisible). Un
+        `{ThemeResource}` dentro de un `Setter` se resuelve al aplicarse el estilo, con el tema del
+        ELEMENTO, que es el que manda.
+    -->
+    <Style x:Key="HintTextDisabledStyle" TargetType="TextBlock" BasedOn="{StaticResource HintTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+    </Style>
+
     <!-- Separador fino dentro de una tarjeta -->
     <Style x:Key="CardDividerStyle" TargetType="Border">
         <Setter Property="Height" Value="1" />

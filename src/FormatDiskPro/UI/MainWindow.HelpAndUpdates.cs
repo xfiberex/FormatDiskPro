@@ -185,14 +185,15 @@ public sealed partial class MainWindow
         string notes = ReleaseNotes.ToPlainText(rel.Notes);
         if (!string.IsNullOrWhiteSpace(notes))
         {
-            var changelogLbl = new TextBlock
+            // Semibold y el color de texto de siempre. Llevaba el acento, y por dos motivos deja de
+            // llevarlo: el pincel salía de `Application.Current.Resources`, que resuelve con el tema de la
+            // aplicación y no con el del elemento (`T13-17`), y un encabezado en color de acento es lo
+            // mismo que se retiró de los títulos de tarjeta en `T13-15`.
+            panel.Children.Add(new TextBlock
             {
                 Text = L.T("update.changelog"),
                 FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            };
-            if (Application.Current.Resources.TryGetValue("AccentTextFillColorPrimaryBrush", out var accent) && accent is Brush accentBrush)
-                changelogLbl.Foreground = accentBrush;
-            panel.Children.Add(changelogLbl);
+            });
             panel.Children.Add(new ScrollViewer
             {
                 MaxHeight = 240,

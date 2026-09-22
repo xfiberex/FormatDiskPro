@@ -271,9 +271,17 @@ public sealed partial class MainWindow
     ///
     /// <para><b>La etiqueta hay que atenuarla aparte</b>, por el mismo motivo: un <c>TextBlock</c> tampoco
     /// es un <c>Control</c>, así que no tiene estado visual deshabilitado y se quedaría a pleno contraste,
-    /// más viva que el desplegable de al lado. Se le pone <c>TextFillColorDisabledBrush</c>, que es el
-    /// token del tema para esto, y al reactivarla se hace <c>ClearValue</c> para devolverla al color de su
-    /// estilo en vez de fijarle otro a mano (que se quedaría clavado al cambiar de tema en caliente).</para>
+    /// más viva que el desplegable de al lado. Se hace <b>cambiando su estilo</b> entre
+    /// <c>HintTextStyle</c> y <c>HintTextDisabledStyle</c>, que es el que lleva
+    /// <c>TextFillColorDisabledBrush</c>, el token del tema para esto.</para>
+    ///
+    /// <para><b>El estilo, y no el pincel</b> (`T13-17`). Antes se hacía
+    /// <c>label.Foreground = (Brush)Application.Current.Resources["TextFillColorDisabledBrush"]</c>, y ese
+    /// diccionario resuelve con el tema de la <b>aplicación</b> —que sigue al de Windows—, no con el que se
+    /// fuerza desde *Configuración* en el elemento raíz. Con Windows en oscuro y la app en claro, la
+    /// etiqueta salía en blanco translúcido sobre una tarjeta clara: medido, <c>#EEECEC</c> sobre
+    /// <c>#FDFBFB</c>, <b>1,07:1</b> — invisible. Un <c>{ThemeResource}</c> dentro de un <c>Setter</c> se
+    /// resuelve al aplicarse el estilo, con el tema del elemento.</para>
     /// </remarks>
     /// <param name="on">Si el sub-bloque debe quedar activo.</param>
     /// <param name="labels">Etiquetas del bloque, que no se atenúan solas.</param>
@@ -282,11 +290,9 @@ public sealed partial class MainWindow
     {
         foreach (Control control in controls) control.IsEnabled = on;
 
-        foreach (TextBlock label in labels)
-        {
-            if (on) label.ClearValue(TextBlock.ForegroundProperty);
-            else    label.Foreground = (Brush)Application.Current.Resources["TextFillColorDisabledBrush"];
-        }
+        var resources = Application.Current.Resources;
+        var style = (Style)resources[on ? "HintTextStyle" : "HintTextDisabledStyle"];
+        foreach (TextBlock label in labels) label.Style = style;
     }
 
     // ── Reinicializar: qué hacer con el espacio sobrante (`T5-02`) ──

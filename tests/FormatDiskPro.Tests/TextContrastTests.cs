@@ -324,4 +324,88 @@ public sealed class TextContrastTests
         Assert.Null(FluentTextPalette.ExemptionReason(brush));   // medible: sin exención
         Assert.True(TryResolve(brush, dark: false, out _), $"{brush} no se puede resolver a un color.");
     }
+
+
+    /// <summary>
+    /// El C# sin sus comentarios. Hace falta porque los remarks de este proyecto <b>citan</b> el código
+    /// que ya no se debe escribir —para que el siguiente que lo lea sepa por qué—, y un barrido que lea
+    /// los comentarios acusa justo al archivo que explica el arreglo. Es la misma trampa que
+    /// <see cref="WithoutXmlComments"/> resolvió para el XAML en `T13-02`.
+    /// </summary>
+    /// <remarks>Conserva los saltos de línea, para no mover los números de línea.</remarks>
+    internal static string WithoutCsComments(string code)
+        => Regex.Replace(code, @"//[^
+]*", "");
+
+    // Un pincel sacado por su nombre del diccionario de la APLICACIÓN. Se pide el nombre literal: así
+    // quedan fuera los que no son pinceles (un Style, un ancho) y también HighContrast, que lo busca por
+    // una clave variable y con razón (ver el remark de abajo).
+    private static readonly Regex BrushFromTheAppDictionary = new(
+        @"Application\.Current\.Resources(?:\[|\.TryGetValue\()\s*""(\w*Brush)""", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Ningún pincel se saca por su nombre de <c>Application.Current.Resources</c> (`T13-17`).
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué es un fallo y no una manía.</b> Ese diccionario resuelve los recursos de tema con
+    /// el tema de la <b>aplicación</b>, que sigue al de Windows; el tema que se elige en *Configuración*
+    /// se fuerza en el elemento raíz. Cuando los dos no coinciden —Windows en oscuro y la app en claro—
+    /// el pincel viene del tema contrario. Reproducido: la etiqueta «Pasadas:» deshabilitada salía en
+    /// <c>#EEECEC</c> sobre una tarjeta <c>#FDFBFB</c>, <b>1,07:1</b>, invisible.</para>
+    /// <para><b>Qué hacer en su lugar:</b> un <c>Style</c> con <c>{ThemeResource}</c>. El estilo se
+    /// resuelve al aplicarse al elemento, así que toma el tema del elemento. Lo mismo hizo `T13-01` con la
+    /// etiqueta de Salud.</para>
+    /// <para>Esto NO prohíbe <c>Application.Current.Resources</c> para lo que no es un color de texto —un
+    /// <c>Style</c>, un ancho— ni en <c>HighContrast</c>, donde manda Windows y los dos temas coinciden
+    /// por definición.</para>
+    /// </remarks>
+    [Fact]
+    public void NoBrush_IsTakenFromTheApplicationDictionary()
+    {
+        var offenders = new List<string>();
+        foreach (string file in AppUiCodeFiles())
+        {
+            string code = WithoutCsComments(File.ReadAllText(file));
+            foreach (Match m in BrushFromTheAppDictionary.Matches(code))
+                offenders.Add($"{Path.GetFileName(file)} → {m.Groups[1].Value}");
+        }
+
+        Assert.True(offenders.Count == 0,
+            "Estos textos toman su color del tema de la APLICACIÓN, no del suyo (`T13-17`): "
+            + string.Join(" · ", offenders));
+    }
+
+    private static readonly Regex SubOptionLabels =
+        new(@"SetSubOptionEnabled\(\s*\w+\s*,\s*\[([^\]]+)\]", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Toda etiqueta que se apaga con <c>SetSubOptionEnabled</c> está declarada con
+    /// <c>HintTextStyle</c> en el XAML.
+    /// </summary>
+    /// <remarks>
+    /// El método cambia el estilo entero de la etiqueta entre <c>HintTextStyle</c> y
+    /// <c>HintTextDisabledStyle</c> (`T13-17`), así que <b>presupone</b> de cuál viene. Una etiqueta con
+    /// otro estilo se quedaría con el de las pistas al reactivarse, sin que nada lo dijera: esta prueba es
+    /// lo que hace ruidosa esa suposición. Si algún día hay que apagar una etiqueta de otro estilo, el
+    /// método tendrá que recibir los dos, y esta prueba será la que lo recuerde.
+    /// </remarks>
+    [Fact]
+    public void EverySubOptionLabel_ComesFromTheHintStyle()
+    {
+        string ui = Path.Combine(RepoRoot(), "src", "FormatDiskPro", "UI");
+        var names = new List<string>();
+        foreach (string file in Directory.EnumerateFiles(ui, "MainWindow*.cs", SearchOption.TopDirectoryOnly))
+            foreach (Match m in SubOptionLabels.Matches(File.ReadAllText(file)))
+                names.AddRange(m.Groups[1].Value.Split(',').Select(n => n.Trim()));
+
+        Assert.NotEmpty(names);   // si el barrido deja de encontrar llamadas, la prueba no vale nada
+
+        string xaml = WithoutXmlComments(File.ReadAllText(Path.Combine(ui, "MainWindow.xaml")));
+        foreach (string name in names.Distinct())
+        {
+            var decl = Regex.Match(xaml, $@"<TextBlock\s+x:Name=""{Regex.Escape(name)}""(.*?)/>", RegexOptions.Singleline);
+            Assert.True(decl.Success, $"No se encontró el TextBlock '{name}' en MainWindow.xaml.");
+            Assert.Contains("{StaticResource HintTextStyle}", decl.Groups[1].Value);
+        }
+    }
 }

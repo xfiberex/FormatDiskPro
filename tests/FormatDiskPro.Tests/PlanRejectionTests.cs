@@ -81,12 +81,15 @@ public class PlanRejectionTests
 
         Assert.Equal(PlanProblem.Fat32VolumeTooLarge, validation.Problem);
 
-        var (key, args) = PlanRejection.Describe(validation, plan, disk);
+        // El idioma se fija ANTES de Describe, no solo antes de traducir: los tamaños los formatea
+        // FormatBytes con la cultura activa, así que con otro idioma puesto saldría «55.7 GB» con punto y
+        // esta prueba fallaría según el orden en que xUnit ejecutara las clases (visto).
         var prev = L.Current;
         string text;
         try
         {
             L.Set(AppLang.Es);
+            var (key, args) = PlanRejection.Describe(validation, plan, disk);
             text = L.T(key, args);
         }
         finally { L.Set(prev); }
