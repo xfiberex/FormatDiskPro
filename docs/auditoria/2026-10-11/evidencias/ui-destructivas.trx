@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c6b382dc-0e61-4cb2-b139-f90dccf97ffd" name="User@<equipo> 2026-10-11 10:59:46" runUser="<usuario>" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-11T10:59:46.9835669-04:00" queuing="2026-10-11T10:59:46.9835671-04:00" start="2026-10-11T10:59:20.9477839-04:00" finish="2026-10-11T11:01:36.3530479-04:00" />
+  <TestSettings name="default" id="e76cf622-7d1e-4fc3-8615-a19664d0e44b">
+    <Deployment runDeploymentRoot="<carpeta>" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="f7183f24-21d4-4b75-a9b2-a7336fa85dc7" testId="860c0471-1323-852f-978d-9b43fdee548d" testName="FormatDiskPro.UiTests.DestructiveLifecycleTests.FullLifecycle_FormatThenReinit_OnDedicatedTestUsb" computerName="<equipo>" duration="00:01:22.2375110" startTime="2026-10-11T11:00:13.9512294-04:00" endTime="2026-10-11T11:01:36.1873684-04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f7183f24-21d4-4b75-a9b2-a7336fa85dc7">
+      <Output>
+        <StdOut>Formateo de G: completado.&#xD;
+Reinicializar (normal) completado. Letra actual: G:&#xD;
+Reinicializar con FAT32 pequeña (1 GB) completado.&#xD;
+Layout de G: 1 partición(es), 28975 MB sin asignar.&#xD;
+Reinicializar con FAT32 pequeña (1 GB) + resto en exFAT completado.&#xD;
+Layout de G: 2 partición(es), 0 MB sin asignar.</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="4e2794b8-2c99-446c-83e0-35ee3349eab9" testId="eae5b715-f94f-df6b-df64-3a42c42accc3" testName="FormatDiskPro.UiTests.OperationErrorTests.VerifyCapacity_DriveDisappears_AppSurvivesAndReportsTheError" computerName="<equipo>" duration="00:00:26.9907087" startTime="2026-10-11T10:59:46.9711757-04:00" endTime="2026-10-11T11:00:13.9480862-04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4e2794b8-2c99-446c-83e0-35ee3349eab9" />
+    <UnitTestResult executionId="31baece2-ca66-4418-8380-fd6a7cbebd4c" testId="95483e92-bf1a-8a99-9445-adfe21c63b3a" testName="FormatDiskPro.UiTests.OperationErrorTests.Benchmark_DriveDisappears_AppSurvivesAndReportsTheError" computerName="<equipo>" duration="00:00:16.7141290" startTime="2026-10-11T10:59:30.2545865-04:00" endTime="2026-10-11T10:59:46.9568567-04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="31baece2-ca66-4418-8380-fd6a7cbebd4c" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="FormatDiskPro.UiTests.OperationErrorTests.VerifyCapacity_DriveDisappears_AppSurvivesAndReportsTheError" storage="c:\users\user\desktop\desarrollo y proyectos\cursos y proyectos\15 - proyectos profesionales\formatdiskpro\tests\formatdiskpro.uitests\bin\release\net10.0-windows10.0.19041.0\formatdiskpro.uitests.dll" id="eae5b715-f94f-df6b-df64-3a42c42accc3">
+      <Execution id="4e2794b8-2c99-446c-83e0-35ee3349eab9" />
+      <TestMethod codeBase="C:\Users\User\Desktop\Desarrollo y Proyectos\Cursos y Proyectos\15 - Proyectos Profesionales\FormatDiskPro\tests\FormatDiskPro.UiTests\bin\Release\net10.0-windows10.0.19041.0\FormatDiskPro.UiTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="FormatDiskPro.UiTests.OperationErrorTests" name="VerifyCapacity_DriveDisappears_AppSurvivesAndReportsTheError" />
+    </UnitTest>
+    <UnitTest name="FormatDiskPro.UiTests.DestructiveLifecycleTests.FullLifecycle_FormatThenReinit_OnDedicatedTestUsb" storage="c:\users\user\desktop\desarrollo y proyectos\cursos y proyectos\15 - proyectos profesionales\formatdiskpro\tests\formatdiskpro.uitests\bin\release\net10.0-windows10.0.19041.0\formatdiskpro.uitests.dll" id="860c0471-1323-852f-978d-9b43fdee548d">
+      <Execution id="f7183f24-21d4-4b75-a9b2-a7336fa85dc7" />
+      <TestMethod codeBase="C:\Users\User\Desktop\Desarrollo y Proyectos\Cursos y Proyectos\15 - Proyectos Profesionales\FormatDiskPro\tests\FormatDiskPro.UiTests\bin\Release\net10.0-windows10.0.19041.0\FormatDiskPro.UiTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="FormatDiskPro.UiTests.DestructiveLifecycleTests" name="FullLifecycle_FormatThenReinit_OnDedicatedTestUsb" />
+    </UnitTest>
+    <UnitTest name="FormatDiskPro.UiTests.OperationErrorTests.Benchmark_DriveDisappears_AppSurvivesAndReportsTheError" storage="c:\users\user\desktop\desarrollo y proyectos\cursos y proyectos\15 - proyectos profesionales\formatdiskpro\tests\formatdiskpro.uitests\bin\release\net10.0-windows10.0.19041.0\formatdiskpro.uitests.dll" id="95483e92-bf1a-8a99-9445-adfe21c63b3a">
+      <Execution id="31baece2-ca66-4418-8380-fd6a7cbebd4c" />
+      <TestMethod codeBase="C:\Users\User\Desktop\Desarrollo y Proyectos\Cursos y Proyectos\15 - Proyectos Profesionales\FormatDiskPro\tests\FormatDiskPro.UiTests\bin\Release\net10.0-windows10.0.19041.0\FormatDiskPro.UiTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="FormatDiskPro.UiTests.OperationErrorTests" name="Benchmark_DriveDisappears_AppSurvivesAndReportsTheError" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="860c0471-1323-852f-978d-9b43fdee548d" executionId="f7183f24-21d4-4b75-a9b2-a7336fa85dc7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="eae5b715-f94f-df6b-df64-3a42c42accc3" executionId="4e2794b8-2c99-446c-83e0-35ee3349eab9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="95483e92-bf1a-8a99-9445-adfe21c63b3a" executionId="31baece2-ca66-4418-8380-fd6a7cbebd4c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Resultados sin formato de lista" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Todos los resultados cargados" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="3" executed="3" passed="3" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: FormatDiskPro.UiTests&#xD;
+[xUnit.net 00:00:00.12]   Discovered:  FormatDiskPro.UiTests&#xD;
+[xUnit.net 00:00:00.14]   Starting:    FormatDiskPro.UiTests&#xD;
+[xUnit.net 00:02:15.00]   Finished:    FormatDiskPro.UiTests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

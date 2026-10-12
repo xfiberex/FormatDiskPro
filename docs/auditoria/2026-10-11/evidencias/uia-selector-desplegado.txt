@@ -1,0 +1,16 @@
+AUD-003 - Selector de unidades desplegado en la app real (v1.29.0, publish self-contained)
+Fecha: 2026-10-11 - terminal elevada - guion: trabajo/scripts/uia-dump.ps1 (API de UI Automation)
+La USB de pruebas ya estaba expulsada: se listan los discos fijos de la maquina.
+
+--- Interactivos SIN nombre ---
+ComboBox | name=[] | id=[DrivePicker] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+--- Selector de unidades ---
+DrivePicker: ComboBox | name=[] | id=[DrivePicker] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+Items: 7
+  item: ListItem | name=[FormatDiskPro.UI.DriveViewModel] | id=[] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+  item: ListItem | name=[FormatDiskPro.UI.DriveViewModel] | id=[] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+  item: ListItem | name=[FormatDiskPro.UI.DriveViewModel] | id=[] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+  item: ListItem | name=[FormatDiskPro.UI.DriveViewModel] | id=[] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+  item: ListItem | name=[FormatDiskPro.UI.DriveViewModel] | id=[] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+  item: ListItem | name=[FormatDiskPro.UI.DriveViewModel] | id=[] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]
+  item: ListItem | name=[FormatDiskPro.UI.DriveViewModel] | id=[] | focusable=True | enabled=True | labeledBy=[] | help=[] | accessKey=[] | accel=[]

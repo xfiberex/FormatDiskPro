@@ -1,0 +1,43 @@
+AUD-001 · Cancelar un formato completo lanzado con Format-Volume
+Fecha: 2026-10-11 · terminal elevada · USB de pruebas (disco fisico 6)
+Guion: trabajo/scripts/cancelar-format-volume.ps1
+
+Que hace: lanza powershell.exe con el script exacto que construye FormatLogic.BuildVolumeScript para un
+formato COMPLETO exFAT, igual que FormatProcess.RunVolumeAsync:
+
+    Format-Volume -DriveLetter G -FileSystem exFAT -AllocationUnitSize 131072
+                  -NewFileSystemLabel 'CANCELTEST' -Full -Confirm:$false -Force
+
+A los 4 s mata el arbol de procesos (taskkill /T /F, equivalente a proc.Kill(entireProcessTree: true),
+que es lo que hace la app al cancelar) y despues observa el volumen cada pocos segundos.
+
+--- Salida ---
+
+Destino: G: · disco 6 (VendorCo ProductCode, USB) · 1024 MB · FAT32 'UTILIDADES' · vacia
+t=4 s    · antes de cancelar: powershell vivo=True · sin volumen
+t=4.2 s  · CANCELADO: arbol de powershell terminado (salio=True)
+t=4.9 s  · sin volumen
+t=8.9 s  · sin volumen
+t=13 s   · sin volumen
+t=17.1 s · sin volumen
+t=21.2 s · sin volumen
+t=25.3 s · sin volumen
+t=29.3 s · sin volumen
+t=33.4 s · sin volumen
+t=37.5 s · sin volumen
+t=41.6 s · sin volumen
+t=45.7 s · sin volumen
+t=49.7 s · fs=[exFAT] etiqueta=[CANCELTEST] estado=[OK]
+RESULTADO: el formato SIGUIO y TERMINO 50 s despues de arrancar, con la app ya en 'cancelado'.
+Restaurando G: a FAT32 'UTILIDADES'...
+Estado final: fs=[FAT32] etiqueta=[UTILIDADES] estado=[OK] (reintentos de restauracion: 0)
+
+--- Como leerlo ---
+
+- "sin volumen" = Get-Volume -DriveLetter G no devuelve nada: el volumen esta bloqueado por el formato.
+- Lo que prueba la traza: 45 s despues de matar PowerShell, el volumen reaparece formateado en exFAT y
+  con la etiqueta nueva. Antes de la prueba era FAT32 'UTILIDADES'. El formato no se detuvo.
+- Lo que NO prueba: el guion tambien muestreaba el contador de escritura del disco 6 y dio 0 MB/s en
+  todas las muestras, porque el nombre de la instancia del contador no coincidio con el patron usado.
+  Esa columna se ha quitado de esta transcripcion: no dice nada sobre si se estaba escribiendo.
+- Particiones de todos los discos tras la prueba: identicas a las de antes (disco 6: G: 1 GB, I: 28,3 GB).

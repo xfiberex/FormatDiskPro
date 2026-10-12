@@ -1,0 +1,30 @@
+AUD-008 · "Expulsar" da la unidad por expulsada sin comprobarlo
+Fecha: 2026-10-11 · terminal elevada · USB de pruebas (disco fisico 6: G: e I:)
+
+Que hace: ejecuta el script de DiskService.EjectAsync (DiskService.cs:149-152) igual que la app,
+con powershell.exe -NonInteractive -NoProfile -EncodedCommand:
+
+    $sh = New-Object -ComObject Shell.Application;
+    $item = $sh.Namespace(17).ParseName('G:');
+    if ($item) { $item.InvokeVerb('Eject') }
+
+La app trata el resultado asi (DiskService.cs:154-155): ok = (codigo de salida == 0).
+
+--- Caso 1: con un archivo abierto en G: ---
+
+PowerShell termino en 0.5 s con codigo 0  -> la app lo trata como: ok = True
+6 s despues: la unidad G: sigue montada = True  |  discos USB presentes = 1
+Volumenes extraibles ahora: I: exFAT '' | G: FAT32 'UTILIDADES'
+
+Con ok = True, la app escribe "Unidad expulsada" en el estado y EJECT G: en el historial
+(MainWindow.Operations.cs:120-127), con la unidad todavia montada y en uso.
+
+--- Caso 2: sin nada abierto ---
+
+Expulsion SIN nada abierto en la unidad: PowerShell termino en 0.5 s con codigo 0
+t=3 s  · G: montada=False · I: montada=False · discos USB=1
+t=6 s  · G: montada=False · I: montada=False · discos USB=1
+t=11 s · G: montada=False · I: montada=False · discos USB=1
+t=16 s · G: montada=False · I: montada=False · discos USB=1
+
+La expulsion en si funciona: lo que falla es que el codigo de salida es 0 en los dos casos.

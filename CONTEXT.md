@@ -14,7 +14,8 @@
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **2.5.1**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 · GitHub Actions (compilación + unitarias, CodeQL) |
 | **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
 | **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — lo pendiente, por tiers · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
-| **Última actualización** | **2026-09-22** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
+| **Última auditoría** | [`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md) — foto fija de esa fecha; lo que dejó pendiente, en la Parte 3 del [`ROADMAP.md`](ROADMAP.md) |
+| **Última actualización** | **2026-10-11** — el qué y el porqué, en la primera entrada del [*Registro de cambios*](#registro-de-cambios) |
 
 > **Esta tabla no lleva estado, y es deliberado (`T9-14`).** Llevaba versión publicada, recuento de pruebas
 > y tiers abiertos —todo duplicado de §3 y del [`ROADMAP.md`](ROADMAP.md)—, y llegó a contradecir a la fila
@@ -154,6 +155,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
+| **Auditoría 2026-10-11** | **ABIERTA** — re-auditoría transversal de doce áreas sobre la v1.29.0, con la app en marcha: **71 hallazgos** (0 críticos · 2 altos · 22 medios · 47 bajos), **0 cerrados**. Informe en [`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md); tareas `AUD-001`–`AUD-071` en la Parte 3 del [`ROADMAP.md`](ROADMAP.md). Línea base medida ese día: build sin advertencias, **690 unitarias** (689 pasan · 1 se omite) y **43 de UI** (40 pasan · 3 de opt-in se omiten; con el opt-in, las 3 pasan). **Ojo:** las filas de abajo se conservan tal como estaban y varias de sus cifras ya no son ciertas; corregirlas es `AUD-018` |
 | Build | 0 advertencias / 0 errores |
 | Unitarias | **626 / 626** (625 pasan · 1 se omite) (433 + 20 del arreglo de *FAT32 pequeña* + 40 `T5-01` + 16 `T5-02` + 12 `T5-03` + 5 de la barra de ocupación + 1 de `T6-01` + 9 de `T6-03` + 11 de `T6-04` + 11 de `T6-05` + 3 de `T6-06` + 1 de `T6-09` + 9 de `T6-13` + 3 de `T6-15` + 7 de `T6-12` + 3 de `T7-01`/`T7-03`/`T7-05` + 6 de `T7-08` + 2 de `T7-09` + 7 de `T8-02` + 1 de `T8-03` + 3 de `T8-05` + 16 del Tier 9: 4 de los quick wins (`T9-07`, `T9-10`, `T9-11`, `T9-12`) y 12 del resto (`T9-08`, `T9-09`, `T9-13`, `T9-18`, `T9-19`) + 3 de `T12-01`; las 41 de `T11-01` se fueron con la franja en `T12-07`) · se ejecutan en local y, desde el 2026-09-18, también en el **CI** de GitHub Actions, en cada push a `master` y cada PR (ver §4) |
 | UI tests | **2026-09-01, con la USB (`utilidades`), en el corte de la v1.26.0: 34 pasan / 3 se omiten / 0 fallan** en ~2 min — la pasada que cubre los Tiers 11 y 12 (barra de acciones, cabecera de unidad, franja de rendimiento, pie con «Formatear I:», presets y galón de scroll). Las 3 omitidas son opt-in (`ALLOW_YANK` ×2, `ALLOW_DESTRUCTIVE`). Historial: **38** en total (+1 de `T6-01`, +1 de `T6-02`, +1 de `T7-04`, +1 de `T7-02`, +5 de `T7-06`/`T7-07`, +1 de `T8-01`, −2 las dos sondas borradas) · con la USB (`utilidades`) y `--filter "Category!=Slow"`: **26 pasan / 3 se omiten / 0 fallan** en **1 m 47 s** (2026-08-17, antes del Tier 7) · las 3 omitidas son de opt-in (2 `ALLOW_YANK` + 1 `ALLOW_DESTRUCTIVE`), no falta de hardware · **sin** la USB: 19 pasan / 10 se omiten (con alguna unidad no-sistema conectada; el 2026-08-26, sin ninguna y ya con el Tier 7 y el Tier 8, fueron **27 pasan / 11 se omiten / 0 fallan** en 16 s — los cuatro `[NonSystemDriveFact]` de `FormatOptionsUiTests` también se omiten) · el corte usa ese mismo filtro y **dice qué dejó fuera** |
@@ -391,6 +393,23 @@ ni mueve datos).
 
 ---
 
+## 8. Falsos positivos verificados
+
+> Hallazgos que una auditoría propuso y **descartó tras comprobarlos**. Constan para que la siguiente no
+> los repita. Si el código cambia y el motivo deja de sostenerse, se quita la fila. Las áreas revisadas
+> sin hallazgos en auditorías anteriores (inyección de comandos, secretos, tipografía francesa…) están en
+> *Áreas auditadas sin hallazgos*, al final de la Parte 2 del [`ROADMAP.md`](ROADMAP.md).
+
+| Fecha | Lo que se propuso | Por qué es falso | Cómo se comprobó |
+|---|---|---|---|
+| 2026-10-11 | «La app en reposo ignora `WM_CLOSE`: no se cierra con `taskkill` ni cuando un instalador se lo pide» | Fallaba el observador, no la app: el mensaje se envió desde una terminal **sin elevar**, y UIPI descarta en silencio los mensajes y la automatización hacia una ventana elevada | Con la terminal elevada, `WM_CLOSE` y `taskkill` sin `/F` cierran la app en 4 de 4 intentos, con y sin carga de CPU |
+| 2026-10-11 | «El arranque se triplicó con el Windows App SDK 2.x (1,7–2,4 s)» | Medición contaminada: incluía la elevación y la carga de otros procesos | En reposo, 512 ms hasta la ventana: igual que el 2026-08-26 |
+| 2026-10-11 | «Una excepción en el constructor de la ventana deja un proceso elevado vivo y sin ventana» | El proceso termina solo (`0xC000027B`). Lo cierto es que la app no arranca y no dice por qué, y eso es `AUD-027` | Arranque con un `settings.json` que lleva `"UserPresets": null` |
+| 2026-10-11 | «*Expulsar* nunca funciona: PowerShell termina antes de que el shell ejecute el verbo» | Sin nada abierto, los volúmenes se desmontan a los 3 s. Lo que falla es **informar** de si se expulsó (`AUD-008`) | Reproducción sobre la USB de pruebas, con y sin un archivo abierto |
+| 2026-10-11 | Seis «claves de API» señaladas por gitleaks | Están en `obj/**/MsixContent/MSIX/*_license.xml`: salida de compilación del Windows App SDK, que git ignora | gitleaks 8.30.1 sobre el historial completo (153 commits): 0 hallazgos |
+
+---
+
 ## Registro de cambios
 
 ### Índice de versiones
@@ -442,6 +461,56 @@ ni mueve datos).
 | **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
 
 ---
+
+### 2026-10-11 — Re-auditoría transversal: 71 hallazgos y la Parte 3 del ROADMAP (sin cambios de código)
+
+**Qué se hizo.** Auditoría de doce áreas sobre la v1.29.0 (commit `72f2902`), exhaustiva y con la app en
+marcha: suite de UI completa, las tres pruebas de opt-in destructivo sobre la USB de pruebas (con las
+particiones de **todos** los discos comparadas antes y después), galería en los cinco idiomas, árbol de
+UI Automation, arranque medido, gitleaks sobre el historial entero y el estado real del repositorio en
+GitHub. **No se tocó una línea de código**: es la Fase 1. El informe está en
+[`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md) y las 71 tareas
+(`AUD-001`–`AUD-071`), en la Parte 3 del [`ROADMAP.md`](ROADMAP.md).
+
+**Qué se encontró.** 0 críticos, 2 altos, 22 medios y 47 bajos (los tres propuestos como altos pasaron
+por un verificador independiente, que confirmó dos y rebajó uno). El camino normal está sano —690
+unitarias y 43 de UI en verde, `Core/` al 97,7 %, sin secretos ni dependencias vulnerables, y las tareas
+de seguridad cerradas siguen cerradas—. Lo que aparece está en los bordes:
+
+- **«Cancelar» hace dos cosas distintas según por dónde vaya el formato** (`AUD-001`). Con `format.com`
+  se detiene y deja la unidad sin sistema de archivos; con `Format-Volume` (exFAT y ReFS completos) la
+  app mata PowerShell, dice «Cancelado» y el formato **sigue hasta el final** en el proveedor de
+  almacenamiento. Medido: cancelado a los 4 s, terminado a los 50.
+- **La verificación del instalador es correcta, pero no queda ligada a lo que se ejecuta** (`AUD-002`):
+  se verifica y se lanza por ruta desde `%TEMP%\FormatDiskPro_update`, que escribe cualquier proceso del
+  usuario sin elevar. Es la misma frontera que ya se vigiló en el contenido de `settings.json` (`T9-09`).
+  Quedó en **Medio**: exige una sesión ya comprometida, una actualización aceptada y ganar una carrera.
+- **El selector de unidad es el único control sin nombre accesible** (`AUD-003`), y sus ocho opciones se
+  anuncian con el nombre de la clase.
+- Dos fallos que solo se ven con la unidad en uso: *Comprobar y reparar* se queda colgado en la segunda
+  pregunta de `chkdsk` (`AUD-006`) y *Expulsar* dice «expulsada» aunque no lo esté (`AUD-008`).
+
+**Sobre las notas.** Es la primera auditoría que deja informe en disco, así que no hay nota anterior con
+la que comparar; la tabla de puntuación del informe es el punto de partida de la siguiente.
+
+**Lo que se aprendió haciendo la auditoría** (vale para la próxima, no para el producto):
+
+- **Comprobar la elevación al empezar cada sesión, no una vez.** Una sesión que resultó no estar elevada
+  produjo dos hallazgos falsos —«la app ignora `WM_CLOSE`» y «el arranque se triplicó»—, porque UIPI
+  descarta en silencio lo que se envía a una ventana elevada. Están en el §8 para que no vuelvan.
+- **Siete subagentes en paralelo agotaron el límite de sesión tres veces** sin terminar. Dejaron dos
+  áreas completas y siete a medias; el resto lo cerró el coordinador verificando cada candidato en el
+  código. Con este tamaño de repo, mejor pocos agentes y que escriban a disco desde el primer hallazgo.
+- **Un arnés en Windows PowerShell 5.1 no reproduce la entrada estándar de la app:** .NET Framework
+  antepone una marca de orden de bytes cuando la consola está en UTF-8, y .NET 10 no. La primera
+  reproducción de `AUD-006` salió torcida por eso.
+- **`CONTEXT.md` y `ROADMAP.md` ya son un coste**, no solo una ayuda (`AUD-019`): 265 KB y 330 KB que
+  cada revisión tiene que recorrer.
+
+**Qué quedó a medias.** Nada corregido. Sin cubrir, y dicho en el informe: alto contraste y escalado
+del sistema, Narrador, la sustitución real del instalador, el instalador en una máquina virtual y la
+normativa de protección de datos (no se indicó jurisdicción). La USB de pruebas quedó como estaba y
+expulsada. `CHANGELOG.md` no se toca: registra cambios hechos, y no se ha hecho ninguno.
 
 ### 2026-09-22 — `T13-20`: Windows App SDK 2.x, y el Tier 13 cerrado
 

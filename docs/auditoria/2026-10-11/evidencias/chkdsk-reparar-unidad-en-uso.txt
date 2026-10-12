@@ -1,0 +1,16 @@
+chkdsk G: /f con un archivo abierto en G:, una sola 'N' por la entrada estandar y la entrada sin cerrar (CheckDisk.cs:62-67).
+Salio por si solo en 30 s: False. Codigo de salida tras cerrar la entrada: 3.
+
+El tipo del sistema de archivos es FAT32.
+
+Chkdsk no puede ejecutarse ya que el volumen estß siendo usado por otro
+proceso. Chkdsk puede ejecutarse si se desmonta previamente este volumen.
+TODOS LOS IDENTIFICADORES ABIERTOS A ESTE VOLUMEN NO SER┴N V┴LIDOS.
+┐Desea exigir el desmontaje de este volumen? (S/N) N
+
+CHKDSK no se puede ejecutar porque otro proceso ya estß usando el
+volumen. ┐Desea que se prepare este volumen para que sea comprobado
+la pr¾xima vez que se reinicie el sistema? (S/N) 
+CHKDSK no se puede ejecutar porque otro proceso ya estß usando el
+volumen. ┐Desea que se prepare este volumen para que sea comprobado
+la pr¾xima vez que se reinicie el sistema? (S/N) 

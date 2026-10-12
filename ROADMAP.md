@@ -9,12 +9,13 @@
 > **Propósito del proyecto:** **formatear, diagnosticar y gestionar unidades en Windows**. Todo lo que hay
 > aquí cabe dentro de eso; lo que no, está al final y está fuera **a propósito**.
 
-> **Este archivo tiene dos partes y dos numeraciones distintas — no las mezcles:**
+> **Este archivo tiene tres partes y tres numeraciones distintas — no las mezcles:**
 >
 > | Parte | Qué es | IDs |
 > |---|---|---|
 > | **Parte 1** (abajo) | **Historial de producto**: las características entregadas, por tiers de entrega. Cerrada. | `#1`–`#45` |
-> | **Parte 2** (al final) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
+> | **Parte 2** (después) | **Backlog de remediación** de la auditoría técnica del **2026-08-13**. Cerrada. | `T0-01`–`T4-05` |
+> | **Parte 3** (al final) | **Auditoría del 2026-10-11**: 71 tareas ordenadas por severidad. **Abierta (0/71).** | `AUD-001`–`AUD-071` |
 >
 > Al final de la Parte 2 hay además nueve tiers que **no** son parte de la auditoría (que sigue siendo de
 > 40 tareas): **Tier 5 — Ocurrencias para features existentes** (`T5-01`–`T5-05`), ampliaciones de lo ya
@@ -33,6 +34,16 @@
 
 ## 🏁 Estado
 
+> **Se abre la [Parte 3](#parte-3--auditoría-del-2026-10-11-aud-001--aud-071)** el **2026-10-11**, con
+> **71 tareas** (`AUD-001` a `AUD-071`: 2 Altas · 22 Medias · 47 Bajas), de una re-auditoría transversal
+> de doce áreas sobre la v1.29.0, con la app en marcha y pruebas destructivas sobre la USB de pruebas. Las
+> dos Altas: cancelar un formato completo exFAT no lo detiene (`AUD-001`) y el selector de unidad no tiene
+> nombre accesible (`AUD-003`). Detrás, el instalador de la actualización se ejecuta por ruta desde una
+> carpeta que el usuario sin elevar controla (`AUD-002`, Media tras la verificación independiente). El
+> informe, con la evidencia de cada hallazgo, está en
+> [`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md).
+> **Progreso de la Parte 3: 0/71.** Lo que sigue es el estado de las Partes 1 y 2, que no cambia.
+>
 > **Se abre el [Tier 13](#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18)** el **2026-09-18**, con
 > **16 tareas** (3 Altas · 7 Medias · 6 Bajas, dos de ellas decisiones de diseño), de una auditoría de UI/UX
 > hecha **midiendo**: contraste sobre los fondos reales de las capturas, anchos de texto con la fuente real y
@@ -3678,3 +3689,678 @@ Constan aquí para que no se vuelvan a revisar sin motivo:
 - **Plantillas de GitHub** — **revisado, sin hallazgos.** `SECURITY.md` (canal privado y política de
   versiones), `CONTRIBUTING.md`, `PULL_REQUEST_TEMPLATE.md` y las tres plantillas de issue están
   completas y son coherentes con que no haya CI.
+
+---
+
+# Parte 3 — Auditoría del 2026-10-11 (`AUD-001` – `AUD-071`)
+
+> **Qué es esto.** El plan que sale de la re-auditoría transversal del **2026-10-11** sobre la v1.29.0
+> (commit `72f2902`): doce áreas, con la app en marcha y pruebas destructivas sobre la USB de pruebas.
+> El informe completo, con la evidencia de cada hallazgo, está en
+> [`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md); aquí cada tarea es
+> autocontenida y **ninguna añade funcionalidad**.
+>
+> **Numeración.** Los IDs `AUD-NNN` son globales, correlativos y permanentes, y son los mismos que en el
+> informe. Conviven con los `T{tier}-{n}` de la Parte 2, que no se tocan. En esta parte el tier sale solo
+> de la severidad —Tier 1 = Alto, Tier 2 = Medio, Tier 3 = Bajo—, de modo que si una tarea cambia de
+> severidad cambia de sección, no de ID. No hay hallazgos críticos (Tier 0) ni propuestas (Tier 4).
+>
+> **Rutas.** `src/…` abrevia `src/FormatDiskPro/…`. Las evidencias (`evidencias/…`) están en
+> `docs/auditoria/2026-10-11/`.
+
+## Índice de la Parte 3
+
+| Tier | Severidad | Abiertas | Cerradas |
+|---|---|---:|---:|
+| **1** | Alto | 2 | 0 |
+| **2** | Medio | 22 | 0 |
+| **3** | Bajo | 47 | 0 |
+| | **Total** | **71** | **0** |
+
+| Área | Alto | Medio | Bajo | Total |
+|---|---:|---:|---:|---:|
+| Código | – | 6 | 5 | 11 |
+| Seguridad | – | 3 | 2 | 5 |
+| Rendimiento | – | – | 1 | 1 |
+| Accesibilidad | 1 | 1 | – | 2 |
+| UI/UX | – | – | 3 | 3 |
+| Arquitectura y resiliencia | 1 | 2 | 4 | 7 |
+| QA | – | 2 | 1 | 3 |
+| Refactorización | – | – | 3 | 3 |
+| Redacción | – | – | 6 | 6 |
+| Documentación | – | 3 | 2 | 5 |
+| DevOps | – | 4 | 15 | 19 |
+| Legal | – | 1 | 5 | 6 |
+| **Total** | **2** | **22** | **47** | **71** |
+
+**Esfuerzo agregado:** 54 tareas de esfuerzo bajo (hasta 2 horas) y 17 de esfuerzo medio (hasta 1 día);
+ninguna de esfuerzo alto. **Última actualización:** 2026-10-11.
+
+**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-001`, `AUD-013`, `AUD-012` y
+`AUD-015` (que una operación destructiva no pueda decir algo distinto de lo que hace) → `AUD-002`,
+`AUD-004`, `AUD-025`, `AUD-026` (la frontera con lo que el usuario sin elevar controla) → `AUD-003`,
+`AUD-014` (accesibilidad) → los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
+`AUD-044` a `AUD-047`, `AUD-066`) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
+`AUD-056` → documentos vivos (`AUD-019` antes que `AUD-018`).
+
+## 🟠 Tier 1 — Alto
+
+- [ ] **AUD-001 · Cancelar un formato completo lanzado con `Format-Volume` no lo detiene**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Alto · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/FormatProcess.cs:55-67` (cancelación en `:61`) · `src/UI/MainWindow.xaml.cs:586`, `:604-618`, `:879-889` · `src/Localization/Localization.cs:453` · evidencias: `evidencias/cancelar-format-volume.txt`, `evidencias/cancelar-format-com.txt`
+  - **Qué hacer:** (1) no dar por cancelado lo que no se puede cancelar: mientras el formato siga, mantener la operación abierta con un estado propio («Windows está terminando el formato; no retires la unidad») y sondear el volumen hasta que vuelva; o deshabilitar Cancelar en esa vía y decirlo antes de empezar. (2) Valorar llevar también exFAT completo por `format.com`, que sí se detiene. (3) Tras cualquier cancelación, recargar las unidades y decir en qué estado queda la que se estaba formateando.
+  - **Criterio de aceptación:** cancelar un formato completo exFAT sobre la USB de pruebas deja la app ocupada hasta que el volumen vuelve, o el botón no está disponible; tras cancelar uno NTFS, el estado dice que la unidad quedó sin formato y la tarjeta lo refleja. Una prueba de UI con opt-in destructivo cubre ambos casos.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-003 · El selector de unidad no tiene nombre accesible y todas sus opciones se anuncian igual**
+  - **Área:** Accesibilidad · **Severidad:** Alto · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml:167-179` · `src/UI/DriveViewModel.cs:6-40` · `src/UI/MainWindow.Preferences.cs:219` (solo recibe un texto de sugerencia; los demás combos reciben nombre en `:189-190` y `:221-224`) · evidencias: `evidencias/uia-arbol-principal.txt` (línea 23), `evidencias/uia-selector-desplegado.txt`
+  - **Qué hacer:** `AutomationProperties.LabeledBy="{x:Bind UnitGroupLbl}"` en el combo, y nombre por ítem: `public override string ToString() => DisplayText;` en `DriveViewModel` (o `AutomationProperties.Name="{x:Bind DisplayText}"` en la plantilla).
+  - **Criterio de aceptación:** una prueba de UI exige `Name` no vacío en `DrivePicker` y que el `Name` de cada ítem contenga su letra; el volcado de UIA no lista ningún control interactivo sin nombre.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+## 🟡 Tier 2 — Medio
+
+- [ ] **AUD-002 · El instalador de la actualización se verifica y después se ejecuta por ruta desde una carpeta que el usuario sin elevar controla**
+  - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/UpdateService.cs:217-227` (carpeta), `:202-214` y `:331-350` (verificación), `:399-404` (hash: abre y cierra), `:523-528` (`LaunchInstaller`) · `src/UI/MainWindow.HelpAndUpdates.cs:235-243`
+  - **Qué hacer:** (1) descargar a una carpeta que solo escriban administradores (por ejemplo bajo `%ProgramData%\FormatDiskPro\update`), creada con DACL explícita y protegida, comprobando que no es un punto de reanálisis y que su propietario es Administradores o SYSTEM; (2) ligar verificación y ejecución: abrir el archivo una sola vez con `FileShare.Read`, calcular el hash sobre ese `FileStream` y mantenerlo abierto hasta que `Process.Start` haya devuelto; (3) borrar solo el archivo que se va a escribir, no «lo que haya» en la carpeta.
+  - **Criterio de aceptación:** `icacls` sobre la carpeta de descarga no concede escritura a la cuenta sin elevar; una prueba que intenta abrir el instalador para escritura después de verificarlo y antes de lanzarlo falla; una carpeta preexistente con otro propietario o que sea un punto de reanálisis se rechaza con un motivo registrado; `UpdateServiceTests` sigue pasando.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-004 · Los enlaces y el historial se abren con el shell desde el proceso elevado, y `OpenUrl` no valida lo que abre**
+  - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/UpdateService.cs:541-549` (`OpenUrl`) · `src/Services/History.cs:77-86` (`Open`) · llamantes: `src/UI/AboutDialog.xaml.cs:33-34`, `src/UI/WhatsNewDialog.xaml.cs:39`, `src/UI/MainWindow.HelpAndUpdates.cs:163`, `src/UI/HistoryDialog.xaml.cs:200`
+  - **Qué hacer:** abrir enlaces y archivos sin elevación a través del shell del escritorio (`IShellDispatch2.ShellExecute` desde la vista del escritorio, o `%SystemRoot%\explorer.exe "<destino>"` por ruta absoluta). En `OpenUrl`, aceptar solo `https` y los hosts esperados con `Uri.TryCreate`.
+  - **Criterio de aceptación:** con la app elevada y sin navegador abierto, «GitHub» abre un navegador con integridad media; una prueba unitaria rechaza `file:///C:/x.exe`, `C:\x.exe` y `http://`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-005 · El canal privado de vulnerabilidades que anuncia `SECURITY.md` está desactivado en GitHub**
+  - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/SECURITY.md:20-22` · configuración del repositorio
+  - **Qué hacer:** activar *Private vulnerability reporting* en *Settings → Code security*. De paso, activar las alertas de Dependabot (ver AUD-066).
+  - **Criterio de aceptación:** la API devuelve `enabled: true` y el enlace de `SECURITY.md` abre el formulario desde una cuenta sin permisos.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-006 · «Comprobar y reparar» se queda colgado si la unidad está en uso**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/CheckDisk.cs:60-67` · evidencia: `evidencias/chkdsk-reparar-unidad-en-uso.txt`
+  - **Qué hacer:** cerrar `StandardInput` después de escribir la respuesta (el fin de entrada hace que `chkdsk` salga), o no escribir nada y cerrarla sin más. Con el código 3 la app ya dice «no se pudo comprobar (¿está en uso?)».
+  - **Criterio de aceptación:** una prueba con `FakeProcessRunner` comprueba que la entrada queda cerrada; sobre la USB con un archivo abierto, «Comprobar y reparar» termina en segundos con el mensaje de unidad en uso.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-007 · Un `chkdsk` de solo lectura que encuentra errores se presenta como «no se pudo comprobar»**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/CheckDisk.cs:27-33` · `src/UI/MainWindow.Operations.cs:283`, `:293-304` · `src/Localization/Localization.cs:362` · `tests/FormatDiskPro.Tests/CheckDiskTests.cs:19`
+  - **Qué hacer:** en solo lectura, tratar el 3 como «errores encontrados o no se pudo comprobar» y decidir con la salida, que ya se captura; ofrecer la salida completa en un desplegable del diálogo de resultado.
+  - **Criterio de aceptación:** la prueba de `Interpret` distingue los dos modos para el código 3, y el diálogo de resultado permite leer la salida de `chkdsk`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-008 · «Expulsar» da la unidad por expulsada sin comprobarlo**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/DiskService.cs:145-156` · `src/UI/MainWindow.Operations.cs:120-131` · evidencia: `evidencias/expulsar.txt`
+  - **Qué hacer:** tras invocar el verbo, sondear unos segundos si el volumen sigue montado (`DriveInfo.IsReady` o `Get-Volume`) y devolver `false` si sigue; el texto de fallo ya existe (`eject.fail`).
+  - **Criterio de aceptación:** con un archivo abierto en la USB, «Expulsar» muestra el aviso de que no se pudo y no registra `EJECT`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-009 · El borrado seguro puede no ejecutarse y aun así registrarse y anunciarse como hecho**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:641`, `:662-664` · `src/Services/SecureWipe.cs:85`, `:94`
+  - **Qué hacer:** tratar cualquier valor distinto de 0 como fallo (estado de error, `WIPE FAIL` en el historial, diálogo propio), o hacer que el servicio lance.
+  - **Criterio de aceptación:** con un `ISecureWipe` falso que devuelve `-1`, la operación termina en error y el historial no contiene `wipe=True`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-010 · Las consultas a PowerShell de `DiskService` no tienen límite de tiempo ni cancelación, y redirigen una salida de error que nadie lee**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/DiskService.cs:160-194`
+  - **Qué hacer:** un plazo por consulta (10 a 15 s) con `CancellationTokenSource` que mate el proceso, y leer o no redirigir `stderr`. Que el fallo por plazo llegue a la interfaz como «no se pudo consultar la unidad».
+  - **Criterio de aceptación:** con un `IProcessRunner` falso que no termina, cada método de `DiskService` devuelve su valor de «no se sabe» dentro del plazo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-011 · El diálogo de error de un formateo fallido enseña el XML interno de PowerShell**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:604-607`, `:673` · `src/Services/FormatProcess.cs:63-67` · `src/Services/ReinitDrive.cs:147` · evidencia: `evidencias/format-volume-fallido-stderr.txt`
+  - **Qué hacer:** extraer el texto de los nodos `<S S="Error">` (deshaciendo los escapes `_xHHHH_`) antes de mostrarlo, en una función pura de `Core/` con su prueba; o añadir al script un `try/catch` que escriba `$_.Exception.Message` por `stdout`.
+  - **Criterio de aceptación:** una prueba pasa el contenido de la evidencia a la función y obtiene «Format-Volume : No se encontraron objetos MSFT_Volume…» sin etiquetas.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-012 · La guarda «no reinicializar el disco de Windows» falla abierta si no se puede leer el disco del sistema**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.Operations.cs:347-354`
+  - **Qué hacer:** rechazar también cuando `sysDisk is null`, con un mensaje propio («no se pudo comprobar que la unidad no comparte disco con Windows»). Extraer la decisión a una función pura (ver AUD-015).
+  - **Criterio de aceptación:** una prueba unitaria de la función extraída devuelve «rechazar» para `(target: 3, system: null)`.
+  - **Depende de:** AUD-015 (misma extracción de las guardas a `Core/`)
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-013 · No se revalida la identidad de la unidad entre la confirmación y la operación destructiva**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:443`, `:471-478`, `:511-517`, `:249` · `src/UI/MainWindow.Operations.cs:330-354`, `:438-452` · `src/Services/ReinitDrive.cs:84` · `src/Core/FormatLogic.cs:53`
+  - **Qué hacer:** capturar una identidad estable al abrir la confirmación (número de disco, `UniqueId` o número de serie y tamaño) y comprobarla justo antes de ejecutar; en Reinicializar, pasar al script el número de disco ya verificado y que el propio script aborte si `BusType`, `IsSystem`, `IsBoot` o el tamaño no coinciden. Si la lista cambia con una confirmación abierta, cerrarla.
+  - **Criterio de aceptación:** con una identidad distinta de la capturada, la operación no se lanza y lo dice; una prueba unitaria cubre la comparación.
+  - **Depende de:** AUD-015 (misma extracción de las guardas a `Core/`)
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-014 · Dos regiones activas declaradas nunca avisan al lector de pantalla, y un error no se anuncia**
+  - **Área:** Accesibilidad · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/HistoryDialog.xaml:32-33` y `HistoryDialog.xaml.cs:104-107` · `src/UI/PresetsDialog.xaml:22-23` y `PresetsDialog.xaml.cs:199-203` · estados sin anuncio: `src/UI/MainWindow.Operations.cs:124`, `:174`, `src/UI/MainWindow.HelpAndUpdates.cs:128`
+  - **Qué hacer:** mover `RaiseLiveRegionChanged` a un ayudante compartido y llamarlo al cambiar `CountText` y `ErrorText`; usar `SetStatusAndAnnounce` en los tres estados.
+  - **Criterio de aceptación:** Accessibility Insights registra un evento `LiveRegionChanged` al filtrar el historial y al rechazar un nombre de preset.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-015 · Las guardas que deciden si una operación destructiva procede no tienen ninguna prueba que ejerza su rechazo**
+  - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:448-462`, `:931-935` · `src/UI/MainWindow.Operations.cs:330-354` · `tests/FormatDiskPro.UiTests/MainWindowTests.cs:45`
+  - **Qué hacer:** extraer a `Core/` una función pura por operación (`OperationGuard.CanFormat(...)`, `CanReinit(...)`) que reciba hechos (tipo de unidad, letra de sistema, números de disco) y devuelva un motivo tipado, como ya hace `PartitionPlan.Validate`; cubrirla con pruebas, incluidos los nulos.
+  - **Criterio de aceptación:** `Core/` contiene las decisiones de rechazo con cobertura del 100 % de sus ramas, y los manejadores solo traducen el motivo a un diálogo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-016 · El borrado seguro no tiene ninguna prueba automatizada**
+  - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/SecureWipe.cs:80-146` · `tests/FormatDiskPro.Tests/SecureWipeTests.cs:9` · `tests/FormatDiskPro.UiTests/DestructiveLifecycleTests.cs:233`
+  - **Qué hacer:** la misma costura que `CapacityVerifier`: un `RunInAsync(dir, bytes, passes, …)` probado sobre una carpeta temporal (contenido de la última pasada, borrado del directorio, cancelación a mitad), y activar el borrado en una variante del ciclo destructivo de UI.
+  - **Criterio de aceptación:** `SecureWipe.cs` supera el 90 % de cobertura y existe una prueba que falla si la última pasada no es aleatoria.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-017 · El requisito de sistema documentado contradice al instalador, y varios archivos siguen citando el Windows App SDK 1.8**
+  - **Área:** Documentación · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `README.md:94`, `:190` · `.github/CONTRIBUTING.md:13` · `src/installer/installer.iss:11`, `:25`, `:66-67` · `src/FormatDiskPro.csproj:5`, `:43`
+  - **Qué hacer:** decidir el mínimo (de hecho, a 2026-10-11, es 19041), declararlo en el `.csproj` (`SupportedOSPlatformVersion`) y alinear README, CONTRIBUTING, `MinVersion` y los tres comentarios.
+  - **Criterio de aceptación:** una búsqueda de «1809», «19041» y «1.8» en el repo devuelve un único valor coherente.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-018 · `CONTEXT.md` §2 y §3 vuelven a estar desfasados y se contradicen**
+  - **Área:** Documentación · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `CONTEXT.md:44-63`, `:80-92`, `:158`, `:162`, `:164-165`
+  - **Qué hacer:** dejar en §3 solo lo que no se pueda obtener con un comando y enlazar el resto; para las cifras, una línea con el comando que las da. Regenerar el árbol de §2 a partir de `git ls-files`.
+  - **Criterio de aceptación:** ninguna cifra de §3 contradice la salida de `dotnet test`, y el árbol de §2 coincide con `git ls-files src/`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11 · regresión de `T9-14` (estado duplicado que caduca) y de `T9-15` (árbol de archivos)
+
+- [ ] **AUD-019 · `CONTEXT.md` y `ROADMAP.md` han crecido hasta dejar de cumplir su función**
+  - **Área:** Documentación · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `CONTEXT.md` (3.387 líneas, 264.920 bytes; el registro de cambios ocupa 2.994) · `ROADMAP.md` (3.680 líneas, 330.663 bytes; `:350-369`) · `.claude/CLAUDE.md`
+  - **Qué hacer:** mover el registro de cambios de `CONTEXT.md` a `docs/contexto-historico.md`, dejando las últimas entradas y un enlace; mover los tiers cerrados del `ROADMAP.md` a `docs/roadmap-historico.md`, dejando índice, abiertas y decisiones; regenerar el índice. Esta auditoría ya añade la sección de falsos positivos.
+  - **Criterio de aceptación:** `CONTEXT.md` baja de 500 líneas sin perder §1 a §7, el índice del `ROADMAP.md` cuadra con sus tiers y ningún enlace interno queda roto.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-020 · El corte no comprueba en qué rama está ni si va por detrás de `origin`**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:421-426`, `:745-749`, `:805`
+  - **Qué hacer:** al principio de las validaciones, `git fetch origin $branch`, abortar si `git rev-list --count HEAD..origin/$branch` es mayor que 0 y avisar si la rama no es `master`. En `-ResumeRelease`, comprobar que el tag está contenido en `origin/$branch`.
+  - **Criterio de aceptación:** con un commit de más en `origin/master`, `release.ps1 -DryRun` aborta antes de las pruebas diciendo cuántos commits faltan.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-021 · `-ResumeRelease` publica el instalador que haya en la carpeta de salida sin comprobar que es el del tag**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:473-474`, `:731-742`, `:771-781`, `:847`
+  - **Qué hacer:** antes de `gh release create`, recalcular `Get-FileHash` y abortar si no coincide con el `.sha256`; anotar el hash en el mensaje del tag y exigir en `-ResumeRelease` que el instalador presente sea ese.
+  - **Criterio de aceptación:** con el `.exe` sustituido tras etiquetar, `-ResumeRelease` aborta nombrando la discrepancia.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-022 · La compilación solo es reproducible para el Windows App SDK**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** raíz del repo (no existen `global.json`, `nuget.config` ni `packages.lock.json`) · `.github/workflows/ci.yml:49`, `:62-64` · `src/installer/build-installer.ps1:183-190`
+  - **Qué hacer:** `global.json` con `rollForward: latestPatch`; `RestorePackagesWithLockFile` con `--locked-mode` en CI y en el corte; `nuget.config` con solo nuget.org; y que el corte deje escrita la versión del runtime empaquetado.
+  - **Criterio de aceptación:** dos compilaciones del mismo commit usan el mismo SDK y los mismos paquetes, y cada release declara el runtime que contiene.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-023 · La configuración de agentes de IA está versionada en un repositorio público sin fijar ni vigilar**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `.mcp.json:3-10` · `.claude/settings.json:2-13` · `.claude/CLAUDE.md` · `.agents/skills/*/SKILL.md` · `skills-lock.json` · `.github/CONTRIBUTING.md:47-48` · `.github/PULL_REQUEST_TEMPLATE.md:28`
+  - **Qué hacer:** añadir esas rutas a la lista de «revisar con cuidado» de la guía y de la plantilla; un paso de CI que compare cada `SKILL.md` con su hash bloqueado; documentar qué es `codegraph` y de dónde se instala.
+  - **Criterio de aceptación:** un PR que toque esas rutas queda señalado y el CI detecta un `SKILL.md` que no corresponde a su hash.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-024 · Los avisos de terceros declaran licencias que no son las de lo que se redistribuye**
+  - **Área:** Legal · **Severidad:** Medio · **Esfuerzo:** Medio · *requiere revisión legal*
+  - **Ubicación:** `THIRD-PARTY-NOTICES.txt:23`, `:30-40`, `:50-54` · `src/installer/installer.iss:95`
+  - **Qué hacer:** citar en cada entrada la licencia que acompaña al artefacto redistribuido, mover Inno Setup al grupo de lo redistribuido, incluir o enlazar los avisos del runtime y del SDK, y decidir con asesoramiento si se añade el permiso adicional.
+  - **Criterio de aceptación:** cada binario de terceros del instalador queda cubierto por una entrada con su licencia real, y el proyecto declara por escrito cómo encaja con su GPLv3.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11 · ya conocido como «revisado, sin hallazgos» (`T9-19` y `ROADMAP.md:3650-3652`); se reabre por un hecho nuevo: el salto al SDK 2.x (`T13-20`) y la licencia real del paquete
+
+## 🟢 Tier 3 — Bajo
+
+### Seguridad
+
+- [ ] **AUD-025 · El proceso elevado escribe, mueve y borra por ruta dentro de `%AppData%\FormatDiskPro`, que el usuario sin elevar controla**
+  - **Área:** Seguridad · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/History.cs:98-107`, `:137-140`, `:155-156` · `src/Services/AppSettings.cs:205`, `:222-223`
+  - **Qué hacer:** antes de operar, comprobar que la carpeta no es un punto de reanálisis y negarse si lo es; o mover el estado a una carpeta que solo escriban administradores, migrando lo existente.
+  - **Criterio de aceptación:** con la carpeta sustituida por una unión, la app no crea ni modifica ningún archivo en el destino y lo deja dicho.
+  - **Depende de:** AUD-002 (misma decisión sobre dónde vive lo que escribe el proceso elevado)
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-026 · `powershell.exe` y `chkdsk.exe` se lanzan por nombre, no por ruta absoluta**
+  - **Área:** Seguridad · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/DiskService.cs:166` · `src/Services/ReinitDrive.cs:101` · `src/Services/FormatProcess.cs:57` · `src/Services/CheckDisk.cs:54` · contraste: `src/Services/FormatProcess.cs:86`
+  - **Qué hacer:** rutas absolutas desde un único punto: `Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe")` y `…"chkdsk.exe"`.
+  - **Criterio de aceptación:** una prueba recorre los `ProcessSpec` que capturan los servicios y exige `Path.IsPathFullyQualified(spec.FileName)`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### Código
+
+- [ ] **AUD-027 · Un `settings.json` válido con un nulo donde se espera una lista impide arrancar la app**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/AppSettings.cs:137-160` · `src/UI/MainWindow.FormatOptions.cs:444` · `src/App.xaml.cs:26`, `:43-68` · evidencia: `evidencias/arranque-presets-null-historial.txt`
+  - **Qué hacer:** en `Load`, `loaded.UserPresets ??= []` y descartar presets nulos o sin nombre; y un `try/catch` en `OnLaunched` que, si no se pudo crear la ventana, muestre un mensaje nativo y salga.
+  - **Criterio de aceptación:** una prueba carga un JSON con `UserPresets: null` y obtiene una lista vacía; la app arranca con ese archivo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-028 · El diálogo con el resultado de una operación se descarta si hay otro abierto**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:318-337`, `:664`, `:673`, `:879-889` · `src/UI/MainWindow.Operations.cs:475`, `:496-499`
+  - **Qué hacer:** para los diálogos de resultado, esperar a que se cierre el abierto en vez de descartar; o cerrar el de «¿Cancelar?» cuando la operación termina.
+  - **Criterio de aceptación:** una prueba de UI abre «¿Cancelar?» durante un benchmark, espera a que termine y comprueba que el resultado se muestra al cerrar la pregunta.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-029 · Conectar o retirar cualquier dispositivo restablece la etiqueta y las opciones que se estaban configurando**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:249`, `:411-435` · `src/UI/MainWindow.DriveInfo.cs:31-49`, `:58-62`
+  - **Qué hacer:** al recargar, no tocar las opciones si la unidad seleccionada es la misma (misma letra e identidad); vaciar el campo cuando la unidad no está lista.
+  - **Criterio de aceptación:** una prueba de UI escribe una etiqueta, pulsa F5 y la etiqueta sigue ahí.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-030 · Si falla el lanzamiento del instalador, la interfaz se queda deshabilitada**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.HelpAndUpdates.cs:241-243`, `:250-261` · `src/UI/MainWindow.xaml.cs:861`
+  - **Qué hacer:** poner el indicador después de que `LaunchInstaller` haya devuelto, o devolverlo a `false` en el `catch`.
+  - **Criterio de aceptación:** con un `IUpdateService` falso cuyo `LaunchInstaller` lanza, los controles vuelven a estar activos.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-031 · El resultado que muestra el historial se deduce de palabras sueltas del mensaje, incluida la etiqueta del usuario**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Core/HistoryEntry.cs:297-317` · `src/UI/MainWindow.xaml.cs:663`
+  - **Qué hacer:** decidir el resultado solo con el prefijo de la línea (la operación y la palabra que la sigue), no con todo el mensaje.
+  - **Criterio de aceptación:** `FORMAT OK G: … label='A FAIL B'` se clasifica como correcto en una prueba.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### Rendimiento
+
+- [ ] **AUD-032 · El trabajo por bloque y las continuaciones de los servicios se ejecutan en el hilo de la interfaz**
+  - **Área:** Rendimiento · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/CapacityVerifier.cs:110-122`, `:143-172` · `src/Services/SecureWipe.cs:118-134` · `src/Services/BenchmarkRunner.cs:211-226` · llamadas: `src/UI/MainWindow.Operations.cs:65`, `:557`, `src/UI/MainWindow.xaml.cs:641` · `src/Program.cs:24-25`
+  - **Qué hacer:** `ConfigureAwait(false)` en los `await` de `Services/`, o envolver la llamada en `Task.Run`; `Progress<T>` ya devuelve los informes al hilo de UI.
+  - **Criterio de aceptación:** una prueba que ejecuta `RunAsync` bajo un `SynchronizationContext` contador registra 0 `Post` durante las fases de E/S.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### UI/UX
+
+- [ ] **AUD-033 · Durante una operación, los tres botones de la barra rápida siguen activos y no hacen nada**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:942-968` · `src/UI/MainWindow.xaml:116-132` · `src/UI/MainWindow.Operations.cs:136`, `:525` · `src/UI/MainWindow.HelpAndUpdates.cs:34`
+  - **Qué hacer:** deshabilitarlos en `SetControlsEnabled`, como los menús que duplican.
+  - **Criterio de aceptación:** durante una operación, los tres botones tienen `IsEnabled = false`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-034 · Guardar un preset sin nombre responde «Ya existe un preset con ese nombre»**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/PresetsDialog.xaml.cs:89-93`, `:199-203` · `src/Core/Presets.cs:62-67`
+  - **Qué hacer:** distinguir los tres motivos (vacío, demasiado largo, duplicado) con su texto.
+  - **Criterio de aceptación:** cada motivo de rechazo muestra un texto distinto, en los cinco idiomas.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-035 · La confirmación de «Reinicializar» no identifica el disco físico ni las otras unidades que se van a perder**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:368` · `src/UI/MainWindow.Operations.cs:432-441` · evidencia: `evidencias/galeria-pt/reinit-light.png`
+  - **Qué hacer:** añadir al resumen el modelo y el tamaño del disco y la lista de unidades que desaparecerán («Disco de 29,3 GB · se perderán G: e I:»).
+  - **Criterio de aceptación:** sobre un disco con dos particiones, la confirmación nombra las dos letras y el tamaño del disco.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### Arquitectura y resiliencia
+
+- [ ] **AUD-036 · Una operación cancelada o a medias no deja un registro fiel ni actualiza la lista de unidades**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.Operations.cs:67-72`, `:285-290`, `:455-460` · `src/UI/MainWindow.xaml.cs:249`, `:612-618`, `:643-659`, `:676-691`
+  - **Qué hacer:** registrar siempre el desenlace (`REINIT CANCELLED`, `FORMAT OK` antes del borrado, `WIPE ERROR`) y llamar a `LoadDrives()` en `EndOperation`.
+  - **Criterio de aceptación:** cada desenlace de cada operación deja exactamente una línea que lo nombra, y la lista se recarga al terminar.
+  - **Depende de:** AUD-001 (comparten el tratamiento de la cancelación)
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-037 · Los ajustes se escriben sin atomicidad, se degradan a valores por defecto ante un error de lectura y no hay instancia única**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/AppSettings.cs:162-165`, `:217-229` · `src/UI/MainWindow.HelpAndUpdates.cs:93-94` · `src/Program.cs:13-19`
+  - **Qué hacer:** escribir a un temporal y sustituir con `File.Replace`; no guardar en el arranque si la carga falló por E/S; y, si ya hay una instancia, activar su ventana y salir.
+  - **Criterio de aceptación:** una prueba simula un fallo de E/S en la lectura y comprueba que el archivo original no se sobrescribe; lanzar la app dos veces deja una sola ventana.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-038 · Si el proceso muere, los archivos temporales de borrado, verificación y benchmark se quedan en la unidad**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/SecureWipe.cs:88`, `:144` · `src/Services/CapacityVerifier.cs:59`, `:184` · `src/Services/BenchmarkRunner.cs:61`, `:147`
+  - **Qué hacer:** al seleccionar una unidad, detectar esas carpetas y ofrecer borrarlas; y avisar si la limpieza del `finally` falla.
+  - **Criterio de aceptación:** con una carpeta `__fdp_verify__` en la unidad, la app lo dice y la borra al aceptarlo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-039 · El borrado seguro deja sin sobrescribir los últimos 64 MB y no lo dice**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/SecureWipe.cs:36`, `:96` · `src/Localization/Localization.cs:142`
+  - **Qué hacer:** reducir el margen al mínimo que el sistema de archivos necesite cuando se viene de formatear, o declararlo en la pista de la opción y en el resultado.
+  - **Criterio de aceptación:** el margen es coherente con lo que la interfaz promete, y una prueba fija el valor.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### QA
+
+- [ ] **AUD-040 · El respaldo de ajustes de las pruebas de UI no sobrevive a que el proceso de pruebas muera**
+  - **Área:** QA · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `tests/FormatDiskPro.UiTests/SettingsBackup.cs:10-33` · `tests/FormatDiskPro.UiTests/AppFixture.cs:27`, `:47-53`
+  - **Qué hacer:** escribir el respaldo también a disco y, al empezar la corrida siguiente, restaurarlo si existe uno sin consumir.
+  - **Criterio de aceptación:** tras matar el proceso de pruebas a mitad, la corrida siguiente restaura los archivos originales.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### Refactorización
+
+- [ ] **AUD-041 · La misma lógica vive copiada en varios sitios**
+  - **Área:** Refactorización · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** sistemas de archivos y límites: `src/Core/PartitionPlan.cs:124`, `:127`, `src/UI/MainWindow.xaml.cs:24-46`, `:586`, `src/Core/FormatLogic.cs:122-127` · codificación de scripts: `src/Core/FormatLogic.cs:64-68`, `src/Services/DiskService.cs:160-171`, `src/Services/ReinitDrive.cs:96-103` · E/S sin caché: `src/Services/BenchmarkRunner.cs:38-45`, `:155-165`, `src/Services/CapacityVerifier.cs:30-36`, `:193-200`, `src/Services/SecureWipe.cs:32-36`
+  - **Qué hacer:** un único catálogo de sistemas de archivos en `Core/`, un único `PowerShellCommand.Encode`, y un ayudante compartido de búfer alineado.
+  - **Criterio de aceptación:** cada dato y cada ayudante tiene una sola definición.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-042 · `MainWindow.xaml.cs` vuelve a superar el tope que el propio proyecto se fijó, y no hay formateador ni analizadores configurados**
+  - **Área:** Refactorización · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs` (986 líneas) frente a `CONTEXT.md:80` · bloque de `using` repetido en las seis parciales (p. ej. `src/UI/MainWindow.Operations.cs:1-17`) · raíz del repo (sin `.editorconfig`)
+  - **Qué hacer:** separar los ayudantes de diálogo y el ciclo de vida de la operación en sus propias parciales; `global using` para los comunes; `.editorconfig` con `IDE0005` como advertencia.
+  - **Criterio de aceptación:** ninguna parcial pasa de 800 líneas y la compilación señala los `using` sin uso.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11 · regresión del objetivo de `T2-08`, que lo dejó en 753 líneas
+
+- [ ] **AUD-043 · Miembros y textos sin uso, comentarios desfasados y documentación XML que nadie valida**
+  - **Área:** Refactorización · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:470` (`about.body`, sin referencias) · `src/Services/UpdateService.cs:20-28`, `:173` (`Version` siempre igual a `TagName`) · `src/Services/ReinitDrive.cs:14` y `src/Services/DiskService.cs:35` (resúmenes que describen lo que la clase hacía antes) · `src/UI/MainWindow.Operations.cs:24-27` y `src/UI/MainWindow.HelpAndUpdates.cs:23-26` (`<para>` sin cerrar) · `src/UI/MainWindow.xaml.cs:777-801` (dos `<summary>` en el mismo método)
+  - **Qué hacer:** borrar lo que no se usa, corregir los resúmenes y activar `GenerateDocumentationFile` con CS1570 como advertencia.
+  - **Criterio de aceptación:** la compilación con la documentación activada no da avisos de XML mal formado.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### Redacción
+
+- [ ] **AUD-044 · Dos pistas de la interfaz mandan no usar «el botón Iniciar», que ya no existe**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:147`, `:151` (cinco idiomas) · `.github/ISSUE_TEMPLATE/bug_report.yml:69`
+  - **Qué hacer:** nombrar el botón como se ve («no el botón Formatear») en los cinco idiomas y en la plantilla.
+  - **Criterio de aceptación:** ninguna cadena ni plantilla menciona un botón «Iniciar».
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-045 · El aviso de privacidad remite a un menú que no se llama así en inglés, portugués, francés ni italiano**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:477` frente a `:232`
+  - **Qué hacer:** usar en cada idioma el nombre real del menú; mejor aún, componer el texto con la propia clave `menu.config`.
+  - **Criterio de aceptación:** una prueba comprueba que `about.privacy` contiene el valor de `menu.config` en cada idioma.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-046 · Un mensaje de error dice que exFAT admite etiquetas de 32 caracteres; el código valida 11**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:439` (cinco idiomas) frente a `src/Core/FormatLogic.cs:122-127`
+  - **Qué hacer:** corregir el texto y generarlo a partir de `MaxLabelLength`.
+  - **Criterio de aceptación:** una prueba compara las cifras del texto con `MaxLabelLength` para los cinco sistemas.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-047 · Las IOPS del benchmark se formatean con la cultura de Windows y no con la del idioma de la app**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.Operations.cs:622-623`
+  - **Qué hacer:** `string.Create(L.Culture, $"…")` o `ToString("N0", L.Culture)`.
+  - **Criterio de aceptación:** una prueba fija el separador de miles de las IOPS para cada idioma.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11 · ya conocido (`T6-12`), cierre incompleto: «los números pasan a seguir al idioma de la app» no llegó a este punto
+
+- [ ] **AUD-048 · Tratamiento, terminología y tipografía no son uniformes dentro de cada idioma**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** tratamiento de usted en `src/Localization/Localization.cs:395`, `:396`, `:406`, `:446`, `:455`, `:457` frente al tuteo del resto · terminología y puntuación: lista completa en `trabajo/hallazgos/10-redaccion.md`
+  - **Qué hacer:** un glosario breve por idioma en `CONTRIBUTING.md` y una pasada de unificación.
+  - **Criterio de aceptación:** el glosario existe y una búsqueda de cada término descartado no devuelve resultados.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-049 · Hay texto visible que no pasa por la localización, y en francés conviven dos sistemas de unidades**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:912` («ETA») · `src/Core/FormatLogic.cs:185` (B, KB, MB, GB, TB fijos) · detalle del historial tal como se escribe en el registro · evidencias: `evidencias/galeria-fr-656/main-secure-light.png`, `evidencias/galeria-es/history-dark.png`
+  - **Qué hacer:** pasar «ETA» y las unidades por `L.T` (o decidir que las unidades no se traducen y cambiar el texto fijo francés a «4 GB»).
+  - **Criterio de aceptación:** en la galería en francés no conviven «Go» y «GB».
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### Documentación
+
+- [ ] **AUD-050 · La plantilla de sugerencias sigue diciendo que el CI está fuera de alcance a propósito**
+  - **Área:** Documentación · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/ISSUE_TEMPLATE/feature_request.yml:8-11` · `ROADMAP.md:3678-3680`
+  - **Qué hacer:** quitar «CI» de la lista y corregir la nota del `ROADMAP.md`.
+  - **Criterio de aceptación:** ninguna plantilla presenta el CI como fuera de alcance.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-051 · El README promete velocidad y tiempo restante «en toda operación larga»; solo las dan dos**
+  - **Área:** Documentación · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `README.md:80` frente a `src/UI/MainWindow.xaml.cs:901-916`
+  - **Qué hacer:** ajustar la frase («tiempo y cancelación en toda operación larga; velocidad y tiempo restante en las que escriben el espacio libre»).
+  - **Criterio de aceptación:** el README describe lo que cada operación muestra.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### DevOps
+
+- [ ] **AUD-052 · El corte prueba una compilación de depuración y sin el listón de cero advertencias**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:515`, `:519` · `src/installer/build-installer.ps1:183-190` · `.github/workflows/ci.yml:74-84`
+  - **Qué hacer:** `dotnet build -c Release -warnaserror` y `dotnet test -c Release --no-build` en el corte.
+  - **Criterio de aceptación:** una advertencia introducida a propósito aborta `release.ps1 -DryRun`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-053 · Las herramientas de los últimos pasos se validan después de mutar, y la simulación no las comprueba**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:689-728`, `:753-770`, `:814-844` · `src/installer/build-installer.ps1:129`, `:139`, `:177`
+  - **Qué hacer:** una comprobación previa compartida con `-DryRun` (Inno Setup, `gh` y su sesión, certificado si se firma) y restaurar el `.csproj` si falla el instalador.
+  - **Criterio de aceptación:** sin `gh` en el `PATH`, `release.ps1 -DryRun` aborta nombrándolo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-054 · La guarda de «sección del CHANGELOG vacía» no salta cuando dos encabezados de versión van seguidos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:653-662`
+  - **Qué hacer:** exigir `$end -gt $start` y que el cuerpo contenga alguna línea que no sea encabezado.
+  - **Criterio de aceptación:** con dos encabezados seguidos, el corte aborta.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-055 · El corte no dice qué pruebas unitarias se omitieron**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:519-521`, `:292-299`, `:324-328`
+  - **Qué hacer:** `--logger trx` también en las unitarias, y tratar como fallo un `.trx` ausente o sin resultados.
+  - **Criterio de aceptación:** una prueba omitida aparece nombrada en el resumen del corte.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-056 · El corte solo rechaza una de las tres variables que hacen tocar hardware**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:605-607` · `tests/FormatDiskPro.UiTests/TestDriveFacts.cs` · `tests/FormatDiskPro.Tests/CapacityVerifierDriveTests.cs:16-23`
+  - **Qué hacer:** rechazar o anunciar las tres antes de la primera ejecución de pruebas.
+  - **Criterio de aceptación:** con cualquiera de las tres definida, `release.ps1 -DryRun` aborta o lo declara.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-057 · Los paquetes de prueba no los actualiza nadie y ya divergen entre los dos proyectos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/dependabot.yml` · `tests/FormatDiskPro.Tests/FormatDiskPro.Tests.csproj:12-17` · `tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj:12-16`
+  - **Qué hacer:** añadir `nuget` a Dependabot con `ignore` para `Microsoft.WindowsAppSDK*`, y unificar versiones con `Directory.Packages.props`.
+  - **Criterio de aceptación:** los dos proyectos de prueba referencian las mismas versiones y algo propone sus actualizaciones.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-058 · El CI no ejercita lo que solo falla al publicar**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `.github/workflows/ci.yml:66-84` · raíz del repo (sin `.editorconfig` ni `.gitattributes`)
+  - **Qué hacer:** un paso de `dotnet publish --self-contained` que compruebe el `.pri` y la longitud de las rutas, y otro con `shell: powershell` que analice los cuatro `.ps1` y verifique el BOM.
+  - **Criterio de aceptación:** un PR que quite el BOM de `release.ps1` o rompa `CopyAppPriToPublish` queda en rojo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-059 · El script de capturas falla o se degrada cuando lo lanza otro proceso**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `tools/capture-screenshots.ps1:56-58`, `:588-591`, `:406`, `:418`, `:595`
+  - **Qué hacer:** separar `$Only` por comas al entrar, validar cada nombre contra la lista de tomas y fijar `[Console]::OutputEncoding` a UTF-8.
+  - **Criterio de aceptación:** las dos formas de invocación producen las mismas tomas y un nombre inexistente aborta nombrándolo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-060 · `new-selfsigned-cert.ps1` sigue recibiendo la contraseña como texto en la línea de comandos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/installer/new-selfsigned-cert.ps1:34`, `:41`, `:66`
+  - **Qué hacer:** `[SecureString]$Password`, pidiéndola con `Read-Host -AsSecureString` si falta.
+  - **Criterio de aceptación:** ningún script del repo declara una contraseña como `[string]`.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-061 · El corte no activa el modo estricto y deja dos redirecciones de error sin proteger**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:95`, `:418`, `:426` · `src/installer/build-installer.ps1:52`
+  - **Qué hacer:** `Set-StrictMode -Version Latest` y un ayudante para las llamadas de solo lectura que comprueban `$LASTEXITCODE`.
+  - **Criterio de aceptación:** sin red, `release.ps1 -DryRun` aborta con un mensaje propio.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-062 · El instalador sigue pudiendo vaciar una carpeta ajena si el destino se da por línea de comandos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/installer/installer.iss:54`, `:82-91`
+  - **Qué hacer:** en `[Code]`, negarse si `{app}` existe, no está vacía y no contiene `FormatDiskPro.exe`.
+  - **Criterio de aceptación:** con `/DIR=` a una carpeta ajena no vacía, el instalador se niega.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11 · ya conocido (`T9-17`), cierre incompleto
+
+- [ ] **AUD-063 · No queda registro de lo que cada instalador empaqueta**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `release.ps1:847` · `src/installer/build-installer.ps1:183-227`
+  - **Qué hacer:** adjuntar un SBOM (CycloneDX o SPDX) como tercer asset o, como mínimo, una línea en las notas con SDK, runtime y Windows App SDK.
+  - **Criterio de aceptación:** cada release declara las versiones que contiene.
+  - **Depende de:** AUD-022
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-064 · El comando de cobertura que recomienda la guía deja archivos que hacen abortar el corte siguiente**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/CONTRIBUTING.md:24` · `.gitignore` · `release.ps1:484-487`
+  - **Qué hacer:** añadir `TestResults/` y `*.trx` a `.gitignore`.
+  - **Criterio de aceptación:** tras ejecutar el comando de la guía, `git status` no lista nada nuevo.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-065 · `build-installer.ps1 -Version` etiqueta el instalador pero no el binario, y los valores por defecto de `installer.iss` están obsoletos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/installer/build-installer.ps1:183-190`, `:204` · `src/installer/installer.iss:20-28`
+  - **Qué hacer:** pasar `-p:Version` al publish o abortar si difiere; quitar los valores por defecto y fallar con `#error`.
+  - **Criterio de aceptación:** no se puede producir un instalador cuya versión difiera de la de su ejecutable.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-066 · La rama principal no está protegida y las alertas de dependencias están desactivadas**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** configuración del repositorio `xfiberex/FormatDiskPro`
+  - **Qué hacer:** una regla que impida forzar y borrar `master` y exija el check de CI en los PR; activar las alertas de Dependabot; revisar el PR #2.
+  - **Criterio de aceptación:** la API devuelve la protección y las alertas activas.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+### Legal
+
+- [ ] **AUD-067 · La app conecta con GitHub en el primer arranque tras actualizar aunque la comprobación automática esté desactivada**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo · *requiere revisión legal*
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:280-286` · `src/UI/MainWindow.HelpAndUpdates.cs:84-107` · `src/Localization/Localization.cs:477` · `README.md:198` · `.github/SECURITY.md:53`
+  - **Qué hacer:** con la preferencia desactivada, mostrar *Novedades* sin red o no mostrarlo solo; y precisar el texto (actualizaciones y notas de versión).
+  - **Criterio de aceptación:** con la preferencia desactivada y una versión nueva, el arranque no emite ninguna petición.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11 · ya conocido (`T9-18`), cierre incompleto: su criterio era que, desactivada, «no salga ninguna petición de red en el arranque»
+
+- [ ] **AUD-068 · El repo redistribuye nueve *skills* de un tercero sin su licencia ni su aviso de copyright**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.agents/skills/*/SKILL.md` · `skills-lock.json` · `THIRD-PARTY-NOTICES.txt`
+  - **Qué hacer:** añadir la licencia y el copyright del origen junto a los archivos y una línea en los avisos; o dejar de versionarlos.
+  - **Criterio de aceptación:** cada archivo de terceros del repo tiene identificada su licencia.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-069 · La licencia se declara como «GPLv3» sin precisar si es «solo» o «o posterior»**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `README.md:196` · `src/Localization/Localization.cs:473` · `src/FormatDiskPro.csproj:16-18`
+  - **Qué hacer:** declarar `GPL-3.0-only` o `GPL-3.0-or-later` en los tres sitios y una cabecera SPDX de una línea por fuente.
+  - **Criterio de aceptación:** el mismo identificador aparece en README, *Acerca de* y fuentes.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-070 · Al pedir el historial se avisa de «letras y etiquetas», pero también contiene rutas con el nombre de usuario**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/ISSUE_TEMPLATE/bug_report.yml:76-80` · `.github/SECURITY.md:32-33` · `src/UI/MainWindow.HelpAndUpdates.cs:236` · `src/UI/MainWindow.xaml.cs:278` · `src/App.xaml.cs:47` · evidencia: `evidencias/galeria-es/history-dark.png`
+  - **Qué hacer:** ampliar el aviso, o registrar solo el nombre del archivo.
+  - **Criterio de aceptación:** el aviso enumera lo que el historial puede contener, o el historial deja de contener rutas del perfil.
+  - **Depende de:** ninguna
+  - **Origen:** auditoría 2026-10-11
+
+- [ ] **AUD-071 · La guía de contribución no dice bajo qué licencia entran las aportaciones**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo · *requiere revisión legal*
+  - **Ubicación:** `.github/CONTRIBUTING.md` · `.github/PULL_REQUEST_TEMPLATE.md`
+  - **Qué hacer:** una sección «Licencia de las contribuciones» y valorar un DCO (`Signed-off-by`).
+  - **Criterio de aceptación:** la guía y la plantilla dicen bajo qué términos se acepta una contribución.
+  - **Depende de:** AUD-069 y AUD-024 (decidir antes el identificador de licencia y el permiso adicional)
+  - **Origen:** auditoría 2026-10-11
+## Progreso de la Parte 3
+
+Nada cerrado todavía. Al cerrar una tarea: marcarla `[x]`, anotar aquí la fecha y la versión en la que
+entra, y actualizar el índice de arriba.
+
+| Fecha | Tarea | Qué se hizo |
+|---|---|---|
+| – | – | – |
+
+## Decisiones cerradas que la Parte 3 no reabre
+
+Siguen en pie todas las de *[Decisiones cerradas](#-decisiones-cerradas-no-reabrir)*: la app corre
+siempre elevada, la ventana es de tamaño fijo, el instalador no se firma, las pruebas de UI son locales
+y *Reinicializar* no es un gestor de particiones. Tres tareas rozan una decisión y dicen por qué no la
+tocan:
+
+- **`AUD-028`** no discute que haya un solo `ContentDialog` a la vez (`T13-19`): señala que el diálogo
+  de **resultado** de una operación no es «una acción que el usuario puede repetir», que era el motivo
+  para descartar en vez de encolar.
+- **`AUD-057`** no discute que el Windows App SDK se suba a mano: señala que excluir NuGet entero de
+  Dependabot deja sin vigilar también los paquetes de prueba.
+- **`AUD-058`** no pide ejecutar las pruebas de UI en CI: pide que el CI ejercite el publish y los
+  scripts, que es donde han estado los tres fallos de publicación documentados.
+
+Descartado en esta auditoría, para que no se vuelva a proponer: ver *Falsos positivos verificados* en
+[`CONTEXT.md`](CONTEXT.md#8-falsos-positivos-verificados).

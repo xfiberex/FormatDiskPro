@@ -1,0 +1,31 @@
+AUD-001 (segundo caso) · Cancelar un formato completo lanzado con format.com
+Fecha: 2026-10-11 · terminal elevada · USB de pruebas (disco fisico 6), particion G: de 1 GB, vacia
+
+Que hace: lanza format.com con los argumentos que construye FormatLogic.BuildComArgumentList para un
+formato COMPLETO NTFS, igual que FormatProcess.RunComAsync (entrada estandar cerrada):
+
+    %SystemRoot%\System32\format.com G: /FS:NTFS /A:4096 /Y /V:CANCELCOM
+
+A los 5 s mata el arbol de procesos, que es lo que hace la app al cancelar.
+
+--- Salida ---
+
+Antes: fs=[FAT32] etiqueta=[UTILIDADES] tamano=1020 MB salud=[Healthy]
+t=5 s    - format.com vivo=True
+t=5.1 s  - CANCELADO (arbol terminado)
+t=10.1 s - fs=[] etiqueta=[] tamano=0 MB salud=[Healthy]
+t=15.2 s - fs=[] etiqueta=[] tamano=0 MB salud=[Healthy]
+t=20.2 s - fs=[] etiqueta=[] tamano=0 MB salud=[Healthy]
+t=25.3 s - fs=[] etiqueta=[] tamano=0 MB salud=[Healthy]
+t=30.4 s - fs=[] etiqueta=[] tamano=0 MB salud=[Healthy]
+t=35.4 s - fs=[] etiqueta=[] tamano=0 MB salud=[Healthy]
+DriveInfo.IsReady tras cancelar: False
+Restaurando...
+Final: fs=[FAT32] etiqueta=[UTILIDADES] tamano=1020 MB salud=[Healthy] (reintentos: 0)
+
+--- Como leerlo ---
+
+- Por esta via la cancelacion SI detiene el formato.
+- La unidad queda sin sistema de archivos (fs vacio, tamano 0, IsReady=False): hay que volver a
+  formatearla para usarla. La app muestra "Operacion cancelada", no recarga la lista de unidades
+  (MainWindow.xaml.cs:612-618) y la tarjeta sigue ensenando el estado anterior.
