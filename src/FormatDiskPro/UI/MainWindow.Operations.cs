@@ -326,30 +326,27 @@ public sealed partial class MainWindow
     {
         if (_isBusy || DrivePicker.SelectedItem is not DriveViewModel item) return;
 
-        // Solo unidades extraíbles (USB): es el caso de uso y minimiza el riesgo.
+        // Las dos guardas las decide Core (`AUD-015`); aquí se reúnen los hechos y se enseña el motivo.
+        // Primera: solo extraíbles (es el caso de uso y minimiza el riesgo), y nunca la unidad del
+        // sistema ni una protegida.
         DriveType type;
         try { type = item.Info.DriveType; } catch { type = DriveType.Unknown; }
-        if (type != DriveType.Removable)
+        var rejection = DestructiveGuard.CanReinit(type, item.Letter, item.IsProtected, SystemLetter);
+
+        // Segunda, la crítica: el disco físico objetivo no puede ser el de Windows (Clear-Disk borra TODO
+        // el disco, no solo la partición seleccionada). Si alguno de los dos números no se puede leer, no
+        // se sigue (`AUD-012`).
+        if (rejection == GuardRejection.None)
         {
-            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.onlyRemovable"));
-            return;
+            int? targetDisk = await _services.Disk.GetDiskNumberAsync(item.Letter);
+            int? sysDisk    = await _services.Disk.GetDiskNumberAsync(SystemLetter);
+            rejection = DestructiveGuard.CanClearDisk(targetDisk, sysDisk);
         }
 
-        // Nunca el disco del sistema ni una unidad protegida.
-        if (item.IsProtected || IsSystemDrive(item.Letter))
+        if (rejection != GuardRejection.None)
         {
-            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.blockedSystem"));
-            return;
-        }
-
-        // Guarda crítica: el disco físico objetivo no puede ser el mismo que el de Windows
-        // (Clear-Disk borra TODO el disco, no solo la partición seleccionada).
-        char sysLetter  = Path.GetPathRoot(Environment.SystemDirectory)![0];
-        int? targetDisk = await _services.Disk.GetDiskNumberAsync(item.Letter);
-        int? sysDisk    = await _services.Disk.GetDiskNumberAsync(sysLetter);
-        if (targetDisk is null || (sysDisk is not null && targetDisk == sysDisk))
-        {
-            await ShowInfoAsync(L.T("reinit.title"), L.T("reinit.sameDisk"));
+            _services.History.Log($"REINIT REJECTED {item.Letter}: {rejection}");
+            await ShowInfoAsync(L.T("reinit.title"), L.T(DestructiveGuard.DescribeReinit(rejection)));
             return;
         }
 

@@ -443,24 +443,20 @@ public sealed partial class MainWindow : Window
 
     private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
-        if (DrivePicker.SelectedItem is not DriveViewModel driveItem)
+        // La decisión de si esta unidad se puede formatear es de Core (`AUD-015`): aquí solo se reúnen los
+        // hechos y se enseña el motivo.
+        var driveItem = DrivePicker.SelectedItem as DriveViewModel;
+        var rejection = DestructiveGuard.CanFormat(
+            driveItem?.Letter, _isDriveProtected || driveItem?.IsProtected == true, SystemLetter);
+        if (rejection != GuardRejection.None || driveItem is null)
         {
-            await ShowInfoAsync(L.T("msg.warning"), L.T("msg.selectDrive"));
-            return;
-        }
-        if (_isDriveProtected)
-        {
-            await ShowInfoAsync(L.T("msg.protTitle"), L.T("msg.protBody"));
+            var (titleKey, bodyKey) = DestructiveGuard.DescribeFormat(rejection);
+            await ShowInfoAsync(L.T(titleKey), L.T(bodyKey));
             return;
         }
         if (FileSystemPicker.SelectedItem is null || AllocUnitPicker.SelectedIndex < 0)
         {
             await ShowInfoAsync(L.T("msg.warning"), L.T("msg.selectFsAlloc"));
-            return;
-        }
-        if (IsSystemDrive(driveItem.Letter))
-        {
-            await ShowInfoAsync(L.T("msg.systemTitle"), L.T("msg.systemBody"));
             return;
         }
 
@@ -965,11 +961,10 @@ public sealed partial class MainWindow : Window
 
     // La comparación va por DriveLetter.Same (invariante de cultura) y NO por char.ToUpper: esta es la
     // guarda que impide formatear el disco de Windows, y con cultura turca ToUpper('i') no da 'I'.
-    private static bool IsSystemDrive(char letter)
-    {
-        char sys = Path.GetPathRoot(Environment.SystemDirectory)![0];
-        return DriveLetter.Same(letter, sys);
-    }
+    private static bool IsSystemDrive(char letter) => DestructiveGuard.IsSystemDrive(letter, SystemLetter);
+
+    /// <summary>Letra de la unidad que contiene Windows.</summary>
+    private static char SystemLetter => Path.GetPathRoot(Environment.SystemDirectory)![0];
 
     /// <summary>
     /// Habilita o deshabilita los controles de la ventana según si hay una operación en curso. Los de

@@ -61,6 +61,41 @@
 
 ## Entradas
 
+### 2026-10-13 — `AUD-015` y `AUD-012`: las guardas destructivas salen de la ventana, y dejan de fallar abiertas
+
+**Qué había.** Las comprobaciones que deciden si *Formatear* o *Reinicializar* proceden —¿hay unidad?,
+¿está protegida?, ¿es la de Windows?, ¿es extraíble?, ¿comparte disco físico con Windows?— estaban
+escritas en los manejadores de `MainWindow`, entre los diálogos que enseñan. Ninguna prueba las hacía
+decir que no: para comprobarlas había que intentar formatear el disco del sistema.
+
+**Qué hay ahora.** `Core/DestructiveGuard`: tres funciones puras que reciben hechos y devuelven un
+`GuardRejection` (`CanFormat`, `CanReinit`, `CanClearDisk`), y dos que dan la clave del texto de cada
+motivo. Es el mismo patrón que `PartitionPlan.Validate` y `PlanRejection`. Los manejadores reúnen los
+hechos y enseñan el aviso. 36 pruebas, 100 % de líneas y de ramas.
+
+**El fallo que la extracción dejó a la vista (`AUD-012`).** La guarda de *Reinicializar* era
+`targetDisk is null || (sysDisk is not null && targetDisk == sysDisk)`. Leída despacio: si el número de
+disco de Windows no se puede leer, la segunda mitad es falsa y **se sigue hacia `Clear-Disk`**. Fallaba
+abierta justo cuando menos sabía. Ahora hacen falta los dos números, y lo que no se sabe tiene texto
+propio: «No se pudo comprobar que la unidad no comparte disco físico con Windows». Antes, con el disco de
+destino sin leer, el aviso afirmaba «comparte disco físico con Windows», que tampoco se sabía.
+
+**Dos decisiones pequeñas.** `DescribeFormat` y `DescribeReinit` mandan cualquier motivo sin texto propio
+al aviso más severo: si alguien añade un motivo y se olvida de ellas, sale un aviso de más, no una
+operación de más. Y hay una prueba que no nombra ningún motivo concreto —«con un dato sin conocer, la
+respuesta nunca es *procede*»— para que la regla sobreviva a quien reescriba la función.
+
+**Por qué `DestructiveGuard` y no `OperationGuard`,** que era el nombre de la tarea: `OperationGuardTests`
+ya existe y prueba otra cosa, cómo degradan los servicios ante una unidad que no está.
+
+**Cómo se comprobó.** Por reversión: devolviendo «procede» con el disco del sistema a `null`, fallan 3
+pruebas. Cobertura de la clase medida con coverlet. Y la suite de UI completa con opt-in destructivo
+—que formatea y reinicializa de verdad la USB pasando por las guardas recableadas—: 42 de 44. Unitarias:
+747 (+36).
+
+**Queda** `AUD-013`, la tercera de este grupo: comprobar que la unidad sobre la que se actúa es la misma
+que se confirmó. Va sobre esta base.
+
 ### 2026-10-13 — `AUD-001`: cancelar un formato lo cancela, o no se ofrece
 
 **El fallo.** «Cancelar» hacía dos cosas según por dónde fuera el formato. Con `format.com` se detenía;

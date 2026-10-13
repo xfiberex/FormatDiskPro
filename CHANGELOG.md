@@ -29,6 +29,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **Una unidad sin formato se puede formatear desde la aplicación.** Antes respondía «la unidad ya no
   está disponible», también con la unidad conectada, y había que recurrir a *Reinicializar unidad*.
 
+- ***Reinicializar unidad* no sigue adelante si no puede comprobar en qué disco está Windows.** Borra el
+  disco físico entero, así que antes verifica que no sea el del sistema; si esa comprobación fallaba a
+  medias, continuaba. Ahora se detiene y lo dice, sin modificar nada.
+
 ### Cambiado
 
 - **El formato completo en exFAT muestra el porcentaje real**, como ya hacían NTFS y FAT32, en vez de

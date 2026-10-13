@@ -23,13 +23,36 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-13 | `AUD-012` | *Reinicializar* ya no sigue si no puede leer el disco de Windows | sin publicar |
+| 2026-10-13 | `AUD-015` | Las guardas de *Formatear* y *Reinicializar* pasan a `Core/DestructiveGuard`, con pruebas de cada rechazo | sin publicar |
 | 2026-10-13 | `AUD-001` | Cancelar un formato completo lo detiene de verdad; donde no se puede, no se ofrece | sin publicar |
 | 2026-10-13 | `AUD-019` | `ROADMAP.md` y `CONTEXT.md` se parten: lo cerrado, a `docs/` | sin publicar (solo documentación) |
 | 2026-10-13 | `AUD-018` | §2 y §3 de `CONTEXT.md`, al día y sin cifras duplicadas | sin publicar (solo documentación) |
 
 <!-- Al cerrar una tarea: fila nueva ARRIBA en la tabla y su bloque bajo el área que le toque. -->
 
+### QA
+
+- [x] **AUD-015 · Las guardas que deciden si una operación destructiva procede no tienen ninguna prueba que ejerza su rechazo**
+  - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:448-462`, `:931-935` · `src/UI/MainWindow.Operations.cs:330-354` · `tests/FormatDiskPro.UiTests/MainWindowTests.cs:45`
+  - **Qué hacer:** extraer a `Core/` una función pura por operación (`OperationGuard.CanFormat(...)`, `CanReinit(...)`) que reciba hechos (tipo de unidad, letra de sistema, números de disco) y devuelva un motivo tipado, como ya hace `PartitionPlan.Validate`; cubrirla con pruebas, incluidos los nulos.
+  - **Criterio de aceptación:** `Core/` contiene las decisiones de rechazo con cobertura del 100 % de sus ramas, y los manejadores solo traducen el motivo a un diálogo.
+  - **Hecho (2026-10-13):** `Core/DestructiveGuard` decide con hechos y devuelve un motivo tipado (`GuardRejection`), como ya hacía `PartitionPlan.Validate`: `CanFormat` (sin unidad, protegida, unidad de Windows), `CanReinit` (no extraíble, protegida, unidad de Windows) y `CanClearDisk` (disco sin identificar, o el mismo que el de Windows). `DescribeFormat` y `DescribeReinit` dan la clave del texto de cada motivo. Los manejadores de `MainWindow` reúnen los hechos y enseñan el aviso; ya no deciden. `MainWindow.IsSystemDrive` delega en la misma función.
+  - **Verificado:** `DestructiveGuardTests`, 36 casos. Cobertura de `DestructiveGuard` medida con coverlet: **100 % de líneas y de ramas**. Suite de UI completa con opt-in destructivo, que recorre *Formatear* y *Reinicializar* de verdad sobre la USB: 42 pasan, 2 de `ALLOW_YANK` se omiten.
+  - **Nombre:** la tarea proponía `OperationGuard`; se llama `DestructiveGuard` porque `OperationGuardTests` ya existe y prueba otra cosa (los servicios ante una unidad que no está).
+  - **De paso:** un rechazo de *Reinicializar* por guarda deja ahora una línea `REINIT REJECTED` en el historial, como ya la dejaba un plan no válido.
+
 ### Arquitectura y resiliencia
+
+- [x] **AUD-012 · La guarda «no reinicializar el disco de Windows» falla abierta si no se puede leer el disco del sistema**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.Operations.cs:347-354`
+  - **Qué hacer:** rechazar también cuando `sysDisk is null`, con un mensaje propio («no se pudo comprobar que la unidad no comparte disco con Windows»). Extraer la decisión a una función pura (ver AUD-015).
+  - **Criterio de aceptación:** una prueba unitaria de la función extraída devuelve «rechazar» para `(target: 3, system: null)`.
+  - **Depende de:** AUD-015 (misma extracción de las guardas a `Core/`)
+  - **Hecho (2026-10-13):** `DestructiveGuard.CanClearDisk` exige conocer **los dos** números de disco. Con el de Windows sin leer devuelve `SystemDiskUnknown`; antes la condición era `targetDisk is null || (sysDisk is not null && targetDisk == sysDisk)`, que con `(3, null)` dejaba pasar. Texto propio en los cinco idiomas (`reinit.diskUnknown`): «No se pudo comprobar que la unidad no comparte disco físico con Windows. No se ha modificado nada.» Lo usa también el disco de destino sin leer, que hasta ahora afirmaba «comparte disco físico con Windows» sin saberlo.
+  - **Verificado por reversión:** devolviendo «procede» con el disco del sistema a `null`, fallan 3 pruebas (`CanClearDisk_SystemDiskUnknown_IsRejected` y dos casos de `CanClearDisk_NeverProceedsOnMissingFacts`). El criterio de la tarea —«rechazar» para `(target: 3, system: null)`— es la primera.
 
 - [x] **AUD-001 · Cancelar un formato completo lanzado con `Format-Volume` no lo detiene**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Alto · **Esfuerzo:** Medio

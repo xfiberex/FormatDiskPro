@@ -29,27 +29,27 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **69 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **67 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 1 |
-| **2** | Medio | 20 |
+| **2** | Medio | 18 |
 | **3** | Bajo | 47 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **69** |
+| | **Total** | **67** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **68** y se han cerrado **3**
-(`AUD-001`, `AUD-018`, `AUD-019`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **66** y se han cerrado **5**
+(`AUD-001`, `AUD-012`, `AUD-015`, `AUD-018`, `AUD-019`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
-| Arquitectura y resiliencia | – | 2 | 4 | 6 |
 | Accesibilidad | 1 | 1 | – | 2 |
 | Seguridad | – | 3 | 2 | 5 |
 | Código | – | 6 | 5 | 11 |
-| QA | – | 2 | 1 | 3 |
+| Arquitectura y resiliencia | – | 1 | 4 | 5 |
+| QA | – | 1 | 1 | 2 |
 | Documentación | – | 1 | 2 | 3 |
 | DevOps | – | 4 | 15 | 19 |
 | Legal | – | 1 | 5 | 6 |
@@ -57,12 +57,13 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **68** y se han cerrado **
 | UI/UX | – | – | 3 | 3 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **1** | **20** | **47** | **68** |
+| **Total** | **1** | **18** | **47** | **66** |
 
-**Esfuerzo:** 53 de esfuerzo bajo (hasta 2 horas) y 15 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 52 de esfuerzo bajo (hasta 2 horas) y 14 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-013`, `AUD-012` y `AUD-015` (que una operación destructiva no pueda decir algo distinto de lo que hace) → `AUD-002`,
+**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-013` (que una operación
+destructiva no pueda hacer algo distinto de lo que se confirmó) → `AUD-002`,
 `AUD-004`, `AUD-025`, `AUD-026` (la frontera con lo que el usuario sin elevar controla) → `AUD-003`,
 `AUD-014` (accesibilidad) → los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
 `AUD-044` a `AUD-047`, `AUD-066`) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
@@ -136,31 +137,18 @@ del autor.
   - **Qué hacer:** extraer el texto de los nodos `<S S="Error">` (deshaciendo los escapes `_xHHHH_`) antes de mostrarlo, en una función pura de `Core/` con su prueba; o añadir al script un `try/catch` que escriba `$_.Exception.Message` por `stdout`.
   - **Criterio de aceptación:** una prueba pasa el contenido de la evidencia a la función y obtiene «Format-Volume : No se encontraron objetos MSFT_Volume…» sin etiquetas.
 
-- [ ] **AUD-012 · La guarda «no reinicializar el disco de Windows» falla abierta si no se puede leer el disco del sistema**
-  - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.Operations.cs:347-354`
-  - **Qué hacer:** rechazar también cuando `sysDisk is null`, con un mensaje propio («no se pudo comprobar que la unidad no comparte disco con Windows»). Extraer la decisión a una función pura (ver AUD-015).
-  - **Criterio de aceptación:** una prueba unitaria de la función extraída devuelve «rechazar» para `(target: 3, system: null)`.
-  - **Depende de:** AUD-015 (misma extracción de las guardas a `Core/`)
-
 - [ ] **AUD-013 · No se revalida la identidad de la unidad entre la confirmación y la operación destructiva**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Medio
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:443`, `:471-478`, `:511-517`, `:249` · `src/UI/MainWindow.Operations.cs:330-354`, `:438-452` · `src/Services/ReinitDrive.cs:84` · `src/Core/FormatLogic.cs:53`
   - **Qué hacer:** capturar una identidad estable al abrir la confirmación (número de disco, `UniqueId` o número de serie y tamaño) y comprobarla justo antes de ejecutar; en Reinicializar, pasar al script el número de disco ya verificado y que el propio script aborte si `BusType`, `IsSystem`, `IsBoot` o el tamaño no coinciden. Si la lista cambia con una confirmación abierta, cerrarla.
   - **Criterio de aceptación:** con una identidad distinta de la capturada, la operación no se lanza y lo dice; una prueba unitaria cubre la comparación.
-  - **Depende de:** AUD-015 (misma extracción de las guardas a `Core/`)
+  - **Antecedente:** `AUD-015` (hecha) dejó las guardas en `Core/DestructiveGuard`; la comparación de identidad va ahí
 
 - [ ] **AUD-014 · Dos regiones activas declaradas nunca avisan al lector de pantalla, y un error no se anuncia**
   - **Área:** Accesibilidad · **Severidad:** Medio · **Esfuerzo:** Bajo
   - **Ubicación:** `src/UI/HistoryDialog.xaml:32-33` y `HistoryDialog.xaml.cs:104-107` · `src/UI/PresetsDialog.xaml:22-23` y `PresetsDialog.xaml.cs:199-203` · estados sin anuncio: `src/UI/MainWindow.Operations.cs:124`, `:174`, `src/UI/MainWindow.HelpAndUpdates.cs:128`
   - **Qué hacer:** mover `RaiseLiveRegionChanged` a un ayudante compartido y llamarlo al cambiar `CountText` y `ErrorText`; usar `SetStatusAndAnnounce` en los tres estados.
   - **Criterio de aceptación:** Accessibility Insights registra un evento `LiveRegionChanged` al filtrar el historial y al rechazar un nombre de preset.
-
-- [ ] **AUD-015 · Las guardas que deciden si una operación destructiva procede no tienen ninguna prueba que ejerza su rechazo**
-  - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:448-462`, `:931-935` · `src/UI/MainWindow.Operations.cs:330-354` · `tests/FormatDiskPro.UiTests/MainWindowTests.cs:45`
-  - **Qué hacer:** extraer a `Core/` una función pura por operación (`OperationGuard.CanFormat(...)`, `CanReinit(...)`) que reciba hechos (tipo de unidad, letra de sistema, números de disco) y devuelva un motivo tipado, como ya hace `PartitionPlan.Validate`; cubrirla con pruebas, incluidos los nulos.
-  - **Criterio de aceptación:** `Core/` contiene las decisiones de rechazo con cobertura del 100 % de sus ramas, y los manejadores solo traducen el motivo a un diálogo.
 
 - [ ] **AUD-016 · El borrado seguro no tiene ninguna prueba automatizada**
   - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
