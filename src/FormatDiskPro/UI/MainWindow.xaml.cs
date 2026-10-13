@@ -110,6 +110,12 @@ public sealed partial class MainWindow : Window
     private long _smallFat32Ceiling;
     private bool _repopulatingSizes;
     private bool _firstActivated = true;
+
+    /// <summary>
+    /// <see cref="LoadDrives"/> está vaciando y rellenando la lista: los cambios de selección que eso
+    /// provoca no son una elección de nadie y no deben restablecer las opciones (`AUD-029`).
+    /// </summary>
+    private bool _reloadingDrives;
     // Evita persistir preferencias por los eventos que disparan los controles durante la construcción.
     private bool _uiReady;
     private ElementTheme CurrentTheme => ((FrameworkElement)Content).RequestedTheme;
@@ -298,6 +304,21 @@ public sealed partial class MainWindow : Window
         if (_settings.PreservedUnreadablePath is { } preserved)
             _services.History.Log($"SETTINGS UNREADABLE: se apartó a {preserved}; se arrancó con los valores por defecto");
 
+        // Si la carpeta de estado es un enlace a otro sitio, ni el historial ni las preferencias se
+        // tocan (`AUD-025`). Eso incluye esta misma línea de historial, que no se escribiría: el único
+        // sitio donde se puede decir es la pantalla. Se dice una vez, al arrancar, porque lo que la
+        // persona va a notar —la app «olvida» sus preferencias y el historial sale vacío— no se explica
+        // solo.
+        if (StateFolder.IsRedirected(History.DefaultPath, AppSettings.DefaultPath))
+        {
+            // En la primera activación el contenido todavía no tiene XamlRoot, y un ContentDialog sin
+            // él lanza. Los demás diálogos de arranque no lo notan porque antes esperan a la red; este
+            // no espera a nada. Visto en hardware: sin esta espera el aviso no salía, y la excepción
+            // la recogía la red de seguridad de App, que tampoco tenía dónde escribirla.
+            await WhenContentLoadedAsync();
+            await ShowInfoAsync(L.T("state.redirectedTitle"), L.T("state.redirected", StateFolder.DefaultDirectory));
+        }
+
         await MaybeShowWhatsNewAsync();
 
         // La comprobación automática es opcional desde `T9-18`. Es la ÚNICA conexión a Internet de la
@@ -305,6 +326,21 @@ public sealed partial class MainWindow : Window
         // desactiva no se queda sin actualizaciones: *Ayuda → Buscar actualizaciones…* sigue ahí.
         if (_settings.CheckUpdatesOnStartup)
             await CheckForUpdatesAsync(manual: false);
+    }
+
+    /// <summary>Se completa cuando el contenido de la ventana está cargado y ya puede alojar un diálogo.</summary>
+    private Task WhenContentLoadedAsync()
+    {
+        if (Content is not FrameworkElement root || root.IsLoaded) return Task.CompletedTask;
+
+        var loaded = new TaskCompletionSource();
+        void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            root.Loaded -= OnLoaded;
+            loaded.TrySetResult();
+        }
+        root.Loaded += OnLoaded;
+        return loaded.Task;
     }
 
     // ── Dialog helpers ────────────────────────────────────────────
@@ -429,30 +465,78 @@ public sealed partial class MainWindow : Window
 
     // ── Drive loading ─────────────────────────────────────────────
 
+    /// <summary>
+    /// Recarga la lista de unidades y vuelve a seleccionar la que estaba.
+    /// </summary>
+    /// <remarks>
+    /// <b>Si la unidad seleccionada sigue siendo la misma, no se tocan las opciones</b> (`AUD-029`). La
+    /// lista se recarga con cada aviso de dispositivo —conectar un ratón basta—, y recargar es vaciarla
+    /// y volver a llenarla: la selección pasaba por «ninguna», que desmarca la FAT32 pequeña, y volvía a
+    /// la misma unidad restableciendo la etiqueta escrita y las opciones a medio configurar. Ahora los
+    /// cambios de selección que provoca la propia recarga se ignoran, y al terminar se decide una vez.
+    /// </remarks>
     private void LoadDrives()
     {
         // En el primer arranque no hay selección previa: usamos la última unidad persistida.
-        var prevLetter = (DrivePicker.SelectedItem as DriveViewModel)?.Letter ?? _pendingInitialLetter;
+        var previous = DrivePicker.SelectedItem as DriveViewModel;
+        var prevLetter = previous?.Letter ?? _pendingInitialLetter;
+        string? before = previous is null ? null : VolumeFingerprint(previous.Info);
         _pendingInitialLetter = null;
-        _driveItems.Clear();
 
-        foreach (var d in DriveInfo.GetDrives()
-            .Where(d => d.DriveType is DriveType.Fixed or DriveType.Removable or DriveType.Ram))
+        _reloadingDrives = true;
+        try
         {
-            string label;
-            try { label = d.IsReady && !string.IsNullOrEmpty(d.VolumeLabel) ? $"{d.Name.TrimEnd('\\')} ({d.VolumeLabel})" : d.Name.TrimEnd('\\'); }
-            catch { label = d.Name.TrimEnd('\\'); }
+            _driveItems.Clear();
 
-            bool prot = IsSystemDrive(d.Name[0]);
-            _driveItems.Add(new DriveViewModel(d.Name[0], label, d, prot, DriveBrush(prot)));
+            foreach (var d in DriveInfo.GetDrives()
+                .Where(d => d.DriveType is DriveType.Fixed or DriveType.Removable or DriveType.Ram))
+            {
+                string label;
+                try { label = d.IsReady && !string.IsNullOrEmpty(d.VolumeLabel) ? $"{d.Name.TrimEnd('\\')} ({d.VolumeLabel})" : d.Name.TrimEnd('\\'); }
+                catch { label = d.Name.TrimEnd('\\'); }
+
+                bool prot = IsSystemDrive(d.Name[0]);
+                _driveItems.Add(new DriveViewModel(d.Name[0], label, d, prot, DriveBrush(prot)));
+            }
+
+            int idx = -1;
+            if (prevLetter.HasValue)
+                for (int i = 0; i < _driveItems.Count; i++)
+                    if (_driveItems[i].Letter == prevLetter.Value) { idx = i; break; }
+
+            DrivePicker.SelectedIndex = idx >= 0 ? idx : (_driveItems.Count > 0 ? 0 : -1);
+        }
+        finally
+        {
+            _reloadingDrives = false;
         }
 
-        int idx = -1;
-        if (prevLetter.HasValue)
-            for (int i = 0; i < _driveItems.Count; i++)
-                if (_driveItems[i].Letter == prevLetter.Value) { idx = i; break; }
+        var current = DrivePicker.SelectedItem as DriveViewModel;
+        bool sameVolume = previous is not null && current is not null
+                       && current.Letter == previous.Letter
+                       && VolumeFingerprint(current.Info) == before;
+        OnDriveSelected(keepOptions: sameVolume, sameLetter: current?.Letter == previous?.Letter);
+    }
 
-        DrivePicker.SelectedIndex = idx >= 0 ? idx : (_driveItems.Count > 0 ? 0 : -1);
+    /// <summary>
+    /// Lo que se ve de un volumen sin consultar nada lento: si está listo, su tipo, tamaño, sistema de
+    /// archivos y etiqueta. Si no cambia entre dos recargas, para la ventana es la misma unidad.
+    /// </summary>
+    /// <remarks>
+    /// No es la identidad del disco —esa es <see cref="DriveIdentity"/>, que cuesta una consulta a
+    /// PowerShell y protege lo destructivo—. Esto solo decide si se respetan unas opciones a medio
+    /// escribir, y tiene que poder responderse en el acto.
+    /// </remarks>
+    private static string VolumeFingerprint(DriveInfo drive)
+    {
+        try
+        {
+            return drive.IsReady
+                ? $"{drive.DriveType}|{drive.TotalSize}|{drive.DriveFormat}|{drive.VolumeLabel}"
+                : $"{drive.DriveType}|sin preparar";
+        }
+        catch (IOException) { return "ilegible"; }
+        catch (UnauthorizedAccessException) { return "ilegible"; }
     }
 
     private void RefreshButton_Click(object sender, RoutedEventArgs e) => LoadDrives();

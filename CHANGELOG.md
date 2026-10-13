@@ -38,6 +38,29 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   misma letra—, la operación no se ejecuta y la aplicación lo dice. Y una confirmación abierta se cierra
   sola si se conecta o se retira un dispositivo.
 
+- **Conectar o retirar un dispositivo ya no deshace lo que se estaba configurando.** La lista de
+  unidades se recarga sola cuando Windows detecta un cambio —basta conectar un ratón—, y eso devolvía la
+  etiqueta escrita a la del volumen y restablecía las opciones. Ahora, si la unidad seleccionada sigue
+  siendo la misma, se quedan como estaban.
+
+### Seguridad
+
+La aplicación se ejecuta siempre como administrador. Estos cambios cierran sitios donde un programa sin
+esos privilegios, con la misma cuenta, podía influir en lo que la aplicación ejecuta o en dónde escribe.
+
+- **El instalador de una actualización no se puede cambiar después de verificarlo.** Se descarga a una
+  carpeta que solo pueden modificar los administradores —antes iba a la carpeta temporal del usuario—,
+  y el archivo queda bloqueado desde que se comprueba hasta que se ejecuta.
+- **Los enlaces y el archivo del historial se abren sin privilegios de administrador.** Antes el
+  navegador, o el editor de texto, heredaban los de la aplicación.
+- **La aplicación solo abre direcciones del proyecto** (su página en GitHub y la de donaciones). Si la
+  página de una versión llegara con otra dirección, no se abre y se muestra para copiarla.
+- **Si la carpeta de datos de la aplicación resulta ser un enlace a otra ubicación, no se usa.** La
+  aplicación arranca con los valores por defecto, no guarda historial ni preferencias mientras siga
+  así, y lo avisa al abrirse.
+- **Las herramientas de Windows que usa la aplicación se invocan por su ruta completa**, no por su
+  nombre.
+
 ### Cambiado
 
 - **El formato completo en exFAT muestra el porcentaje real**, como ya hacían NTFS y FAT32, en vez de

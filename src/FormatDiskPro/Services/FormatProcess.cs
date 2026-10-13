@@ -59,7 +59,7 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
         // libera al cerrar la operación. Liberarlo aquí dejaría su referencia inservible del otro lado.
         var proc = runner.Start(new ProcessSpec
         {
-            FileName  = "powershell.exe",
+            FileName  = SystemTools.PowerShell,
             Arguments = args,
         });
         started?.Invoke(proc);
@@ -98,13 +98,11 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
         char driveLetter, string fs, long allocBytes, string label, bool compress,
         IProgress<int>? percent, Action<IProcessHandle>? started, CancellationToken ct)
     {
-        string formatExe = Path.Combine(Environment.SystemDirectory, "format.com");
-
         // Sin `using` a propósito: el proceso se entrega a quien llama, que es quien lo cancela y quien lo
         // libera al cerrar la operación. Liberarlo aquí dejaría su referencia inservible del otro lado.
         var proc = runner.Start(new ProcessSpec
         {
-            FileName              = formatExe,
+            FileName              = SystemTools.FormatCom,
             ArgumentList          = FormatLogic.BuildComArgumentList(driveLetter, fs, allocBytes, label, compress),
             RedirectStandardInput = true,
         });

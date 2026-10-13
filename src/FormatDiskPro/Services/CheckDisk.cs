@@ -51,7 +51,7 @@ public sealed class CheckDisk(IProcessRunner runner) : ICheckDisk
 
         using var proc = runner.Start(new ProcessSpec
         {
-            FileName              = "chkdsk.exe",
+            FileName              = SystemTools.ChkDsk,
             ArgumentList          = args,
             RedirectStandardInput = true,
         });

@@ -61,6 +61,81 @@
 
 ## Entradas
 
+### 2026-10-13 — `AUD-002`, `AUD-004`, `AUD-025` y `AUD-026`: la frontera con la cuenta sin elevar (y `AUD-029`)
+
+**Qué tienen en común.** La app corre siempre elevada, y en cuatro sitios lo que hacía con esos
+privilegios lo podía decidir un programa **sin** ellos que corriera con la misma cuenta: qué instalador
+se ejecuta, con qué privilegios arranca el navegador, dónde se escribe el historial y qué
+`powershell.exe` se lanza. Ninguno era una puerta abierta; los cuatro eran una suposición sosteniendo
+algo que se ejecuta como administrador.
+
+**`AUD-002`, el instalador.** Se descargaba a `%Temp%\FormatDiskPro_update`, se verificaba y se
+ejecutaba **por su ruta**: dos operaciones, y entre ellas un archivo en una carpeta de la cuenta sin
+elevar. Dos cambios, y hacen falta los dos:
+
+- La carpeta pasa a `%ProgramData%\FormatDiskPro\update`, cerrada a Administradores y SYSTEM. Bajo
+  `%ProgramData%` cualquiera puede crear carpetas y quien crea una es su dueño, así que no basta con
+  crearla: `AdminOnlyFolder` comprueba cada nivel aunque ya exista. Una de otro dueño **se rechaza, no
+  se arregla** —su dueño puede volver a abrirla cuando quiera—.
+- `DownloadAsync` ya no devuelve una ruta sino un `VerifiedInstaller` que retiene el `FileStream` sobre
+  el que se calculó el hash. Con `FileShare.Read` el archivo se puede leer y ejecutar, y no escribir,
+  borrar ni mover. La descarga y la verificación no pueden compartir handle: uno con permiso de
+  escritura impide ejecutar el archivo.
+
+**`AUD-004`, los enlaces.** Un proceso hijo hereda el token: «GitHub» arrancaba el navegador como
+administrador. Ahora se le entrega el destino al `explorer.exe` del escritorio, que lo abre con el token
+normal de la sesión. Y `OpenUrl` valida antes: la página de un release llega en el JSON de GitHub, y el
+shell, si se le pasa una ruta, la ejecuta. Lista cerrada de sitios, no «cualquier https».
+
+Se eligió `explorer.exe "<destino>"` y no `IShellDispatch2.ShellExecute` desde la vista del escritorio,
+que es la otra opción que daba la tarea: hace lo mismo con una línea en vez de una cadena de interfaces
+COM. Tiene dos costes, medidos: no dice si el destino llegó a abrirse, y cada apertura deja un
+`explorer.exe /factory` sin elevar durante unos minutos.
+
+**`AUD-025`, la carpeta de estado.** `%AppData%\FormatDiskPro` es de la cuenta sin elevar; sustituida
+por una unión, era un administrador quien creaba, pisaba y borraba archivos al otro lado. La tarea daba
+dos salidas: negarse ante un punto de reanálisis, o mover el estado a una carpeta de administradores.
+Se tomó la primera. La segunda cierra más —esta es comprobar y después usar, y quien cambie la carpeta
+entre lo uno y lo otro la esquiva—, pero convierte en datos de la máquina unas preferencias que hoy son
+de cada persona, y obliga a migrarlas y a cambiar lo que borra el desinstalador. Lo que queda cerrado
+es el caso que no exige ganar ninguna carrera: dejar la unión puesta y esperar.
+
+**`AUD-026`, las rutas.** `SystemTools` da la ruta completa de las cuatro herramientas. La prueba no
+mira las constantes sino lo que de verdad llega al lanzador, servicio por servicio.
+
+**Lo que encontró la prueba en hardware.** Las unitarias de `AUD-025` pasaban todas y el aviso de
+arranque **no salía**. Con la app real y la carpeta sustituida por una unión, la ventana aparecía sin
+diálogo. En la primera activación el contenido aún no tiene `XamlRoot`; un `ContentDialog` sin él lanza;
+la excepción la recoge la red de seguridad de `App`, que la apunta en el historial —que en ese estado
+no se escribe— y solo enseña su propio aviso si hay `XamlRoot`. Un fallo que borraba todas sus huellas.
+Los demás diálogos de arranque no lo sufren porque antes esperan a la red. Ahora se espera a que el
+contenido esté cargado.
+
+**`AUD-029`, que no estaba en el plan.** Al pasar la suite de UI, `FullLifecycle` —el fallo anotado como
+intermitente en la entrada de `AUD-013`— falló dos pasadas seguidas, las dos con «No se encontró el
+control `RestPicker`». Dejó de poder tratarse como ruido. La causa era la sospechada: `LoadDrives` vacía
+la lista y la rellena, así que la selección pasaba por «ninguna» (que desmarca la FAT32 pequeña) y
+volvía a la misma unidad restableciendo opciones y descartando el tamaño del disco; con el volumen
+recién creado todavía sin montar, el panel de partición desaparecía un instante. Ahora la recarga
+ignora sus propios cambios de selección y, si la unidad es la misma, no toca lo que la persona escribió.
+No hay indicio de que esta tanda lo provocara —ninguno de sus cambios toca la recarga—; lo que cambió
+fue la frecuencia, y no se sabe por qué. Con el arreglo, dos pasadas completas seguidas en verde.
+
+De paso, `Require` en las pruebas de UI insiste tres segundos: una pasada falló con «No se encontró
+`DrivePicker`», un control que no desaparece nunca.
+
+**Cómo se comprobó.** 44 pruebas unitarias nuevas (844). Las de carpetas montan uniones reales con
+`mklink /J` y miran el otro lado, que es lo que importa. Por reversión, siete guardas quitadas de una en
+una: falla al menos una prueba cada vez. En hardware: `icacls` sobre la carpeta de descarga creada por
+el camino de producción (solo `SYSTEM` y `Administradores`); la página de un release y la de donaciones
+abiertas desde un proceso elevado, con el navegador resultante sin elevar; y la app real arrancada con
+su carpeta de estado convertida en unión, con 0 entradas al otro lado antes y después de cerrarla. Y el
+instalador real de la v1.29.0, descargado y verificado por el camino de producción, arrancado con el
+archivo retenido y cerrado sin instalar. Suite de UI con opt-in destructivo: 44 de 46, dos veces.
+
+**Lo que no se probó.** La instalación silenciosa completa de una actualización, que cierra la app y la
+relanza. Y el criterio de `AUD-004` pedía «sin navegador abierto»; Edge ya estaba en marcha.
+
 ### 2026-10-13 — `AUD-013`: una letra no es una identidad
 
 **El hueco.** Una operación destructiva se confirma tecleando la letra de la unidad, y se ejecuta sobre

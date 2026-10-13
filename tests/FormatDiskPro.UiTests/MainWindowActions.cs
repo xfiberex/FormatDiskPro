@@ -10,8 +10,22 @@ namespace FormatDiskPro.UiTests;
 /// </summary>
 public static class MainWindowActions
 {
+    /// <summary>
+    /// Busca un control por su AutomationId, <b>insistiendo unos segundos</b> antes de darlo por ausente.
+    /// </summary>
+    /// <remarks>
+    /// Una sola consulta no basta: mientras el hilo de la interfaz está ocupado —recargando la lista de
+    /// unidades tras una operación, por ejemplo— UIA puede devolver el árbol a medias y no encontrar un
+    /// control que está ahí. Visto el 2026-10-13 con <c>DrivePicker</c>, que no desaparece nunca, justo
+    /// después de un formato. Tres segundos no esconden un control que de verdad falta: la prueba falla
+    /// igual, solo que más tarde.
+    /// </remarks>
     public static AutomationElement Require(Window window, string automationId) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))
+        Retry.WhileNull(
+            () => window.FindFirstDescendant(cf => cf.ByAutomationId(automationId)),
+            timeout: TimeSpan.FromSeconds(3),
+            interval: TimeSpan.FromMilliseconds(150),
+            ignoreException: true).Result
             ?? throw new InvalidOperationException($"No se encontró el control '{automationId}'.");
 
     /// <summary>

@@ -27,6 +27,49 @@ public sealed class ServiceErrorPathTests
         return Encoding.Unicode.GetString(Convert.FromBase64String(args[(i + marker.Length)..]));
     }
 
+    // ── Rutas absolutas (`AUD-026`) ───────────────────────────────
+
+    /// <summary>
+    /// Todo lo que los servicios lanzan va por <b>ruta absoluta</b>. Por nombre, Windows busca el
+    /// ejecutable en la carpeta de la app, en el directorio actual y en el <c>PATH</c>, y la app corre
+    /// elevada: lo que apareciera antes que el de verdad se ejecutaría como administrador.
+    ///
+    /// <para>Se recorre <b>cada método</b> que lanza algo y se mira lo que de verdad llegó al lanzador,
+    /// no las constantes: un servicio nuevo que escriba <c>"diskpart.exe"</c> a mano falla aquí en
+    /// cuanto se añada a la lista, y la última aserción obliga a añadirlo.</para>
+    /// </summary>
+    [Fact]
+    public async Task EveryProcessTheServicesLaunch_IsStartedByAbsolutePath()
+    {
+        var runner = FakeProcessRunner.Returning("", exitCode: 0);
+        var disk = new DiskService(runner);
+
+        await disk.GetHealthAsync('G');
+        await disk.GetSmartAsync('G');
+        await disk.IsDiskReadOnlyAsync('G');
+        await disk.GetDiskNumberAsync('G');
+        await disk.GetDiskSizeAsync('G');
+        await disk.GetIdentityAsync('G');
+        await disk.ClearReadOnlyAsync('G');
+        await disk.EjectAsync('G');
+        await new CheckDisk(runner).RunAsync('G', false, new Progress<int>(), CancellationToken.None);
+        await new ReinitDrive(runner).RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Mbr, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var format = new FormatProcess(runner);
+        await format.RunVolumeAsync('G', "NTFS", 4096, "", quickFormat: true, compress: false, null, CancellationToken.None);
+        await format.RunComAsync('G', "NTFS", 4096, "", compress: false, null, null, CancellationToken.None);
+
+        Assert.Equal(12, runner.Started.Count);
+        Assert.All(runner.Started, spec =>
+        {
+            Assert.True(Path.IsPathFullyQualified(spec.FileName), $"Se lanzó por nombre: '{spec.FileName}'.");
+            Assert.True(File.Exists(spec.FileName), $"No existe: '{spec.FileName}'.");
+        });
+        Assert.Equal(
+            [SystemTools.ChkDsk, SystemTools.FormatCom, SystemTools.PowerShell],
+            runner.Started.Select(s => s.FileName).Distinct().Order());
+    }
+
     // ── DiskService ───────────────────────────────────────────────
 
     /// <summary>
@@ -222,7 +265,7 @@ public sealed class ServiceErrorPathTests
         await check.RunAsync('g', repair, new Progress<int>(), CancellationToken.None);
 
         var spec = Assert.Single(runner.Started);
-        Assert.Equal("chkdsk.exe", spec.FileName);
+        Assert.Equal(SystemTools.ChkDsk, spec.FileName);
         Assert.Equal("G:", spec.ArgumentList[0]);   // siempre en mayúscula invariante
         Assert.Equal(expectsF, spec.ArgumentList.Contains("/f"));
     }

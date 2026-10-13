@@ -187,7 +187,7 @@ public sealed class DiskService(IProcessRunner runner) : IDiskService
         string encoded = Convert.ToBase64String(bytes);
         return new ProcessSpec
         {
-            FileName               = "powershell.exe",
+            FileName               = SystemTools.PowerShell,
             Arguments              = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
             RedirectStandardOutput = capture,
             RedirectStandardError  = capture,

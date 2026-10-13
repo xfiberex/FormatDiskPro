@@ -232,14 +232,16 @@ public sealed partial class MainWindow
 
         try
         {
-            string path = await _services.Updates.DownloadAsync(rel, progress, _cts!.Token);
-            _services.History.Log($"UPDATE DOWNLOADED {rel.Version}: {path}");
+            // `using`: el instalador viene con su archivo retenido, y así sigue hasta que se ha lanzado
+            // (`AUD-002`). Lo que arranca es lo que se verificó, no lo que haya en esa ruta después.
+            using VerifiedInstaller installer = await _services.Updates.DownloadAsync(rel, progress, _cts!.Token);
+            _services.History.Log($"UPDATE DOWNLOADED {rel.Version}: {installer.Path}");
             StatusText.Text = L.T("update.launching");
             // Instalación silenciosa: el instalador cierra esta app, actualiza y la relanza.
             // Marcamos el cierre como intencional ANTES de salir para que AppWindow_Closing no lo
             // cancele por _isBusy; así la app suelta el AppMutex/los archivos y el instalador procede.
             _closingForUpdate = true;
-            _services.Updates.LaunchInstaller(path, silent: true);
+            _services.Updates.LaunchInstaller(installer, silent: true);
             Application.Current.Exit();
         }
         catch (OperationCanceledException)

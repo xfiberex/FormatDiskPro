@@ -107,16 +107,14 @@ public sealed class AppSettings
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     /// <summary>Ruta por defecto del archivo de configuración (mismo directorio que el historial).</summary>
-    public static string DefaultPath
-    {
-        get
-        {
-            string dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "FormatDiskPro");
-            return Path.Combine(dir, "settings.json");
-        }
-    }
+    public static string DefaultPath => Path.Combine(StateFolder.DefaultDirectory, "settings.json");
+
+    /// <summary>
+    /// ¿Lleva la configuración —la carpeta, el archivo o la copia apartada— a otro sitio? Si es así no
+    /// se lee ni se escribe: ver <see cref="StateFolder"/> (`AUD-025`).
+    /// </summary>
+    private static bool IsRedirected(string path)
+        => StateFolder.IsRedirected(path, UnreadablePathFor(path));
 
     /// <summary>
     /// Carga la configuración desde <paramref name="path"/> (o <see cref="DefaultPath"/> si es <c>null</c>).
@@ -128,6 +126,9 @@ public sealed class AppSettings
         try
         {
             path ??= DefaultPath;
+            // Leer no escribe, pero un archivo ilegible se APARTA, y eso es mover un archivo como
+            // administrador dentro de una carpeta que apunta a otro sitio. No se lee y no se aparta.
+            if (IsRedirected(path)) return new AppSettings();
             if (!File.Exists(path)) return new AppSettings();
             string json = File.ReadAllText(path);
 
@@ -219,6 +220,7 @@ public sealed class AppSettings
         try
         {
             path ??= DefaultPath;
+            if (IsRedirected(path)) return;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(this, JsonOptions));
         }

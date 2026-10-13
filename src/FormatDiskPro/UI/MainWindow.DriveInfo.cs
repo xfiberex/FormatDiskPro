@@ -30,9 +30,26 @@ public sealed partial class MainWindow
 
     private void DrivePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // Durante una recarga la selección pasa por «ninguna» y vuelve: lo resuelve LoadDrives al acabar.
+        if (_reloadingDrives) return;
+        OnDriveSelected(keepOptions: false, sameLetter: false);
+    }
+
+    /// <summary>Pinta la unidad seleccionada y, salvo que se pida conservarlas, sus opciones.</summary>
+    /// <param name="keepOptions">
+    /// La unidad es la misma que antes de recargar: se refresca lo que se <b>lee</b> de ella (ocupación,
+    /// salud, protección) y no se toca lo que la persona <b>escribió</b> (etiqueta, opciones).
+    /// </param>
+    /// <param name="sameLetter">
+    /// La letra no ha cambiado, aunque el volumen sí (acaba de formatearse, o todavía no está listo). El
+    /// tamaño del disco ya conocido se conserva hasta que llegue el nuevo, en vez de quedarse sin ninguno:
+    /// sin él, y con el volumen aún sin montar, las opciones de partición desaparecían un instante.
+    /// </param>
+    private void OnDriveSelected(bool keepOptions, bool sameLetter)
+    {
         // El tamaño del disco anterior no vale para la unidad nueva: se descarta ANTES de repintar las
         // opciones, para que UpdateSmallFat32Option no ofrezca tamaños del disco que ya no está.
-        _selectedDiskSizeBytes = null;
+        if (!sameLetter) _selectedDiskSizeBytes = null;
 
         if (DrivePicker.SelectedItem is not DriveViewModel item)
         {
@@ -57,9 +74,14 @@ public sealed partial class MainWindow
             _settings.Save();
         }
         UpdateInfo(item.Info);
-        UpdateFileSystemOptions(item.Info);
-        try { if (item.Info.IsReady) VolumeLabelBox.Text = item.Info.VolumeLabel; }
-        catch { VolumeLabelBox.Text = ""; }
+        if (!keepOptions)
+        {
+            UpdateFileSystemOptions(item.Info);
+            // Sin volumen legible el campo se vacía: dejar la etiqueta de la unidad anterior la
+            // propondría para esta.
+            try { VolumeLabelBox.Text = item.Info.IsReady ? item.Info.VolumeLabel : ""; }
+            catch { VolumeLabelBox.Text = ""; }
+        }
 
         ApplyProtection();
 
@@ -67,7 +89,7 @@ public sealed partial class MainWindow
         // consulta el S.M.A.R.T.), pero el descarte deja escrito que es deliberado. Ver LoadHealthAsync.
         // Van en paralelo y no encadenadas: son dos consultas independientes y una no debe esperar a la otra.
         _ = LoadHealthAsync(item);
-        _ = LoadDiskSizeAsync(item);
+        if (!keepOptions) _ = LoadDiskSizeAsync(item);
     }
 
     /// <summary>

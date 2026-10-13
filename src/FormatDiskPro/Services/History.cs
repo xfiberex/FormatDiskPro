@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace FormatDiskPro;
 
@@ -36,16 +35,14 @@ public sealed class History(string? path = null) : IHistory
     private static readonly string Header = $"# FormatDiskPro — historial de operaciones{Environment.NewLine}";
 
     /// <summary>Ruta del historial de la app: <c>%AppData%\FormatDiskPro\history.log</c>.</summary>
-    public static string DefaultPath
-    {
-        get
-        {
-            string dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "FormatDiskPro");
-            return Path.Combine(dir, "history.log");
-        }
-    }
+    public static string DefaultPath => Path.Combine(StateFolder.DefaultDirectory, "history.log");
+
+    /// <summary>
+    /// ¿Lleva el historial —la carpeta, el archivo o su generación rotada— a otro sitio? Si es así no se
+    /// lee ni se escribe: ver <see cref="StateFolder"/> (`AUD-025`).
+    /// </summary>
+    private static bool IsRedirected(string path)
+        => StateFolder.IsRedirected(path, HistoryRotation.PreviousPath(path));
 
     /// <summary>Archivo sobre el que opera esta instancia.</summary>
     public string FilePath { get; } = path ?? DefaultPath;
@@ -65,7 +62,9 @@ public sealed class History(string? path = null) : IHistory
     public void Clear() => ClearAt(FilePath);
 
     /// <summary>
-    /// Abre el archivo de historial en el editor predeterminado (lo crea si no existe).
+    /// Abre el archivo de historial en el editor predeterminado (lo crea si no existe), <b>sin
+    /// elevación</b>: el editor lo abre el shell del escritorio, no este proceso (`AUD-004`, ver
+    /// <see cref="DesktopShell"/>).
     ///
     /// <para><b>Deja salir la excepción a propósito.</b> Antes la atrapaba y no hacía nada, así que
     /// pulsar <i>Abrir archivo</i> sin un editor asociado a <c>.log</c> —o con el archivo bloqueado— no
@@ -77,12 +76,15 @@ public sealed class History(string? path = null) : IHistory
     public void Open()
     {
         string path = FilePath;
+        if (IsRedirected(path))
+            throw new InvalidOperationException(L.T("state.redirected", Path.GetDirectoryName(path)!));
+
         if (!File.Exists(path))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, Header);
         }
-        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        DesktopShell.Open(path);
     }
 
     // ── Implementación sobre una ruta dada ────────────────────────────────────────────────────
@@ -95,6 +97,7 @@ public sealed class History(string? path = null) : IHistory
     {
         try
         {
+            if (IsRedirected(path)) return;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             RotateIfNeeded(path);
             string safe = HistoryEntry.SanitizeDetail(line);
@@ -117,6 +120,7 @@ public sealed class History(string? path = null) : IHistory
     {
         try
         {
+            if (IsRedirected(path)) return [];
             var lines = new List<string>();
             string previous = HistoryRotation.PreviousPath(path);
             if (File.Exists(previous)) lines.AddRange(File.ReadAllLines(previous));
@@ -134,6 +138,7 @@ public sealed class History(string? path = null) : IHistory
     {
         try
         {
+            if (IsRedirected(path)) return;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             string previous = HistoryRotation.PreviousPath(path);
             if (File.Exists(previous)) File.Delete(previous);

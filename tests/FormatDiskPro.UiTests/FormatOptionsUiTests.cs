@@ -38,6 +38,37 @@ public sealed class FormatOptionsUiTests
         }
     }
 
+    /// <summary>
+    /// Recargar la lista de unidades no deshace lo que se estaba configurando (`AUD-029`).
+    /// </summary>
+    /// <remarks>
+    /// La lista se recarga sola con cada aviso de dispositivo —conectar un ratón basta—, y hasta ahora
+    /// eso devolvía la etiqueta a la del volumen y restablecía las opciones, estuviera la persona a
+    /// mitad de escribirlas o no. Se provoca con el botón de recargar, que llama a lo mismo que el aviso.
+    /// </remarks>
+    [NonSystemDriveFact]
+    public void ReloadingTheDriveList_KeepsTheLabelAndOptionsBeingEdited()
+    {
+        var box = MainWindowActions.TextBox(Window, "VolumeLabelBox");
+        string original = box.Text;
+        try
+        {
+            box.Text = "A-MEDIAS";
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", true);
+
+            MainWindowActions.Button(Window, "RefreshButton").Invoke();
+            Thread.Sleep(1500);   // deja llegar las consultas que lanza la recarga
+
+            Assert.Equal("A-MEDIAS", MainWindowActions.TextBox(Window, "VolumeLabelBox").Text);
+            Assert.Equal(ToggleState.On, MainWindowActions.CheckBox(Window, "SecureWipeCheck").ToggleState);
+        }
+        finally
+        {
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+            MainWindowActions.TextBox(Window, "VolumeLabelBox").Text = original;
+        }
+    }
+
     [NonSystemDriveFact]
     public void SecureWipeCheck_TogglesWipePassesPicker()
     {

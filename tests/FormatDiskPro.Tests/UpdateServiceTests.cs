@@ -244,11 +244,11 @@ public sealed class UpdateServiceTests
         string destination = ScratchInstallerPath();
         try
         {
-            string path = await new UpdateService().DownloadAsync(
+            using VerifiedInstaller verified = await new UpdateService().DownloadAsync(
                 Release(server), progress: null, CancellationToken.None, destination);
 
-            Assert.Equal(destination, path);
-            Assert.Equal(installer, await File.ReadAllBytesAsync(path));
+            Assert.Equal(destination, verified.Path);
+            Assert.Equal(installer, await File.ReadAllBytesAsync(verified.Path));
         }
         finally
         {
@@ -283,6 +283,140 @@ public sealed class UpdateServiceTests
             if (File.Exists(destination)) File.Delete(destination);
         }
     }
+
+    // ── AUD-002: lo que se verifica es lo que se ejecuta ───────────────────────────────────
+
+    /// <summary>
+    /// El criterio de aceptación de `AUD-002`: entre verificar el instalador y lanzarlo, <b>nadie puede
+    /// cambiarlo</b>. No es una cuestión de permisos —esta prueba corre con la misma cuenta que lo
+    /// descargó, que es dueña del archivo—: es que el archivo sigue abierto por quien lo verificó, y
+    /// Windows no deja escribir, borrar ni mover un archivo abierto así.
+    ///
+    /// <para>La segunda mitad importa tanto como la primera: al liberarlo vuelve a ser un archivo
+    /// corriente. Sin ella la prueba pasaría igual con un archivo de solo lectura.</para>
+    /// </summary>
+    [Fact]
+    public async Task DownloadAsync_KeepsTheVerifiedFileLocked_UntilTheCallerLetsGo()
+    {
+        byte[] installer = [1, 2, 3, 4];
+        using var server = ServerFor(installer);
+
+        string destination = ScratchInstallerPath();
+        string elsewhere = destination + ".moved";
+        try
+        {
+            VerifiedInstaller verified = await new UpdateService().DownloadAsync(
+                Release(server), null, CancellationToken.None, destination);
+
+            Assert.Throws<IOException>(() => File.OpenWrite(destination).Dispose());
+            Assert.Throws<IOException>(() => File.WriteAllBytes(destination, [9, 9, 9, 9]));
+            Assert.Throws<IOException>(() => File.Move(destination, elsewhere));
+            Assert.Throws<IOException>(() => File.Delete(destination));
+
+            // Leerlo sí se puede: es lo que necesita quien lo va a ejecutar.
+            Assert.Equal(installer, await File.ReadAllBytesAsync(destination));
+
+            verified.Dispose();
+            File.WriteAllBytes(destination, [9, 9, 9, 9]);   // ya no lanza
+        }
+        finally
+        {
+            if (File.Exists(destination)) File.Delete(destination);
+            if (File.Exists(elsewhere)) File.Delete(elsewhere);
+        }
+    }
+
+    /// <summary>
+    /// Retener el archivo no puede impedir <b>ejecutarlo</b>: si lo hiciera, la actualización se
+    /// rechazaría siempre a sí misma. Se comprueba con un ejecutable de verdad —una copia de
+    /// <c>hostname.exe</c>, que termina solo— servido como si fuera el instalador y lanzado por el mismo
+    /// camino que el real, con el archivo todavía retenido.
+    /// </summary>
+    [Fact]
+    public async Task StartInstaller_RunsTheFile_WhileItIsStillLocked()
+    {
+        byte[] exe = await File.ReadAllBytesAsync(Path.Combine(Environment.SystemDirectory, "hostname.exe"));
+        using var server = ServerFor(exe);
+
+        string destination = ScratchInstallerPath();
+        try
+        {
+            using VerifiedInstaller verified = await new UpdateService().DownloadAsync(
+                Release(server), null, CancellationToken.None, destination);
+
+            using var process = UpdateService.StartInstaller(verified, silent: false);
+
+            Assert.NotNull(process);
+            Assert.True(process.WaitForExit(TimeSpan.FromSeconds(30)), "El ejecutable no terminó.");
+            Assert.Equal(0, process.ExitCode);
+        }
+        finally
+        {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
+    /// <summary>
+    /// La descarga <b>crea</b> el archivo, no reutiliza el que hubiera: uno que ya estaba ahí conserva
+    /// su dueño y sus permisos aunque se le cambie el contenido. Se comprueba con lo único observable sin
+    /// cambiar de cuenta: la fecha de creación es la de ahora, no la del archivo que había.
+    /// </summary>
+    [Fact]
+    public async Task DownloadAsync_ReplacesAnExistingFile_InsteadOfReusingIt()
+    {
+        using var server = ServerFor([1, 2, 3, 4]);
+
+        string destination = ScratchInstallerPath();
+        try
+        {
+            await File.WriteAllBytesAsync(destination, [7, 7, 7]);
+            var old = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            File.SetCreationTimeUtc(destination, old);
+
+            using VerifiedInstaller verified = await new UpdateService().DownloadAsync(
+                Release(server), null, CancellationToken.None, destination);
+
+            Assert.NotEqual(old, File.GetCreationTimeUtc(destination));
+        }
+        finally
+        {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
+    /// <summary>
+    /// De la carpeta de descarga se borran los instaladores anteriores <b>y nada más</b>. Antes se
+    /// borraba todo lo que hubiera.
+    /// </summary>
+    [Fact]
+    public void DeletePreviousInstallers_OnlyRemovesWhatTheAppRecognisesAsItsOwn()
+    {
+        string dir = Directory.CreateTempSubdirectory("fdp_update_").FullName;
+        try
+        {
+            string old = Path.Combine(dir, "FormatDiskPro-1.2.3-setup.exe");
+            string foreign = Path.Combine(dir, "otra-cosa.exe");
+            string notes = Path.Combine(dir, "FormatDiskPro-1.2.3-setup.exe.txt");
+            foreach (string f in (string[])[old, foreign, notes]) File.WriteAllBytes(f, [1]);
+
+            UpdateService.DeletePreviousInstallers(dir);
+
+            Assert.False(File.Exists(old));
+            Assert.True(File.Exists(foreign));
+            Assert.True(File.Exists(notes));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    /// <summary>Servidor con un instalador y el hash que le corresponde.</summary>
+    private static LocalHttpServer ServerFor(byte[] installer) => new(new Dictionary<string, byte[]>
+    {
+        ["/setup.exe"] = installer,
+        ["/setup.exe.sha256"] = Encoding.UTF8.GetBytes(Convert.ToHexString(SHA256.HashData(installer)))
+    });
 
     /// <summary>
     /// El asset <c>.sha256</c> se lee con un tope de tamaño: la URL sale del JSON del release, así que no

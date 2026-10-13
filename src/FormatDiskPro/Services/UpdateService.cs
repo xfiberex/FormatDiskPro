@@ -40,14 +40,45 @@ public interface IUpdateService
     Task<ReleaseInfo?> CheckForUpdateAsync(CancellationToken ct = default);
 
     /// <inheritdoc cref="UpdateService.DownloadAsync"/>
-    Task<string> DownloadAsync(
+    Task<VerifiedInstaller> DownloadAsync(
         ReleaseInfo release, IProgress<int>? progress, CancellationToken ct, string? destinationPath = null);
 
     /// <inheritdoc cref="UpdateService.LaunchInstaller"/>
-    void LaunchInstaller(string installerPath, bool silent = false);
+    void LaunchInstaller(VerifiedInstaller installer, bool silent = false);
 
     /// <inheritdoc cref="UpdateService.OpenUrl"/>
     bool OpenUrl(string url);
+}
+
+/// <summary>
+/// Un instalador descargado <b>y verificado</b>, con el archivo todavía abierto (`AUD-002`).
+/// </summary>
+/// <remarks>
+/// <para><b>Por qué no es una ruta.</b> Verificar un archivo y ejecutarlo después <i>por su ruta</i> son
+/// dos operaciones, y entre las dos el archivo puede dejar de ser el que se verificó. Este objeto
+/// retiene el mismo <see cref="FileStream"/> sobre el que se calculó el hash, abierto con
+/// <see cref="FileShare.Read"/>: mientras viva, nadie puede abrir el archivo para escribir, ni
+/// borrarlo, ni renombrarlo —Windows lo impide, sea quien sea—, pero sí leerlo y ejecutarlo.</para>
+///
+/// <para>Quien lo recibe lo mantiene vivo hasta que <see cref="UpdateService.LaunchInstaller"/> haya
+/// vuelto. A partir de ahí el archivo lo protege el propio proceso del instalador, que lo tiene
+/// mapeado como imagen.</para>
+/// </remarks>
+public sealed class VerifiedInstaller : IDisposable
+{
+    private readonly FileStream _held;
+
+    internal VerifiedInstaller(string path, FileStream held)
+    {
+        Path = path;
+        _held = held;
+    }
+
+    /// <summary>Ruta del instalador.</summary>
+    public string Path { get; }
+
+    /// <summary>Suelta el archivo. Hasta entonces no se puede modificar, borrar ni mover.</summary>
+    public void Dispose() => _held.Dispose();
 }
 
 /// <summary>
@@ -182,48 +213,98 @@ public sealed class UpdateService : IUpdateService
     }
 
     /// <summary>
-    /// Descarga el instalador de una versión a la carpeta temporal, informa el progreso (0-100) y lo
-    /// <b>verifica</b> antes de devolverlo (ver <see cref="VerifyInstallerAsync"/>). Devuelve la ruta del
-    /// archivo descargado; si no se puede verificar, lo borra y lanza.
+    /// Descarga el instalador de una versión a una carpeta que solo escriben administradores, informa
+    /// el progreso (0-100) y lo <b>verifica</b> antes de devolverlo (ver
+    /// <see cref="VerifyInstallerAsync"/>). Si no se puede verificar, lo borra y lanza.
     /// </summary>
-    /// <param name="destinationPath">Solo para pruebas: si es null se usa la carpeta temporal habitual.</param>
-    public async Task<string> DownloadAsync(
+    /// <param name="destinationPath">Solo para pruebas: si es null se usa la carpeta de descarga habitual.</param>
+    /// <returns>
+    /// El instalador, <b>con el archivo retenido</b>: quien llama lo libera cuando ya lo ha lanzado.
+    /// </returns>
+    public async Task<VerifiedInstaller> DownloadAsync(
         ReleaseInfo release, IProgress<int>? progress, CancellationToken ct, string? destinationPath = null)
     {
         if (string.IsNullOrEmpty(release.AssetUrl))
             throw new InvalidOperationException("La versión no incluye un instalador descargable.");
 
         string path = destinationPath ?? PrepareDownloadPath(release);
+        DeleteStaleTarget(path);
 
-        // La descarga va en su propio método a propósito: así su FileStream (abierto con FileShare.None)
-        // queda cerrado ANTES de verificar. Con el handle todavía vivo, tanto la firma como el hash
-        // fallarían al abrir el archivo con "lo está usando otro proceso" —el proceso somos nosotros— y
-        // la actualización se rechazaría siempre a sí misma.
+        // La descarga va en su propio método a propósito: así su FileStream (abierto con FileShare.None,
+        // y de escritura) queda cerrado ANTES de verificar. No se puede reutilizar para lo que viene
+        // después: un handle con permiso de escritura impediría ejecutar el archivo.
         await DownloadToFileAsync(release, path, progress, ct);
 
+        // A partir de aquí el archivo se abre UNA vez y no se suelta (`AUD-002`): el hash se calcula
+        // sobre este mismo handle, que es el que sigue abierto cuando se ejecuta. FileShare.Read deja
+        // leerlo y ejecutarlo, y niega escribirlo, borrarlo y renombrarlo. Lo que alguien hubiera
+        // cambiado entre el cierre de la descarga y esta apertura lo delata el hash.
+        var held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, useAsync: true);
         try
         {
-            await VerifyInstallerAsync(path, release.ChecksumUrl, ct);
+            await VerifyInstallerAsync(held, release.ChecksumUrl, ct);
         }
         catch
         {
+            await held.DisposeAsync();
             TryDeleteRejectedInstaller(path);
             throw;
         }
 
-        return path;
+        return new VerifiedInstaller(path, held);
     }
 
+    /// <summary>
+    /// Deja lista la carpeta de descarga —<c>%ProgramData%\FormatDiskPro\update</c>— y devuelve la ruta
+    /// donde irá el instalador.
+    ///
+    /// <para>Hasta ahora era <c>%Temp%\FormatDiskPro_update</c>, que pertenece a la cuenta sin elevar:
+    /// el instalador se verificaba y se ejecutaba como administrador en una carpeta donde esa cuenta
+    /// podía cambiarlo. Ver <see cref="AdminOnlyFolder"/>.</para>
+    /// </summary>
     private static string PrepareDownloadPath(ReleaseInfo release)
     {
-        string dir = Path.Combine(Path.GetTempPath(), "FormatDiskPro_update");
-        Directory.CreateDirectory(dir);
+        string dir = AdminOnlyFolder.Prepare(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "FormatDiskPro", "update");
 
-        // Limpia descargas previas para no acumular instaladores viejos en %Temp%.
-        try { foreach (var old in Directory.GetFiles(dir)) File.Delete(old); }
-        catch { /* archivo en uso u otro problema: no es crítico */ }
-
+        DeletePreviousInstallers(dir);
         return Path.Combine(dir, SafeAssetFileName(release.AssetName, release.Version));
+    }
+
+    /// <summary>
+    /// Borra los instaladores de versiones anteriores para no acumularlos (unos 60 MB cada uno).
+    ///
+    /// <para><b>Solo los que la app reconoce como suyos</b>, por nombre y siendo archivos normales. Antes
+    /// se borraba «lo que hubiera» en la carpeta: un borrado como administrador cuyo alcance lo decidía
+    /// el contenido de una carpeta ajena.</para>
+    /// </summary>
+    internal static void DeletePreviousInstallers(string dir)
+    {
+        try
+        {
+            foreach (string old in Directory.GetFiles(dir, "FormatDiskPro-*-setup.exe"))
+            {
+                if (!StateFolder.IsReparsePoint(old)) File.Delete(old);
+            }
+        }
+        catch (IOException) { /* en uso: no es crítico */ }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    /// <summary>
+    /// Quita lo que haya en la ruta de destino, para que la descarga <b>cree</b> el archivo en vez de
+    /// reutilizar uno existente.
+    ///
+    /// <para>Importa porque un archivo que ya estaba ahí conserva su dueño y sus permisos aunque se le
+    /// cambie el contenido: si lo dejó otra cuenta antes de que la carpeta se cerrara, esa cuenta
+    /// seguiría pudiendo escribir en él. Si no se puede quitar —es una carpeta, alguien lo tiene
+    /// abierto—, la descarga falla, que es lo correcto.</para>
+    /// </summary>
+    private static void DeleteStaleTarget(string path)
+    {
+        if (StateFolder.IsReparsePoint(path))
+            throw new InvalidOperationException(L.T("update.folderRedirected", path));
+        File.Delete(path);
     }
 
     /// <summary>
@@ -272,7 +353,8 @@ public sealed class UpdateService : IUpdateService
 
         long total = resp.Content.Headers.ContentLength ?? release.AssetSize;
         await using var src = await resp.Content.ReadAsStreamAsync(ct);
-        await using var dst = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
+        // CreateNew, no Create: el archivo tiene que nacer aquí (ver DeleteStaleTarget).
+        await using var dst = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
 
         var buffer = new byte[1 << 20];
         long read = 0;
@@ -292,7 +374,7 @@ public sealed class UpdateService : IUpdateService
 
     /// <summary>
     /// Borra el instalador que no pasó la verificación. Si el borrado falla se ignora: el error que
-    /// importa es el que lo rechazó, y el próximo intento sobrescribe el archivo (FileMode.Create).
+    /// importa es el que lo rechazó, y el próximo intento lo quita antes de descargar.
     /// </summary>
     private static void TryDeleteRejectedInstaller(string path)
     {
@@ -328,11 +410,11 @@ public sealed class UpdateService : IUpdateService
     /// compromiso habitual de un proyecto sin certificado, y es exactamente la garantía que sustituye a
     /// la firma.
     /// </summary>
-    private static async Task VerifyInstallerAsync(string filePath, string? checksumUrl, CancellationToken ct)
+    private static async Task VerifyInstallerAsync(FileStream installer, string? checksumUrl, CancellationToken ct)
     {
         if (SignsItsInstallers)
         {
-            if (VerifyAuthenticodeSignature(filePath))
+            if (VerifyAuthenticodeSignature(installer.Name))
                 return;
         }
 
@@ -343,7 +425,7 @@ public sealed class UpdateService : IUpdateService
 
         // Admite tanto "<hash>" a secas como el formato de sha256sum: "<hash> *FormatDiskPro-X.Y.Z-setup.exe".
         string expected = published.Trim().Split((char[])[' ', '\t', '\r', '\n'], 2)[0];
-        string actual = await ComputeSha256Async(filePath, ct);
+        string actual = await ComputeSha256Async(installer, ct);
 
         if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(L.T("update.checksumMismatch"));
@@ -399,6 +481,16 @@ public sealed class UpdateService : IUpdateService
     internal static async Task<string> ComputeSha256Async(string filePath, CancellationToken ct = default)
     {
         await using FileStream stream = File.OpenRead(filePath);
+        return await ComputeSha256Async(stream, ct);
+    }
+
+    /// <summary>
+    /// SHA-256 de un archivo <b>ya abierto</b>, desde el principio. No lo cierra: es la variante que
+    /// permite verificar y ejecutar sin soltar el archivo entre lo uno y lo otro.
+    /// </summary>
+    internal static async Task<string> ComputeSha256Async(FileStream stream, CancellationToken ct = default)
+    {
+        stream.Position = 0;
         byte[] hash = await SHA256.HashDataAsync(stream, ct);
         return Convert.ToHexString(hash);
     }
@@ -513,25 +605,38 @@ public sealed class UpdateService : IUpdateService
     }
 
     /// <summary>
-    /// Ejecuta el instalador descargado (pedirá elevación UAC).
+    /// Ejecuta el instalador descargado. Hereda la elevación de la app.
     /// </summary>
-    /// <param name="installerPath">Ruta del instalador (.exe) descargado.</param>
+    /// <param name="installer">
+    /// El instalador que devolvió <see cref="DownloadAsync"/>, <b>sin liberar</b>: es lo que garantiza
+    /// que lo que arranca es lo que se verificó. Quien llama lo libera después de esta llamada.
+    /// </param>
     /// <param name="silent">
     /// Si es <see langword="true"/>, lo ejecuta en modo silencioso (`/VERYSILENT`) y le indica
     /// que relance la app al terminar (`/AUTOUPDATE=1`), para una actualización sin interrupción.
     /// </param>
-    public void LaunchInstaller(string installerPath, bool silent = false)
+    public void LaunchInstaller(VerifiedInstaller installer, bool silent = false)
     {
-        var psi = new ProcessStartInfo(installerPath) { UseShellExecute = true };
+        using Process? started = StartInstaller(installer, silent);
+    }
+
+    /// <summary>Lo mismo, devolviendo el proceso: es lo que las pruebas necesitan para esperarlo.</summary>
+    internal static Process? StartInstaller(VerifiedInstaller installer, bool silent)
+    {
+        var psi = new ProcessStartInfo(installer.Path) { UseShellExecute = true };
         if (silent) psi.Arguments = "/VERYSILENT /NORESTART /AUTOUPDATE=1";
-        Process.Start(psi);
+        return Process.Start(psi);
     }
 
     /// <summary>
-    /// Abre una URL en el navegador predeterminado.
+    /// Abre una URL en el navegador predeterminado, <b>sin elevación</b> y solo si es una de las
+    /// direcciones a las que la app enlaza (`AUD-004`): ver <see cref="LinkPolicy"/> y
+    /// <see cref="DesktopShell"/>.
     /// </summary>
     /// <param name="url">Dirección a abrir.</param>
-    /// <returns><see langword="true"/> si el shell aceptó abrirla.</returns>
+    /// <returns>
+    /// <see langword="true"/> si la dirección es de las permitidas y se le pudo entregar al shell.
+    /// </returns>
     /// <remarks>
     /// Sigue sin lanzar —un enlace roto no puede tumbar un diálogo—, pero ahora <b>contesta</b>: antes
     /// devolvía <c>void</c> y se tragaba el fallo, así que pulsar «Apoyar el proyecto» sin navegador
@@ -540,9 +645,10 @@ public sealed class UpdateService : IUpdateService
     /// </remarks>
     public bool OpenUrl(string url)
     {
+        if (!LinkPolicy.TryGetSafeUrl(url, out string safe)) return false;
         try
         {
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            DesktopShell.Open(safe);
             return true;
         }
         catch { return false; }

@@ -29,25 +29,25 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **66 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **61 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 1 |
-| **2** | Medio | 17 |
-| **3** | Bajo | 47 |
+| **2** | Medio | 15 |
+| **3** | Bajo | 44 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **66** |
+| | **Total** | **61** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **65** y se han cerrado **6**
-(`AUD-001`, `AUD-012`, `AUD-013`, `AUD-015`, `AUD-018`, `AUD-019`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **60** y se han cerrado **11**
+(`AUD-001`, `AUD-002`, `AUD-004`, `AUD-012`, `AUD-013`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-029`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
 | Accesibilidad | 1 | 1 | – | 2 |
-| Seguridad | – | 3 | 2 | 5 |
-| Código | – | 6 | 5 | 11 |
+| Seguridad | – | 1 | – | 1 |
+| Código | – | 6 | 4 | 10 |
 | QA | – | 1 | 1 | 2 |
 | Documentación | – | 1 | 2 | 3 |
 | DevOps | – | 4 | 15 | 19 |
@@ -57,13 +57,12 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **65** y se han cerrado **
 | Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **1** | **17** | **47** | **65** |
+| **Total** | **1** | **15** | **44** | **60** |
 
-**Esfuerzo:** 52 de esfuerzo bajo (hasta 2 horas) y 13 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 50 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-002`, `AUD-004`, `AUD-025`,
-`AUD-026` (la frontera con lo que el usuario sin elevar controla) → `AUD-003`,
+**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-003`,
 `AUD-014` (accesibilidad) → los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
 `AUD-044` a `AUD-047`, `AUD-066`) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
 `AUD-056` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
@@ -81,18 +80,6 @@ del autor.
   - **Criterio de aceptación:** una prueba de UI exige `Name` no vacío en `DrivePicker` y que el `Name` de cada ítem contenga su letra; el volcado de UIA no lista ningún control interactivo sin nombre.
 
 ## 🟡 Tier 2 — Medio
-
-- [ ] **AUD-002 · El instalador de la actualización se verifica y después se ejecuta por ruta desde una carpeta que el usuario sin elevar controla**
-  - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Medio
-  - **Ubicación:** `src/Services/UpdateService.cs:217-227` (carpeta), `:202-214` y `:331-350` (verificación), `:399-404` (hash: abre y cierra), `:523-528` (`LaunchInstaller`) · `src/UI/MainWindow.HelpAndUpdates.cs:235-243`
-  - **Qué hacer:** (1) descargar a una carpeta que solo escriban administradores (por ejemplo bajo `%ProgramData%\FormatDiskPro\update`), creada con DACL explícita y protegida, comprobando que no es un punto de reanálisis y que su propietario es Administradores o SYSTEM; (2) ligar verificación y ejecución: abrir el archivo una sola vez con `FileShare.Read`, calcular el hash sobre ese `FileStream` y mantenerlo abierto hasta que `Process.Start` haya devuelto; (3) borrar solo el archivo que se va a escribir, no «lo que haya» en la carpeta.
-  - **Criterio de aceptación:** `icacls` sobre la carpeta de descarga no concede escritura a la cuenta sin elevar; una prueba que intenta abrir el instalador para escritura después de verificarlo y antes de lanzarlo falla; una carpeta preexistente con otro propietario o que sea un punto de reanálisis se rechaza con un motivo registrado; `UpdateServiceTests` sigue pasando.
-
-- [ ] **AUD-004 · Los enlaces y el historial se abren con el shell desde el proceso elevado, y `OpenUrl` no valida lo que abre**
-  - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Medio
-  - **Ubicación:** `src/Services/UpdateService.cs:541-549` (`OpenUrl`) · `src/Services/History.cs:77-86` (`Open`) · llamantes: `src/UI/AboutDialog.xaml.cs:33-34`, `src/UI/WhatsNewDialog.xaml.cs:39`, `src/UI/MainWindow.HelpAndUpdates.cs:163`, `src/UI/HistoryDialog.xaml.cs:200`
-  - **Qué hacer:** abrir enlaces y archivos sin elevación a través del shell del escritorio (`IShellDispatch2.ShellExecute` desde la vista del escritorio, o `%SystemRoot%\explorer.exe "<destino>"` por ruta absoluta). En `OpenUrl`, aceptar solo `https` y los hosts esperados con `Uri.TryCreate`.
-  - **Criterio de aceptación:** con la app elevada y sin navegador abierto, «GitHub» abre un navegador con integridad media; una prueba unitaria rechaza `file:///C:/x.exe`, `C:\x.exe` y `http://`.
 
 - [ ] **AUD-005 · El canal privado de vulnerabilidades que anuncia `SECURITY.md` está desactivado en GitHub**
   - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Bajo
@@ -188,21 +175,6 @@ del autor.
 
 ## 🟢 Tier 3 — Bajo
 
-### Seguridad
-
-- [ ] **AUD-025 · El proceso elevado escribe, mueve y borra por ruta dentro de `%AppData%\FormatDiskPro`, que el usuario sin elevar controla**
-  - **Área:** Seguridad · **Severidad:** Bajo · **Esfuerzo:** Medio
-  - **Ubicación:** `src/Services/History.cs:98-107`, `:137-140`, `:155-156` · `src/Services/AppSettings.cs:205`, `:222-223`
-  - **Qué hacer:** antes de operar, comprobar que la carpeta no es un punto de reanálisis y negarse si lo es; o mover el estado a una carpeta que solo escriban administradores, migrando lo existente.
-  - **Criterio de aceptación:** con la carpeta sustituida por una unión, la app no crea ni modifica ningún archivo en el destino y lo deja dicho.
-  - **Depende de:** AUD-002 (misma decisión sobre dónde vive lo que escribe el proceso elevado)
-
-- [ ] **AUD-026 · `powershell.exe` y `chkdsk.exe` se lanzan por nombre, no por ruta absoluta**
-  - **Área:** Seguridad · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Services/DiskService.cs:166` · `src/Services/ReinitDrive.cs:101` · `src/Services/FormatProcess.cs:57` · `src/Services/CheckDisk.cs:54` · contraste: `src/Services/FormatProcess.cs:86`
-  - **Qué hacer:** rutas absolutas desde un único punto: `Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe")` y `…"chkdsk.exe"`.
-  - **Criterio de aceptación:** una prueba recorre los `ProcessSpec` que capturan los servicios y exige `Path.IsPathFullyQualified(spec.FileName)`.
-
 ### Código
 
 - [ ] **AUD-027 · Un `settings.json` válido con un nulo donde se espera una lista impide arrancar la app**
@@ -216,13 +188,6 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:318-337`, `:664`, `:673`, `:879-889` · `src/UI/MainWindow.Operations.cs:475`, `:496-499`
   - **Qué hacer:** para los diálogos de resultado, esperar a que se cierre el abierto en vez de descartar; o cerrar el de «¿Cancelar?» cuando la operación termina.
   - **Criterio de aceptación:** una prueba de UI abre «¿Cancelar?» durante un benchmark, espera a que termine y comprueba que el resultado se muestra al cerrar la pregunta.
-
-- [ ] **AUD-029 · Conectar o retirar cualquier dispositivo restablece la etiqueta y las opciones que se estaban configurando**
-  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:249`, `:411-435` · `src/UI/MainWindow.DriveInfo.cs:31-49`, `:58-62`
-  - **Qué hacer:** al recargar, no tocar las opciones si la unidad seleccionada es la misma (misma letra e identidad); vaciar el campo cuando la unidad no está lista.
-  - **Criterio de aceptación:** una prueba de UI escribe una etiqueta, pulsa F5 y la etiqueta sigue ahí.
-  - **Antecedente:** es la causa más probable de un fallo intermitente de `FullLifecycle_FormatThenReinit_OnDedicatedTestUsb` (2026-10-13: 1 de las 3 pasadas hechas con `AUD-013`, y ninguna de las 3 anteriores del día): tras *Reinicializar*, «No se encontró el control `RestPicker`» justo después de marcar la FAT32 pequeña, como si una recarga tardía hubiera desmarcado la casilla. `AUD-013` dejó en `Core/DriveIdentity` la identidad que esta tarea necesita comparar.
 
 - [ ] **AUD-030 · Si falla el lanzamiento del instalador, la interfaz se queda deshabilitada**
   - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo

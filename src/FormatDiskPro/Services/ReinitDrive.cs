@@ -129,7 +129,7 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
 
         var spec = new ProcessSpec
         {
-            FileName  = "powershell.exe",
+            FileName  = SystemTools.PowerShell,
             Arguments = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
         };
 
