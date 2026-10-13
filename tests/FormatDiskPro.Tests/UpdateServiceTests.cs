@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using Xunit;
@@ -358,25 +360,40 @@ public sealed class UpdateServiceTests
 
     /// <summary>
     /// La descarga <b>crea</b> el archivo, no reutiliza el que hubiera: uno que ya estaba ahí conserva
-    /// su dueño y sus permisos aunque se le cambie el contenido. Se comprueba con lo único observable sin
-    /// cambiar de cuenta: la fecha de creación es la de ahora, no la del archivo que había.
+    /// su dueño y sus permisos aunque se le cambie el contenido. Se comprueba con eso mismo: al archivo
+    /// previo se le da un permiso explícito a «Todos», y el instalador descargado no lo tiene.
     /// </summary>
+    /// <remarks>
+    /// No se mira la fecha de creación, que era lo primero que se probó y falló en CI: NTFS se la
+    /// devuelve a un archivo que se crea con el nombre de otro recién borrado («tunneling»), así que
+    /// un archivo nuevo puede tener la fecha del viejo. Los permisos no se heredan así.
+    /// </remarks>
     [Fact]
     public async Task DownloadAsync_ReplacesAnExistingFile_InsteadOfReusingIt()
     {
         using var server = ServerFor([1, 2, 3, 4]);
+        var everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+        static bool HasExplicitRuleFor(string path, SecurityIdentifier sid) =>
+            new FileInfo(path).GetAccessControl()
+                .GetAccessRules(includeExplicit: true, includeInherited: false, typeof(SecurityIdentifier))
+                .Cast<FileSystemAccessRule>()
+                .Any(r => r.IdentityReference.Equals(sid));
 
         string destination = ScratchInstallerPath();
         try
         {
             await File.WriteAllBytesAsync(destination, [7, 7, 7]);
-            var old = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            File.SetCreationTimeUtc(destination, old);
+            var planted = new FileInfo(destination);
+            FileSecurity acl = planted.GetAccessControl();
+            acl.AddAccessRule(new FileSystemAccessRule(everyone, FileSystemRights.Modify, AccessControlType.Allow));
+            planted.SetAccessControl(acl);
+            Assert.True(HasExplicitRuleFor(destination, everyone));
 
             using VerifiedInstaller verified = await new UpdateService().DownloadAsync(
                 Release(server), null, CancellationToken.None, destination);
 
-            Assert.NotEqual(old, File.GetCreationTimeUtc(destination));
+            Assert.False(HasExplicitRuleFor(destination, everyone),
+                "El instalador conserva los permisos del archivo que había: se reutilizó en vez de crearse.");
         }
         finally
         {

@@ -133,6 +133,12 @@ su carpeta de estado convertida en unión, con 0 entradas al otro lado antes y d
 instalador real de la v1.29.0, descargado y verificado por el camino de producción, arrancado con el
 archivo retenido y cerrado sin instalar. Suite de UI con opt-in destructivo: 44 de 46, dos veces.
 
+**Lo que falló en CI, y no aquí.** Una de las pruebas nuevas comprobaba que la descarga **crea** el
+archivo mirando su fecha de creación. NTFS le devuelve esa fecha a un archivo que se crea con el nombre
+de otro recién borrado («tunneling»), así que uno nuevo puede llevar la del viejo: en esta máquina pasó
+y en el runner no. Ahora mira lo que la prueba decía proteger —los permisos del archivo previo no
+sobreviven—, y se comprobó por reversión que falla si el archivo se reutiliza.
+
 **Lo que no se probó.** La instalación silenciosa completa de una actualización, que cierra la app y la
 relanza. Y el criterio de `AUD-004` pedía «sin navegador abierto»; Edge ya estaba en marcha.
 
