@@ -42,7 +42,7 @@ public sealed class ServiceErrorPathTests
     public async Task EveryProcessTheServicesLaunch_IsStartedByAbsolutePath()
     {
         var runner = FakeProcessRunner.Returning("", exitCode: 0);
-        var disk = new DiskService(runner);
+        var disk = new DiskService(runner, isMounted: _ => false);
 
         await disk.GetHealthAsync('G');
         await disk.GetSmartAsync('G');
@@ -236,7 +236,7 @@ public sealed class ServiceErrorPathTests
 
         Assert.Equal(2, code);
         Assert.Contains("problemas", output, StringComparison.Ordinal);
-        Assert.Equal(CheckResult.Errors, CheckDisk.Interpret(code, repair: false));
+        Assert.Equal(CheckResult.Errors, CheckDisk.Interpret(code, repair: false, scanRan: false));
     }
 
     /// <summary>El error de chkdsk va por la salida de error y también tiene que llegar al usuario.</summary>

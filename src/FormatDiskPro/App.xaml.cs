@@ -23,9 +23,26 @@ public partial class App : Application
         // último recurso para que un fallo de E/S no se lleve por delante la aplicación entera.
         UnhandledException += OnUnhandledException;
 
-        MainWindow = new UI.MainWindow(_services);
-        MainWindow.Activate();
+        try
+        {
+            MainWindow = new UI.MainWindow(_services);
+            MainWindow.Activate();
+        }
+        catch (Exception ex)
+        {
+            // Sin ventana no hay dónde poner un ContentDialog, y la red de arriba solo sabe usar eso:
+            // la app se quedaba como un proceso sin nada en pantalla (`AUD-027`). Se dice con un
+            // cuadro nativo, que no necesita XAML, y se sale.
+            try { _services.History.Log($"CRASH: {ex}"); } catch { /* el log nunca debe empeorar un fallo */ }
+            _ = MessageBoxW(IntPtr.Zero, L.T("startup.failed", ErrorText.Describe(ex)), "FormatDiskPro", MbOkIconError);
+            Exit();
+        }
     }
+
+    private const uint MbOkIconError = 0x10;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 
     /// <summary>
     /// Registra la excepción no controlada, impide que termine el proceso y avisa al usuario.

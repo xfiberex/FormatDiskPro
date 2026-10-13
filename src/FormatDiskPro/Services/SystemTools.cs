@@ -1,3 +1,6 @@
+using System.Runtime.InteropServices;
+using System.Text;
+
 namespace FormatDiskPro;
 
 /// <summary>
@@ -33,4 +36,34 @@ public static class SystemTools
     /// </summary>
     public static string Explorer { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
+
+    /// <summary>
+    /// La página de códigos ANSI de Windows, que es en la que <c>chkdsk</c> escribe cuando su salida
+    /// está redirigida y no tiene consola (`AUD-007`).
+    /// </summary>
+    /// <remarks>
+    /// Medido el 2026-10-13 leyendo los bytes: en un Windows en español «está» llega como 0xE1, que es
+    /// la 1252 y no la 850 de la consola. Mientras la salida solo se usaba para buscar porcentajes daba
+    /// igual; para enseñarla, leída con otra página salen «estß» y «comprobaci¾n».
+    /// </remarks>
+    public static Encoding AnsiEncoding { get; } = ResolveAnsiEncoding();
+
+    private static Encoding ResolveAnsiEncoding()
+    {
+        try
+        {
+            int codePage = (int)GetACP();
+            if (codePage == Encoding.UTF8.CodePage) return Encoding.UTF8;
+            // Las páginas de códigos de Windows no vienen registradas en .NET; el proveedor se
+            // consulta directamente, sin registrarlo para todo el proceso.
+            return CodePagesEncodingProvider.Instance.GetEncoding(codePage) ?? Encoding.Latin1;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return Encoding.Latin1;
+        }
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetACP();
 }

@@ -69,7 +69,9 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
         var errTask = proc.StandardError.ReadToEndAsync();
         await proc.WaitForExitAsync(CancellationToken.None);
 
-        return (proc.ExitCode, await outTask, await errTask);
+        // El error llega serializado en CLIXML; lo que se devuelve es el mensaje que lleva dentro,
+        // que es lo que la ventana enseña (`AUD-011`).
+        return (proc.ExitCode, await outTask, PowerShellError.Clean(await errTask));
     }
 
     /// <summary>

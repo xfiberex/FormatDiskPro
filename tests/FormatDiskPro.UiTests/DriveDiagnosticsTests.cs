@@ -62,7 +62,23 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
             DialogHelper.WaitForNoDialog(fixture);
 
             // El escaneo corre en segundo plano; el resultado llega en un segundo ContentDialog.
-            DialogHelper.WaitForDialog(fixture, TimeSpan.FromMinutes(5));
+            var result = DialogHelper.WaitForDialog(fixture, TimeSpan.FromMinutes(5));
+
+            // El resultado deja leer la salida completa de chkdsk (`AUD-007`): el resumen de una línea
+            // es una interpretación del código de salida, y antes lo demás se descartaba. Se despliega
+            // y se comprueba que lo que hay dentro es texto de chkdsk —trae el número de bytes del
+            // volumen— y no un hueco.
+            var expander = DialogHelper.WaitForChild(result, "CheckOutputExpander");
+            expander.Patterns.ExpandCollapse.Pattern.Expand();
+            var shown = FlaUI.Core.Tools.Retry.WhileNull(
+                () => expander.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
+                    .Select(t => t.Name)
+                    .FirstOrDefault(t => t.Contains("bytes", StringComparison.OrdinalIgnoreCase)),
+                timeout: TimeSpan.FromSeconds(5), interval: TimeSpan.FromMilliseconds(200),
+                ignoreException: true).Result;
+            Assert.False(string.IsNullOrWhiteSpace(shown), "El desplegable no enseña la salida de chkdsk.");
+            // Los acentos llegan bien: leída en otra página de códigos, «asignación» sale como «asignaci¾n».
+            Assert.DoesNotContain("¾", shown, StringComparison.Ordinal);
         }
         finally
         {

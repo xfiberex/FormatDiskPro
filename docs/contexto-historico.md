@@ -61,6 +61,45 @@
 
 ## Entradas
 
+### 2026-10-13 — `AUD-006` a `AUD-009`, `AUD-011` y `AUD-027`: operaciones que contaban el caso feliz
+
+**Lo que tienen en común.** En las seis, lo de debajo respondía algo que la app no miraba —una segunda
+pregunta, un código con dos significados, un volumen que sigue montado, un valor de retorno, un XML—
+y la interfaz decía lo que habría dicho si todo hubiera ido bien.
+
+- **`AUD-006`.** `chkdsk /f` sobre un volumen en uso hace dos preguntas; se contestaba una. Ahora se
+  contesta una y **se cierra la entrada**, que es lo que le hace salir. No se contestan las dos: «N» es
+  «no» en español y en inglés, no en todos los idiomas de Windows.
+- **`AUD-007`.** El código 3 de `chkdsk` vale para «no pude comprobar» y para «hay errores y no los
+  corregí porque no lo pediste». La tarea decía decidir con la salida, pero la salida está en el idioma
+  de Windows. Lo que no depende del idioma es **si llegó a examinar**: cuando no puede empezar no
+  informa de ningún porcentaje. Y la salida, que se tiraba, ahora se puede leer desde el resultado.
+- **`AUD-008`.** El verbo «Eject» termina con 0 pase lo que pase. Lo que cuenta es si el volumen
+  desaparece, y se espera a verlo.
+- **`AUD-009`.** El borrado seguro devuelve `-1` si la unidad no estaba lista y nadie miraba ese valor:
+  el historial —el registro de auditoría— decía `wipe=True`.
+- **`AUD-011`.** PowerShell, redirigido, serializa sus errores en CLIXML. El diálogo enseñaba eso.
+- **`AUD-027`.** `"UserPresets": null` es JSON válido y el deserializador lo asigna a una propiedad
+  que el tipo declara no anulable. La app no abría, y la red de seguridad no podía decirlo porque su
+  aviso es un diálogo de la ventana que no se había creado.
+
+**Lo que salió al enseñar la salida de `chkdsk`.** Los acentos llegaban rotos. La sospecha natural era
+la página de códigos de la consola (850), y era la contraria: leyendo los bytes, `chkdsk` redirigido y
+sin consola escribe en **ANSI** (1252). Nunca se había notado porque la salida solo se usaba para buscar
+«N por ciento». La costura de procesos admite ahora la codificación de la salida.
+
+**Cómo se comprobó.** 29 pruebas unitarias nuevas (873), con salidas reales de `chkdsk` y la evidencia
+de la auditoría como entrada; siete reversiones, todas detectadas. En hardware, con los servicios
+reales: `chkdsk /f` con un archivo abierto termina en 0,2 s (la auditoría midió más de 30 sin terminar);
+«Expulsar» con un archivo abierto devuelve que no pudo y la unidad sigue montada; y la app real abre con
+un `settings.json` que antes la dejaba sin ventana.
+
+**Lo que no se probó, que esta vez es bastante.** Cuatro caminos no se pudieron provocar: un `chkdsk` de
+solo lectura que encuentre errores de verdad (la USB está sana), una expulsión que funcione (obliga a
+reconectar a mano), un borrado seguro que no arranque (exige que la unidad deje de estar lista en un
+instante concreto) y el cuadro nativo de arranque fallido. De los cuatro está probada la decisión, con
+datos reales donde los había; no el camino completo en pantalla.
+
 ### 2026-10-13 — `AUD-003` y `AUD-014`: lo que la app dice a quien no la ve
 
 **`AUD-003`, la única de severidad alta que quedaba.** El selector de unidad —el control que decide qué

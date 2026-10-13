@@ -55,7 +55,7 @@ public sealed class OperationGuardTests
         Assert.Equal("", output);
 
         // Y ese código se traduce en un fallo visible, no en un "limpio" silencioso.
-        Assert.Equal(CheckResult.Failed, CheckDisk.Interpret(code, repair: false));
+        Assert.Equal(CheckResult.Failed, CheckDisk.Interpret(code, repair: false, scanRan: false));
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public sealed class OperationGuardTests
     [InlineData(255)]
     public void CheckDisk_UnknownExitCode_IsAlwaysFailed(int code)
     {
-        Assert.Equal(CheckResult.Failed, CheckDisk.Interpret(code, repair: false));
-        Assert.Equal(CheckResult.Failed, CheckDisk.Interpret(code, repair: true));
+        Assert.Equal(CheckResult.Failed, CheckDisk.Interpret(code, repair: false, scanRan: false));
+        Assert.Equal(CheckResult.Failed, CheckDisk.Interpret(code, repair: true, scanRan: false));
     }
 }

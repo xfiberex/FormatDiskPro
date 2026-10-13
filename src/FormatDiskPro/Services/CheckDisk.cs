@@ -24,11 +24,20 @@ public sealed class CheckDisk(IProcessRunner runner) : ICheckDisk
     /// Interpreta el código de salida de chkdsk según si se pidió reparar. Lógica pura y testeable.
     /// Sigue siendo <c>static</c>: no tiene dependencias que inyectar.
     /// </summary>
-    public static CheckResult Interpret(int exitCode, bool repair) => exitCode switch
+    /// <param name="exitCode">Código de salida de <c>chkdsk</c>.</param>
+    /// <param name="repair">Si se lanzó con <c>/f</c>.</param>
+    /// <param name="scanRan">
+    /// Si llegó a examinar el volumen (<see cref="CheckDiskOutput.ScanRan"/>). Solo decide el código 3,
+    /// que <c>chkdsk</c> usa para «no pude comprobar» <b>y</b> para «hay errores y no los corregí porque
+    /// no se pidió /f» (`AUD-007`). En solo lectura, si examinó y terminó en 3, son errores: decir «no se
+    /// pudo comprobar (¿está en uso?)» era dar por sana —o por ocupada— una unidad dañada.
+    /// </param>
+    public static CheckResult Interpret(int exitCode, bool repair, bool scanRan) => exitCode switch
     {
         0 => CheckResult.Clean,
         1 => repair ? CheckResult.Repaired : CheckResult.Errors,
         2 => CheckResult.Errors,
+        3 when !repair && scanRan => CheckResult.Errors,
         _ => CheckResult.Failed,
     };
 
@@ -54,17 +63,23 @@ public sealed class CheckDisk(IProcessRunner runner) : ICheckDisk
             FileName              = SystemTools.ChkDsk,
             ArgumentList          = args,
             RedirectStandardInput = true,
+            OutputEncoding        = SystemTools.AnsiEncoding,   // la salida se enseña: ver AnsiEncoding
         });
         using var reg = ct.Register(() => { try { proc.Kill(entireProcessTree: true); } catch { } });
 
-        // Si chkdsk no puede bloquear el volumen, pregunta si programar la comprobación en el próximo
-        // reinicio: respondemos "N" para declinar y que el proceso no se quede esperando entrada.
+        // Si chkdsk no puede bloquear el volumen, pregunta: primero si forzar el desmontaje y después
+        // si programar la comprobación para el próximo reinicio. Se responde «N» a la primera y **se
+        // cierra la entrada** (`AUD-006`). Una sola «N» con la entrada abierta dejaba la segunda
+        // pregunta sin respuesta y a chkdsk esperándola para siempre, con la app en «Comprobando…»;
+        // con la entrada cerrada sale por sí mismo, con código 3. No se contestan las dos con «N»
+        // porque la letra de «no» depende del idioma de Windows y el fin de entrada, no.
         try
         {
             await proc.StandardInput.WriteLineAsync("N");
             await proc.StandardInput.FlushAsync(ct);
         }
         catch { }
+        try { proc.StandardInput.Close(); } catch { }
 
         var errTask = proc.StandardError.ReadToEndAsync();
         var sb      = new StringBuilder();

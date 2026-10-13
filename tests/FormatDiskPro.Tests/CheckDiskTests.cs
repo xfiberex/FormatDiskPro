@@ -16,8 +16,13 @@ public sealed class CheckDiskTests
     [InlineData(1, false, CheckResult.Errors)]
     [InlineData(2, false, CheckResult.Errors)]
     [InlineData(2, true,  CheckResult.Errors)]
-    [InlineData(3, false, CheckResult.Failed)]
-    [InlineData(3, true,  CheckResult.Failed)]
+    [InlineData(4, false, CheckResult.Failed)]
+    [InlineData(-1, true, CheckResult.Failed)]
     public void Interpret_MapsExitCodes(int code, bool repair, CheckResult expected)
-        => Assert.Equal(expected, CheckDisk.Interpret(code, repair));
+    {
+        // Fuera del 3 —que tiene su propia prueba en OperationOutcomeTests—, que el examen llegara a
+        // hacerse o no no cambia nada.
+        Assert.Equal(expected, CheckDisk.Interpret(code, repair, scanRan: true));
+        Assert.Equal(expected, CheckDisk.Interpret(code, repair, scanRan: false));
+    }
 }

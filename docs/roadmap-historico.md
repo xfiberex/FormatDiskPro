@@ -23,6 +23,12 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
+| 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
+| 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
+| 2026-10-13 | `AUD-008` | «Expulsar» comprueba que la unidad se expulsó antes de decirlo | sin publicar |
+| 2026-10-13 | `AUD-007` | Un `chkdsk` de solo lectura que encuentra errores lo dice, y el resultado deja leer su salida | sin publicar |
+| 2026-10-13 | `AUD-006` | «Comprobar y reparar» ya no se queda colgado si la unidad está en uso | sin publicar |
 | 2026-10-13 | `AUD-014` | Las regiones activas del historial y de los presets avisan al lector de pantalla, y tres estados se anuncian | sin publicar |
 | 2026-10-13 | `AUD-003` | El selector de unidad tiene nombre accesible y cada unidad se anuncia con el suyo | sin publicar |
 | 2026-10-13 | `AUD-029` | Recargar la lista de unidades ya no restablece la etiqueta ni las opciones que se estaban configurando | sin publicar |
@@ -60,6 +66,61 @@
   - **Verificado:** dos pruebas de UI nuevas sobre la app real. `DrivePicker_HasANameAndEveryDriveIsAnnouncedByItsOwn` exige nombre en el selector y, en cada opción, que el nombre sea el texto visible, contenga la letra y no se repita. `NoInteractiveControlInTheMainWindow_IsNameless` recorre botones, desplegables, casillas, campos y menús de la ventana principal y exige nombre en todos: es el volcado de UIA de la auditoría convertido en prueba. Por reversión —sin `LabeledBy` y sin `ToString()`— fallan las dos.
 
 ### Código
+
+- [x] **AUD-027 · Un `settings.json` válido con un nulo donde se espera una lista impide arrancar la app**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/AppSettings.cs:137-160` · `src/UI/MainWindow.FormatOptions.cs:444` · `src/App.xaml.cs:26`, `:43-68` · evidencia: `evidencias/arranque-presets-null-historial.txt`
+  - **Qué hacer:** en `Load`, `loaded.UserPresets ??= []` y descartar presets nulos o sin nombre; y un `try/catch` en `OnLaunched` que, si no se pudo crear la ventana, muestre un mensaje nativo y salga.
+  - **Criterio de aceptación:** una prueba carga un JSON con `UserPresets: null` y obtiene una lista vacía; la app arranca con ese archivo.
+  - **Hecho (2026-10-13):** `AppSettings.Load` devuelve a su valor por defecto lo que llega como `null` (`UserPresets`, `Language`, `Theme`) y descarta los presets nulos, sin nombre o sin sistema de archivos. Y `App.OnLaunched` envuelve la creación de la ventana: si falla, lo registra, lo dice en un cuadro nativo (`startup.failed`, cinco idiomas) y sale, en vez de quedarse como un proceso sin nada en pantalla.
+  - **Verificado:** dos pruebas (`UserPresets: null` da lista vacía; de cinco presets, cuatro inservibles, queda el bueno); por reversión falla una cada vez. Con la app real y un `settings.json` con `"UserPresets": null`: la ventana abre, con su selector de unidad, y no hay `CRASH` en el historial.
+  - **Lo que no se probó:** el cuadro nativo. No hay forma limpia de hacer fallar la creación de la ventana ahora que el caso conocido está arreglado.
+
+- [x] **AUD-011 · El diálogo de error de un formateo fallido enseña el XML interno de PowerShell**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:604-607`, `:673` · `src/Services/FormatProcess.cs:63-67` · `src/Services/ReinitDrive.cs:147` · evidencia: `evidencias/format-volume-fallido-stderr.txt`
+  - **Qué hacer:** extraer el texto de los nodos `<S S="Error">` (deshaciendo los escapes `_xHHHH_`) antes de mostrarlo, en una función pura de `Core/` con su prueba; o añadir al script un `try/catch` que escriba `$_.Exception.Message` por `stdout`.
+  - **Criterio de aceptación:** una prueba pasa el contenido de la evidencia a la función y obtiene «Format-Volume : No se encontraron objetos MSFT_Volume…» sin etiquetas.
+  - **Hecho (2026-10-13):** `Core/PowerShellError.Clean` saca de la salida de error —que con `-EncodedCommand` llega serializada en CLIXML— el texto de los nodos `<S S="Error">`, deshace los escapes `_xHHHH_` y las entidades, y se queda con el primer párrafo: lo que dice el cmdlet. Descarta la posición en el script y los `+ CategoryInfo…`, cortando en la primera línea que empieza por `+`, que no depende del idioma. Lo aplican `FormatProcess.RunVolumeAsync` y `ReinitDrive`. Lo que no es CLIXML se devuelve como llegó.
+  - **Verificado:** con el contenido de la evidencia de la auditoría devuelve «Format-Volume : No se encontraron objetos MSFT_Volume cuya propiedad 'DriveLetter' sea igual a 'Q'. Compruebe el valor de la propiedad e inténtelo de nuevo.», sin etiquetas. Casos en inglés y alemán para la línea de posición, entidades XML, y cinco de texto que no se reconoce. Por reversión falla.
+
+- [x] **AUD-009 · El borrado seguro puede no ejecutarse y aun así registrarse y anunciarse como hecho**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:641`, `:662-664` · `src/Services/SecureWipe.cs:85`, `:94`
+  - **Qué hacer:** tratar cualquier valor distinto de 0 como fallo (estado de error, `WIPE FAIL` en el historial, diálogo propio), o hacer que el servicio lance.
+  - **Criterio de aceptación:** con un `ISecureWipe` falso que devuelve `-1`, la operación termina en error y el historial no contiene `wipe=True`.
+  - **Hecho (2026-10-13):** `RunFormatAsync` mira lo que devuelve `ISecureWipe.RunAsync`. Si no es 0, el formato se registra con `wipe=False`, se añade una línea `WIPE FAIL` y, en vez del diálogo de éxito, se avisa con texto propio en los cinco idiomas (`wipe.notDone`): la unidad se formateó, el espacio libre **no** se sobrescribió y los datos anteriores podrían recuperarse. La línea del historial sale de `Core/FormatHistory`, que escribe `wipe=True` solo si el borrado se completó.
+  - **Verificado:** `FormatHistory_SaysWipedOnlyWhenTheWipeCompleted` (cinco casos, incluido el `-1` del criterio) y que `WIPE FAIL` se vuelve a leer como un borrado seguro fallido; por reversión fallan dos.
+  - **Lo que no se cumple al pie de la letra:** el criterio pedía una prueba con un `ISecureWipe` falso que recorriera la operación entera. Esa operación vive en `MainWindow`, que no se instancia en las unitarias; está probada la decisión (`FormatHistory`), no el camino de la ventana, que tampoco se pudo provocar en hardware: exige que la unidad deje de estar lista justo entre el formato y el borrado.
+
+- [x] **AUD-008 · «Expulsar» da la unidad por expulsada sin comprobarlo**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/DiskService.cs:145-156` · `src/UI/MainWindow.Operations.cs:120-131` · evidencia: `evidencias/expulsar.txt`
+  - **Qué hacer:** tras invocar el verbo, sondear unos segundos si el volumen sigue montado (`DriveInfo.IsReady` o `Get-Volume`) y devolver `false` si sigue; el texto de fallo ya existe (`eject.fail`).
+  - **Criterio de aceptación:** con un archivo abierto en la USB, «Expulsar» muestra el aviso de que no se pudo y no registra `EJECT`.
+  - **Ya hecho al cerrar `AUD-014` (2026-10-13):** «Unidad expulsada» se escribía en el estado antes de `LoadDrives()` y no llegaba a verse; ahora se escribe después y se anuncia. Lo que queda de esta tarea es comprobar que la unidad se expulsó de verdad.
+  - **Hecho (2026-10-13):** tras invocar el verbo, `DiskService.EjectAsync` sondea hasta 8 s si el volumen sigue montado y devuelve `false` si sigue. El verbo «Eject» del shell termina con código 0 también cuando Windows se niega porque hay un archivo abierto. La consulta y el plazo se inyectan por constructor para poder probarlo sin hardware.
+  - **Verificado:** tres pruebas (volumen que no se va, volumen que se va al tercer sondeo, script que falla sin llegar a sondear); por reversión fallan dos. En hardware, con un archivo abierto en la USB: devuelve `false` a los 9,8 s y la unidad sigue montada, así que la app muestra «no se pudo expulsar» y no registra `EJECT`.
+  - **Lo que no se probó:** la expulsión que sí funciona. Obliga a reconectar la USB a mano, y con ella desconectada no se puede pasar la suite destructiva. La auditoría midió que, cuando funciona, el volumen desaparece antes de 3 s.
+
+- [x] **AUD-007 · Un `chkdsk` de solo lectura que encuentra errores se presenta como «no se pudo comprobar»**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/CheckDisk.cs:27-33` · `src/UI/MainWindow.Operations.cs:283`, `:293-304` · `src/Localization/Localization.cs:362` · `tests/FormatDiskPro.Tests/CheckDiskTests.cs:19`
+  - **Qué hacer:** en solo lectura, tratar el 3 como «errores encontrados o no se pudo comprobar» y decidir con la salida, que ya se captura; ofrecer la salida completa en un desplegable del diálogo de resultado.
+  - **Criterio de aceptación:** la prueba de `Interpret` distingue los dos modos para el código 3, y el diálogo de resultado permite leer la salida de `chkdsk`.
+  - **Hecho (2026-10-13):** `CheckDisk.Interpret` recibe además si `chkdsk` llegó a examinar el volumen (`CheckDiskOutput.ScanRan`: informó de algún porcentaje). El código 3 en solo lectura y con examen hecho es «hay errores»; sin examen sigue siendo «no se pudo comprobar». El diálogo de resultado lleva un desplegable, «Ver la salida de chkdsk», con la salida completa, seleccionable y limpia (`CheckDiskOutput.Clean` deshace las reescrituras de línea del progreso).
+  - **Por qué el porcentaje y no el texto:** la tarea proponía decidir con la salida. El texto del resultado está en el idioma de Windows; que haya habido progreso no. Cuando `chkdsk` no puede ni empezar —volumen en uso, sistema de archivos que no reconoce— no informa de ningún porcentaje.
+  - **Un fallo que apareció al enseñarla:** `chkdsk`, redirigido y sin consola, escribe en la página de códigos **ANSI** (1252), no en la de la consola (850). Medido leyendo los bytes. Mientras la salida solo servía para buscar porcentajes daba igual; enseñada, salía «comprobaci¾n». `ProcessSpec` admite ahora la codificación de la salida y `chkdsk` se lee con `SystemTools.AnsiEncoding`.
+  - **Verificado:** pruebas de `Interpret` para el código 3 en los cuatro casos, de `ScanRan` y `Clean` con salidas reales de `chkdsk`, y la prueba de UI `CheckDisk_ScanOnly_CompletesForTestDrive`, que ahora despliega el resultado y lee en él texto de `chkdsk` con los acentos bien.
+  - **Lo que no se probó:** un `chkdsk` de solo lectura que de verdad encuentre errores. Haría falta un sistema de archivos dañado, y la USB de pruebas está sana. Lo probado es la regla, con el código y las salidas que da un volumen sano y uno en uso.
+
+- [x] **AUD-006 · «Comprobar y reparar» se queda colgado si la unidad está en uso**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/CheckDisk.cs:60-67` · evidencia: `evidencias/chkdsk-reparar-unidad-en-uso.txt`
+  - **Qué hacer:** cerrar `StandardInput` después de escribir la respuesta (el fin de entrada hace que `chkdsk` salga), o no escribir nada y cerrarla sin más. Con el código 3 la app ya dice «no se pudo comprobar (¿está en uso?)».
+  - **Criterio de aceptación:** una prueba con `FakeProcessRunner` comprueba que la entrada queda cerrada; sobre la USB con un archivo abierto, «Comprobar y reparar» termina en segundos con el mensaje de unidad en uso.
+  - **Hecho (2026-10-13):** tras responder «N», `CheckDisk.RunAsync` **cierra la entrada estándar**. Con el volumen en uso `chkdsk /f` hace dos preguntas —forzar el desmontaje, y programar la comprobación para el reinicio—; con una sola «N» y la entrada abierta, la segunda esperaba para siempre. No se responden las dos con «N» porque la letra de «no» depende del idioma de Windows y el fin de entrada, no.
+  - **Verificado:** prueba con `FakeProcessRunner`, cuyo proceso simulado ahora recuerda lo escrito por su entrada y si se cerró (`CheckDisk_AnswersOnce_AndClosesItsInput`); por reversión falla. En hardware, con el servicio real y un archivo abierto en la USB: termina solo en 0,2 s con código 3 y la app lo cuenta como «no se pudo comprobar (¿está en uso?)». La auditoría lo había medido sin terminar en 30 s.
 
 - [x] **AUD-029 · Conectar o retirar cualquier dispositivo restablece la etiqueta y las opciones que se estaban configurando**
   - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo

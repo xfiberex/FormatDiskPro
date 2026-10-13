@@ -22,6 +22,12 @@ public sealed class ProcessSpec
     /// <summary>Argumentos sueltos, escapados de uno en uno por el runtime.</summary>
     public IReadOnlyList<string> ArgumentList { get; init; } = [];
 
+    /// <summary>
+    /// Codificación con la que leer la salida del proceso; <c>null</c> deja la que elija el runtime.
+    /// Hace falta cuando esa salida se va a <b>enseñar</b>: ver <see cref="SystemTools.AnsiEncoding"/>.
+    /// </summary>
+    public System.Text.Encoding? OutputEncoding { get; init; }
+
     public bool RedirectStandardInput  { get; init; }
     public bool RedirectStandardOutput { get; init; } = true;
     public bool RedirectStandardError  { get; init; } = true;
@@ -74,6 +80,11 @@ public sealed class SystemProcessRunner : IProcessRunner
             RedirectStandardError  = spec.RedirectStandardError,
             CreateNoWindow         = true,
         };
+        if (spec.OutputEncoding is not null)
+        {
+            if (spec.RedirectStandardOutput) psi.StandardOutputEncoding = spec.OutputEncoding;
+            if (spec.RedirectStandardError)  psi.StandardErrorEncoding  = spec.OutputEncoding;
+        }
         if (spec.Arguments is not null) psi.Arguments = spec.Arguments;
         foreach (string a in spec.ArgumentList) psi.ArgumentList.Add(a);
 

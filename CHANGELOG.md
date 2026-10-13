@@ -38,6 +38,19 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   misma letra—, la operación no se ejecuta y la aplicación lo dice. Y una confirmación abierta se cierra
   sola si se conecta o se retira un dispositivo.
 
+- **«Comprobar y reparar» ya no se queda colgado si la unidad está en uso.** Se quedaba en
+  «Comprobando…» indefinidamente; ahora termina en el acto y dice que no se pudo comprobar.
+- **«Solo comprobar» dice que hay errores cuando los hay.** En ese modo, una unidad con errores se
+  presentaba como «no se pudo comprobar (¿está en uso?)».
+- **«Expulsar» ya no da por expulsada una unidad que sigue conectada.** Si Windows se niega —por
+  ejemplo, porque hay un archivo abierto—, la aplicación avisa de que no se pudo.
+- **Si el borrado seguro no llega a ejecutarse, la aplicación lo dice.** Antes anunciaba el formato
+  como correcto y lo anotaba en el historial como borrado, sin haber sobrescrito nada.
+- **Un formateo fallido explica por qué.** El aviso enseñaba un bloque de código interno de Windows
+  con el motivo enterrado dentro; ahora enseña el motivo.
+- **La aplicación arranca aunque su archivo de preferencias tenga un valor vacío donde no toca.** Con
+  ciertos archivos editados a mano no llegaba a abrirse, sin ventana y sin mensaje.
+
 - **Con un lector de pantalla, el selector de unidad dice qué es y qué unidad es cada una.** No tenía
   nombre, y todas sus opciones se anunciaban igual: no había forma de distinguir de oído el pendrive
   del disco de Windows en el control que elige qué se va a formatear.
@@ -69,6 +82,11 @@ esos privilegios, con la misma cuenta, podía influir en lo que la aplicación e
   así, y lo avisa al abrirse.
 - **Las herramientas de Windows que usa la aplicación se invocan por su ruta completa**, no por su
   nombre.
+
+### Añadido
+
+- **El resultado de comprobar una unidad permite leer todo lo que dijo Windows.** Un desplegable,
+  «Ver la salida de chkdsk», con el informe completo.
 
 ### Cambiado
 

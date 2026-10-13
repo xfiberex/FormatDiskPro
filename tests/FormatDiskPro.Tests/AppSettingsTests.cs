@@ -256,4 +256,52 @@ public sealed class AppSettingsTests : IDisposable
         Assert.True(File.Exists(_path));
         Assert.False(File.Exists(AppSettings.UnreadablePathFor(_path)));
     }
+
+    // ── AUD-027: un JSON válido con nulos donde no se esperan ──────
+
+    /// <summary>
+    /// <c>"UserPresets": null</c> es JSON válido, y el deserializador lo asigna sin protestar a una
+    /// propiedad que el tipo declara no anulable. La ventana recorría esa lista al construir su menú:
+    /// con este archivo la app <b>no llegaba a abrirse</b>, sin ventana y sin mensaje.
+    /// </summary>
+    [Fact]
+    public void Load_NullWhereAListOrTextIsExpected_FallsBackToTheDefault()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(_path, """{ "UserPresets": null, "Language": null, "Theme": null }""");
+
+        AppSettings loaded = AppSettings.Load(_path);
+
+        Assert.True(loaded.LoadedFromFile);
+        Assert.NotNull(loaded.UserPresets);
+        Assert.Empty(loaded.UserPresets);
+        Assert.Equal(new AppSettings().Language, loaded.Language);
+        Assert.Equal(new AppSettings().Theme, loaded.Theme);
+        Assert.Null(loaded.PreservedUnreadablePath);   // el archivo es legible: no se aparta
+    }
+
+    /// <summary>
+    /// Un preset nulo, sin nombre o sin sistema de archivos no se puede mostrar ni aplicar: se descarta
+    /// al cargar, y los buenos que lo acompañan se conservan.
+    /// </summary>
+    [Fact]
+    public void Load_UnusablePresets_AreDropped_AndTheGoodOnesKept()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(_path, """
+            { "UserPresets": [
+                null,
+                { "Name": "", "FileSystem": "NTFS", "AllocationUnit": 4096, "QuickFormat": true, "Compress": false, "SecureWipe": false },
+                { "Name": null, "FileSystem": "NTFS", "AllocationUnit": 4096, "QuickFormat": true, "Compress": false, "SecureWipe": false },
+                { "Name": "Sin sistema", "FileSystem": null, "AllocationUnit": 4096, "QuickFormat": true, "Compress": false, "SecureWipe": false },
+                { "Name": "Bueno", "FileSystem": "exFAT", "AllocationUnit": 131072, "QuickFormat": true, "Compress": false, "SecureWipe": false }
+            ] }
+            """);
+
+        AppSettings loaded = AppSettings.Load(_path);
+
+        FormatPreset kept = Assert.Single(loaded.UserPresets);
+        Assert.Equal("Bueno", kept.Name);
+        Assert.Equal("exFAT", kept.FileSystem);
+    }
 }

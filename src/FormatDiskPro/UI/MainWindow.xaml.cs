@@ -743,6 +743,7 @@ public sealed partial class MainWindow : Window
             {
                 FormatProgress.Value = 100;
 
+                int wipeCode = FormatHistory.WipeCompleted;
                 if (secureWipe)
                 {
                     SetCancelAvailable(true);   // el borrado seguro sí se detiene al cancelar
@@ -761,7 +762,7 @@ public sealed partial class MainWindow : Window
 
                     try
                     {
-                        await _services.Wipe.RunAsync(driveLetter, securePasses, wipeProgress, _cts!.Token);
+                        wipeCode = await _services.Wipe.RunAsync(driveLetter, securePasses, wipeProgress, _cts!.Token);
                     }
                     catch (OperationCanceledException)
                     {
@@ -782,8 +783,24 @@ public sealed partial class MainWindow : Window
                     }
                 }
 
+                _services.History.Log(FormatHistory.Success(
+                    driveLetter, fs, allocBytes, quickFormat, compress, secureWipe, wipeCode, securePasses, label));
+
+                // El borrado seguro se pidió y no se hizo (`AUD-009`): el formato está bien, pero quien
+                // lo pidió para que no se pudieran recuperar los datos tiene que saber que siguen ahí.
+                // Antes se registraba `wipe=True` y se anunciaba un éxito sin más.
+                if (secureWipe && !FormatHistory.WipeDone(secureWipe, wipeCode))
+                {
+                    FormatProgress.Value = 0;
+                    _lastOperationFailed = true;
+                    _services.History.Log(FormatHistory.WipeFailed(driveLetter, wipeCode));
+                    LoadDrives();
+                    StatusText.Text = L.T("status.error");
+                    await ShowInfoAsync(L.T("msg.warning"), L.T("wipe.notDone", driveLetter, fs));
+                    return;
+                }
+
                 StatusText.Text = L.T("status.success");
-                _services.History.Log($"FORMAT OK {driveLetter}: fs={fs} alloc={allocBytes} quick={quickFormat} compress={compress} wipe={secureWipe}{(secureWipe ? $" passes={securePasses}" : "")} label='{label}'");
                 await ShowInfoAsync(L.T("success.title"), L.T("success.body", driveLetter, fs));
                 LoadDrives();
             }

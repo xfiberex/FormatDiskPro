@@ -178,7 +178,7 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
             // Se exige una letra POR partición: con un plan de dos, que solo la primera se creara y
             // formateara es exactamente el fallo parcial que no debe darse por bueno.
             bool ok = proc.ExitCode == 0 && letters.Count == plan.Partitions.Count;
-            string detail = ok ? "" : (string.IsNullOrWhiteSpace(err) ? $"exit={proc.ExitCode}" : err.Trim());
+            string detail = ok ? "" : (string.IsNullOrWhiteSpace(err) ? $"exit={proc.ExitCode}" : PowerShellError.Clean(err));
 
             // No se limpia nada al fallar (`T5-03`): el disco ya está borrado, así que "deshacer" solo
             // podría significar borrarlo otra vez. Se informa de lo que quedó y decide el usuario.

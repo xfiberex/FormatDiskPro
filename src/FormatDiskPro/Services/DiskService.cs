@@ -46,8 +46,27 @@ public interface IDiskService
 /// —salida vacía, texto que no se puede interpretar, PowerShell que no arranca— se prueban sin
 /// disco de por medio. El parseo de la salida sigue viviendo en <c>Core/</c>.
 /// </remarks>
-public sealed class DiskService(IProcessRunner runner) : IDiskService
+/// <param name="runner">Lanzador de procesos.</param>
+/// <param name="isMounted">
+/// ¿Sigue montado el volumen de esta letra? Por omisión se pregunta a Windows; las pruebas lo sustituyen
+/// para no depender de qué haya conectado.
+/// </param>
+/// <param name="ejectWait">Cuánto se espera a que una unidad expulsada desaparezca. Por omisión, 8 s.</param>
+public sealed class DiskService(
+    IProcessRunner runner, Func<char, bool>? isMounted = null, TimeSpan? ejectWait = null) : IDiskService
 {
+    private readonly Func<char, bool> _isMounted = isMounted ?? IsVolumeMounted;
+    private readonly TimeSpan _ejectWait = ejectWait ?? TimeSpan.FromSeconds(8);
+
+    private static bool IsVolumeMounted(char letter)
+    {
+        try { return new DriveInfo(letter.ToString()).IsReady; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return false;
+        }
+    }
+
     public sealed record HealthInfo(string Health, string Bus, string Media);
 
     public async Task<HealthInfo?> GetHealthAsync(char letter)
@@ -175,8 +194,19 @@ public sealed class DiskService(IProcessRunner runner) : IDiskService
             $"$item = $sh.Namespace(17).ParseName('{letter}:');" +
             "if ($item) { $item.InvokeVerb('Eject') }";
 
-        int code = await RunAsync(script);
-        return code == 0;
+        if (await RunAsync(script) != 0) return false;
+
+        // El verbo «Eject» del shell no dice si funcionó: PowerShell termina con 0 también cuando
+        // Windows se niega porque hay un archivo abierto (`AUD-008`). Lo que cuenta es si el volumen
+        // desaparece, y cuando funciona lo hace en un par de segundos. Si pasado el plazo sigue ahí,
+        // no se expulsó: decir que sí invita a tirar del cable con datos a medio escribir.
+        var deadline = DateTime.UtcNow + _ejectWait;
+        while (_isMounted(letter))
+        {
+            if (DateTime.UtcNow >= deadline) return false;
+            await Task.Delay(250);
+        }
+        return true;
     }
 
     // ── Internos ──────────────────────────────────────────────────

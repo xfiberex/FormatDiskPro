@@ -183,6 +183,55 @@ public sealed partial class MainWindow
         }
     }
 
+    /// <summary>
+    /// Resultado de <c>chkdsk</c> con su salida completa a un clic (`AUD-007`).
+    /// </summary>
+    /// <remarks>
+    /// El resumen de una línea es una interpretación del código de salida, y <c>chkdsk</c> dice mucho
+    /// más: qué encontró, cuánto espacio hay en sectores dañados, por qué no pudo empezar. Antes esa
+    /// salida se descartaba. Va plegada —casi nadie la necesita— y seleccionable, para poder copiarla.
+    /// </remarks>
+    private async Task ShowCheckResultAsync(string summary, string output)
+    {
+        var panel = new StackPanel { MaxWidth = 420, Spacing = 12 };
+        panel.Children.Add(new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap });
+
+        if (output.Length > 0)
+        {
+            var expander = new Expander
+            {
+                Header = L.T("check.showOutput"),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Content = new ScrollViewer
+                {
+                    MaxHeight = 220,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    Content = new TextBlock
+                    {
+                        Text = output,
+                        FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas"),
+                        FontSize = 12,
+                        IsTextSelectionEnabled = true,
+                    },
+                },
+            };
+            AutomationProperties.SetAutomationId(expander, "CheckOutputExpander");
+            panel.Children.Add(expander);
+        }
+
+        var dlg = new ContentDialog
+        {
+            Title = L.T("check.modeTitle"),
+            Content = panel,
+            CloseButtonText = L.T("btn.close"),
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        await ShowOneAsync(dlg);
+    }
+
     // ── chkdsk (#6) ───────────────────────────────────────────────
 
     private async void MnuCheck_Click(object sender, RoutedEventArgs e)
@@ -282,7 +331,7 @@ public sealed partial class MainWindow
 
         try
         {
-            var (code, _) = await _services.CheckDisk.RunAsync(item.Letter, repair, progress, _cts!.Token);
+            var (code, output) = await _services.CheckDisk.RunAsync(item.Letter, repair, progress, _cts!.Token);
 
             if (_cancelRequested)
             {
@@ -292,7 +341,7 @@ public sealed partial class MainWindow
             }
 
             FormatProgress.Value = 100;
-            CheckResult res = CheckDisk.Interpret(code, repair);
+            CheckResult res = CheckDisk.Interpret(code, repair, CheckDiskOutput.ScanRan(output));
             _services.History.Log($"CHKDSK {item.Letter}: repair={repair} code={code} result={res}");
 
             string msg = res switch
@@ -303,7 +352,7 @@ public sealed partial class MainWindow
                 _                    => L.T("check.resultFailed", item.Letter),
             };
             StatusText.Text = msg;
-            await ShowInfoAsync(L.T("check.modeTitle"), msg);
+            await ShowCheckResultAsync(msg, CheckDiskOutput.Clean(output));
         }
         catch (OperationCanceledException)
         {

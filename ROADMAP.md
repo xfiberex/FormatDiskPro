@@ -29,24 +29,24 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **59 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **53 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 14 |
-| **3** | Bajo | 44 |
+| **2** | Medio | 9 |
+| **3** | Bajo | 43 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **59** |
+| | **Total** | **53** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **58** y se han cerrado **13**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-029`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **52** y se han cerrado **19**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
 | Seguridad | – | 1 | – | 1 |
-| Código | – | 6 | 4 | 10 |
+| Código | – | 1 | 3 | 4 |
 | QA | – | 1 | 1 | 2 |
 | Documentación | – | 1 | 2 | 3 |
 | DevOps | – | 4 | 15 | 19 |
@@ -56,13 +56,13 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **58** y se han cerrado **
 | Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **–** | **14** | **44** | **58** |
+| **Total** | **–** | **9** | **43** | **52** |
 
-**Esfuerzo:** 48 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 42 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
-`AUD-044` a `AUD-047`, `AUD-066`) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
+**Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
+`AUD-066`, dos interruptores en GitHub; `AUD-044` a `AUD-047`, textos) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
 `AUD-056` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
 del autor.
 
@@ -77,42 +77,11 @@ del autor.
   - **Qué hacer:** activar *Private vulnerability reporting* en *Settings → Code security*. De paso, activar las alertas de Dependabot (ver AUD-066).
   - **Criterio de aceptación:** la API devuelve `enabled: true` y el enlace de `SECURITY.md` abre el formulario desde una cuenta sin permisos.
 
-- [ ] **AUD-006 · «Comprobar y reparar» se queda colgado si la unidad está en uso**
-  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Services/CheckDisk.cs:60-67` · evidencia: `evidencias/chkdsk-reparar-unidad-en-uso.txt`
-  - **Qué hacer:** cerrar `StandardInput` después de escribir la respuesta (el fin de entrada hace que `chkdsk` salga), o no escribir nada y cerrarla sin más. Con el código 3 la app ya dice «no se pudo comprobar (¿está en uso?)».
-  - **Criterio de aceptación:** una prueba con `FakeProcessRunner` comprueba que la entrada queda cerrada; sobre la USB con un archivo abierto, «Comprobar y reparar» termina en segundos con el mensaje de unidad en uso.
-
-- [ ] **AUD-007 · Un `chkdsk` de solo lectura que encuentra errores se presenta como «no se pudo comprobar»**
-  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Services/CheckDisk.cs:27-33` · `src/UI/MainWindow.Operations.cs:283`, `:293-304` · `src/Localization/Localization.cs:362` · `tests/FormatDiskPro.Tests/CheckDiskTests.cs:19`
-  - **Qué hacer:** en solo lectura, tratar el 3 como «errores encontrados o no se pudo comprobar» y decidir con la salida, que ya se captura; ofrecer la salida completa en un desplegable del diálogo de resultado.
-  - **Criterio de aceptación:** la prueba de `Interpret` distingue los dos modos para el código 3, y el diálogo de resultado permite leer la salida de `chkdsk`.
-
-- [ ] **AUD-008 · «Expulsar» da la unidad por expulsada sin comprobarlo**
-  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Services/DiskService.cs:145-156` · `src/UI/MainWindow.Operations.cs:120-131` · evidencia: `evidencias/expulsar.txt`
-  - **Qué hacer:** tras invocar el verbo, sondear unos segundos si el volumen sigue montado (`DriveInfo.IsReady` o `Get-Volume`) y devolver `false` si sigue; el texto de fallo ya existe (`eject.fail`).
-  - **Criterio de aceptación:** con un archivo abierto en la USB, «Expulsar» muestra el aviso de que no se pudo y no registra `EJECT`.
-  - **Ya hecho al cerrar `AUD-014` (2026-10-13):** «Unidad expulsada» se escribía en el estado antes de `LoadDrives()` y no llegaba a verse; ahora se escribe después y se anuncia. Lo que queda de esta tarea es comprobar que la unidad se expulsó de verdad.
-
-- [ ] **AUD-009 · El borrado seguro puede no ejecutarse y aun así registrarse y anunciarse como hecho**
-  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:641`, `:662-664` · `src/Services/SecureWipe.cs:85`, `:94`
-  - **Qué hacer:** tratar cualquier valor distinto de 0 como fallo (estado de error, `WIPE FAIL` en el historial, diálogo propio), o hacer que el servicio lance.
-  - **Criterio de aceptación:** con un `ISecureWipe` falso que devuelve `-1`, la operación termina en error y el historial no contiene `wipe=True`.
-
 - [ ] **AUD-010 · Las consultas a PowerShell de `DiskService` no tienen límite de tiempo ni cancelación, y redirigen una salida de error que nadie lee**
   - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
   - **Ubicación:** `src/Services/DiskService.cs:160-194`
   - **Qué hacer:** un plazo por consulta (10 a 15 s) con `CancellationTokenSource` que mate el proceso, y leer o no redirigir `stderr`. Que el fallo por plazo llegue a la interfaz como «no se pudo consultar la unidad».
   - **Criterio de aceptación:** con un `IProcessRunner` falso que no termina, cada método de `DiskService` devuelve su valor de «no se sabe» dentro del plazo.
-
-- [ ] **AUD-011 · El diálogo de error de un formateo fallido enseña el XML interno de PowerShell**
-  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:604-607`, `:673` · `src/Services/FormatProcess.cs:63-67` · `src/Services/ReinitDrive.cs:147` · evidencia: `evidencias/format-volume-fallido-stderr.txt`
-  - **Qué hacer:** extraer el texto de los nodos `<S S="Error">` (deshaciendo los escapes `_xHHHH_`) antes de mostrarlo, en una función pura de `Core/` con su prueba; o añadir al script un `try/catch` que escriba `$_.Exception.Message` por `stdout`.
-  - **Criterio de aceptación:** una prueba pasa el contenido de la evidencia a la función y obtiene «Format-Volume : No se encontraron objetos MSFT_Volume…» sin etiquetas.
 
 - [ ] **AUD-016 · El borrado seguro no tiene ninguna prueba automatizada**
   - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
@@ -160,12 +129,6 @@ del autor.
 ## 🟢 Tier 3 — Bajo
 
 ### Código
-
-- [ ] **AUD-027 · Un `settings.json` válido con un nulo donde se espera una lista impide arrancar la app**
-  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Services/AppSettings.cs:137-160` · `src/UI/MainWindow.FormatOptions.cs:444` · `src/App.xaml.cs:26`, `:43-68` · evidencia: `evidencias/arranque-presets-null-historial.txt`
-  - **Qué hacer:** en `Load`, `loaded.UserPresets ??= []` y descartar presets nulos o sin nombre; y un `try/catch` en `OnLaunched` que, si no se pudo crear la ventana, muestre un mensaje nativo y salga.
-  - **Criterio de aceptación:** una prueba carga un JSON con `UserPresets: null` y obtiene una lista vacía; la app arranca con ese archivo.
 
 - [ ] **AUD-028 · El diálogo con el resultado de una operación se descarta si hay otro abierto**
   - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo

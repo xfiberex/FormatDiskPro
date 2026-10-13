@@ -149,6 +149,17 @@ public sealed class AppSettings
             if (loaded is null) return new AppSettings();
             loaded.LoadedFromFile = true;
 
+            // Un JSON válido puede traer `null` donde el tipo dice que no lo hay: el deserializador lo
+            // asigna sin protestar. Con `"UserPresets": null` la ventana reventaba al construir su menú
+            // y la app no llegaba a abrirse (`AUD-027`). Lo que falta vuelve a su valor por defecto, y
+            // un preset nulo o sin nombre —que no se podría ni mostrar ni elegir— se descarta.
+            var defaults = new AppSettings();
+            loaded.Language ??= defaults.Language;
+            loaded.Theme    ??= defaults.Theme;
+            loaded.UserPresets ??= [];
+            loaded.UserPresets.RemoveAll(p =>
+                p is null || string.IsNullOrWhiteSpace(p.Name) || string.IsNullOrWhiteSpace(p.FileSystem));
+
             // La documentación de estas dos propiedades decía "se valida al cargar" y no era cierto: la
             // normalización ocurría solo en la UI, al construir sus ComboBox. Un settings.json editado a
             // mano (o escrito por una versión futura) entraba con un valor imposible —0 pasadas, 7 GB de

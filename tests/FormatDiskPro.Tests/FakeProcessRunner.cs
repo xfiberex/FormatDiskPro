@@ -70,10 +70,25 @@ internal sealed class FakeProcessHandle(string stdout, string stderr, int exitCo
 {
     private readonly ChunkedReader _out = new(stdout, chunkSize);
     private readonly StringReader _err = new(stderr);
+    private readonly TrackingWriter _in = new();
+
+    /// <summary>Recuerda lo escrito y si se cerró, que con <see cref="TextWriter.Null"/> no se puede saber.</summary>
+    private sealed class TrackingWriter : StringWriter
+    {
+        public bool Closed { get; private set; }
+        public override void Close() { Closed = true; }
+        protected override void Dispose(bool disposing) { Closed = true; }
+    }
 
     public TextReader StandardOutput => _out;
     public TextReader StandardError  => _err;
-    public TextWriter StandardInput  => TextWriter.Null;
+    public TextWriter StandardInput  => _in;
+
+    /// <summary>Lo que quien lo arrancó escribió por su entrada estándar.</summary>
+    public string InputWritten => _in.ToString();
+
+    /// <summary><c>true</c> si se cerró la entrada estándar: es lo que hace salir a un proceso que pregunta.</summary>
+    public bool InputClosed => _in.Closed;
     public int ExitCode => exitCode;
 
     /// <summary><c>true</c> si se pidió matar el proceso (cancelación).</summary>
