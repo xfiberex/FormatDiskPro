@@ -249,7 +249,25 @@ public sealed partial class MainWindow : Window
     {
         _deviceWatcher = new DeviceChangeWatcher(
             WinRT.Interop.WindowNative.GetWindowHandle(this),
-            () => { if (!_isBusy) LoadDrives(); });   // no recargar en mitad de una operación
+            () =>
+            {
+                if (_isBusy) return;   // no recargar en mitad de una operación
+
+                // Con una confirmación destructiva abierta, lo que enseña puede haber dejado de ser cierto:
+                // se cierra, y quien la abrió vuelve a empezar con la lista al día (`AUD-013`). Cerrarla
+                // devuelve None, que es «no confirmado», así que la operación no sigue.
+                bool closedConfirm = false;
+                if (_openDialog is ConfirmDialog confirm)
+                {
+                    confirm.Hide();
+                    closedConfirm = true;
+                }
+                LoadDrives();
+
+                // DESPUÉS de recargar: seleccionar una unidad vacía la fila de estado (ApplyProtection), así
+                // que dicho antes no llegaría a verse y la confirmación se cerraría sin explicación.
+                if (closedConfirm) StatusText.Text = L.T("status.confirmClosed");
+            });
     }
 
     private void RemoveDeviceHook()
@@ -483,6 +501,10 @@ public sealed partial class MainWindow : Window
         if (!await ValidateLabelAsync(label, fs, focusOnError: true))
             return;
 
+        // Qué hay detrás de la letra AHORA, antes de preguntar nada. Se lanza ya y se recoge justo antes de
+        // abrir la confirmación: corre a la vez que la consulta de solo lectura, así que no añade espera.
+        Task<DriveIdentity?> identityTask = _services.Disk.GetIdentityAsync(driveItem.Letter);
+
         // Protección de escritura: si el disco está en solo lectura, el formateo fallaría con un error
         // poco claro. Lo detectamos y ofrecemos quitarla antes de continuar.
         if (await _services.Disk.IsDiskReadOnlyAsync(driveItem.Letter) == true)
@@ -511,11 +533,27 @@ public sealed partial class MainWindow : Window
             (L.T("confirm.mode"),    mode),
         ];
 
+        DriveIdentity? confirmed = await identityTask;
+
         var dlg = new ConfirmDialog(driveItem.Letter, L.T("confirm.title"),
                                     L.T("btn.start.drive", $"{driveItem.Letter}:"), L.T("confirm.warning"),
                                     details, smallFat32Ignored ? L.T("confirm.smallFat32Ignored") : null)
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await ShowOneAsync(dlg) != ContentDialogResult.Primary) return;
+
+        // Entre abrir la confirmación y aceptarla pasa lo que el usuario tarde en teclear la letra, y una
+        // letra no es una identidad: se retira un pendrive, se conecta otro disco y Windows le da la
+        // misma. Se comprueba que detrás sigue estando lo que se confirmó (`AUD-013`).
+        var targetCheck = DestructiveGuard.StillTheConfirmedTarget(
+            confirmed, await _services.Disk.GetIdentityAsync(driveItem.Letter));
+        if (targetCheck != GuardRejection.None)
+        {
+            _services.History.Log($"FORMAT REJECTED {driveItem.Letter}: {targetCheck}");
+            LoadDrives();
+            var (titleKey, bodyKey) = DestructiveGuard.DescribeFormat(targetCheck);
+            await ShowInfoAsync(L.T(titleKey), L.T(bodyKey, driveItem.Letter));
+            return;
+        }
 
         await RunFormatAsync(driveItem.Letter, fs, allocBytes, label, quick, compress, secure, securePasses);
     }

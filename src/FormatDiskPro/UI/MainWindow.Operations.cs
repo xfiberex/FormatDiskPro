@@ -336,14 +336,18 @@ public sealed partial class MainWindow
         // Segunda, la crítica: el disco físico objetivo no puede ser el de Windows (Clear-Disk borra TODO
         // el disco, no solo la partición seleccionada). Si alguno de los dos números no se puede leer, no
         // se sigue (`AUD-012`).
+        //
+        // Lo que se lee aquí es además lo que se CONFIRMA (`AUD-013`): el disco de esta identidad es el
+        // que el script borrará, y no «el que la letra designe» cuando el script arranque.
+        DriveIdentity? confirmed = null;
         if (rejection == GuardRejection.None)
         {
-            int? targetDisk = await _services.Disk.GetDiskNumberAsync(item.Letter);
-            int? sysDisk    = await _services.Disk.GetDiskNumberAsync(SystemLetter);
-            rejection = DestructiveGuard.CanClearDisk(targetDisk, sysDisk);
+            confirmed    = await _services.Disk.GetIdentityAsync(item.Letter);
+            int? sysDisk = await _services.Disk.GetDiskNumberAsync(SystemLetter);
+            rejection = DestructiveGuard.CanClearDisk(confirmed?.DiskNumber, sysDisk);
         }
 
-        if (rejection != GuardRejection.None)
+        if (rejection != GuardRejection.None || confirmed is null)
         {
             _services.History.Log($"REINIT REJECTED {item.Letter}: {rejection}");
             await ShowInfoAsync(L.T("reinit.title"), L.T(DestructiveGuard.DescribeReinit(rejection)));
@@ -370,11 +374,10 @@ public sealed partial class MainWindow
         if (second && !await ValidateLabelAsync(restLabel, restFs, focusOnError: false))
             return;
 
-        // Se relee el disco aquí, y no se reutiliza _selectedDiskSizeBytes: ese dato se tomó al seleccionar
-        // la unidad y entre eso y pulsar el botón el disco puede haber cambiado. Es la última consulta
-        // antes de Clear-Disk, así que conviene que sea la fresca. 0 = no se pudo determinar (unidad RAW,
-        // el caso para el que Reinicializar existe): el plan de disco entero no lo necesita.
-        long diskSizeBytes = await _services.Disk.GetDiskSizeAsync(item.Letter) ?? 0;
+        // El tamaño es el del disco que se acaba de identificar, y no _selectedDiskSizeBytes: ese dato se
+        // tomó al seleccionar la unidad y entre eso y pulsar el botón el disco puede haber cambiado. El
+        // script comprobará que el disco sigue midiendo esto antes de borrarlo.
+        long diskSizeBytes = confirmed.DiskSize;
 
         // El selector ya solo ofrece tamaños que caben, pero eso se decidió al seleccionar la unidad.
         // Pasarse hace fallar New-Partition cuando el disco YA está borrado, que es el peor momento posible.
@@ -446,8 +449,22 @@ public sealed partial class MainWindow
 
         try
         {
-            var r = await _services.Reinit.RunAsync(item.Letter, plan, diskSizeBytes, stage, _cts!.Token);
+            var r = await _services.Reinit.RunAsync(item.Letter, confirmed, plan, diskSizeBytes, stage, _cts!.Token);
             FormatProgress.IsIndeterminate = false;
+
+            // El script encontró otro disco detrás de la letra, o el mismo número con otra identidad, y
+            // salió antes de Clear-Disk (`AUD-013`). No es un fallo a medias: no se ha tocado nada.
+            if (r.Detail == ReinitDrive.IdentityChanged)
+            {
+                FormatProgress.Value = 0;
+                _lastOperationFailed = true;
+                _services.History.Log($"REINIT REJECTED {item.Letter}: {GuardRejection.TargetChanged}");
+                LoadDrives();
+                StatusText.Text = L.T("msg.targetChangedTitle");
+                await ShowInfoAsync(L.T("reinit.title"),
+                    L.T(DestructiveGuard.DescribeReinit(GuardRejection.TargetChanged), item.Letter));
+                return;
+            }
 
             if (_cancelRequested || r.Detail == "cancelled")
             {

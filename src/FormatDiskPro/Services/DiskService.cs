@@ -24,6 +24,12 @@ public interface IDiskService
     /// <summary>Tamaño en bytes del disco físico de la unidad; <c>null</c> si no se puede determinar.</summary>
     Task<long?> GetDiskSizeAsync(char letter);
 
+    /// <summary>
+    /// Disco físico y partición que hay detrás de la letra; <c>null</c> si no se puede determinar. Es lo
+    /// que se compara antes y después de confirmar una operación destructiva (`AUD-013`).
+    /// </summary>
+    Task<DriveIdentity?> GetIdentityAsync(char letter);
+
     /// <summary>Quita la protección de escritura del disco físico. <c>true</c> si lo logra.</summary>
     Task<bool> ClearReadOnlyAsync(char letter);
 
@@ -129,6 +135,24 @@ public sealed class DiskService(IProcessRunner runner) : IDiskService
         return long.TryParse(output, NumberStyles.Integer, CultureInfo.InvariantCulture, out long size) && size > 0
             ? size
             : null;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Una sola consulta para los diez datos: tienen que ser de un mismo instante. El orden de los campos
+    /// es el que espera <see cref="DriveIdentity.Parse"/>, con el identificador único al final.
+    /// </remarks>
+    public async Task<DriveIdentity?> GetIdentityAsync(char letter)
+    {
+        if (!char.IsLetter(letter)) return null;
+
+        string script =
+            "$ErrorActionPreference='Stop';" +
+            $"$p = Get-Partition -DriveLetter {letter}; $d = $p | Get-Disk;" +
+            "\"$($d.Number)|$($d.Size)|$($d.BusType)|$($d.IsSystem)|$($d.IsBoot)|" +
+            "$($p.PartitionNumber)|$($p.Offset)|$($p.Size)|$($d.SerialNumber)|$($d.UniqueId)\"";
+
+        return DriveIdentity.Parse(await RunCapturedAsync(script));
     }
 
     public async Task<bool> ClearReadOnlyAsync(char letter)

@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-13 | `AUD-013` | Lo que se formatea o se borra es lo que se confirmó: la identidad del disco se comprueba antes de ejecutar | sin publicar |
 | 2026-10-13 | `AUD-012` | *Reinicializar* ya no sigue si no puede leer el disco de Windows | sin publicar |
 | 2026-10-13 | `AUD-015` | Las guardas de *Formatear* y *Reinicializar* pasan a `Core/DestructiveGuard`, con pruebas de cada rechazo | sin publicar |
 | 2026-10-13 | `AUD-001` | Cancelar un formato completo lo detiene de verdad; donde no se puede, no se ofrece | sin publicar |
@@ -44,6 +45,18 @@
   - **De paso:** un rechazo de *Reinicializar* por guarda deja ahora una línea `REINIT REJECTED` en el historial, como ya la dejaba un plan no válido.
 
 ### Arquitectura y resiliencia
+
+- [x] **AUD-013 · No se revalida la identidad de la unidad entre la confirmación y la operación destructiva**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:443`, `:471-478`, `:511-517`, `:249` · `src/UI/MainWindow.Operations.cs:330-354`, `:438-452` · `src/Services/ReinitDrive.cs:84` · `src/Core/FormatLogic.cs:53`
+  - **Qué hacer:** capturar una identidad estable al abrir la confirmación (número de disco, `UniqueId` o número de serie y tamaño) y comprobarla justo antes de ejecutar; en Reinicializar, pasar al script el número de disco ya verificado y que el propio script aborte si `BusType`, `IsSystem`, `IsBoot` o el tamaño no coinciden. Si la lista cambia con una confirmación abierta, cerrarla.
+  - **Criterio de aceptación:** con una identidad distinta de la capturada, la operación no se lanza y lo dice; una prueba unitaria cubre la comparación.
+  - **Antecedente:** `AUD-015` (hecha) dejó las guardas en `Core/DestructiveGuard`; la comparación de identidad va ahí
+  - **Hecho (2026-10-13):** `Core/DriveIdentity` describe qué hay detrás de una letra —número, identificador único, serie, tamaño y bus del disco, si es de sistema o de arranque, y número, posición y tamaño de la partición—, leído en una sola consulta (`IDiskService.GetIdentityAsync`). **Formatear** la lee antes de abrir la confirmación y otra vez al aceptarla; `DestructiveGuard.StillTheConfirmedTarget` decide, y si algo cambió no se lanza nada y se dice («Lo que hay ahora en G: no es lo que se confirmó. No se ha modificado nada.»). **Reinicializar** ya no resuelve el disco a partir de la letra al arrancar el script: borra el **número de disco confirmado**, y el propio script, instantes antes de `Clear-Disk`, se niega si la letra ya no vive en ese disco, si su identificador, tamaño o bus no son los confirmados, o si es de sistema o de arranque. Y una confirmación destructiva abierta **se cierra sola** si llega un aviso de dispositivo, diciendo por qué.
+  - **Verificado:** 53 pruebas unitarias nuevas (`DriveIdentityTests`, la decisión, y el script de *Reinicializar*: que la guarda va antes de `Clear-Disk`, que usa el número confirmado y que el identificador se escapa). La guarda del script, ejecutada de verdad contra los discos de esta máquina sin llegar a `Clear-Disk`: pasa cuando todo coincide y se niega en los otros siete casos (otro identificador, otro tamaño, otro bus, la letra en otro disco, el disco de Windows, la letra inexistente y un identificador con comilla). Prueba de UI nueva, `Confirm_ClosesByItself_WhenTheDriveListChanges`, que simula el aviso de Windows con la confirmación abierta y la letra ya escrita. Suite de UI con opt-in destructivo —tres reinicializaciones y dos formatos reales pasando por la comprobación—: 43 pasan, 2 de `ALLOW_YANK` se omiten.
+  - **Decisión que conviene conocer:** en *Formatear*, si la identidad no se puede leer **ni antes ni después**, se sigue. Hay volúmenes sin partición que consultar (un disco RAM, una unidad virtual) que la app formatea desde siempre; exigirles identidad sería dejar de formatearlos. Está fijado en una prueba. *Reinicializar* no tiene esa salida: sin identidad no hay disco que borrar.
+  - **Lo que no se pudo probar de punta a punta:** el cambio real de un disco por otro con la misma letra entre confirmar y ejecutar. Están probadas sus dos mitades —la comparación, y la guarda del script contra discos reales—, no el intercambio físico.
+  - **Lo que queda fuera:** en *Formatear* sigue habiendo unos cientos de milisegundos entre la segunda lectura y el arranque de `format.com` o `Format-Volume`; solo *Reinicializar* comprueba dentro del mismo proceso que borra.
 
 - [x] **AUD-012 · La guarda «no reinicializar el disco de Windows» falla abierta si no se puede leer el disco del sistema**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Bajo

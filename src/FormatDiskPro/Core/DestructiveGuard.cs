@@ -19,6 +19,8 @@ public enum GuardRejection
     SystemDiskUnknown,
     /// <summary>La unidad está en el mismo disco físico que Windows.</summary>
     SameDiskAsSystem,
+    /// <summary>Detrás de la letra ya no está lo que se confirmó.</summary>
+    TargetChanged,
 }
 
 /// <summary>
@@ -96,6 +98,28 @@ public static class DestructiveGuard
     }
 
     /// <summary>
+    /// ¿Sigue habiendo detrás de la letra lo mismo que se confirmó? Se pregunta <b>después</b> de la
+    /// confirmación y justo antes de ejecutar (`AUD-013`).
+    /// </summary>
+    /// <param name="confirmed">Lo que había al abrir la confirmación, o <c>null</c> si no se pudo leer.</param>
+    /// <param name="now">Lo que hay ahora, o <c>null</c> si no se puede leer.</param>
+    /// <remarks>
+    /// <para>Si se pudo leer una vez y la otra no, <b>ha cambiado algo</b> y no se sigue.</para>
+    ///
+    /// <para>Si no se pudo leer <b>ninguna</b> de las dos, se sigue. No es un descuido de «ante la duda,
+    /// no»: hay volúmenes legítimos sin partición que consultar —un disco RAM, una unidad virtual— que la
+    /// app formatea desde siempre, y exigirles una identidad sería dejar de formatearlos. Vale para
+    /// <i>Formatear</i>, que actúa sobre un volumen. <i>Reinicializar</i> borra un disco entero y no pasa
+    /// por aquí con las manos vacías: <see cref="CanClearDisk"/> ya le exige conocer el disco.</para>
+    /// </remarks>
+    public static GuardRejection StillTheConfirmedTarget(DriveIdentity? confirmed, DriveIdentity? now)
+    {
+        if (confirmed is null && now is null) return GuardRejection.None;
+        if (confirmed is null || !confirmed.SameAs(now)) return GuardRejection.TargetChanged;
+        return GuardRejection.None;
+    }
+
+    /// <summary>
     /// Claves de localización —título y cuerpo— del aviso con el que <i>Formatear</i> explica un rechazo.
     /// </summary>
     /// <remarks>
@@ -107,6 +131,7 @@ public static class DestructiveGuard
     {
         GuardRejection.NoDrive   => ("msg.warning", "msg.selectDrive"),
         GuardRejection.Protected => ("msg.protTitle", "msg.protBody"),
+        GuardRejection.TargetChanged => ("msg.targetChangedTitle", "msg.targetChanged"),
         _                        => ("msg.systemTitle", "msg.systemBody"),
     };
 
@@ -116,6 +141,7 @@ public static class DestructiveGuard
         GuardRejection.NotRemovable      => "reinit.onlyRemovable",
         GuardRejection.SameDiskAsSystem  => "reinit.sameDisk",
         GuardRejection.TargetDiskUnknown or GuardRejection.SystemDiskUnknown => "reinit.diskUnknown",
+        GuardRejection.TargetChanged     => "msg.targetChanged",
         _                                => "reinit.blockedSystem",
     };
 }

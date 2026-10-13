@@ -33,6 +33,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   disco físico entero, así que antes verifica que no sea el del sistema; si esa comprobación fallaba a
   medias, continuaba. Ahora se detiene y lo dice, sin modificar nada.
 
+- **Lo que se formatea o se reinicializa es lo que se confirmó.** Si entre abrir la confirmación y
+  aceptarla la letra pasa a designar otro disco —se retira un pendrive y se conecta otro que recibe la
+  misma letra—, la operación no se ejecuta y la aplicación lo dice. Y una confirmación abierta se cierra
+  sola si se conecta o se retira un dispositivo.
+
 ### Cambiado
 
 - **El formato completo en exFAT muestra el porcentaje real**, como ya hacían NTFS y FAT32, en vez de

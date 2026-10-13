@@ -205,6 +205,77 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
         }
     }
 
+    // SendMessage y no PostMessage: Windows rechaza encolar WM_DEVICECHANGE (ERROR_MESSAGE_SYNC_ONLY),
+    // porque su lParam suele ser un puntero. Con tiempo límite, para no colgar la prueba si la app no atiende.
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern nint SendMessageTimeout(
+        IntPtr hWnd, uint msg, nuint wParam, ref DevBroadcastVolume lParam, uint flags, uint timeoutMs, out nuint result);
+
+    /// <summary>
+    /// <c>DEV_BROADCAST_VOLUME</c>. Hace falta uno de verdad: con <c>DBT_DEVICEARRIVAL</c> el <c>lParam</c>
+    /// es un puntero que Windows copia al otro proceso, y con un nulo rechaza el envío (error 87).
+    /// </summary>
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct DevBroadcastVolume
+    {
+        public uint Size, DeviceType, Reserved, UnitMask;
+        public ushort Flags;
+    }
+
+    /// <summary>
+    /// Una confirmación destructiva abierta <b>se cierra sola</b> si la lista de unidades cambia debajo
+    /// de ella (`AUD-013`): lo que enseña puede haber dejado de ser cierto, y cerrarla equivale a no
+    /// confirmar. Antes la lista se recargaba detrás del diálogo y este seguía ofreciendo su botón.
+    ///
+    /// <para>El aviso de Windows se simula con el mismo mensaje que llega al conectar o retirar un
+    /// dispositivo (<c>WM_DEVICECHANGE</c> / <c>DBT_DEVICEARRIVAL</c>): no hace falta tocar ninguna
+    /// unidad, y por eso la prueba no pide opt-in.</para>
+    /// </summary>
+    [TestDriveFact]
+    public void Confirm_ClosesByItself_WhenTheDriveListChanges()
+    {
+        const uint WmDeviceChange = 0x0219;
+        const nuint DbtDeviceArrival = 0x8000;
+
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        SelectTestDrive(letter);
+        MainWindowActions.SelectComboText(Window, "FileSystemPicker", "NTFS");
+
+        MainWindowActions.Button(Window, "StartButton").Invoke();
+        var dialog = DialogHelper.WaitForDialog(fixture);
+        try
+        {
+            // Con la letra ya escrita: el botón está habilitado y a un Enter de ejecutarse.
+            DialogHelper.WaitForChild(dialog, "InputBox").AsTextBox().Text = letter.ToString();
+            MainWindowActions.WaitUntilEnabled(dialog, "PrimaryButton");
+
+            IntPtr hwnd = Window.Properties.NativeWindowHandle.Value;
+            var volume = new DevBroadcastVolume
+            {
+                Size       = (uint)System.Runtime.InteropServices.Marshal.SizeOf<DevBroadcastVolume>(),
+                DeviceType = 2,                                   // DBT_DEVTYP_VOLUME
+                UnitMask   = 1u << (char.ToUpperInvariant(letter) - 'A'),
+            };
+            nint sent = SendMessageTimeout(hwnd, WmDeviceChange, DbtDeviceArrival, ref volume,
+                                           flags: 0x0002 /* SMTO_ABORTIFHUNG */, timeoutMs: 5000, out _);
+            int error = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+            Assert.True(sent != 0,
+                $"No se pudo entregar WM_DEVICECHANGE a la ventana de la app (hwnd=0x{hwnd:X}, error Win32 {error}).");
+
+            DialogHelper.WaitForNoDialog(fixture, TimeSpan.FromSeconds(10));
+
+            // No se ha formateado nada: la unidad sigue con su etiqueta, y la app está ociosa.
+            Assert.Equal(letter, TestDrive.FindLetter(TestDrive.PrimaryLabel));
+            MainWindowActions.WaitUntilEnabled(Window, "DrivePicker");
+            Assert.False(string.IsNullOrWhiteSpace(MainWindowActions.Require(Window, "StatusText").Name),
+                "La confirmación se cerró sin decir por qué.");
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
+
     // ── Ciclo de vida destructivo completo (requiere opt-in explícito) ─────────────
 
     /// <summary>

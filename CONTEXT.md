@@ -56,6 +56,7 @@ src/FormatDiskPro/
 │  ├─ UpdateChecker.cs    Comparación de versiones (IsNewer)
 │  ├─ DriveLetter.cs      Comparación de letras de unidad invariante de cultura (guarda del disco de sistema)
 │  ├─ DestructiveGuard.cs ¿SE PUEDE formatear / reinicializar? Motivo tipado de cada rechazo (AUD-015)
+│  ├─ DriveIdentity.cs    Qué hay DETRÁS de una letra (disco + partición), para comparar antes y después (AUD-013)
 │  ├─ OperationFailure.cs Línea de historial de una operación fallida (camino de error de T0-02)
 │  ├─ HistoryRotation.cs  Política de rotación del historial (umbral y nombre de la generación anterior)
 │  └─ AppInfo.cs          Versión, coordenadas del repo, enlace de donación
@@ -170,8 +171,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-13: **747** (746 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`) |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-13, con la USB de pruebas y el opt-in destructivo: **44** (42 pasan · 2 de `ALLOW_YANK` se omiten). Sin la USB se omiten además las que la necesitan |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-13: **800** (799 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`) |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-13, con la USB de pruebas y el opt-in destructivo: **45** (43 pasan · 2 de `ALLOW_YANK` se omiten). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 97,7 % el 2026-10-11 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
@@ -221,6 +222,15 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   el motivo que les devuelve; no deciden. **Ante la duda, no:** un dato que no se pudo leer es un
   rechazo con texto propio, nunca un «no hay inconveniente» (`AUD-012`: con el disco de Windows sin leer,
   *Reinicializar* seguía). Una guarda nueva va ahí, con la prueba de su rechazo.
+- **Una letra no es una identidad** (`AUD-013`, 2026-10-13). Entre abrir una confirmación destructiva y
+  aceptarla, detrás de la misma letra puede haber pasado a haber otro disco. *Formatear* lee
+  `DriveIdentity` antes y después de confirmar y no sigue si difieren. *Reinicializar* borra el **número
+  de disco confirmado** —no «el que la letra designe» al arrancar—, y su script se niega, instantes
+  antes de `Clear-Disk`, si el disco ya no es ese o es de sistema o de arranque. Una confirmación
+  abierta se cierra sola si llega un aviso de dispositivo. Toda operación destructiva nueva sigue ese
+  patrón: se identifica lo que se confirma y se comprueba antes de ejecutar.
+- **El estado del pie se escribe DESPUÉS de `LoadDrives()`, nunca antes.** Seleccionar una unidad vacía
+  `StatusText` (`ApplyProtection`), así que un mensaje puesto antes de recargar no llega a verse.
 - **No se firma el instalador** (#13, 2026-06-24; **reafirmado el 2026-08-16 al descartar `T4-03`**):
   SmartScreen dirá "editor desconocido". La firma sigue disponible como **opción** del pipeline
   (`-CertThumbprint`/`-CertFile`/`-CertPassword`/`-TimestampUrl`). Es lo que hace **necesaria** la

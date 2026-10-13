@@ -61,6 +61,58 @@
 
 ## Entradas
 
+### 2026-10-13 — `AUD-013`: una letra no es una identidad
+
+**El hueco.** Una operación destructiva se confirma tecleando la letra de la unidad, y se ejecuta sobre
+esa letra. Entre las dos cosas pasa el tiempo que el usuario tarde, y en ese tiempo la letra puede
+cambiar de dueño: se retira un pendrive, se conecta otro disco y Windows le da la misma. *Reinicializar*
+era el caso serio: su script empezaba por `Get-Partition -DriveLetter X | Get-Disk`, así que borraba
+entero **el disco que la letra designara al arrancar**, se hubiera confirmado o no.
+
+**Qué se hizo.** `Core/DriveIdentity`: diez datos del disco y de la partición, leídos en una sola
+consulta para que sean de un mismo instante.
+
+- *Formatear* la lee antes de abrir la confirmación —en paralelo con la consulta de solo lectura, para
+  no añadir espera— y otra vez al aceptarla. Si difieren, no se lanza nada.
+- *Reinicializar* pasa al script el **número de disco confirmado** y lo que debe encontrar en él. La
+  comprobación va dentro del script, en el mismo proceso que hace `Clear-Disk` y unas líneas antes: es
+  lo más cerca del borrado que se puede comprobar. Sale con un resultado propio (`identity-changed`),
+  porque «no se ha tocado nada» no es «falló a medias» y la ventana tiene que contarlo distinto.
+- Una confirmación destructiva abierta se cierra sola si llega un aviso de dispositivo. Antes la lista
+  se recargaba por detrás y el diálogo seguía ofreciendo su botón con datos de antes.
+
+**Estricto a propósito.** Se compara todo, también el número de disco, así que reconectar el mismo
+pendrive con la confirmación abierta se rechaza. El coste de un rechazo de más es volver a pulsar; el de
+uno de menos, un disco.
+
+**La excepción, que es una decisión y no un descuido.** En *Formatear*, sin identidad ni antes ni después
+se sigue: un disco RAM o una unidad virtual no tienen partición que consultar y la app los formatea desde
+siempre. Con identidad una vez y sin ella la otra, no. Está en una prueba para que nadie lo «arregle».
+
+**Lo que encontró la prueba de UI.** La nueva (`Confirm_ClosesByItself_WhenTheDriveListChanges`) falló
+tres veces antes de pasar, y las tres enseñaron algo. `PostMessage` no sirve: Windows no deja encolar
+`WM_DEVICECHANGE`. `SendMessage` con `lParam` nulo tampoco: con `DBT_DEVICEARRIVAL` el `lParam` es un
+puntero que Windows copia al otro proceso, y hay que mandar un `DEV_BROADCAST_VOLUME` de verdad. Y la
+tercera era un fallo del propio arreglo: el aviso «confirmación cerrada» se escribía **antes** de
+`LoadDrives()`, y seleccionar una unidad vacía la fila de estado. La confirmación se cerraba sin decir
+nada. Es probable que a «Unidad expulsada» le pase lo mismo desde siempre; queda anotado en `AUD-008`.
+
+**Cómo se comprobó.** 53 pruebas unitarias. La guarda del script se ejecutó de verdad contra los discos
+de esta máquina, cortada antes de `Clear-Disk`: pasa cuando todo coincide y se niega en siete variantes,
+incluida la del disco de Windows. La suite de UI con opt-in destructivo hace tres reinicializaciones y
+dos formatos reales pasando por la comprobación: 43 de 45.
+
+**Un fallo intermitente, anotado y no resuelto.** En una de las tres pasadas hechas con este cambio,
+`FullLifecycle` falló con «No se encontró el control `RestPicker`» tras una reinicialización; aislada y en
+la pasada completa siguiente pasó. En las tres pasadas anteriores del día no había ocurrido, así que **no
+se puede descartar que este cambio lo haga más probable** (ha cambiado el número de consultas antes de
+confirmar, y con él los tiempos). La causa más probable es `AUD-029` —una recarga tardía de la lista que
+restablece las opciones a mitad de configurarlas—, y ahí queda escrito. Dejó la USB con una sola partición; la pasada siguiente la devolvió
+a su distribución.
+
+**Lo que no se probó.** El intercambio físico de un disco por otro con la misma letra. Están probadas sus
+dos mitades, no el gesto entero.
+
 ### 2026-10-13 — `AUD-015` y `AUD-012`: las guardas destructivas salen de la ventana, y dejan de fallar abiertas
 
 **Qué había.** Las comprobaciones que deciden si *Formatear* o *Reinicializar* proceden —¿hay unidad?,

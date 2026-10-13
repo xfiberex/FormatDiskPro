@@ -411,6 +411,11 @@ public static class L
         ["msg.labelLong"]    = ["La etiqueta supera el máximo de {0} caracteres para {1}.", "The label exceeds the maximum of {0} characters for {1}.", "O rótulo excede o máximo de {0} caracteres para {1}.", "Le nom de volume dépasse le maximum de {0} caractères pour {1}.", "L'etichetta supera il massimo di {0} caratteri per {1}."],
         ["msg.goneTitle"]    = ["Unidad no disponible", "Drive unavailable", "Unidade indisponível", "Lecteur indisponible", "Unità non disponibile"],
         ["msg.goneBody"]     = ["La unidad {0}: ya no está disponible. Actualice la lista.", "Drive {0}: is no longer available. Refresh the list.", "A unidade {0}: não está mais disponível. Atualize a lista.", "Le lecteur {0}: n'est plus disponible. Actualisez la liste.", "L'unità {0}: non è più disponibile. Aggiorna l'elenco."],
+        // Entre confirmar y ejecutar, detrás de la letra ha pasado a haber otra cosa (`AUD-013`). Lo dicen
+        // Formatear y Reinicializar con el mismo texto: en los dos casos no se ha tocado nada.
+        ["msg.targetChangedTitle"] = ["La unidad ha cambiado", "The drive has changed", "A unidade mudou", "Le lecteur a changé", "L'unità è cambiata"],
+        ["msg.targetChanged"] = ["Lo que hay ahora en {0}: no es lo que se confirmó. No se ha modificado nada. Revise la unidad y vuelva a intentarlo.", "What is now at {0}: is not what was confirmed. Nothing has been changed. Check the drive and try again.", "O que está agora em {0}: não é o que foi confirmado. Nada foi alterado. Verifique a unidade e tente novamente.", "Ce qui se trouve maintenant en {0}: n'est pas ce qui a été confirmé. Rien n'a été modifié. Vérifiez le lecteur et réessayez.", "Ciò che si trova ora in {0}: non è ciò che è stato confermato. Nulla è stato modificato. Controlla l'unità e riprova."],
+        ["status.confirmClosed"] = ["La lista de unidades cambió: confirmación cerrada.", "The drive list changed: confirmation closed.", "A lista de unidades mudou: confirmação fechada.", "La liste des lecteurs a changé : confirmation fermée.", "L'elenco delle unità è cambiato: conferma chiusa."],
 
         // Dos títulos, no uno: ConfirmDialog lo comparten formatear y reinicializar, y hasta la revisión
         // de UX/UI del 2026-08-17 las dos se anunciaban como «Confirmar formato» (T6-01). Reinicializar

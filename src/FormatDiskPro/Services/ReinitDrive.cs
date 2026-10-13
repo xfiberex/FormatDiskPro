@@ -7,7 +7,8 @@ public interface IReinitDrive
 {
     /// <inheritdoc cref="ReinitDrive.RunAsync"/>
     Task<ReinitResult> RunAsync(
-        char letter, PartitionPlan plan, long diskSizeBytes, IProgress<string> stage, CancellationToken ct);
+        char letter, DriveIdentity confirmed, PartitionPlan plan, long diskSizeBytes,
+        IProgress<string> stage, CancellationToken ct);
 }
 
 /// <summary>
@@ -24,6 +25,15 @@ public interface IReinitDrive
 public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
 {
     /// <summary>
+    /// <see cref="ReinitResult.Detail"/> cuando el disco ya no es el que se confirmó: el script lo
+    /// detectó y salió <b>sin borrar nada</b>.
+    /// </summary>
+    public const string IdentityChanged = "identity-changed";
+
+    /// <summary>Marcador que escribe el script en ese caso.</summary>
+    private const string IdentityMarker = "IDENTITY:changed";
+
+    /// <summary>
     /// Limpia el disco de la unidad <paramref name="letter"/> y crea sobre él las particiones de
     /// <paramref name="plan"/>, formateando cada una. Reporta la etapa en curso
     /// (<c>clean</c>/<c>init</c>/<c>partition</c>/<c>format</c>) y devuelve las letras asignadas.
@@ -34,15 +44,23 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
     /// plan inválido que llegue hasta aquí se descubriría con el disco ya borrado.
     /// </remarks>
     /// <param name="letter">Letra de la unidad a reinicializar.</param>
+    /// <param name="confirmed">
+    /// El disco que el usuario confirmó. El script borra <b>ese número de disco</b>, y solo después de
+    /// comprobar —en el mismo proceso, instantes antes de <c>Clear-Disk</c>— que la letra sigue estando
+    /// en él, que su identificador, tamaño y bus son los confirmados y que no es de sistema ni de
+    /// arranque (`AUD-013`). Si algo no cuadra sale con <see cref="IdentityChanged"/> sin tocar nada.
+    /// </param>
     /// <param name="plan">Plan de particiones, ya validado por quien llama.</param>
     /// <param name="diskSizeBytes">Tamaño del disco físico, para revalidar el plan.</param>
     /// <param name="stage">Etapa en curso, como token sin traducir.</param>
     /// <param name="ct">Token de cancelación (mata el proceso al cancelar).</param>
     /// <returns>Resultado con éxito, letras asignadas y detalle de error si lo hubo.</returns>
     public async Task<ReinitResult> RunAsync(
-        char letter, PartitionPlan plan, long diskSizeBytes, IProgress<string> stage, CancellationToken ct)
+        char letter, DriveIdentity confirmed, PartitionPlan plan, long diskSizeBytes,
+        IProgress<string> stage, CancellationToken ct)
     {
         if (!char.IsLetter(letter)) return new ReinitResult(false, null, "invalid-letter");
+        if (confirmed.IsSystem || confirmed.IsBoot) return new ReinitResult(false, null, IdentityChanged);
 
         PlanValidation check = plan.Validate(diskSizeBytes);
         if (!check.Ok) return new ReinitResult(false, null, $"invalid-plan:{check.Problem}:{check.PartitionIndex}");
@@ -81,7 +99,20 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
 
         string script =
             "$ErrorActionPreference='Stop';" +
-            $"$d = (Get-Partition -DriveLetter {letter} | Get-Disk);" +
+            // Antes se resolvía el disco AQUÍ a partir de la letra, así que se borraba lo que la letra
+            // designara en ese instante, fuera o no lo que se confirmó. Ahora el disco es el confirmado, y
+            // el script se niega si la letra ya no vive en él o si ya no es el mismo disco (`AUD-013`).
+            // Los textos van entre comillas simples con la comilla escapada, como las etiquetas; el
+            // identificador de un USB lleva `&`, `\` y `:`, que ahí dentro no significan nada.
+            $"$d = Get-Disk -Number {confirmed.DiskNumber};" +
+            // Si la letra ya no existe, Get-Partition lanza: se recoge para que salga como «ha cambiado» y
+            // no como un fallo cualquiera, que con `Stop` es lo que sería.
+            $"$n = -1; try {{ $n = (Get-Partition -DriveLetter {letter} | Get-Disk).Number }} catch {{ }};" +
+            $"if ($n -ne {confirmed.DiskNumber}" +
+            $" -or \"$($d.UniqueId)\".Trim() -ne '{confirmed.DiskUniqueId.Replace("'", "''")}'" +
+            $" -or $d.Size -ne {confirmed.DiskSize.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" -or \"$($d.BusType)\" -ne '{confirmed.BusType.Replace("'", "''")}'" +
+            $" -or $d.IsSystem -or $d.IsBoot) {{ '{IdentityMarker}'; exit 3 }};" +
             "'STAGE:clean';" +
             "$d = Clear-Disk -Number $d.Number -RemoveData -RemoveOEM -Confirm:$false -PassThru;" +
             "'STAGE:init';" +
@@ -138,6 +169,9 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
                 return new ReinitResult(false, null, "cancelled");
 
             string output = sb.ToString();
+            if (output.Contains(IdentityMarker, StringComparison.Ordinal))
+                return new ReinitResult(false, null, IdentityChanged);
+
             IReadOnlyList<char> letters = ReinitPlan.ParseNewLetters(output);
             int created = ReinitPlan.CountCreatedPartitions(output);
 

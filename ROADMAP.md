@@ -29,42 +29,41 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **67 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **66 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 1 |
-| **2** | Medio | 18 |
+| **2** | Medio | 17 |
 | **3** | Bajo | 47 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **67** |
+| | **Total** | **66** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **66** y se han cerrado **5**
-(`AUD-001`, `AUD-012`, `AUD-015`, `AUD-018`, `AUD-019`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **65** y se han cerrado **6**
+(`AUD-001`, `AUD-012`, `AUD-013`, `AUD-015`, `AUD-018`, `AUD-019`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
 | Accesibilidad | 1 | 1 | – | 2 |
 | Seguridad | – | 3 | 2 | 5 |
 | Código | – | 6 | 5 | 11 |
-| Arquitectura y resiliencia | – | 1 | 4 | 5 |
 | QA | – | 1 | 1 | 2 |
 | Documentación | – | 1 | 2 | 3 |
 | DevOps | – | 4 | 15 | 19 |
 | Legal | – | 1 | 5 | 6 |
 | Rendimiento | – | – | 1 | 1 |
 | UI/UX | – | – | 3 | 3 |
+| Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **1** | **18** | **47** | **66** |
+| **Total** | **1** | **17** | **47** | **65** |
 
-**Esfuerzo:** 52 de esfuerzo bajo (hasta 2 horas) y 14 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 52 de esfuerzo bajo (hasta 2 horas) y 13 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-013` (que una operación
-destructiva no pueda hacer algo distinto de lo que se confirmó) → `AUD-002`,
-`AUD-004`, `AUD-025`, `AUD-026` (la frontera con lo que el usuario sin elevar controla) → `AUD-003`,
+**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-002`, `AUD-004`, `AUD-025`,
+`AUD-026` (la frontera con lo que el usuario sin elevar controla) → `AUD-003`,
 `AUD-014` (accesibilidad) → los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
 `AUD-044` a `AUD-047`, `AUD-066`) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
 `AUD-056` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
@@ -118,6 +117,7 @@ del autor.
   - **Ubicación:** `src/Services/DiskService.cs:145-156` · `src/UI/MainWindow.Operations.cs:120-131` · evidencia: `evidencias/expulsar.txt`
   - **Qué hacer:** tras invocar el verbo, sondear unos segundos si el volumen sigue montado (`DriveInfo.IsReady` o `Get-Volume`) y devolver `false` si sigue; el texto de fallo ya existe (`eject.fail`).
   - **Criterio de aceptación:** con un archivo abierto en la USB, «Expulsar» muestra el aviso de que no se pudo y no registra `EJECT`.
+  - **Visto al hacer `AUD-013` (2026-10-13), sin comprobar en pantalla:** «Unidad expulsada» se escribe en el estado **antes** de `LoadDrives()`, y seleccionar una unidad vacía el estado (`ApplyProtection`). Es probable que ese texto no llegue a verse; al tocar esto, escribirlo después de recargar.
 
 - [ ] **AUD-009 · El borrado seguro puede no ejecutarse y aun así registrarse y anunciarse como hecho**
   - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
@@ -136,13 +136,6 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:604-607`, `:673` · `src/Services/FormatProcess.cs:63-67` · `src/Services/ReinitDrive.cs:147` · evidencia: `evidencias/format-volume-fallido-stderr.txt`
   - **Qué hacer:** extraer el texto de los nodos `<S S="Error">` (deshaciendo los escapes `_xHHHH_`) antes de mostrarlo, en una función pura de `Core/` con su prueba; o añadir al script un `try/catch` que escriba `$_.Exception.Message` por `stdout`.
   - **Criterio de aceptación:** una prueba pasa el contenido de la evidencia a la función y obtiene «Format-Volume : No se encontraron objetos MSFT_Volume…» sin etiquetas.
-
-- [ ] **AUD-013 · No se revalida la identidad de la unidad entre la confirmación y la operación destructiva**
-  - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Medio
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:443`, `:471-478`, `:511-517`, `:249` · `src/UI/MainWindow.Operations.cs:330-354`, `:438-452` · `src/Services/ReinitDrive.cs:84` · `src/Core/FormatLogic.cs:53`
-  - **Qué hacer:** capturar una identidad estable al abrir la confirmación (número de disco, `UniqueId` o número de serie y tamaño) y comprobarla justo antes de ejecutar; en Reinicializar, pasar al script el número de disco ya verificado y que el propio script aborte si `BusType`, `IsSystem`, `IsBoot` o el tamaño no coinciden. Si la lista cambia con una confirmación abierta, cerrarla.
-  - **Criterio de aceptación:** con una identidad distinta de la capturada, la operación no se lanza y lo dice; una prueba unitaria cubre la comparación.
-  - **Antecedente:** `AUD-015` (hecha) dejó las guardas en `Core/DestructiveGuard`; la comparación de identidad va ahí
 
 - [ ] **AUD-014 · Dos regiones activas declaradas nunca avisan al lector de pantalla, y un error no se anuncia**
   - **Área:** Accesibilidad · **Severidad:** Medio · **Esfuerzo:** Bajo
@@ -229,6 +222,7 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:249`, `:411-435` · `src/UI/MainWindow.DriveInfo.cs:31-49`, `:58-62`
   - **Qué hacer:** al recargar, no tocar las opciones si la unidad seleccionada es la misma (misma letra e identidad); vaciar el campo cuando la unidad no está lista.
   - **Criterio de aceptación:** una prueba de UI escribe una etiqueta, pulsa F5 y la etiqueta sigue ahí.
+  - **Antecedente:** es la causa más probable de un fallo intermitente de `FullLifecycle_FormatThenReinit_OnDedicatedTestUsb` (2026-10-13: 1 de las 3 pasadas hechas con `AUD-013`, y ninguna de las 3 anteriores del día): tras *Reinicializar*, «No se encontró el control `RestPicker`» justo después de marcar la FAT32 pequeña, como si una recarga tardía hubiera desmarcado la casilla. `AUD-013` dejó en `Core/DriveIdentity` la identidad que esta tarea necesita comparar.
 
 - [ ] **AUD-030 · Si falla el lanzamiento del instalador, la interfaz se queda deshabilitada**
   - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo

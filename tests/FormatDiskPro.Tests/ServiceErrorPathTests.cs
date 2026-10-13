@@ -245,6 +245,12 @@ public sealed class ServiceErrorPathTests
     /// <summary>Disco de referencia para los planes de estas pruebas: 64 GiB, holgado para cualquiera.</summary>
     private const long Disk64Gb = 64L * 1024 * 1024 * 1024;
 
+    /// <summary>El disco «confirmado» de estas pruebas: un USB corriente, ni de sistema ni de arranque.</summary>
+    private static readonly DriveIdentity UsbDisk = new(
+        DiskNumber: 3, DiskSize: Disk64Gb, BusType: "USB", IsSystem: false, IsBoot: false,
+        PartitionNumber: 1, PartitionOffset: 1048576, PartitionSize: Disk64Gb - 2097152,
+        DiskSerial: "0758951061857004219", DiskUniqueId: @"USBSTOR\DISK&VEN_X&PROD_Y\0758951061857004219&0:PC");
+
     /// <summary>
     /// El fallo que <b>solo</b> se podía ver con el disco ya borrado: <c>Clear-Disk</c> o
     /// <c>Format-Volume</c> revientan a mitad. Tiene que salir como fallo con el motivo real, no como
@@ -257,7 +263,7 @@ public sealed class ServiceErrorPathTests
             "STAGE:clean\nSTAGE:init\n", exitCode: 1, stderr: "Clear-Disk : Access is denied.");
         var reinit = new ReinitDrive(runner);
 
-        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+        var r = await reinit.RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
             Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
@@ -275,7 +281,7 @@ public sealed class ServiceErrorPathTests
         var reinit = new ReinitDrive(FakeProcessRunner.Returning(
             "STAGE:clean\nSTAGE:init\nSTAGE:partition\nSTAGE:format\nLETTER:\n", exitCode: 0));
 
-        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+        var r = await reinit.RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
             Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
@@ -297,7 +303,7 @@ public sealed class ServiceErrorPathTests
             "STAGE:clean\nSTAGE:init\nSTAGE:partition\nSTAGE:format\nLETTER:H\n",
             exitCode: 0, chunkSize: 6));
 
-        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "exFAT", "DATOS"),
+        var r = await reinit.RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "exFAT", "DATOS"),
             Disk64Gb, new SyncProgress<string>(stages.Add), CancellationToken.None);
 
         Assert.True(r.Ok);
@@ -311,7 +317,7 @@ public sealed class ServiceErrorPathTests
     {
         var reinit = new ReinitDrive(FakeProcessRunner.Throwing(new Win32Exception(2, "No se encuentra powershell.exe")));
 
-        var r = await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Mbr, "NTFS", ""),
+        var r = await reinit.RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Mbr, "NTFS", ""),
             Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
@@ -341,7 +347,7 @@ public sealed class ServiceErrorPathTests
             ? new PartitionPlan(DiskPartitionStyle.Gpt, [new PartitionSpec(new PartitionSize.Exact(bytes), fs, "")])
             : PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, fs, "");
 
-        var r = await reinit.RunAsync(letter, plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync(letter, UsbDisk, plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Empty(runner.Started);
@@ -360,7 +366,7 @@ public sealed class ServiceErrorPathTests
         var plan = new PartitionPlan(DiskPartitionStyle.Mbr,
             [new PartitionSpec(new PartitionSize.Exact(2_147_483_648L), "FAT32", "BIOS")]);
 
-        await reinit.RunAsync('G', plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
+        await reinit.RunAsync('G', UsbDisk, plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         string script = DecodeScript(Assert.Single(runner.Started));
         Assert.Contains("-Size 2147483648", script, StringComparison.Ordinal);
@@ -374,7 +380,7 @@ public sealed class ServiceErrorPathTests
         var runner = FakeProcessRunner.Returning("LETTER:H", exitCode: 0);
         var reinit = new ReinitDrive(runner);
 
-        await reinit.RunAsync('G', PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", "D'ANGELO"),
+        await reinit.RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", "D'ANGELO"),
             Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.Contains("'D''ANGELO'", DecodeScript(Assert.Single(runner.Started)), StringComparison.Ordinal);
@@ -396,7 +402,7 @@ public sealed class ServiceErrorPathTests
             new PartitionSpec(new PartitionSize.Remainder(), "exFAT", "DATOS"),
         ]);
 
-        var r = await reinit.RunAsync('G', plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', UsbDisk, plan, Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         string script = DecodeScript(Assert.Single(runner.Started));
         Assert.Contains("-Size 1073741824", script, StringComparison.Ordinal);
@@ -418,7 +424,7 @@ public sealed class ServiceErrorPathTests
     {
         var reinit = new ReinitDrive(FakeProcessRunner.Returning("PART:0:1\nLETTER:0:H\n", exitCode: 0));
 
-        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', UsbDisk, TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Equal(['H'], r.Letters);   // se conserva lo que SÍ se creó: lo necesita `T5-03`
@@ -428,6 +434,120 @@ public sealed class ServiceErrorPathTests
         new PartitionSpec(new PartitionSize.Exact(1024L * 1024 * 1024), "FAT32", "BIOS"),
         new PartitionSpec(new PartitionSize.Remainder(), "exFAT", "DATOS"),
     ]);
+
+    // ── El disco que se borra es el que se confirmó (`AUD-013`) ───
+
+    /// <summary>
+    /// El script borra <b>el número de disco confirmado</b>, y antes de <c>Clear-Disk</c> comprueba que la
+    /// letra sigue en ese disco y que el disco es el mismo. Antes resolvía el disco a partir de la letra
+    /// en el momento de arrancar: borraba lo que la letra designara entonces, se hubiera confirmado o no.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_ChecksTheConfirmedDiskBeforeClearingIt()
+    {
+        var runner = FakeProcessRunner.Returning("LETTER:0:H\n", exitCode: 0);
+        var reinit = new ReinitDrive(runner);
+
+        await reinit.RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        string script = DecodeScript(Assert.Single(runner.Started));
+
+        int check = script.IndexOf("IDENTITY:changed", StringComparison.Ordinal);
+        int clear = script.IndexOf("Clear-Disk", StringComparison.Ordinal);
+        Assert.True(check >= 0, "El script no comprueba la identidad del disco.");
+        Assert.True(check < clear, "La comprobación de identidad tiene que ir ANTES de Clear-Disk.");
+
+        string guard = script[..check];
+        Assert.Contains("Get-Disk -Number 3;", guard, StringComparison.Ordinal);
+        Assert.Contains("try { $n = (Get-Partition -DriveLetter G | Get-Disk).Number } catch { }", guard, StringComparison.Ordinal);
+        Assert.Contains($"'{UsbDisk.DiskUniqueId}'", guard, StringComparison.Ordinal);
+        Assert.Contains($"$d.Size -ne {Disk64Gb}", guard, StringComparison.Ordinal);
+        Assert.Contains("-ne 'USB'", guard, StringComparison.Ordinal);
+        Assert.Contains("$d.IsSystem -or $d.IsBoot", guard, StringComparison.Ordinal);
+
+        // Y el disco que se borra ya no sale de la letra.
+        Assert.DoesNotContain("$d = (Get-Partition", script, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Cuando el script encuentra otro disco, lo dice con su propio resultado: no es «falló el formato»,
+    /// es «no se ha tocado nada», y la ventana lo cuenta distinto.
+    /// </summary>
+    [Fact]
+    public async Task Reinit_ScriptReportsAnotherDisk_IsIdentityChangedAndNotAGenericFailure()
+    {
+        var reinit = new ReinitDrive(FakeProcessRunner.Returning("IDENTITY:changed\n", exitCode: 3));
+
+        var r = await reinit.RunAsync('G', UsbDisk, PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Equal(ReinitDrive.IdentityChanged, r.Detail);
+        Assert.Equal(0, r.PartitionsCreated);
+    }
+
+    /// <summary>
+    /// Un disco de sistema o de arranque no llega ni a lanzar PowerShell, lo haya dejado pasar quien
+    /// sea. Es la misma idea que revalidar el plan aquí: la última línea antes de <c>Clear-Disk</c>.
+    /// </summary>
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task Reinit_SystemOrBootDisk_IsRejectedBeforeLaunchingAnything(bool isSystem, bool isBoot)
+    {
+        var runner = FakeProcessRunner.Forbidden();
+        var reinit = new ReinitDrive(runner);
+
+        var r = await reinit.RunAsync('G', UsbDisk with { IsSystem = isSystem, IsBoot = isBoot },
+            PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Empty(runner.Started);
+    }
+
+    /// <summary>El identificador va dentro de un literal de PowerShell: una comilla simple se duplica.</summary>
+    [Fact]
+    public async Task Reinit_UniqueIdWithSingleQuote_IsEscapedInTheScript()
+    {
+        var runner = FakeProcessRunner.Returning("LETTER:0:H\n", exitCode: 0);
+        var reinit = new ReinitDrive(runner);
+
+        await reinit.RunAsync('G', UsbDisk with { DiskUniqueId = "ID'; Clear-Disk -Number 0 #" },
+            PartitionPlan.WholeDisk(DiskPartitionStyle.Gpt, "NTFS", ""),
+            Disk64Gb, new Progress<string>(), CancellationToken.None);
+
+        Assert.Contains("'ID''; Clear-Disk -Number 0 #'", DecodeScript(Assert.Single(runner.Started)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DiskIdentity_ReadsTheLineTheQueryWrites()
+    {
+        var disk = new DiskService(FakeProcessRunner.Returning(
+            "1|31457280000|USB|False|False|1|1048576|1073741824|SERIE|USBSTOR\\DISK&VEN_X\r\n"));
+
+        DriveIdentity id = Assert.IsType<DriveIdentity>(await disk.GetIdentityAsync('G'));
+
+        Assert.Equal(1, id.DiskNumber);
+        Assert.Equal("USBSTOR\\DISK&VEN_X", id.DiskUniqueId);
+    }
+
+    /// <summary>Sin partición detrás de la letra la consulta no escribe nada: no hay identidad.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("Get-Partition : No se encontraron objetos MSFT_Partition")]
+    public async Task DiskIdentity_NothingUsable_IsNull(string output)
+        => Assert.Null(await new DiskService(FakeProcessRunner.Returning(output, exitCode: 1)).GetIdentityAsync('G'));
+
+    [Fact]
+    public async Task DiskIdentity_NonLetter_DoesNotLaunchAnything()
+    {
+        var runner = FakeProcessRunner.Forbidden();
+
+        Assert.Null(await new DiskService(runner).GetIdentityAsync(';'));
+        Assert.Empty(runner.Started);
+    }
 
     // ── Fallo a mitad del plan (`T5-03`) ──────────────────────────
 
@@ -443,7 +563,7 @@ public sealed class ServiceErrorPathTests
             "STAGE:partition\nPART:0:1\nSTAGE:format\nLETTER:0:H\nPART:1:2\n",
             exitCode: 1, stderr: "Format-Volume : El parámetro no es correcto."));
 
-        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', UsbDisk, TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Equal(2, r.PartitionsCreated);   // las dos existen en la tabla de particiones
@@ -462,7 +582,7 @@ public sealed class ServiceErrorPathTests
         var reinit = new ReinitDrive(FakeProcessRunner.Returning(
             "STAGE:clean\n", exitCode: 1, stderr: "Clear-Disk : Access is denied."));
 
-        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', UsbDisk, TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Equal(0, r.PartitionsCreated);
@@ -481,7 +601,7 @@ public sealed class ServiceErrorPathTests
             "PART:0:1\nLETTER:0:H\nPART:1:2\n", exitCode: 1, stderr: "Format-Volume : fallo");
         var reinit = new ReinitDrive(runner);
 
-        var r = await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+        var r = await reinit.RunAsync('G', UsbDisk, TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         Assert.False(r.Ok);
         Assert.Single(runner.Started);   // uno solo: el de la operación. Ninguna limpieza automática.
@@ -498,7 +618,7 @@ public sealed class ServiceErrorPathTests
         var runner = FakeProcessRunner.Returning("PART:0:1\nLETTER:0:H\nPART:1:2\nLETTER:1:I\n", exitCode: 0);
         var reinit = new ReinitDrive(runner);
 
-        await reinit.RunAsync('G', TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
+        await reinit.RunAsync('G', UsbDisk, TwoPartitionPlan(), Disk64Gb, new Progress<string>(), CancellationToken.None);
 
         string script = DecodeScript(Assert.Single(runner.Started));
         int firstLetter  = script.IndexOf("'LETTER:0:", StringComparison.Ordinal);
