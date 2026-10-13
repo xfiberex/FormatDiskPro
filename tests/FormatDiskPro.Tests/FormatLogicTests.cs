@@ -205,6 +205,63 @@ public sealed class FormatLogicTests : IDisposable
         Assert.Equal("/V:my \" evil", args[^1]);
     }
 
+    /// <summary>
+    /// <c>format.com</c> rechaza <c>/A:16384</c> con «Parámetro no válido» (código 4): de 16 KB en adelante
+    /// exige el sufijo, y a partir de 1 MB, <c>M</c> (tampoco acepta <c>1024K</c>). Los valores esperados
+    /// son los que se probaron uno a uno sobre la USB de pruebas el 2026-10-13 (`AUD-001`); los tamaños,
+    /// todos los que ofrece el selector.
+    /// </summary>
+    [Theory]
+    [InlineData(512, "512")]
+    [InlineData(4096, "4096")]
+    [InlineData(8192, "8192")]
+    [InlineData(16384, "16K")]
+    [InlineData(32768, "32K")]
+    [InlineData(65536, "64K")]
+    [InlineData(131072, "128K")]
+    [InlineData(524288, "512K")]
+    [InlineData(1048576, "1M")]
+    public void ComAllocationSize_UsesTheSuffixFormatComDemands(long bytes, string expected)
+        => Assert.Equal(expected, FormatLogic.ComAllocationSize(bytes));
+
+    [Fact]
+    public void BuildComArgumentList_WritesLargeAllocationSizesWithSuffix()
+    {
+        var args = FormatLogic.BuildComArgumentList('G', "exFAT", 131072, "DATA");
+        Assert.Equal(["G:", "/FS:exFAT", "/A:128K", "/Y", "/V:DATA"], args);
+    }
+
+    /// <summary>La compresión es de NTFS: en cualquier otro sistema <c>/C</c> haría fallar el formato.</summary>
+    [Theory]
+    [InlineData("NTFS", true)]
+    [InlineData("exFAT", false)]
+    [InlineData("FAT32", false)]
+    public void BuildComArgumentList_CompressOnlyAppliesToNtfs(string fs, bool expected)
+    {
+        Assert.Equal(expected, FormatLogic.BuildComArgumentList('G', fs, 4096, "DATA", compress: true).Contains("/C"));
+        Assert.DoesNotContain("/C", FormatLogic.BuildComArgumentList('G', fs, 4096, "DATA", compress: false));
+    }
+
+    // ── UsesFormatCom ────────────────────────────────────────────
+
+    /// <summary>
+    /// La vía decide si el formato <b>se puede cancelar</b> (`AUD-001`): matar <c>format.com</c> lo detiene
+    /// y matar el PowerShell de <c>Format-Volume</c> no. Todo formato completo que se pueda comprobar va
+    /// por <c>format.com</c> —exFAT incluido, que era el caso que seguía formateando 46 s después de
+    /// «cancelado»—; lo rápido y ReFS, por <c>Format-Volume</c>, donde la ventana no ofrece cancelar.
+    /// </summary>
+    [Theory]
+    [InlineData("NTFS", false, true)]
+    [InlineData("exFAT", false, true)]
+    [InlineData("FAT32", false, true)]
+    [InlineData("FAT", false, true)]
+    [InlineData("ReFS", false, false)]
+    [InlineData("NTFS", true, false)]
+    [InlineData("exFAT", true, false)]
+    [InlineData("ReFS", true, false)]
+    public void UsesFormatCom_EveryFullFormatButRefs(string fs, bool quick, bool expected)
+        => Assert.Equal(expected, FormatLogic.UsesFormatCom(fs, quick));
+
     // ── MaxLabelLength ───────────────────────────────────────────
 
     [Theory]

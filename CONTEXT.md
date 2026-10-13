@@ -165,12 +165,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.29.0** (2026-09-22). En `master`, por delante de esa versión, solo hay documentación, la auditoría y una subida de versión de las acciones del CI: ningún cambio en la app |
+| **Publicado** | **v1.29.0** (2026-09-22). En `master`, por delante de esa versión, están la auditoría del 2026-10-11 y las correcciones que van saliendo de ella, **sin publicar**: son la sección *Sin publicar* del [`CHANGELOG.md`](CHANGELOG.md) |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-13: **690** (689 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`) |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-11, con la USB de pruebas: **43** (40 pasan · 3 de opt-in se omiten). Sin la USB se omiten además las que la necesitan |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-13: **711** (710 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`) |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-13, con la USB de pruebas y el opt-in destructivo: **44** (42 pasan · 2 de `ALLOW_YANK` se omiten). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 97,7 % el 2026-10-11 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
@@ -313,6 +313,22 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   `$ErrorActionPreference = "Stop"`, **aborta aunque git devuelva 0**. En un `push` eso deja el release **a
   medias**: rama subida, sin tag ni GitHub Release. Por eso los git que mutan estado van por **`Invoke-Git`**,
   que baja la preferencia mientras corre git y decide por `$LASTEXITCODE`.
+
+### Formateo: dos vías, y solo una se puede cancelar
+
+- **Todo formato COMPLETO va por `format.com`; lo rápido y ReFS, por `Format-Volume`** (`AUD-001`,
+  2026-10-13). Lo decide `FormatLogic.UsesFormatCom`, y no es una cuestión de dónde sale el porcentaje:
+  **matar `format.com` detiene el formato; matar el PowerShell de `Format-Volume`, no** —lo ejecuta el
+  proveedor de almacenamiento de Windows, que sigue sin el proceso que se lo pidió (medido: «cancelado» a
+  los 4 s, terminado a los 50)—. Por eso en la vía de `Format-Volume` **Cancelar está deshabilitado** y el
+  estado lo dice. Si añades una operación que lance `Format-Volume`, no le pongas un Cancelar que no
+  puede cumplir.
+- **`format.com` no acepta el tamaño de clúster en bytes a partir de 16 KB**: `/A:16384` da «Parámetro no
+  válido» (código 4); quiere `16K`, `64K`, `1M` (y tampoco `1024K`). Lo escribe
+  `FormatLogic.ComAllocationSize`. Hasta entonces, un formato completo con 16 KB o más fallaba siempre.
+- **Un formato completo cancelado deja el volumen sin sistema de archivos**, y `DriveInfo.IsReady` da
+  `false`. «No lista» no es «retirada»: la guarda de *Formatear* solo rechaza si detrás de la letra no
+  hay partición, o esa unidad no tendría salida dentro de la app.
 
 ### Otros
 

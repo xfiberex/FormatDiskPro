@@ -29,23 +29,23 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **70 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **69 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
-| **1** | Alto | 2 |
+| **1** | Alto | 1 |
 | **2** | Medio | 20 |
 | **3** | Bajo | 47 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **70** |
+| | **Total** | **69** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **69** y se han cerrado **2**
-(`AUD-018`, `AUD-019`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **68** y se han cerrado **3**
+(`AUD-001`, `AUD-018`, `AUD-019`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
-| Arquitectura y resiliencia | 1 | 2 | 4 | 7 |
+| Arquitectura y resiliencia | – | 2 | 4 | 6 |
 | Accesibilidad | 1 | 1 | – | 2 |
 | Seguridad | – | 3 | 2 | 5 |
 | Código | – | 6 | 5 | 11 |
@@ -57,13 +57,12 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **69** y se han cerrado **
 | UI/UX | – | – | 3 | 3 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **2** | **20** | **47** | **69** |
+| **Total** | **1** | **20** | **47** | **68** |
 
-**Esfuerzo:** 53 de esfuerzo bajo (hasta 2 horas) y 16 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 53 de esfuerzo bajo (hasta 2 horas) y 15 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-001`, `AUD-013`, `AUD-012` y
-`AUD-015` (que una operación destructiva no pueda decir algo distinto de lo que hace) → `AUD-002`,
+**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-013`, `AUD-012` y `AUD-015` (que una operación destructiva no pueda decir algo distinto de lo que hace) → `AUD-002`,
 `AUD-004`, `AUD-025`, `AUD-026` (la frontera con lo que el usuario sin elevar controla) → `AUD-003`,
 `AUD-014` (accesibilidad) → los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
 `AUD-044` a `AUD-047`, `AUD-066`) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
@@ -74,12 +73,6 @@ del autor.
 > completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
 
 ## 🟠 Tier 1 — Alto
-
-- [ ] **AUD-001 · Cancelar un formato completo lanzado con `Format-Volume` no lo detiene**
-  - **Área:** Arquitectura y resiliencia · **Severidad:** Alto · **Esfuerzo:** Medio
-  - **Ubicación:** `src/Services/FormatProcess.cs:55-67` (cancelación en `:61`) · `src/UI/MainWindow.xaml.cs:586`, `:604-618`, `:879-889` · `src/Localization/Localization.cs:453` · evidencias: `evidencias/cancelar-format-volume.txt`, `evidencias/cancelar-format-com.txt`
-  - **Qué hacer:** (1) no dar por cancelado lo que no se puede cancelar: mientras el formato siga, mantener la operación abierta con un estado propio («Windows está terminando el formato; no retires la unidad») y sondear el volumen hasta que vuelva; o deshabilitar Cancelar en esa vía y decirlo antes de empezar. (2) Valorar llevar también exFAT completo por `format.com`, que sí se detiene. (3) Tras cualquier cancelación, recargar las unidades y decir en qué estado queda la que se estaba formateando.
-  - **Criterio de aceptación:** cancelar un formato completo exFAT sobre la USB de pruebas deja la app ocupada hasta que el volumen vuelve, o el botón no está disponible; tras cancelar uno NTFS, el estado dice que la unidad quedó sin formato y la tarjeta lo refleja. Una prueba de UI con opt-in destructivo cubre ambos casos.
 
 - [ ] **AUD-003 · El selector de unidad no tiene nombre accesible y todas sus opciones se anuncian igual**
   - **Área:** Accesibilidad · **Severidad:** Alto · **Esfuerzo:** Bajo
@@ -296,7 +289,7 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.Operations.cs:67-72`, `:285-290`, `:455-460` · `src/UI/MainWindow.xaml.cs:249`, `:612-618`, `:643-659`, `:676-691`
   - **Qué hacer:** registrar siempre el desenlace (`REINIT CANCELLED`, `FORMAT OK` antes del borrado, `WIPE ERROR`) y llamar a `LoadDrives()` en `EndOperation`.
   - **Criterio de aceptación:** cada desenlace de cada operación deja exactamente una línea que lo nombra, y la lista se recarga al terminar.
-  - **Depende de:** AUD-001 (comparten el tratamiento de la cancelación)
+  - **Antecedente:** `AUD-001` (hecha) ya recarga la lista y dice cómo queda la unidad al cancelar un **formato**; faltan las demás operaciones y los registros
 
 - [ ] **AUD-037 · Los ajustes se escriben sin atomicidad, se degradan a valores por defecto ante un error de lectura y no hay instancia única**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Medio

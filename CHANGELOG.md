@@ -16,6 +16,24 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **Cancelar un formato completo lo cancela de verdad.** En exFAT, y en NTFS con compresión, la
+  aplicación decía «Operación cancelada» mientras Windows seguía formateando hasta el final. Ahora el
+  formato se detiene, y el estado avisa de que la unidad ha quedado sin formato.
+- **Donde no se puede cancelar, ya no se ofrece.** Un formato rápido —y uno completo en ReFS— lo ejecuta
+  Windows y no admite interrupción: el botón Cancelar queda deshabilitado mientras dura y el estado lo
+  dice.
+- **Un formato completo con unidad de asignación de 16 KB o más fallaba nada más empezar**, en cualquier
+  sistema de archivos. Ya no.
+- **Una unidad sin formato se puede formatear desde la aplicación.** Antes respondía «la unidad ya no
+  está disponible», también con la unidad conectada, y había que recurrir a *Reinicializar unidad*.
+
+### Cambiado
+
+- **El formato completo en exFAT muestra el porcentaje real**, como ya hacían NTFS y FAT32, en vez de
+  una barra indeterminada.
+
 ## [1.29.0] — 2026-09-22
 
 **La base, al día.** La aplicación pasa a la versión 2 del Windows App SDK, el componente de Microsoft

@@ -61,6 +61,46 @@
 
 ## Entradas
 
+### 2026-10-13 — `AUD-001`: cancelar un formato lo cancela, o no se ofrece
+
+**El fallo.** «Cancelar» hacía dos cosas según por dónde fuera el formato. Con `format.com` se detenía;
+con `Format-Volume` la app mataba PowerShell, decía «Operación cancelada» y **Windows seguía formateando
+hasta el final**: el formato lo ejecuta el proveedor de almacenamiento, no el proceso que lo pide. Por
+esa vía iban los formatos rápidos, todo exFAT y ReFS, y NTFS con compresión.
+
+**La decisión: que la vía dependa de si se puede cancelar.** Todo formato **completo** pasa a
+`format.com` (`FormatLogic.UsesFormatCom`): es el único que dura lo bastante para querer cancelarlo, y de
+paso exFAT gana el porcentaje real. La compresión NTFS, que era lo que mandaba un formato completo a
+`Format-Volume`, va con `/C`. Lo que queda en `Format-Volume` —lo rápido y ReFS— **no ofrece cancelar**:
+botón deshabilitado y el estado lo dice. Se descartó la otra opción de la tarea (aceptar el clic, esperar
+a que el volumen vuelva y contar qué pasó): exige adivinar desde fuera cuándo ha terminado un formato que
+ya no tiene proceso, y un volumen que no vuelve —formato fallido, unidad retirada— dejaría la app
+esperando para siempre.
+
+**Lo que la prueba sobre la USB encontró antes de escribir una línea.** Se probó primero `format.com` a
+mano, y falló a la primera: `format.com D: /FS:exFAT /A:32768` devuelve «Parámetro no válido». No era
+exFAT. **`format.com` no acepta el tamaño de clúster en bytes de 16 KB en adelante, en ningún sistema de
+archivos**: quiere `16K`, `64K`, `1M`. Es decir, un formato completo de NTFS con 64 KB llevaba fallando
+desde que existe esa vía, y nadie lo había visto porque el valor por defecto de NTFS y FAT32 es 4096. Es
+probable que exFAT estuviera fuera de `format.com` justo por esto: su valor por defecto es 128 KB.
+
+**Y lo que encontró después.** Cancelar deja el volumen sin sistema de archivos, y la app **no dejaba
+formatearlo**: la guarda de *Formatear* trataba «no lista» como «ya no está disponible». El arreglo de
+la cancelación habría dejado al usuario con una unidad que solo *Reinicializar* o Windows podían
+recuperar. Ahora la guarda pregunta si detrás de la letra hay una partición.
+
+**Cómo se comprobó.** La prueba de UI nueva (`CancellingAFormat_DoesWhatItSays_OnBothRoutes`, opt-in
+destructivo) no mira el texto sino la unidad: cancela un exFAT completo a los 4 s y exige que el volumen
+siga sin formato **75 s después**, más de lo que tarda el formato entero; con el código anterior
+reaparecía formateado. Después formatea en rápido esa misma unidad sin formato desde la app, muestreando
+el botón Cancelar: 43 muestras con la app ocupada, ninguna habilitado. 711 unitarias (+21) y la suite de
+UI completa con opt-in destructivo, 42 de 44 (las 2 que faltan piden `ALLOW_YANK`).
+
+**Lo que queda dicho y sin hacer.** ReFS completo sigue sin poder cancelarse: no hay con qué probar aquí
+que `format.com` lo formatee igual, y cambiarle la vía a ciegas es peor que decir que no se cancela. En
+la primera pasada de la suite fallaron dos pruebas ajenas (`SendInput` devolvió «Acceso denegado»); las
+dos pasan aisladas y en la segunda pasada completa, así que se anota como entorno, no como regresión.
+
 ### 2026-10-13 — `AUD-019` y `AUD-018`: los dos documentos vivos se parten, y lo cerrado sale de ellos
 
 **Qué se hizo.** `ROADMAP.md` y `CONTEXT.md` se quedan con lo que hay que leer para trabajar, y lo que es

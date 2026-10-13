@@ -530,7 +530,7 @@ public sealed class ServiceErrorPathTests
             exitCode: 0, chunkSize: 7));
 
         var (code, _) = await format.RunComAsync(
-            'G', "NTFS", 4096, "", new SyncProgress<int>(percents.Add), p => handed = p, CancellationToken.None);
+            'G', "NTFS", 4096, "", compress: false, new SyncProgress<int>(percents.Add), p => handed = p, CancellationToken.None);
 
         Assert.Equal(0, code);
         Assert.NotNull(handed);
@@ -548,7 +548,7 @@ public sealed class ServiceErrorPathTests
         var runner = FakeProcessRunner.Returning("", exitCode: 0);
         var format = new FormatProcess(runner);
 
-        await format.RunComAsync('G', "NTFS", 4096, "", null, null, CancellationToken.None);
+        await format.RunComAsync('G', "NTFS", 4096, "", compress: false, null, null, CancellationToken.None);
 
         Assert.Contains("/Y", Assert.Single(runner.Started).ArgumentList);
     }

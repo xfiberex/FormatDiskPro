@@ -23,10 +23,23 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-13 | `AUD-001` | Cancelar un formato completo lo detiene de verdad; donde no se puede, no se ofrece | sin publicar |
 | 2026-10-13 | `AUD-019` | `ROADMAP.md` y `CONTEXT.md` se parten: lo cerrado, a `docs/` | sin publicar (solo documentación) |
 | 2026-10-13 | `AUD-018` | §2 y §3 de `CONTEXT.md`, al día y sin cifras duplicadas | sin publicar (solo documentación) |
 
 <!-- Al cerrar una tarea: fila nueva ARRIBA en la tabla y su bloque bajo el área que le toque. -->
+
+### Arquitectura y resiliencia
+
+- [x] **AUD-001 · Cancelar un formato completo lanzado con `Format-Volume` no lo detiene**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Alto · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/FormatProcess.cs:55-67` (cancelación en `:61`) · `src/UI/MainWindow.xaml.cs:586`, `:604-618`, `:879-889` · `src/Localization/Localization.cs:453` · evidencias: `evidencias/cancelar-format-volume.txt`, `evidencias/cancelar-format-com.txt`
+  - **Qué hacer:** (1) no dar por cancelado lo que no se puede cancelar: mientras el formato siga, mantener la operación abierta con un estado propio («Windows está terminando el formato; no retires la unidad») y sondear el volumen hasta que vuelva; o deshabilitar Cancelar en esa vía y decirlo antes de empezar. (2) Valorar llevar también exFAT completo por `format.com`, que sí se detiene. (3) Tras cualquier cancelación, recargar las unidades y decir en qué estado queda la que se estaba formateando.
+  - **Criterio de aceptación:** cancelar un formato completo exFAT sobre la USB de pruebas deja la app ocupada hasta que el volumen vuelve, o el botón no está disponible; tras cancelar uno NTFS, el estado dice que la unidad quedó sin formato y la tarjeta lo refleja. Una prueba de UI con opt-in destructivo cubre ambos casos.
+  - **Hecho (2026-10-13):** todo formato **completo** va ahora por `format.com` (antes solo NTFS/FAT32/FAT sin compresión), que sí se detiene al matarlo: exFAT incluido, y NTFS con compresión mediante `/C`. Lo decide `FormatLogic.UsesFormatCom`, en `Core/` y bajo prueba. Por `Format-Volume` quedan los formatos rápidos y ReFS, y ahí **Cancelar está deshabilitado** y el estado lo dice («… No se puede cancelar.»). Al cancelar un formato completo, el estado dice «Cancelado: D: quedó sin formato.» y la lista de unidades se recarga.
+  - **Lo que apareció por el camino, y también se arregló:** (1) `format.com` rechaza `/A:16384` y mayores —exige `16K`, `64K`, `1M`—, así que **un formato completo con unidad de asignación de 16 KB o más fallaba siempre**, en cualquier sistema de archivos; ahora lo escribe `FormatLogic.ComAllocationSize`. (2) La app se negaba a formatear una unidad «no lista», que es justo como queda tras cancelar: no tenía salida sin ir a *Reinicializar* o a Windows. Ahora solo rechaza si detrás de la letra no hay partición.
+  - **Verificado:** `CancellingAFormat_DoesWhatItSays_OnBothRoutes` (UI, opt-in destructivo) sobre la USB de pruebas: cancela un exFAT completo a los 4 s, comprueba que el volumen **sigue sin formato 75 s después** (un formato completo de esa partición tarda unos 50 s) y que durante un formato rápido el botón no estuvo habilitado en ninguna de 43 muestras. Unitarias: 711. Suite de UI con opt-in destructivo: 42 pasan y 2 de `ALLOW_YANK` se omiten.
+  - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
 
 ### Documentación
 

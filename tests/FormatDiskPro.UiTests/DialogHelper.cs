@@ -47,6 +47,13 @@ public static class DialogHelper
         catch { return false; }
     }
 
+    /// <summary>¿Hay un ContentDialog abierto ahora mismo? Una sola lectura, sin esperar.</summary>
+    public static bool IsDialogOpen(AppFixture fixture)
+    {
+        try { return FindDialog(fixture) is not null; }
+        catch { return false; }
+    }
+
     public static Window WaitForDialog(AppFixture fixture, TimeSpan? timeout = null)
     {
         var result = Retry.WhileNull(

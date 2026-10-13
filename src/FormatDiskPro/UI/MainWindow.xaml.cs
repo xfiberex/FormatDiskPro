@@ -71,6 +71,9 @@ public sealed partial class MainWindow : Window
     // Falla real (no cancelación) de la operación en curso: la fija cada flujo en su rama de error
     // no-cancelación; EndOperation la combina con _cancelRequested para el estado visual de la barra.
     private bool _lastOperationFailed;
+    // ¿Se puede cancelar el paso que está corriendo? Un formato por Format-Volume no (`AUD-001`): matar
+    // su PowerShell no lo detiene. Mientras valga false, el botón Cancelar está deshabilitado.
+    private bool _cancelAvailable = true;
     // Cierre intencional para auto-actualizarse: la app debe cerrarse (aunque _isBusy siga
     // activo por la descarga) para soltar el AppMutex y los archivos y que el instalador la reemplace.
     private bool _closingForUpdate;
@@ -403,7 +406,7 @@ public sealed partial class MainWindow : Window
         if (_closingForUpdate) { RemoveDeviceHook(); return; }
         if (!_isBusy) { RemoveDeviceHook(); return; }
         args.Cancel = true;
-        await ShowInfoAsync(L.T("closing.title"), L.T("closing.body"));
+        await ShowInfoAsync(L.T("closing.title"), L.T(_cancelAvailable ? "closing.body" : "closing.bodyNoCancel"));
     }
 
     // ── Drive loading ─────────────────────────────────────────────
@@ -470,7 +473,11 @@ public sealed partial class MainWindow : Window
 
         bool driveReady;
         try { driveReady = driveItem.Info.IsReady; } catch { driveReady = false; }
-        if (!driveReady)
+        // «No lista» no es «no está». Un volumen sin sistema de archivos —el que deja un formato completo
+        // cancelado— no está listo, y es justo el que hay que poder formatear (`AUD-001`): rechazarlo aquí
+        // dejaba la unidad sin salida dentro de la app. Solo se rechaza si detrás de la letra ya no hay
+        // ninguna partición (unidad retirada, lector sin tarjeta).
+        if (!driveReady && await _services.Disk.IsDiskReadOnlyAsync(driveItem.Letter) is null)
         {
             await ShowInfoAsync(L.T("msg.goneTitle"), L.T("msg.goneBody", driveItem.Letter));
             LoadDrives();
@@ -583,10 +590,14 @@ public sealed partial class MainWindow : Window
         string label, bool quickFormat, bool compress, bool secureWipe, int securePasses)
     {
         BeginOperation();
-        bool useFormatCom = !quickFormat && !compress && fs is "NTFS" or "FAT32" or "FAT";
+        bool useFormatCom = FormatLogic.UsesFormatCom(fs, quickFormat);
+        // Por Format-Volume no hay cancelación que ofrecer: se dice desde el primer momento, en vez de
+        // aceptar un «Cancelar» que dejaría el formato corriendo con la app ya en «Cancelado» (`AUD-001`).
+        SetCancelAvailable(useFormatCom);
 
         StatusText.ClearValue(TextBlock.ForegroundProperty);
-        SetStatusAndAnnounce(L.T("status.formatting", driveLetter, quickFormat ? L.T("fmt.quick") : L.T("fmt.full")));
+        SetStatusAndAnnounce(L.T(useFormatCom ? "status.formatting" : "status.formattingNoCancel",
+            driveLetter, quickFormat ? L.T("fmt.quick") : L.T("fmt.full")));
         FormatProgress.Value   = 0;
         FormatProgress.IsIndeterminate = !useFormatCom;
 
@@ -597,7 +608,7 @@ public sealed partial class MainWindow : Window
             {
                 var percent = new Progress<int>(p => FormatProgress.Value = p);
                 (code, output) = await _services.Format.RunComAsync(
-                    driveLetter, fs, allocBytes, label, percent, p => _activeProcess = p, _cts!.Token);
+                    driveLetter, fs, allocBytes, label, compress, percent, p => _activeProcess = p, _cts!.Token);
             }
             else
             {
@@ -612,8 +623,12 @@ public sealed partial class MainWindow : Window
             if (_cancelRequested)
             {
                 FormatProgress.Value = 0;
-                StatusText.Text = L.T("status.cancelled");
-                _services.History.Log($"FORMAT CANCELLED {driveLetter}: {fs}");
+                // Un formato completo cancelado deja el volumen SIN sistema de archivos. Se dice, y se
+                // recarga la lista para que la tarjeta no siga enseñando la unidad de antes (`AUD-001`).
+                bool unformatted = !IsDriveReady(driveLetter);
+                _services.History.Log($"FORMAT CANCELLED {driveLetter}: {fs}{(unformatted ? " unformatted" : "")}");
+                LoadDrives();
+                StatusText.Text = unformatted ? L.T("status.cancelledUnformatted", driveLetter) : L.T("status.cancelled");
                 return;
             }
 
@@ -623,6 +638,7 @@ public sealed partial class MainWindow : Window
 
                 if (secureWipe)
                 {
+                    SetCancelAvailable(true);   // el borrado seguro sí se detiene al cancelar
                     StatusText.ClearValue(TextBlock.ForegroundProperty);
                     StatusText.Text = L.T("status.wiping");
                     FormatProgress.IsIndeterminate = false;
@@ -838,6 +854,7 @@ public sealed partial class MainWindow : Window
         _lastOperationFailed = false;
         FormatProgress.ShowError = false;
         _cts = new CancellationTokenSource();
+        SetCancelAvailable(true);
         SetControlsEnabled(false);
         StatusText.ClearValue(TextBlock.ForegroundProperty);
         ElapsedText.Text = "00:00";
@@ -848,10 +865,26 @@ public sealed partial class MainWindow : Window
         _elapsedTimer.Start();
     }
 
+    /// <summary>
+    /// Habilita o deshabilita «Cancelar» según si el paso en curso se puede detener de verdad.
+    /// </summary>
+    private void SetCancelAvailable(bool available)
+    {
+        _cancelAvailable = available;
+        CloseButton.IsEnabled = available;
+    }
+
+    private static bool IsDriveReady(char letter)
+    {
+        try { return new DriveInfo(letter.ToString()).IsReady; }
+        catch { return false; }
+    }
+
     private void EndOperation()
     {
         _elapsedTimer.Stop();
         _isBusy = false;
+        SetCancelAvailable(true);
         _activeProcess?.Dispose();
         _activeProcess = null;
         _cts?.Dispose();
@@ -879,9 +912,13 @@ public sealed partial class MainWindow : Window
     private async void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         if (!_isBusy) { App.MainWindow?.Close(); return; }
+        if (!_cancelAvailable) return;
 
         if (await ShowConfirmAsync(L.T("cancel.title"), L.T("cancel.body"), defaultNo: true))
         {
+            // La pregunta se queda abierta lo que el usuario tarde: si entretanto la operación terminó o
+            // pasó a un paso que no se cancela, ya no hay nada que cancelar.
+            if (!_isBusy || !_cancelAvailable) return;
             _cancelRequested = true;
             try { _cts?.Cancel(); } catch { }
             try { _activeProcess?.Kill(entireProcessTree: true); } catch { }

@@ -12,7 +12,7 @@ public interface IFormatProcess
 
     /// <inheritdoc cref="FormatProcess.RunComAsync"/>
     Task<(int code, string output)> RunComAsync(
-        char driveLetter, string fs, long allocBytes, string label,
+        char driveLetter, string fs, long allocBytes, string label, bool compress,
         IProgress<int>? percent, Action<IProcessHandle>? started, CancellationToken ct);
 }
 
@@ -42,7 +42,12 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
     /// <param name="quickFormat">Formato rápido.</param>
     /// <param name="compress">Compresión NTFS.</param>
     /// <param name="started">Recibe el proceso recién arrancado (para poder cancelarlo).</param>
-    /// <param name="ct">Cancelación: mata el árbol de procesos.</param>
+    /// <param name="ct">
+    /// Cancelación: mata el árbol de procesos, <b>y eso no detiene el formato</b> (`AUD-001`). Quien
+    /// formatea es el proveedor de almacenamiento de Windows, que sigue hasta el final sin el PowerShell
+    /// que se lo pidió. Sirve para soltar un proceso colgado, no para cancelar: la ventana no ofrece
+    /// cancelar por esta vía (ver <see cref="FormatLogic.UsesFormatCom"/>).
+    /// </param>
     public async Task<(int code, string stdout, string stderr)> RunVolumeAsync(
         char driveLetter, string fs, long allocBytes, string label,
         bool quickFormat, bool compress, Action<IProcessHandle>? started, CancellationToken ct)
@@ -69,9 +74,19 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
 
     /// <summary>
     /// Formatea con <c>format.com</c>, que es el único camino que informa del <b>progreso real</b> de un
-    /// formato completo (<c>Format-Volume</c> no lo hace).
+    /// formato completo (<c>Format-Volume</c> no lo hace) y el único que <b>se detiene al cancelar</b>.
     /// </summary>
+    /// <param name="driveLetter">Letra de la unidad.</param>
+    /// <param name="fs">Sistema de archivos.</param>
+    /// <param name="allocBytes">Tamaño de unidad de asignación, en bytes.</param>
+    /// <param name="label">Etiqueta del volumen.</param>
+    /// <param name="compress">Compresión NTFS.</param>
     /// <param name="percent">Porcentaje 0-100 según lo va imprimiendo <c>format.com</c>.</param>
+    /// <param name="started">Recibe el proceso recién arrancado (para poder cancelarlo).</param>
+    /// <param name="ct">
+    /// Cancelación: mata el árbol de procesos y el formato se detiene. La unidad queda <b>sin sistema de
+    /// archivos</b> hasta que se vuelva a formatear.
+    /// </param>
     /// <remarks>
     /// No se escribe nada por la entrada estándar: <c>/Y</c> (ver
     /// <see cref="FormatLogic.BuildComArgumentList"/>) suprime las dos preguntas. Responder <c>"Y"</c>/
@@ -80,7 +95,7 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
     /// hipotética que sí pregunte falle rápido en vez de colgarse indefinidamente.
     /// </remarks>
     public async Task<(int code, string output)> RunComAsync(
-        char driveLetter, string fs, long allocBytes, string label,
+        char driveLetter, string fs, long allocBytes, string label, bool compress,
         IProgress<int>? percent, Action<IProcessHandle>? started, CancellationToken ct)
     {
         string formatExe = Path.Combine(Environment.SystemDirectory, "format.com");
@@ -90,7 +105,7 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
         var proc = runner.Start(new ProcessSpec
         {
             FileName              = formatExe,
-            ArgumentList          = FormatLogic.BuildComArgumentList(driveLetter, fs, allocBytes, label),
+            ArgumentList          = FormatLogic.BuildComArgumentList(driveLetter, fs, allocBytes, label, compress),
             RedirectStandardInput = true,
         });
         started?.Invoke(proc);

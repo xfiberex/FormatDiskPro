@@ -347,6 +347,122 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
         }
     }
 
+    // ── Cancelar un formato (`AUD-001`) ────────────────────────────────────────────
+
+    /// <summary>
+    /// Cancelar un formato tiene que hacer lo que dice, por las dos vías.
+    ///
+    /// <para><b>Completo (exFAT)</b>: se cancela, el formato <b>se detiene de verdad</b> y la app dice que
+    /// la unidad quedó sin formato. Antes iba por <c>Format-Volume</c>: la app decía «Cancelado» y Windows
+    /// seguía formateando hasta el final, 46 s después. Lo que se mira es la <b>unidad</b>, no el texto:
+    /// pasado más tiempo del que tarda un formato completo de esta partición, sigue sin sistema de
+    /// archivos.</para>
+    ///
+    /// <para><b>Rápido</b>: va por <c>Format-Volume</c>, que no se puede detener, así que el botón
+    /// Cancelar está deshabilitado mientras dura. Este paso es además el que devuelve la unidad a su
+    /// estado: formatea desde la app un volumen que no está «listo», cosa que antes la app rechazaba.</para>
+    /// </summary>
+    [DestructiveFact]
+    public void CancellingAFormat_DoesWhatItSays_OnBothRoutes()
+    {
+        TestDrive.RequireDestructiveOptIn();
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        bool restored = false;
+
+        try
+        {
+            // ── 1) Formato completo exFAT, cancelado a mitad ──
+            SelectTestDrive(letter);
+            MainWindowActions.SelectComboText(Window, "FileSystemPicker", "exFAT");
+            MainWindowActions.TextBox(Window, "VolumeLabelBox").Text = "CANCELAR";
+            MainWindowActions.SetChecked(Window, "QuickFormatCheck", false);
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+            ConfirmStart(letter);
+
+            Thread.Sleep(TimeSpan.FromSeconds(4));   // que esté formateando, no arrancando
+            var cancel = MainWindowActions.Button(Window, "CloseButton");
+            Assert.True(cancel.IsEnabled, "Un formato completo va por format.com y se tiene que poder cancelar.");
+            cancel.Invoke();
+            DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Invoke();
+            DialogHelper.WaitForNoDialog(fixture);
+            MainWindowActions.WaitUntilEnabled(Window, "DrivePicker", TimeSpan.FromSeconds(30));
+
+            Assert.False(new DriveInfo(letter.ToString()).IsReady,
+                "Tras cancelar, el volumen debería haber quedado sin sistema de archivos.");
+
+            // Solo el aviso de «quedó sin formato» nombra la unidad; «Operación cancelada» a secas no.
+            string status = MainWindowActions.Require(Window, "StatusText").Name;
+            output.WriteLine($"Estado tras cancelar: '{status}'");
+            Assert.Contains($"{letter}:", status);
+
+            // Un formato completo de esta partición tarda unos 50 s. Si siguiera en marcha por detrás,
+            // pasado ese tiempo el volumen reaparecería formateado: es lo que ocurría.
+            Thread.Sleep(TimeSpan.FromSeconds(75));
+            Assert.False(new DriveInfo(letter.ToString()).IsReady,
+                "El volumen ha vuelto formateado: el formato siguió después de «cancelado».");
+
+            // ── 2) Formato rápido: sin Cancelar que ofrecer, y la unidad vuelve ──
+            SelectTestDrive(letter);
+            MainWindowActions.SelectComboText(Window, "FileSystemPicker", "FAT32");
+            MainWindowActions.TextBox(Window, "VolumeLabelBox").Text = TestDrive.PrimaryLabel;
+            MainWindowActions.SetChecked(Window, "QuickFormatCheck", true);
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+            // El botón del pie se localiza ANTES de abrir ningún diálogo: los ContentDialog tienen un botón
+            // con el mismo AutomationId («CloseButton»), y buscarlo con uno abierto podría devolver ese.
+            var footerCancel = MainWindowActions.Button(Window, "CloseButton");
+            ConfirmStart(letter);
+
+            // Se muestrea mientras la app está ocupada. El formato rápido dura segundos, así que no vale
+            // una sola lectura: se anota lo visto en cada una hasta que aparece el diálogo de resultado.
+            int samples = 0, cancellable = 0;
+            var deadline = DateTime.UtcNow + TimeSpan.FromMinutes(2);
+            while (DateTime.UtcNow < deadline && !DialogHelper.IsDialogOpen(fixture))
+            {
+                if (!MainWindowActions.Require(Window, "DrivePicker").IsEnabled)
+                {
+                    samples++;
+                    if (footerCancel.IsEnabled) cancellable++;
+                }
+                Thread.Sleep(50);
+            }
+            output.WriteLine($"Formato rápido: {samples} muestras con la app ocupada, {cancellable} con Cancelar habilitado.");
+
+            var result = DialogHelper.WaitForDialog(fixture, TimeSpan.FromMinutes(2));
+            DialogHelper.CloseButton(result).Invoke();
+            DialogHelper.WaitForNoDialog(fixture);
+
+            Assert.True(samples > 0, "No se llegó a ver la app ocupada durante el formato rápido.");
+            Assert.Equal(0, cancellable);
+
+            Assert.True(new DriveInfo(letter.ToString()).IsReady, "El formato rápido no dejó la unidad lista.");
+            restored = true;
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+
+            // Si la prueba se cayó con la unidad sin formato, las demás no la encontrarían por etiqueta.
+            // Se devuelve a FAT32 «utilidades» sin pasar por la UI: no es lo que se está probando.
+            if (!restored)
+                RunPowerShell($"Format-Volume -DriveLetter {letter} -FileSystem FAT32 " +
+                              $"-NewFileSystemLabel '{TestDrive.PrimaryLabel}' -Confirm:$false -Force | Out-Null");
+            else
+                try { new DriveInfo(letter.ToString()).VolumeLabel = TestDrive.PrimaryLabel; } catch { }
+        }
+    }
+
+    /// <summary>Pulsa el botón de formatear y confirma escribiendo la letra.</summary>
+    private void ConfirmStart(char letter)
+    {
+        MainWindowActions.WaitUntilEnabled(Window, "StartButton", TimeSpan.FromSeconds(15));
+        MainWindowActions.Button(Window, "StartButton").Invoke();
+        var confirm = DialogHelper.WaitForDialog(fixture);
+        DialogHelper.WaitForChild(confirm, "InputBox").AsTextBox().Text = letter.ToString();
+        MainWindowActions.WaitUntilEnabled(confirm, "PrimaryButton");
+        DialogHelper.PrimaryButton(confirm).Invoke();
+        DialogHelper.WaitForNoDialog(fixture);
+    }
+
     /// <summary>
     /// Comprueba el <b>disco físico</b>, no lo que dijo el diálogo. Es la diferencia entre probar la
     /// función y probar su mensaje de éxito: si la segunda partición no se creara, el diálogo diría

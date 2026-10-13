@@ -105,7 +105,13 @@ public static partial class FormatLogic
     /// impide la inyección; se valida igualmente para que las dos rutas de formateo acepten exactamente
     /// lo mismo y no haya una más permisiva que la otra (`T9-09`).
     /// </exception>
-    public static IReadOnlyList<string> BuildComArgumentList(char driveLetter, string fs, long allocBytes, string label)
+    /// <param name="driveLetter">Letra de la unidad.</param>
+    /// <param name="fs">Sistema de archivos.</param>
+    /// <param name="allocBytes">Tamaño de unidad de asignación, en bytes.</param>
+    /// <param name="label">Etiqueta del volumen; vacía para no ponerla.</param>
+    /// <param name="compress">Compresión NTFS (<c>/C</c>); se ignora en cualquier otro sistema de archivos.</param>
+    public static IReadOnlyList<string> BuildComArgumentList(
+        char driveLetter, string fs, long allocBytes, string label, bool compress = false)
     {
         if (!char.IsLetter(driveLetter))
             throw new ArgumentException($"Letra de unidad no válida: '{driveLetter}'.", nameof(driveLetter));
@@ -113,10 +119,47 @@ public static partial class FormatLogic
         if (!PartitionPlan.SupportedFileSystems.Contains(fs, StringComparer.Ordinal))
             throw new ArgumentException($"Sistema de archivos no admitido: '{fs}'.", nameof(fs));
 
-        var args = new List<string> { $"{driveLetter}:", $"/FS:{fs}", $"/A:{allocBytes}", "/Y" };
+        var args = new List<string> { $"{driveLetter}:", $"/FS:{fs}", $"/A:{ComAllocationSize(allocBytes)}", "/Y" };
+        if (compress && fs == "NTFS")     args.Add("/C");
         if (!string.IsNullOrEmpty(label)) args.Add($"/V:{label}");
         return args;
     }
+
+    /// <summary>
+    /// El tamaño de unidad de asignación tal como lo acepta <c>format.com</c> en <c>/A:</c>.
+    /// </summary>
+    /// <remarks>
+    /// <c>format.com</c> solo admite el número en bytes <b>hasta 8192</b>. De 16 KB en adelante exige el
+    /// sufijo —<c>16K</c>, <c>64K</c>, <c>1M</c>— y rechaza <c>/A:16384</c> con «Parámetro no válido» y
+    /// código 4, en todos los sistemas de archivos. Medido el 2026-10-13 sobre la USB de pruebas
+    /// (`AUD-001`): hasta entonces se le pasaban siempre los bytes, así que un formato completo con
+    /// 16 KB o más fallaba nada más empezar. Tampoco acepta <c>1024K</c>: a partir de 1 MB quiere <c>M</c>.
+    /// </remarks>
+    public static string ComAllocationSize(long allocBytes)
+    {
+        const long Kb = 1024, Mb = 1024 * 1024;
+        if (allocBytes >= Mb && allocBytes % Mb == 0)        return $"{allocBytes / Mb}M";
+        if (allocBytes >= 16 * Kb && allocBytes % Kb == 0)   return $"{allocBytes / Kb}K";
+        return allocBytes.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// ¿Va este formato por <c>format.com</c>? Si no, va por <c>Format-Volume</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Lo que decide no es solo de dónde sale el progreso: es si se puede cancelar</b> (`AUD-001`).
+    /// Matar <c>format.com</c> detiene el formato. Matar el PowerShell que lanzó <c>Format-Volume</c>
+    /// <b>no</b>: el formato lo ejecuta el proveedor de almacenamiento de Windows, que sigue hasta el
+    /// final sin el proceso que lo pidió. Medido: cancelado a los 4 s, terminado a los 50.</para>
+    ///
+    /// <para>Por eso todo formato <b>completo</b> —el único que dura lo bastante para querer
+    /// cancelarlo— va por <c>format.com</c>, que además informa del porcentaje. La excepción es ReFS, que
+    /// se queda en <c>Format-Volume</c> porque no hay con qué comprobar aquí que <c>format.com</c> lo
+    /// formatee igual. Un formato <b>rápido</b> va siempre por <c>Format-Volume</c>: dura segundos.</para>
+    ///
+    /// <para>Quien llama tiene que tratar la vía de <c>Format-Volume</c> como <b>no cancelable</b>.</para>
+    /// </remarks>
+    public static bool UsesFormatCom(string fs, bool quickFormat) => !quickFormat && fs != "ReFS";
 
     /// <summary>Longitud máxima de etiqueta de volumen permitida por sistema de archivos.</summary>
     public static int MaxLabelLength(string fs) => fs switch
