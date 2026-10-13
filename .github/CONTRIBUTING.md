@@ -2,11 +2,11 @@
 
 Gracias por el interés. Antes de escribir código, dos lecturas que ahorran tiempo:
 
-- [`CONTEXT.md`](../CONTEXT.md) — arquitectura, **decisiones y por qué** (§4), y el registro de cambios.
-  Casi todas las decisiones nacieron de un fallo real; leerlas evita «arreglar» algo que está así a
-  propósito.
-- [`ROADMAP.md`](../ROADMAP.md) — qué está hecho, qué queda y **qué está deliberadamente fuera de
-  alcance**.
+- [`CONTEXT.md`](../CONTEXT.md) — arquitectura y **decisiones y por qué** (§4). Casi todas las decisiones
+  nacieron de un fallo real; leerlas evita «arreglar» algo que está así a propósito. El registro razonado
+  de cada cambio está en [`docs/contexto-historico.md`](../docs/contexto-historico.md).
+- [`ROADMAP.md`](../ROADMAP.md) — qué queda por hacer y **qué está deliberadamente fuera de alcance**. Lo
+  ya hecho está en [`docs/roadmap-historico.md`](../docs/roadmap-historico.md).
 
 ## Requisitos
 
@@ -72,8 +72,10 @@ Convenciones que hay tests vigilando —y que fallarán si las saltas—:
    compila.
 3. **Añade la prueba que falla sin tu arreglo.** En este proyecto se verifica por reversión: si no has
    visto tu test fallar, no es una red, es una suposición.
-4. Si cambias comportamiento o una convención, actualiza [`CONTEXT.md`](../CONTEXT.md) (Estado actual +
-   una entrada en el Registro de cambios, con fecha absoluta) **en el mismo commit**.
+4. Si cambias comportamiento o una convención, actualiza [`CONTEXT.md`](../CONTEXT.md) (§3 o §4, lo que
+   toque) y añade una entrada, con fecha absoluta, arriba en
+   [`docs/contexto-historico.md`](../docs/contexto-historico.md), **en el mismo commit**. Si cierras una
+   tarea del `ROADMAP.md`, muévela a [`docs/roadmap-historico.md`](../docs/roadmap-historico.md).
 5. Mensajes de commit: `tipo(ámbito): qué cambia`, en imperativo (`fix(update): …`, `test(ui): …`).
 
 ## Qué no se va a aceptar

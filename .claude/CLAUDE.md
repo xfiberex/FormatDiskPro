@@ -12,9 +12,21 @@ If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is 
 ## Contexto del proyecto
 
 Lee [`CONTEXT.md`](../CONTEXT.md) (raíz del repo) al iniciar una sesión: resume la arquitectura,
-las decisiones y convenciones, el estado actual y el registro de cambios. **Mantenlo actualizado**
-tras cada cambio relevante (sección _Estado actual_ + nueva entrada en _Registro de cambios_,
-con fecha absoluta), y commitéalo junto con el cambio para conservar el contexto entre equipos.
+las decisiones y convenciones y el estado actual. Las tareas abiertas están en
+[`ROADMAP.md`](../ROADMAP.md), que **solo** contiene lo pendiente.
+
+**Mantenlos al día** tras cada cambio relevante, en el mismo commit que el cambio:
+
+- `CONTEXT.md`: _Estado actual_ (§3) y, si cambia una decisión o convención, §4. Debe seguir por debajo
+  de 500 líneas.
+- [`docs/contexto-historico.md`](../docs/contexto-historico.md): una entrada nueva **arriba**, con fecha
+  absoluta, con el qué y el porqué.
+- Al completar una tarea del `ROADMAP.md`, **muévela** a
+  [`docs/roadmap-historico.md`](../docs/roadmap-historico.md) (bloque marcado `[x]`, línea
+  **Hecho (fecha)** y fila en su tabla) y actualiza las cifras de _Estado_ del `ROADMAP.md`.
+
+Los dos archivos de `docs/` son historia: no hace falta leerlos al empezar, solo buscar en ellos cuando
+haga falta el porqué de algo ya cerrado.
 
 ## Skills del proyecto (`.agents/skills/`)
 

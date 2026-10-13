@@ -1,8 +1,8 @@
 # CodeQL: análisis estático de seguridad del código de la app (C#).
 #
 # Existe desde el 2026-09-18, con el repositorio ya público. La app corre SIEMPRE elevada y lanza procesos
-# (PowerShell, format.com, chkdsk.exe). La inyección de comandos está revisada a mano y bajo prueba (ROADMAP.md
-# → *Áreas auditadas sin hallazgos*); esto es una segunda mirada, automática, en cada cambio.
+# (PowerShell, format.com, chkdsk.exe). La inyección de comandos está revisada a mano y bajo prueba
+# (docs/roadmap-historico.md → *Áreas auditadas sin hallazgos*); esto es una segunda mirada, automática, en cada cambio.
 #
 # Quién ve qué, porque importa con la divulgación privada que pide SECURITY.md: la lista de alertas (pestaña
 # Security) exige permiso de ESCRITURA en el repositorio. En un PR, las anotaciones las ve cualquiera, pero

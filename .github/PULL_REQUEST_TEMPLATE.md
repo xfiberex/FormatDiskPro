@@ -19,9 +19,9 @@ COMPILA: si tu cambio toca la UI, ejecútalas en tu máquina.
 
 ## Documentación
 
-- [ ] `CONTEXT.md` actualizado (Estado actual + entrada en el Registro de cambios, con fecha absoluta) si
+- [ ] `CONTEXT.md` actualizado y entrada nueva, con fecha absoluta, en `docs/contexto-historico.md`, si
       cambia comportamiento, una convención o una decisión
-- [ ] `ROADMAP.md` actualizado si cierra una tarea
+- [ ] Si cierra una tarea: movida del `ROADMAP.md` a `docs/roadmap-historico.md`
 
 ## Alcance
 

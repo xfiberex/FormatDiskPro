@@ -7,7 +7,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 > **Dónde está cada cosa.** Este archivo es el resumen por versión: **qué cambió**. El **por qué** —las
 > decisiones, los fallos que las provocaron y lo que se aprendió— vive en
-> [`CONTEXT.md`](CONTEXT.md) (§4 *Decisiones* y su *Registro de cambios*), y lo que queda por hacer, en
+> [`CONTEXT.md`](CONTEXT.md) (§4 *Decisiones*) y en el registro razonado de
+> [`docs/contexto-historico.md`](docs/contexto-historico.md), y lo que queda por hacer, en
 > [`ROADMAP.md`](ROADMAP.md). Las notas de cada publicación están además en
 > [GitHub Releases](https://github.com/xfiberex/FormatDiskPro/releases).
 

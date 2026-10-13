@@ -1,0 +1,3097 @@
+﻿# FormatDiskPro — Registro de cambios razonado
+
+> **Qué es este archivo.** El **porqué** de cada cambio, del más reciente al más antiguo: qué se hizo,
+> qué se encontró por el camino y qué se aprendió. Vivía al final de [`CONTEXT.md`](../CONTEXT.md) y se
+> separó el 2026-10-13 (`AUD-019`), cuando ocupaba más de 3.000 de sus 3.456 líneas.
+>
+> **Cómo crece.** Una entrada nueva por cada cambio relevante, **arriba**, con fecha absoluta. Las
+> decisiones que siguen en vigor no viven aquí sino en el §4 de `CONTEXT.md`; cuando una entrada dice
+> «§N», se refiere a ese archivo. El *qué* de cada versión, sin el porqué, está en
+> [`CHANGELOG.md`](../CHANGELOG.md).
+
+## Índice de versiones
+
+> El índice por versión vive ahora también, y con más detalle, en [`CHANGELOG.md`](../CHANGELOG.md)
+> (`T4-01`). Esta tabla se conserva porque es la entrada al registro **razonado** de abajo: allí está el
+> *qué*, aquí empieza el *por qué*.
+
+| Versión | Qué trajo |
+|---|---|
+| **1.29.0** | **La base, al día: Windows App SDK 1.8 → 2.5.1**, el primer salto de versión mayor del componente sobre el que está construida la app. **Sin una línea de código cambiada** y sin diferencia visible: la galería de 28 tomas sale idéntica comparándola con la 1.8 y el mismo código. Las notas de la 2.0 no documentan cambios incompatibles, así que lo que decidió el salto fue la puerta del corte. El instalador crece 2,8 MB (58,9 → 61,7) por componentes de Windows AI y Search que el paquete trae de serie. Cierra el **Tier 13, 20/20**. |
+| **1.28.1** | **Dos fallos que no se veían hasta buscarlos**, los dos anotados días antes sin reproducir y los dos ciertos. Abrir un segundo diálogo —pulsar dos veces seguidas un botón que abre un aviso— dejaba un `CRASH` en el historial: WinUI no admite dos `ContentDialog` a la vez. Y con el tema de la app distinto al de Windows, las etiquetas apagadas tomaban el gris del tema contrario: «Pasadas:» salía a **1,07:1**, invisible. Solo correcciones. |
+| **1.28.0** | **Que el color no diga lo que no es, y que un «no» venga con su porqué.** La segunda mitad de la auditoría que abrió la 1.27.0. Con un tema de **contraste** de Windows, la app cede el color también en lo que no es texto —barra de ocupación, punto de salud, progreso—, que era lo único que seguía con la paleta propia. El **botón de cerrar** vuelve a ponerse rojo: los ocho colores que se fijaban a mano se van a favor de `PreferredTheme`, y con ellos la última excepción a que los colores vivan en un solo sitio. **Reinicializar dice por qué rechaza** un plan y qué cambiar, en vez de una frase para todo. Y lo visual: los **títulos de tarjeta** dejan el color de acento —que en la 1.8 es el mismo pincel que el de un enlace— y se quedan en texto primario, con el acento en el icono; idioma y tema se marcan con un **punto de opción**; las pistas dejan la cursiva y la tipografía vuelve a la rampa de Fluent. Interno: Windows App SDK al último *servicing* de la 1.8 (`1.8.260804001`), con instalador y galería comprobados. |
+| **1.27.0** | **Lo que solo se ve midiendo: accesibilidad y densidad, medidas.** Nueve arreglos de una auditoría hecha con mediciones —contraste sobre los colores reales, anchos con la fuente real, el alto que la ventana tiene de verdad—. Los dos más graves llevaban versiones ahí sin que ninguna prueba pudiera verlos: *Reinicializar*, que borra el disco físico entero, se confirmaba con un botón que decía «Formatear», y cinco textos —entre ellos el cronómetro de las operaciones largas— estaban por debajo del contraste AA porque se atenuaban con transparencia, que el barrido de `T12-01` no miraba. Además: el pie refleja el borrado seguro al marcarlo y ya no lo recorta en PT/FR/IT, la confirmación de formato se alinea en los cinco idiomas, el desgaste de SSD desaparece en un disco que gira, una caída deja de figurar como «Info» en el historial —que pasa de 5 a 11 categorías— y las pistas de los campos llegan al lector de pantalla. Se recuperan ~150 DIP de alto para la ventana que casi nadie ve entera. Interno: **CI en GitHub Actions** con CodeQL y Dependabot al hacerse público el repositorio. |
+| **1.26.0** | **La ventana principal, revisada: qué se ve primero y qué dice el botón que borra datos.** El botón primario pasa de «Iniciar» a **«Formatear H:»** —era el único control capaz de destruir un disco sin nombrarlo— y el pie resume las opciones con las que va a hacerlo, porque en una ventana de alto fijo quedaban bajo el pliegue. Salud, Benchmark e Historial salen del menú a una barra de acciones: son exactamente las tres que no escriben nada. La tarjeta de unidad deja de dar a «Conexión: USB» el mismo peso que a «Salud: Crítico». Y dos defectos medidos que nadie había visto: el texto de ayuda estaba en **3,29:1** —por debajo de WCAG AA— porque el barrido de contraste no miraba los colores que vienen de Windows, y la barra de progreso pintaba **el éxito igual que el fallo** en equipos con el acento en rojo. Se construyó también una franja de rendimiento y **se retiró antes de publicar**: duplicaba la velocidad que el cronómetro ya escribía. |
+| **1.25.0** | **Tier 9: re-auditoría de doce áreas ejecutada con la app en marcha.** Veinte hallazgos, cinco visibles desde fuera. El más callado: el historial se **fechaba con el calendario de Windows**, así que en `th-TH` la entrada se guardaba en el año 2569 y —al leerse siempre en invariante— no se rechazaba, sino que encabezaba la lista 543 años en el futuro. La salud del disco salía sin traducir pese a tener traducción (se usaba solo para el color), un `settings.json` corrupto se sobrescribía llevándose los presets, la comprobación de actualizaciones al arrancar pasa a ser opcional y desinstalar ofrece borrar `%AppData%`. El instalador deja de ofrecer carpeta de destino: vacía `{app}` antes de copiar, y elegir una carpeta en uso la borraba sin aviso. Lo más grave no estaba en la app sino en el corte (`release.ps1` ignoraba los archivos **modificados**) y lo más revelador, en la propia herramienta de auditoría: la galería perdía 4 de 26 capturas diciendo «completada». |
+| **1.24.1** | **La v1.24.0 se publicó bien y se contó mal.** Su página de descarga salió con un texto genérico —`release.ps1` no leía el CHANGELOG sin `-NotesFile`— y la pantalla de *Novedades* enseñaba las almohadillas del Markdown, porque el cuerpo del release empezaba por una marca de orden de bytes que dejaba el `#` sin estar al principio de su línea. Arreglado en los dos sitios: el script toma las notas de la sección obligatoria del CHANGELOG y las escribe sin BOM, y el conversor quita esa marca venga de donde venga. De paso, la medición de cobertura deja de fallar siempre que hay código sin compilar. |
+| **1.24.0** | **Tiers 7 y 8.** *Exportar CSV* **nunca funcionó en una versión publicada**: el selector de archivos de WinRT rechaza a los procesos elevados y la app siempre lo es, así que fallaba sin abrir ninguna ventana — y lo tapaba un segundo fallo, el mensaje de error llegaba vacío. Detrás cayeron dos `catch` vacíos más (*Abrir archivo* y los enlaces), el motivo de un ítem de menú apagado —que solo recibía un lector de pantalla, porque WinUI no pinta el tooltip de un control deshabilitado— y el marco de foco recortado en los seis diálogos. +19 pruebas (585 → 604). |
+| **1.23.0** | **Tier 6 cerrado: refinado de UX/UI.** Tres cosas que la interfaz afirmaba y no eran ciertas —«Reinicializar unidad» confirmándose bajo el título «Confirmar formato», el campo de confirmación regalando la letra a teclear (y cantándola un lector de pantalla), y una velocidad de rotación cuyo valor era «SSD»— más los sitios donde el dato salía en crudo: bytes en el historial, horas de encendido sin equivalencia, Markdown a la vista en *Novedades* y textos legales que no cabían. Los números pasan a seguir al idioma de la app, no al de Windows. +64 pruebas (521 → 585). |
+| **1.22.0** | **Tier 5 completo.** El espacio sobrante de *FAT32 pequeña* deja de morir sin asignar: se puede crear una segunda partición (exFAT/NTFS) en la misma operación, con la FAT32 siempre primera. La opción aparece por fin en unidades de menos de 32 GB, donde llevaba escondida desde la 1.14.0 — y con ella se arreglaron un selector que ofrecía tamaños que no caben y un tope medido sobre el volumen en vez del disco. El fallo a mitad ya informa de qué particiones quedaron, sin revertir nada. +88 pruebas (433 → 521). |
+| **1.21.0** | **Auditoría cerrada.** Corte de **mantenimiento**: la app se comporta igual que la 1.20.0. `Services` inyectables con raíz de composición y costura `IProcessRunner` (+35 pruebas de caminos de error, ninguna toca un disco), `CHANGELOG.md` con puerta en el corte, README con 12 capturas, y fuera el último resto de Windows Forms. `T4-03` (firmar) descartada: contradecía `#13`. |
+| **1.20.0** | **Tier 3 cerrado.** Pulido de lo que fallaba en silencio: la exportación CSV del historial informa del error real, la salud ilegible se muestra como «no disponible», el borrado seguro usa RNG criptográfico, las preferencias se normalizan al cargarlas, los iconos decorativos salen del árbol de accesibilidad y un marcador mal escrito en una traducción ya no tumba una pantalla. |
+| **1.19.0** | **Tier 2 cerrado.** *Verificar capacidad* deja de poder leer de la caché del sistema (se acabaron los falsos OK en unidades pequeñas). Cobertura de `Core/` medida (97 %) y exigida en el corte; `MainWindow` repartido (2107 → 753 líneas) sin cambiar comportamiento; `SECURITY.md` y `CONTRIBUTING.md`. |
+| **1.18.0** | Tercera tanda de la auditoría: las operaciones se pueden seguir con un lector de pantalla (región activa + notificación en los hitos), el error de etiqueta se lee desde su campo, el `.sha256` se empareja con su instalador y se lee acotado, `history.log` rota. El corte declara qué cobertura de UI no ejerció. |
+| **1.17.0** | Segunda tanda de la auditoría: el formato completo dejaba colgada la app en un Windows que no fuera ES/EN; barra de progreso del formato en 6 idiomas; presets integrados traducidos; el historial deja de partirse al registrar un error multilínea; la firma Authenticode deja de eximir del SHA-256. Tiers 0 y 1 cerrados (16/40). |
+| **1.16.0** | Robustez y accesibilidad: la app deja de cerrarse ante fallos de E/S, guarda de disco de sistema invariante de cultura, contraste AA en el historial, descripciones de FS en los 5 idiomas. Primera tanda de la auditoría (8/37). |
+| **1.15.2** | Pase de refinamiento UX/UI: fix truncación del botón chkdsk, barra de capacidad semántica, etiqueta S.M.A.R.T. más clara. Modo galería de capturas. |
+| **1.15.1** | Tier 9: UI tests en el pipeline, instalador probado end-to-end, build reproducible. Fix: metadatos del `.exe` corrompidos. Capturas en el README. |
+| **1.15.0** | Tier 8 (seguridad): verificación del instalador (SHA-256), anti CSV injection, contraste WCAG AA. |
+| **1.14.1** | Mantenimiento de las pruebas de UI. |
+| **1.14.0** | Tier 7 (#37): partición FAT32 pequeña al reinicializar discos grandes, tamaño seleccionable. |
+| **1.13.0** | Tier 6: pulido UX/UI (#28–#36). |
+| **1.12.0** | Tier 5: relicencia a **GPLv3**, legal in-app, privacidad, donaciones (#23–#27). |
+| **1.11.0** | Tier 4 (trabajo medio): umbrales S.M.A.R.T., historial filtrable/CSV, editar presets, a11y, autorefresco. |
+| **1.10.1** | Fix de adaptación a DPI/escalado. |
+| **1.10.0** | Tier 4 (quick wins): IOPS, pasadas configurables, idioma automático, changelog en el aviso. |
+| **1.9.1** | Mantenimiento: correcciones de una revisión de código. |
+| **1.9.0** | Benchmark refinado a perfil CrystalDiskMark (SEQ Q8 + RND4K, sin caché, mediana). |
+| **1.8.0** | Tier 3: presets personalizados, 5 idiomas (PT/FR/IT), aviso al terminar. |
+| **1.7.1** | Fix: el diálogo de novedades no aparecía al actualizar desde una versión sin `LastVersionSeen`. |
+| **1.7.0** | Tier 2 completado: reinicializar unidad (#8) + benchmark (#9) + diálogo de novedades. |
+| **1.6.0** | chkdsk (#6) + protección de escritura (#7). |
+| **1.5.0** | S.M.A.R.T. ampliado (#5). |
+| **1.4.0** | Tier 1: persistencia, ETA/velocidad, borrado seguro con progreso, historial. |
+| **1.3.0** | Rediseño UI/UX inspirado en Win11Debloat (tarjetas + acento del sistema). |
+| **1.2.2** | Fix: el cierre para auto-actualizar quedaba bloqueado por `_isBusy`. **La auto-actualización silenciosa funciona desde aquí.** |
+| **1.2.1** | Fix crítico: la 1.2.0 crasheaba al iniciar (faltaba el `.pri` en el publish). |
+| **1.2.0** | Migración de Windows Forms a **WinUI 3**. *(Obsoleta/rota: no usar.)* |
+| **1.1.0** | Arquitectura por capas, hardening, tests, actualizaciones e instalador. |
+
+---
+
+## Entradas
+
+### 2026-10-13 — `AUD-019` y `AUD-018`: los dos documentos vivos se parten, y lo cerrado sale de ellos
+
+**Qué se hizo.** `ROADMAP.md` y `CONTEXT.md` se quedan con lo que hay que leer para trabajar, y lo que es
+registro pasa a `docs/`. Sin cambios de código.
+
+- **`ROADMAP.md`: de 4.366 líneas a menos de 600, y solo con tareas abiertas.** Las 69 de la auditoría del
+  2026-10-11 que siguen pendientes, `T10-02` (bloqueada a propósito), lo que está fuera de alcance y las
+  decisiones cerradas, estas resumidas: su porqué entero ya estaba en el §4 de `CONTEXT.md`, casi con las
+  mismas palabras. Cada tarea pierde las líneas «Depende de: ninguna» y «Origen: auditoría 2026-10-11»,
+  que se repetían 71 veces sin decir nada.
+- **[`docs/roadmap-historico.md`](roadmap-historico.md): todo lo cerrado**, tal como estaba —Parte 1,
+  Parte 2 y los Tiers 5 a 13—, con una sección al principio para las tareas `AUD` que se vayan
+  completando. De paso se corrige lo que la auditoría señaló: los Tiers 11, 12 y 13 estaban en orden
+  inverso, y el índice omitía el 13 y sumaba 108 tareas de 128.
+- **`CONTEXT.md`: de 3.456 líneas a 425.** El registro de cambios y el índice de versiones pasan a este
+  archivo. §1 a §8 se conservan.
+- **§2 y §3 de `CONTEXT.md`, al día (`AUD-018`).** El árbol se comparó con `git ls-files src/`: faltaban
+  `PlanRejection.cs`, `HighContrast.cs`, `SaveFileDialog.cs`, `new-selfsigned-cert.ps1`, `App.xaml`,
+  `app.manifest` y el icono. Y decía que ninguna parcial de `MainWindow` pasa de 800 líneas, cuando
+  `MainWindow.xaml.cs` tiene 986 (`AUD-042`). §3 tenía tres recuentos de unitarias distintos; ahora da el
+  comando y una sola línea base fechada (690, comprobada hoy con `dotnet test`).
+
+**La regla que sale de aquí.** Una tarea completada **se mueve**, no se marca: sale del `ROADMAP.md` y
+entra en el historial con su línea **Hecho (fecha)**. El `ROADMAP.md` no guarda tareas cerradas, y por
+eso su recuento se puede comprobar contando casillas. Las entradas de este registro se añaden aquí, no en
+`CONTEXT.md`. Lo recogen `CONTEXT.md` §7, `.claude/CLAUDE.md`, la guía de contribución y la plantilla de PR.
+
+**Por qué ahora y no «dejando las últimas entradas», como proponía la tarea.** Una ventana de entradas
+recientes dentro de `CONTEXT.md` es otro duplicado que alguien tiene que acordarse de recortar, y este
+proyecto ya ha visto tres veces en qué acaba eso (`T9-14`, `T9-15`, `AUD-018`). Un solo sitio para el
+registro, y un enlace.
+
+**Cómo se comprobó.** Un script recorre los enlaces relativos y las anclas de los cuatro documentos, del
+README, del CHANGELOG y de las guías de `.github/`: **0 rotos**. Antes de empezar había 4, a tres
+archivos que `T12-07` borró al retirar la franja de rendimiento; en el historial quedan como texto, sin
+enlace. Los enlaces de lo movido a `docs/` se reescribieron para que sigan resolviendo desde allí.
+
+**Qué no se tocó.** El informe de la auditoría (`docs/auditoria/2026-10-11/INFORME.md`) es una foto fija
+y sigue hablando de «la Parte 3 del `ROADMAP.md`»: son las tareas que hoy ocupan el archivo entero. De
+`AUD-050` queda abierta la plantilla de sugerencias; la nota del historial que repetía su error ya está
+corregida.
+
+### 2026-10-11 — Re-auditoría transversal: 71 hallazgos y la Parte 3 del ROADMAP (sin cambios de código)
+
+**Qué se hizo.** Auditoría de doce áreas sobre la v1.29.0 (commit `72f2902`), exhaustiva y con la app en
+marcha: suite de UI completa, las tres pruebas de opt-in destructivo sobre la USB de pruebas (con las
+particiones de **todos** los discos comparadas antes y después), galería en los cinco idiomas, árbol de
+UI Automation, arranque medido, gitleaks sobre el historial entero y el estado real del repositorio en
+GitHub. **No se tocó una línea de código**: es la Fase 1. El informe está en
+[`docs/auditoria/2026-10-11/INFORME.md`](auditoria/2026-10-11/INFORME.md) y las 71 tareas
+(`AUD-001`–`AUD-071`), en la Parte 3 del [`ROADMAP.md`](../ROADMAP.md).
+
+**Qué se encontró.** 0 críticos, 2 altos, 22 medios y 47 bajos (los tres propuestos como altos pasaron
+por un verificador independiente, que confirmó dos y rebajó uno). El camino normal está sano —690
+unitarias y 43 de UI en verde, `Core/` al 97,7 %, sin secretos ni dependencias vulnerables, y las tareas
+de seguridad cerradas siguen cerradas—. Lo que aparece está en los bordes:
+
+- **«Cancelar» hace dos cosas distintas según por dónde vaya el formato** (`AUD-001`). Con `format.com`
+  se detiene y deja la unidad sin sistema de archivos; con `Format-Volume` (exFAT y ReFS completos) la
+  app mata PowerShell, dice «Cancelado» y el formato **sigue hasta el final** en el proveedor de
+  almacenamiento. Medido: cancelado a los 4 s, terminado a los 50.
+- **La verificación del instalador es correcta, pero no queda ligada a lo que se ejecuta** (`AUD-002`):
+  se verifica y se lanza por ruta desde `%TEMP%\FormatDiskPro_update`, que escribe cualquier proceso del
+  usuario sin elevar. Es la misma frontera que ya se vigiló en el contenido de `settings.json` (`T9-09`).
+  Quedó en **Medio**: exige una sesión ya comprometida, una actualización aceptada y ganar una carrera.
+- **El selector de unidad es el único control sin nombre accesible** (`AUD-003`), y sus ocho opciones se
+  anuncian con el nombre de la clase.
+- Dos fallos que solo se ven con la unidad en uso: *Comprobar y reparar* se queda colgado en la segunda
+  pregunta de `chkdsk` (`AUD-006`) y *Expulsar* dice «expulsada» aunque no lo esté (`AUD-008`).
+
+**Sobre las notas.** Es la primera auditoría que deja informe en disco, así que no hay nota anterior con
+la que comparar; la tabla de puntuación del informe es el punto de partida de la siguiente.
+
+**Lo que se aprendió haciendo la auditoría** (vale para la próxima, no para el producto):
+
+- **Comprobar la elevación al empezar cada sesión, no una vez.** Una sesión que resultó no estar elevada
+  produjo dos hallazgos falsos —«la app ignora `WM_CLOSE`» y «el arranque se triplicó»—, porque UIPI
+  descarta en silencio lo que se envía a una ventana elevada. Están en el §8 para que no vuelvan.
+- **Siete subagentes en paralelo agotaron el límite de sesión tres veces** sin terminar. Dejaron dos
+  áreas completas y siete a medias; el resto lo cerró el coordinador verificando cada candidato en el
+  código. Con este tamaño de repo, mejor pocos agentes y que escriban a disco desde el primer hallazgo.
+- **Un arnés en Windows PowerShell 5.1 no reproduce la entrada estándar de la app:** .NET Framework
+  antepone una marca de orden de bytes cuando la consola está en UTF-8, y .NET 10 no. La primera
+  reproducción de `AUD-006` salió torcida por eso.
+- **`CONTEXT.md` y `ROADMAP.md` ya son un coste**, no solo una ayuda (`AUD-019`): 265 KB y 330 KB que
+  cada revisión tiene que recorrer.
+
+**Qué quedó a medias.** Nada corregido. Sin cubrir, y dicho en el informe: alto contraste y escalado
+del sistema, Narrador, la sustitución real del instalador, el instalador en una máquina virtual y la
+normativa de protección de datos (no se indicó jurisdicción). La USB de pruebas quedó como estaba y
+expulsada. `CHANGELOG.md` no se toca: registra cambios hechos, y no se ha hecho ninguno.
+
+### 2026-09-22 — `T13-20`: Windows App SDK 2.x, y el Tier 13 cerrado
+
+**`1.8.260804001` → `2.5.1`, sin tocar una línea de código.** El salto mayor salió más barato de lo que
+prometía su número.
+
+**Primer hallazgo, antes de tocar nada:** las notas de la 2.0 y su anuncio **no documentan cambios
+incompatibles**. Enumeran API nuevas y el cambio de versionado —SemVer 2.0.0, la versión del paquete es la
+del SDK y desaparece la fecha del número— y remiten a unas notas de migración que tampoco los detallan.
+Así que lo que decidió el salto **fue la puerta, no la documentación**: `-warnaserror` sin avisos, 689
+unitarias, 40 de UI, instalador compilado y galería idéntica (18 píxeles de diferencia como mucho).
+
+**La galería se comparó bien, y no es un detalle:** se capturó con la 1.8 **y el código de hoy**. La
+galería del *servicing* es de antes de `T13-15` y habría mezclado el cambio de los títulos con el del SDK;
+comparar contra ella habría dado 3.000 píxeles de diferencia y ninguna conclusión.
+
+**Lo que sí cambia es el equipaje:** 509 → **518 archivos**, +2,8 MB en el instalador (58,9 → 61,7), todo
+de Windows AI y Search, que esta app no usa. La 2.x permite referenciar **subpaquetes** sueltos en vez del
+metapaquete, pero cada uno lleva su versión (`WinUI` 2.3.9, `Foundation` 2.3.12) y mezclarlas contradice la
+regla de versión exacta; queda anotado en el `.csproj` por si algún día pesa. El mínimo de Windows no baja
+(1809 en adelante; el TFM ya exige 19041), y el nombre largo que originó el pin —75 caracteres— ya no está
+en el paquete: el más largo de la 2.5.1 mide 67.
+
+**Con esto se cierra el Tier 13, 20/20.** Lo que deja, más allá de las 20 tareas: las dos fichas que
+estaban «sin reproducir» eran **fallos reales las dos**, y las dos aparecieron solo al ir a mirarlas con la
+app delante.
+
+### 2026-09-22 — `T13-19`: un solo diálogo a la vez, y el que sobra queda escrito
+
+**Reproducido.** Invocando *Formatear* dos veces seguidas por UI Automation, el historial pasa de uno a
+**dos** `CRASH`: WinUI solo admite un `ContentDialog` abierto, y como estos manejadores son `async void`,
+la `COMException` acaba en la red global de `App` — que deja la app viva y solo deja esa línea. Por eso la
+prueba cuenta los `CRASH` del historial y no comprueba «la ventana sigue viva», que ya lo estaba antes.
+
+**Los 13 `ShowAsync` de la ventana** pasan ahora por `ShowOneAsync`. Si hay uno abierto, el segundo **no
+se abre** y queda apuntado (`DIALOG SKIPPED`, categoría *App*, prefijo nuevo en la tabla de `T13-07`).
+Devuelve `ContentDialogResult.None`, que es lo que ya devuelve un diálogo cerrado sin elegir nada: los
+sitios que confirmaban con `== Primary` entienden el rechazo sin tocar una línea.
+
+**Descartar y no encolar** es deliberado: el segundo diálogo responde a una acción que el usuario puede
+repetir en cuanto cierre el primero, y encolarlo le haría aparecer un diálogo «solo» un rato después, sin
+saber a qué contesta. Dejar rastro en el historial es lo que separa esto de tragarse el error.
+
+**El tropiezo, que enseña cómo se comporta el control.** La primera versión abría la compuerta al volver
+de `ShowAsync`, y entre que el diálogo se cierra y esa vuelta hay un salto por la cola del despachador.
+Cerrar un diálogo y pulsar Ctrl+H acto seguido caía justo ahí: **tres pruebas de la suite** dejaron de
+abrir el historial. Lo dijo el propio historial, con las dos líneas en el mismo segundo: «DIALOG SKIPPED:
+'Historial de operaciones' (ya había otro abierto: 'Licencia')». La compuerta se abre ahora en el evento
+`Closing`. Y de paso queda medido que **WinUI sí admite** abrir el siguiente una vez empezado el cierre;
+lo que no admite es que haya dos a la vez.
+
+**Método.** Al ver los tres fallos, lo primero fue sospechar del orden de las pruebas, y una comprobación
+parecía darlo por bueno. La que zanjó el asunto fue reconstruir **sin** la compuerta y correr el mismo
+subconjunto: 13/13 en 7 s. El fallo era mío. Un subconjunto que falla no demuestra de quién es la culpa;
+compararlo con el árbol anterior, sí.
+
+### 2026-09-22 — `T13-17`: un texto no puede tomar su color del tema de otro
+
+**Reproducido, y peor de lo que decía la ficha.** Con Windows en oscuro y la app forzada a claro, la
+etiqueta «Pasadas:» del borrado seguro —deshabilitada mientras la casilla está sin marcar— salía en
+`#EEECEC` sobre una tarjeta `#FDFBFB`: **1,07:1**. No es «poco contraste», es que no está.
+
+**La causa.** Se pintaba con
+`label.Foreground = (Brush)Application.Current.Resources["TextFillColorDisabledBrush"]`. Ese diccionario
+resuelve los recursos de tema con el tema de la **aplicación**, que sigue al de Windows; el tema que se
+elige en *Configuración* se fuerza en el elemento **raíz**. Cuando los dos no coinciden, el pincel viene
+del tema contrario.
+
+**El arreglo** es el mismo patrón que `T13-01` usó para la etiqueta de *Salud*: cambiar el **estilo**
+(`HintTextStyle` ↔ `HintTextDisabledStyle`) en vez de asignar un pincel. Un `{ThemeResource}` dentro de un
+`Setter` se resuelve **al aplicarse el estilo**, con el tema del elemento. Medido después: `#A2A0A1` sobre
+`#FDFBFB` en claro y `#7E7677` sobre `#342829` en oscuro.
+
+**Buscando la raíz apareció un segundo caso** que la ficha no tenía: el encabezado *Novedades* del diálogo
+de actualización tomaba el acento del mismo diccionario. Se queda en semibold y color de texto — que es
+además lo que `T13-15` decidió para los encabezados.
+
+**Dos pruebas, y la primera ataca la raíz y no el síntoma:**
+- `NoBrush_IsTakenFromTheApplicationDictionary` prohíbe sacar un pincel **por su nombre** de
+  `Application.Current.Resources` en todo `UI/`. Deja fuera lo que no es un pincel (un `Style`, un ancho) y
+  a `HighContrast`, que lo busca por clave variable y con razón: ahí manda Windows y los dos temas
+  coinciden por definición.
+- `EverySubOptionLabel_ComesFromTheHintStyle` recorre las llamadas a `SetSubOptionEnabled` y exige que cada
+  etiqueta venga de `HintTextStyle`, porque el método ahora presupone de qué estilo parte.
+
+**Dos cosas que costaron tiempo:**
+- **El barrido leía los comentarios** y acusaba al propio archivo que explica el arreglo, porque el remark
+  cita el código prohibido. Hizo falta un `WithoutCsComments`, el equivalente de lo que `T13-02` hizo con
+  el XAML.
+- **Una prueba de `T13-18` resultó depender del orden de ejecución:** formateaba los tamaños con la cultura
+  activa y comparaba «55,7 GB»; si otra clase había dejado otro idioma puesto, salía «55.7 GB». Ahora fija
+  el idioma antes de componer el mensaje, no solo antes de traducirlo.
+
+Comprobado en pantalla en las **cuatro** combinaciones de tema de Windows y de la app. El tema del equipo
+quedó como estaba.
+
+### 2026-09-21 — `T13-15` y `T13-16`: las dos decisiones del tier
+
+**`T13-15`, se cambia.** Los títulos de tarjeta (*Unidad*, *Configuración de formato*, *Opciones de
+formato*) pasan de color de acento a **texto primario en semibold**, y el acento se queda en el **icono**
+de cada sección. Dos motivos, y el segundo pesa más:
+
+- En la 1.8, `HyperlinkButtonForeground` **es** `AccentTextFillColorPrimaryBrush`: el título de *Opciones
+  de formato* y el enlace «Reinicializar unidad ahora…» que tiene debajo salían exactamente del mismo
+  color, y solo uno se pulsa.
+- El acento lo elige cada usuario, así que **no hay valor que medir**. En este equipo es rojo, y cada
+  título de una aplicación que formatea discos se leía como un aviso.
+
+El icono es objeto gráfico (3:1, no 4,5:1) y además decorativo, así que el acento sigue presente en la
+ventana sin teñir la palabra que hay que leer. **Verificado por reversión**:
+`SectionTitles_UseAMeasurableBrush_NotTheAccent` lee `SectionTitleStyle` del XAML y exige que su pincel no
+tenga exención y se resuelva a un color — con el acento falla. La exención de `T13-02` **se estrecha pero
+no desaparece**: el acento sigue siendo texto en los encabezados de *Acerca de…* y *Novedades*, y así queda
+escrito en `FluentTextPalette.ExemptionReason`.
+
+**`T13-16`, se queda como está.** Idioma y tema siguen en submenús. Son **cuatro** preferencias; un
+diálogo entero para cuatro controles añade una superficie que mantener y traducir en cinco idiomas, y
+aleja lo que hoy se cambia en dos clics. `T13-13` ya les dio el control correcto. Queda escrito cuándo
+reabrirlo: cuando las preferencias crezcan, o cuando alguna deje de caber en un menú (una ruta, un
+número).
+
+### 2026-09-21 — `T13-11`: Windows App SDK al último *servicing* de la 1.8
+
+`1.8.260529003` → **`1.8.260804001`**. La versión está clavada desde la v1.15.0 porque con `1.8.*` el
+conjunto de archivos publicados cambiaba solo, y un nombre larguísimo reventó el `MAX_PATH` del
+instalador. Subir es deliberado, así que se pasó la **puerta completa**, y nada se movió:
+
+| Comprobación | Resultado |
+|---|---|
+| Compilación `-warnaserror` | 0 avisos |
+| Unitarias | **685 / 686** (1 se omite) |
+| Suite de UI | **39 / 42** (3 omitidas por opt-in) |
+| Instalador | compilado, **58,9 MB** + `.sha256` |
+| Archivos publicados | **509 antes y 509 después** — la única diferencia es el `mscordaccore` del runtime de .NET, que no viene de este paquete |
+| Galería (28 tomas) | idéntica **píxel a píxel**, salvo `reinit`, que cambia por `T13-18` |
+
+La primera pasada de UI dio un fallo intermitente (`Benchmark_CompletesForTestDrive`: «no se encontró
+DrivePicker» a los 17 ms); en solitario y en una segunda pasada completa, verde. Es el intermitente ya
+conocido, no el salto.
+
+`FluentTextPalette` era la señal a vigilar —ancla los valores de los tokens de texto de Fluent— y no se
+movió. **El salto a la 2.x se aparta a `T13-20`**: es estable desde abril y va por la 2.5.1, pero es otro
+riesgo y merece su propio corte.
+
+### 2026-09-21 — `T13-18`: el rechazo de *Reinicializar* dice qué cambiar
+
+El plan de particiones se validaba bien y se **contaba mal**: cualquier motivo salía como «La distribución
+de particiones pedida no es válida para este disco», con el motivo exacto en el historial y no en la
+pantalla. El defecto de fondo es que **el selector decide por el volumen y *Reinicializar* valida el
+disco**: con una partición pequeña elegida, el sistema de archivos que la app sugiere puede ser justo el
+que hace inválido el plan del disco entero. La salida estaba a un clic y no se decía.
+
+`Core/PlanRejection` reparte cada `PlanProblem` en su clave de texto y sus argumentos: el límite y el
+tamaño del **volumen culpable**, tomado de `EffectiveSizes` —el mismo cálculo que validó el plan, no una
+cuenta aparte—. Siete mensajes nuevos × 5 idiomas.
+
+**Cinco motivos se quedan con el texto genérico, y es una decisión.** El formulario no puede producirlos
+—no hay forma de pedir cero particiones, ni dos «restos», ni un sistema de archivos fuera del selector—.
+Si aparecieran serían un fallo de la aplicación, y escribirle al usuario una instrucción que no puede
+seguir sería mentirle. Cuáles son está en `PlanRejection.FromTheForm`, que es lo que recorre la prueba:
+**22 unitarias** que barren el enum entero. Añadir un `PlanProblem` obliga a decidir qué se le dice.
+
+**Visto en la app real.** La USB de hoy mide 29,3 GB, así que FAT32 entera sí es válida y el caso que
+abrió la ficha no se reproduce con ella. Se reprodujo el mismo defecto por la otra vía: `D:` (1020 MB)
+hace que el selector ofrezca **FAT**, y el disco mide 29,3 GB. El diálogo dice ahora «FAT no admite
+volúmenes de más de 2 GB, y el que se crearía mide 29,3 GB. Elige FAT32, exFAT o NTFS. No se ha modificado
+nada.»
+
+**Dos cosas que costaron tiempo y conviene no repetir:**
+- `Set-Content` de PowerShell 5.1 sobre un `.cs` **sin BOM** lo lee como ANSI y lo reescribe en UTF-8:
+  deja el archivo con la codificación doblada. Para editar código, Python con `encoding="utf-8"`.
+- Restaurar un archivo con `mv` de una copia conserva la **fecha antigua**, y la compilación incremental
+  no se entera: las pruebas siguieron fallando contra el binario anterior. Un `touch` lo resuelve.
+
+También: la toma `reinit` de la galería elige NTFS en vez de fiarse de lo que sugiera el selector. Cuando
+la sugerencia era inválida, esa toma fotografiaba el rechazo en lugar de la confirmación.
+
+### 2026-09-21 — `T13-14`: tres restos de estilo, y un hallazgo que era falso
+
+**Lo que se limpió:**
+- **Tipografía en la rampa de Fluent.** El 12,5 del texto de estado del pie y los seis 13
+  (`InfoTextStyle` y cuatro diálogos) pasan a **14**, el Body. Eran tamaños a medio camino entre el
+  Caption de 12 y el Body de 14, que no son ningún paso de la rampa. La tarjeta de unidad queda en
+  20 / 14 / 12.
+- **Las pistas dejan la cursiva** (`HintTextStyle`, 9 usos): Windows 11 escribe las descripciones de sus
+  campos en redonda, y en un bloque de dos líneas la cursiva se lee peor. **El pincel no se toca**: la
+  ficha proponía el secundario de Fluent, pero `AppMutedTextBrush` es el tercer escalón de la jerarquía,
+  elegido y medido en `T12-01`, y estas pistas son el nivel más callado a propósito.
+- **El glifo de *Opciones de formato*** pasa del disquete de «Guardar» (`E74E`) a la lista de comprobación
+  (`E9D5`), que es lo que hay en esa tarjeta: tres casillas. Los dos se renderizaron para compararlos.
+
+**Y el cuarto hallazgo era falso.** La ficha decía que 26 `CornerRadius` repetían los valores por defecto
+de la 1.8 (`ControlCornerRadius` = 4, `OverlayCornerRadius` = 8). Se quitaron los 26, y la galería del
+antes y el después lo desmintió en las 18 tomas de diálogo: sin el `CornerRadius="8"` de la raíz, el
+`ContentDialog` sale con las **esquinas rectas**, y sin los estilos de botón, sus botones también. El
+`ContentDialog` no propaga esos valores por defecto ni a su raíz ni a sus botones. Se devolvieron los 26.
+
+**La lección:** el hallazgo se apoyaba en leer `generic.xaml`, y lo que lo resolvió fue **mirar la
+ventana**. Una galería del antes y el después vale para confirmar un cambio y también para tumbarlo.
+
+### 2026-09-21 — `T13-12`: el cromo de la ventana lo pinta Windows, y se le dice el tema
+
+`UpdateCaptionButtonColors` fijaba **ocho** colores propios para los botones de minimizar, maximizar y
+cerrar, y era la **única excepción** a que los colores de la app vivan en un solo sitio. Existe API para
+eso desde la 1.7 —`AppWindowTitleBar.PreferredTheme`—, así que el método se queda en una expresión y se
+renombra a `ApplyTitleBarTheme`, porque ya no fija ningún color. La excepción se borra también de
+`SeverityPalette` y de §4.
+
+**Comprobado con la app en marcha**, con Windows en oscuro y midiendo los píxeles de la barra: en
+*Automático* los glifos salen blancos; forzando *Claro* **en caliente**, negros —el caso contrario al del
+sistema, que es el que motivaba los ocho colores—; con el tema de contraste *Blanco*, los del tema.
+
+**Y el «compromiso» que documentaba el método era real:** decía que fijar el fondo hover dejaba el botón
+*Cerrar* sin su rojo, y la documentación de Microsoft lo desmentía. Las dos cosas eran ciertas: el rojo lo
+pone el sistema, y lo que lo impedía era justo fijar ese fondo. Ahora, al pasar el ratón, *Cerrar* sale
+**rojo con el aspa en blanco**.
+
+**Sin prueba automática**, y no por pereza: son botones que dibuja Windows fuera del árbol XAML, así que no
+hay nada que un test de UI pueda leer. Queda verificado por captura, como `T13-09`. El tema del equipo se
+devolvió a como estaba.
+
+### 2026-09-19 — `T13-13`: la elección de idioma y de tema se marca con un punto, no con una casilla
+
+Los ocho ítems de *Idioma* y *Tema* pasan de `ToggleMenuFlyoutItem` a **`RadioMenuFlyoutItem`**, cada
+submenú con su `GroupName`. Con eso la exclusión la hace el control y el código marca **solo el activo**:
+`SyncThemeMenu` baja de tres asignaciones a una, y el bloque de idioma, de cinco a una.
+
+**Dos cosas se comprobaron con la app en marcha, y las dos salieron al revés de lo que suponía la ficha:**
+
+- **El árbol de automatización no cambia.** El peer de `RadioMenuFlyoutItem` en la 1.8 sigue siendo
+  `MenuItem` con patrón *Toggle*, no `RadioButton` con `SelectionItem`. Así que `ClickMenuPath` no necesita
+  ningún ajuste y un lector de pantalla anuncia lo mismo que antes: **no es un arreglo de accesibilidad**.
+  Lo que gana quien usa la app es visual — el punto de opción en vez de la marca de verificación, que es lo
+  que Windows usa para «uno de N»—, y eso se ve en la captura del submenú abierto.
+- **El `GroupName` no hace falta.** Quitándolo de los ocho, la prueba sigue pasando: WinUI acota el grupo
+  por defecto a cada flyout, así que idioma y tema no se mezclan. Se deja puesto por ser explícito.
+
+La primera prueba que se escribió afirmaba `ControlType.RadioButton` y falló **también después** del
+cambio: el acierto fue no creerse la ficha y medir, y reescribirla sobre lo que sí distingue el cambio —que
+quede exactamente uno marcado en cada submenú—.
+
+**Verificado por reversión:** con los `ToggleMenuFlyoutItem` de antes y el marcado de uno solo, «Automático»
+se queda marcado junto a «Oscuro» y la prueba falla.
+
+### 2026-09-19 — `T13-09`: en alto contraste manda el tema, también en lo que no es texto
+
+**Se miró antes de tocar**, con el tema *Blanco* de Windows en marcha, y el riesgo resultó **menor** de lo
+que decía la lectura del código: WinUI aplica por su cuenta el *high contrast adjustment* al **texto**, así
+que el historial salía entero del mismo gris —`#3D3D3D`, medido— aunque cada fila lleve su pincel, y las
+métricas de *Salud* igual. El texto rojo de la unidad protegida, que era la sospecha principal, no era el
+problema.
+
+**Lo que sí seguía con la paleta propia es lo que no es texto:**
+- la barra de ocupación, en el ámbar de la app (`#9D5D00`), con la parte libre en un gris (`#E0E0E0`) que
+  casi no se distinguía del fondo del tema (`#FFFAEF`);
+- el punto de salud, en verde (`#0F7B0F`);
+- la barra de progreso y los ocho colores de los botones de la barra de título.
+
+**Cómo queda.** `UI/HighContrast` responde por `SystemParametersInfo` y da los pinceles del tema. Con
+contraste activo se cede el color: la ocupación usa el resaltado, el fondo de ventana y un **contorno** con
+el color del texto —eso es lo que vuelve visible el hueco—, el punto de salud usa el color de texto, la
+barra de progreso se queda con su estilo y los botones de la barra de título no se tocan.
+
+**Por qué ceder y no elegir otro color:** quien activa un tema de contraste pide **esa** paleta, no una
+mejor. El significado no se pierde porque aquí el color nunca va solo: la salud lleva su palabra, la
+ocupación sus cifras y la operación su texto de estado.
+
+**Dos cosas que conviene saber para la próxima:**
+- **`AccessibilitySettings` no sirve** en una app de escritorio: nace atada a un `CoreWindow` que no
+  existe. Win32 responde siempre.
+- **El script de capturas fotografía la zona de pantalla de la ventana**, así que si otra queda delante
+  —la de *Configuración* que abre el cambio de tema— la foto sale de esa otra. Pasó, y la primera tanda
+  salió con VS Code dentro.
+
+**Verificado midiendo los píxeles:** el relleno pasa de `#9D5D00` a `#903909`, el resaltado del sistema; el
+punto, a `#3D3D3D`. Y al volver al tema normal, todo regresa a la paleta medida. El tema del equipo quedó
+como estaba.
+
+Unitarias **664** (663 pasan · 1 se omite) · UI **38/41**.
+
+### 2026-09-19 — `T13-10`: ~150 DIP para la ventana que casi nadie ve entera
+
+La ventana pide 900 DIP y **se acota al área de trabajo**: una 1080p al 150 % deja 656. La galería se hacía
+siempre a 900, así que el pliegue real no se veía en ninguna captura. Ahora
+`tools/capture-screenshots.ps1` acepta `-WindowHeightDip` y puede fotografiarlo.
+
+**Los cinco cambios, sin tocar el tamaño de diseño** (que es decisión firme):
+- Barra de título **estándar** (32) en vez de `Tall` (48): Microsoft recomienda la alta cuando lleva
+  contenido interactivo, y esta solo lleva icono y título.
+- **Pie en reposo:** la barra de progreso aparece en `BeginOperation`; la fila de estado, cuando hay algo
+  que decir. La fila va por **callback** sobre `StatusText.Text`, no desde cada asignación: hay más de
+  treinta repartidas por cinco archivos, y con una sin enterarse el cronómetro se quedaría sin sitio a
+  mitad de una operación. Las dos se muestran **antes** de anunciar, porque un elemento `Collapsed` no
+  está en el árbol de automatización (`T2-02`).
+- **Restaurar valores predeterminados**: de botón a todo el ancho a primera entrada de la lista de presets.
+  Es lo mismo que un preset —deja la configuración en un estado conocido— y se usa en contadas ocasiones.
+- **Ocupación** en una línea: «16 KB usados · 2 GB libres». El total ya estaba dos líneas más arriba.
+- **El clúster recomendado se marca en la lista** («4 KB (recomendado)»), como el diálogo de formato de
+  Windows, y la pista baja de tres líneas a una. La frase «el valor preseleccionado es el recomendado»
+  dejaba de ser verdad en cuanto alguien cambiaba el valor.
+
+**Cuidado que hay que mantener:** la marca **no** sale de la lista. El pie y la confirmación usan
+`SelectedAllocLabel()`, el tamaño a secas — el pie ya va justo de ancho (`T13-05`)—. Y hay que rehacer las
+etiquetas al cambiar de idioma, porque «(recomendado)» es texto traducido: lo hace `ApplyLanguage`.
+
+**Resultado, medido en captura a 656 DIP:** antes se veía hasta la descripción del sistema de archivos;
+ahora, hasta el selector de clúster con su marca. A 900 se llega al campo de etiqueta. *Opciones de
+formato* **sigue pidiendo desplazarse**: los ~150 DIP la acercan, no la suben del todo.
+
+**De paso:** los presets integrados llevan ahora su clave (`preset.builtin.*`) como `AutomationId`. Es lo
+único estable que tienen: el texto cambia con el idioma.
+
+**Dos pruebas de UI cambian con el sitio de las cosas:** la de restaurar, que ahora invoca la entrada del
+menú, y la de la región activa del pie, que tiene que **provocar un mensaje** antes de buscar `StatusText`
+—igual que la del error de etiqueta provoca el error—, porque en reposo esa fila ya no existe en el árbol.
+
+Unitarias **664** (663 pasan · 1 se omite) · build Release 0/0 · **suite de UI 39/41 con las destructivas
+incluidas** (2 omitidas por opt-in): el ciclo de formatear, reinicializar, FAT32 de 1 GB y dos particiones
+pasa en 2 m 22 s con la interfaz nueva.
+
+### 2026-09-19 — `T13-08`, y lo de ayer visto en la app real
+
+**`T13-08`.** Las pistas de los campos están debajo de su control y en gris, sin relación programática:
+desde el combo no había forma de saber que existen. La de `AllocUnitPicker` es justo la que `T7-03` añadió
+por ser «el único campo esotérico sin ayuda», y hasta ahora solo ayudaba a quien ve.
+- `DescribedBy` en los dos combos de formato y, revisadas las otras dos, también en `SmallFat32Check` y en
+  `RestPicker`. Describir un elemento oculto no molesta: mientras está `Collapsed` no está en el árbol de
+  automatización.
+- La prueba exige también que la pista **no esté vacía**: un vínculo a un control sin texto pasaría igual
+  sin decir nada.
+- **Verificado por reversión:** sin los enlaces falla nombrando cada combo.
+
+**Visto en pantalla, ya con la sesión elevada:**
+- `T13-07`: el historial muestra «Reinicialización · Info» y el `CRASH` de `T13-19` como **«Aplicación ·
+  Error»**, en rojo. Antes era «Operación · Info», con el icono ⓘ.
+- `T13-06`: en la USB de pruebas, que no expone ningún contador, salen **las dos** filas —rotación y
+  desgaste— como *No disponible*, que es la regla de lo desconocido. **Sigue sin verse en un HDD**: no hay
+  ninguno conectado.
+- **Suite de UI completa: 36/39**, 3 omitidas por opt-in y ningún fallo.
+
+### 2026-09-19 — `T13-07`: el historial clasifica lo que la app escribe, y una caída es un error
+
+Había **5** categorías y la app escribía **16** palabras clave distintas. Las otras once caían en
+«Operación», así que el filtro no podía aislar una **reinicialización**, que borra el disco físico entero.
+Y `CRASH:` no lleva la palabra ERROR, así que una caída salía como «Info», con el icono ⓘ, en el registro
+que uno consulta justo cuando algo ha ido mal.
+
+**Cómo queda:**
+- `HistoryEntry.CategoryByPrefix` es una **tabla recorrible**, no una cadena de `StartsWith`, por lo mismo
+  que `SeverityPalette.All()` es enumerable: para que una prueba pueda contrastarla con el código.
+- 11 categorías más `Other`. Nuevas: Reinicialización, Comprobación de errores, Benchmark, Estado del
+  disco, Protección de escritura y Aplicación, con sus claves en los 5 idiomas.
+- Se clasifica por **palabra clave completa**: `CRASHED`, escrito por otro programa, no se cuela como
+  caída. Y las líneas ya escritas se releen bien: no hay migración del archivo.
+- `CRASH` pasa a resultado **Error**.
+
+**Lo que enseña:** la auditoría contó 14 prefijos leyendo el código; el barrido encontró **16**. Faltaban
+`EXPORT` y `HISTORY`. Es la misma lección de `T12-01` y `T13-02`: una lista escrita a mano mide lo que
+alguien recordó.
+
+**Verificado por reversión:** quitando `CHKDSK` de la tabla, la prueba falla nombrando archivo y palabra.
+Hay otra en sentido contrario: la tabla no puede declarar palabras que la app ya no escribe.
+
+**Cambia el CSV exportado**, y va en el CHANGELOG: esas filas decían `Other`.
+
+Unitarias **664** (663 pasan · 1 se omite) · build Release 0/0.
+
+### 2026-09-19 — `T13-06`: el desgaste de SSD desaparece en un disco que gira
+
+La fila de desgaste se añadía **siempre**. En un disco duro el contador vale 0, así que *Salud* decía
+«Desgaste (SSD): 0 % — Normal» en verde, cuatro filas más abajo de «Tipo de medio: HDD». Un 0 % en verde
+se lee como «como nuevo», y ahí la pregunta ni siquiera aplica.
+
+`SmartInfo.HasWear` es el **espejo exacto** de `HasSpindle` que `T6-03` dejó a medias: mismas dos señales
+y mismo orden (RPM manda, luego el medio), y la misma regla para lo desconocido — sin señal se muestra la
+fila como *no disponible*, porque esconderla afirmaría algo que no se sabe.
+
+Además de las unitarias de las tres señales, hay una que fija lo que ninguna de las dos funciones dice por
+separado: **las filas de eje y de desgaste nunca se esconden las dos a la vez**. Sin ella, invertir un
+signo en cualquiera de las dos dejaría un disco sin responder a ninguna de las dos preguntas.
+
+Unitarias **648** (647 pasan · 1 se omite) · build Release 0/0.
+
+**Falta verlo en un HDD**, y no hay ninguno conectado: esta máquina tiene un SSD NVMe y la USB de pruebas.
+**Tampoco se han podido ejecutar las pruebas de UI**: la sesión de hoy no corre elevada, y la app es
+`requireAdministrator`.
+
+### 2026-09-18 — `T13-05`: el pie dice «borrado seguro» entero, y en cuanto se marca
+
+**Lo pedido.** El resumen del pie tiene ~192 DIP, y con borrado seguro no cabía en PT, FR ni IT. Se
+recortaba el final, que es justo el borrado seguro.
+- Ahora admite dos líneas, que caben en el alto del botón.
+- `FormatLogic.FormatSummary` une con U+00A0 los espacios de **dentro** de cada dato, para que el corte
+  caiga entre datos («rápido +» / «Borrado seguro») y no parta ni «Borrado seguro» ni «4 KB».
+
+**Lo que salió al comprobarlo, y era peor.** Marcar el borrado seguro **no repintaba el pie**.
+- `SecureWipeCheck` solo tenía `SecureWipeCheck_Toggled`. Las demás opciones del resumen llegan a
+  `FormatOption_Changed`, y esta no.
+- El pie de `T12-03`, que existe para que no se formatee sin ver las opciones, seguía diciendo «rápido»
+  con la opción que convierte segundos en horas.
+- La primera tanda de capturas lo destapó: la casilla estaba marcada y el pie no lo decía.
+- **Verificado por reversión:** `FooterSummary_ChangesWhenSecureWipeIsToggled` falló contra el publish
+  anterior y pasa con el arreglo.
+
+**Regla que deja:** toda opción que el resumen enseñe tiene que llegar a `FormatOption_Changed`, aunque
+tenga además su propio manejador.
+
+La galería gana la toma `main-secure` y la función `Set-CheckedOn`. Capturas en los cinco idiomas: la
+palabra sale entera. Unitarias 634 (633 pasan · 1 se omite) · `FormatOptionsUiTests` 5/5.
+
+### 2026-09-18 — `T13-03` y `T13-04`: la confirmación de Reinicializar dice lo que hace
+
+**`T13-03`.** `T6-01` hizo obligatorio el **título** de `ConfirmDialog` para que una operación destructiva
+no heredara el nombre equivocado por omisión, pero dejó el **botón** fijo en `btn.start`. Reinicializar,
+que borra el disco físico entero, se confirmaba con «Formatear», y en cuanto la letra coincide, `Enter`
+pulsa ese botón.
+- Ahora el texto del botón también es un parámetro obligatorio, y nombra la unidad como el botón principal
+  (`T12-02`): *Formatear F:* y *Reinicializar F:*, con la clave nueva `btn.reinit.drive` en los 5 idiomas.
+- **Verificado por reversión** con la USB. La prueba de UI nueva
+  (`ConfirmDialogs_EachDestructiveOperationHasItsOwnVerb_NamingTheDrive`) falló contra el publish anterior
+  y pasa con el nuevo. Como la del título, no ancla textos en español: exige verbos distintos y la letra
+  de la unidad en los dos.
+
+**`T13-04`.** La tabla de la confirmación de formato se alineaba con **espacios en Consolas**, calculados
+para las etiquetas en español; en los otros cuatro idiomas no cuadraba.
+- `ConfirmDialog` recibe ahora la prosa, filas (etiqueta, valor) opcionales y una nota. Las filas van en
+  un `Grid` de dos columnas, todo en la fuente normal.
+- Las etiquetas toman un **estilo** del diálogo, por la trampa de `Application.Current.Resources` que se
+  vio en `T13-01`.
+- Capturas del publish sobre la USB, en ES y EN y en los dos temas: las columnas cuadran.
+
+**Pendiente, a propósito:** las capturas del README de Confirmar y Reinicializar muestran aún la versión
+anterior. Las 12 del README se hicieron a 484 px de ancho y las de ahora salen a 607 px, por otra escala
+de pantalla. Sustituir cuatro mezclaría tamaños, así que se regeneran juntas. En las de tema oscuro de
+esta máquina salen además unos trazos blancos fuera del diálogo que las del README no tienen; conviene
+entender de dónde vienen antes de rehacer la galería.
+
+**El ciclo destructivo, con la USB vaciada por el mantenedor.**
+- **Pasa** en 1 min 14 s: formatear, reinicializar, FAT32 de 1 GB sin asignar el resto, y FAT32 de 1 GB
+  más exFAT, con la distribución comprobada.
+- Una primera pasada, que partía de las tres particiones de siempre, falló en el paso 3, tras cambiar la
+  letra de `F:` a `D:`. No hay mensaje, así que no está diagnosticado.
+- **Dos lecciones de la tanda:**
+  - Nunca filtrar la salida de una prueba de UI que puede fallar: el mensaje se pierde.
+  - Las pruebas de UI restauran `history.log`, así que el rastro de la app durante la prueba también
+    desaparece.
+- **La USB de pruebas ya no tiene *BIOS FLASH* ni *Booteable*:** queda FAT32 de 1 GB más exFAT, con la
+  etiqueta `utilidades` que buscan las pruebas.
+
+**`T13-19`, sin reproducir:** en el historial real hay un `CRASH` por abrir un segundo `ContentDialog`
+desde `StartButton_Click`, durante las capturas. La app no se cerró, porque el manejador global lo marca
+como manejado.
+
+### 2026-09-18 — `T13-02` y `T13-01`: el barrido de contraste deja de tener puntos ciegos
+
+**Primero el test y luego el arreglo**, para que el test demuestre que ve lo que antes no veía. El barrido
+de `T12-01` buscaba `TextFillColor(\w+)Brush` sin anclar y en todo el texto, comentarios incluidos. Por eso
+tenía tres puntos ciegos:
+- **Un aprobado falso.** Dentro de `AccentTextFillColorPrimaryBrush` encontraba `TextFillColorPrimaryBrush`
+  y medía el acento de cada usuario como texto casi negro.
+- **Un color de texto que no veía.** `SystemFillColorCriticalBrush`, el rojo de los errores, no se llama
+  `TextFillColor…`.
+- **La `Opacity`.** Cambia el color real sin cambiar el pincel, y por ahí pasaron cinco textos por debajo
+  de AA. El peor, el cronómetro del pie, daba 3,83:1.
+
+**Cómo queda** ([TextContrastTests.cs](../tests/FormatDiskPro.Tests/TextContrastTests.cs)):
+- Recoge todo `Foreground` que venga de un recurso: en atributo, en `Setter` y desde código
+  (`Resources["…"]`). Además recoge cualquier `*TextFillColor*Brush` nombrado, con `\b` a los dos lados y
+  sin comentarios.
+- Cada pincel tiene que resolverse a un color medido. Si no, necesita un motivo escrito en
+  `FluentTextPalette.ExemptionReason`. Hay dos exenciones: *deshabilitado*, que exime la propia norma, y
+  el *acento*, que no se puede medir de antemano y remite a `T13-15`.
+- `NoTextIsDimmedWithOpacity` **prohíbe** atenuar texto con `Opacity`, en vez de intentar medirlo. La
+  opacidad compone con lo que haya detrás, y el barrido solo conoce el fondo de referencia.
+- **Límite, escrito en el test:** no ve la opacidad de un contenedor ni un `x.Opacity = …` fuera de un
+  inicializador.
+
+**Verificado en negativo:**
+- Sin declarar el rojo ni exentar el acento, el barrido falla nombrando seis archivos.
+- Con las opacidades de antes, falla con las catorce, con archivo y línea.
+
+**Las catorce opacidades** pasan a pinceles medidos:
+- 0,55–0,6 → `AppMutedTextBrush`;
+- 0,7–0,85 → `TextFillColorSecondaryBrush`;
+- 0,9 → texto primario. Son los párrafos de *Acerca de*, y el 0,9 estaba más cerca del primario.
+
+**Trampa que salió de paso:** en esta app, **un pincel de tema no se saca de
+`Application.Current.Resources` desde código.** Ese diccionario resuelve con el tema de Windows, y el
+tema elegido se fuerza en cada elemento con `RequestedTheme`.
+- La etiqueta de fila de Salud, creada en código, toma ahora un **estilo** del propio diálogo: el
+  `ThemeResource` de un `Setter` se resuelve con el tema del elemento.
+- El mismo patrón sigue en [MainWindow.FormatOptions.cs:249](../src/FormatDiskPro/UI/MainWindow.FormatOptions.cs#L249)
+  con `TextFillColorDisabledBrush`. Queda anotado como `T13-17`, sin reproducir.
+
+Unitarias **630** (629 pasan · 1 se omite) · build Release 0/0 con `-warnaserror` · pruebas de UI
+compiladas, no ejecutadas.
+
+**Visto en pantalla.** Galería del publish *self-contained*, en los dos temas: Salud, Historial, Presets,
+Acerca de y Confirmar, esta última sobre la USB de pruebas. Contraste medido sobre los píxeles de las
+capturas, contra el fondo real del diálogo (`#F3F3F3` / `#202020`):
+- el gris propio: 4,73 en claro y 5,79:1 en oscuro;
+- el secundario: 5,93 y 10,15:1;
+- el rojo de la confirmación: 5,10 y 8,03:1, con exactamente los hex declarados en `FluentTextPalette`.
+
+La etiqueta de fila de Salud sale `#CCCCCC` en oscuro, así que el estilo sigue el tema forzado.
+
+**Sin captura:**
+- El cronómetro del pie solo aparece durante una operación. Usa el mismo pincel, así que se ha calculado:
+  `#6C6C6C` sobre el pie `#F9F9F9` da unos 5,0:1.
+- La toma de *Reinicializar* falla con esta USB, y no por estar en uso. Con `F:` elegida se sugiere
+  FAT32, *Reinicializar* actúa sobre el disco entero (59,8 GB) y el plan se rechaza por
+  `Fat32VolumeTooLarge`, con un mensaje que no dice por qué. Es **`T13-18`**. Con NTFS elegido, la
+  confirmación se ve bien y sigue diciendo «Formatear» (`T13-03`).
+
+**Pruebas de UI con la USB** (`Category!=Slow`, sobre el publish): **36/37**. Falló
+`HealthDialog_OpensForTestDrive` en 15 ms, justo después del benchmark. Sola pasa, y con su clase entera
+(el benchmark incluido) también: es intermitente, no reproducido. No se guardó su mensaje, así que si
+vuelve a salir hay que capturarlo antes de tocar nada.
+
+### 2026-09-18 — El README, a la mitad y al día
+
+A petición del mantenedor, el README pasa de **395 a ~200 líneas**. Ahora se lee primero como usuario
+(qué hace, cómo se instala y se usa) y después como desarrollador. **Se ha ido lo que ya vive en otro
+sitio**:
+- el párrafo de una pantalla sobre qué cubren las unitarias, porque lo cuentan las propias pruebas y este
+  archivo;
+- el árbol archivo por archivo, que es §2 y que ya estaba desfasado: le faltaban `FluentTextPalette`,
+  `HistoryRotation`, `PartitionPlan`, `ProcessRunner`… y ahora es una tabla de capas;
+- el detalle de firma y de flags, que está en el `Get-Help` de cada script.
+
+Las capturas secundarias van en un `<details>`, y la ventana principal queda a la vista. Los workflows
+tienen tabla propia e insignia de CodeQL.
+
+**Lo que estaba mal, contrastado con el código:**
+- el botón se llamaba «Iniciar» en tres sitios, cuando es *Formatear X:* desde `T12-02`;
+- *Apoyar el proyecto* se situaba en *Ayuda*, y está en *Acerca de…*;
+- al menú *Configuración* le faltaba *Buscar actualizaciones al iniciar*;
+- el ejemplo `-CertPassword ****` no funcionaba, porque el parámetro es `SecureString` desde `T3-09`;
+- la verificación de capacidad no escribe «toda la unidad», sino el espacio libre.
+
+La advertencia de que *Reinicializar* hay que fotografiarlo sobre la USB (`-Drive`) seguía solo en el
+README; ahí sigue, porque el `Get-Help` del script no la recoge.
+
+### 2026-09-18 — Tier 13 (auditoría de UI/UX con medición) y CI para el repositorio público
+
+**Se abre el Tier 13 con 16 tareas, ninguna hecha todavía.** Sale de una auditoría de UI/UX que **midió** en
+vez de mirar: contraste sobre los fondos reales muestreados de las capturas, anchos de texto con la fuente
+real (calibrado: 104 px medidos = 104 px en pantalla) y el alto efectivo de la ventana según el escalado.
+
+- **Lo que más enseña: el barrido de `T12-01` tiene tres puntos ciegos.** Ese barrido existe para que no
+  entre un color de texto sin medir. Pero su regex no está anclado y mide `AccentTextFillColorPrimaryBrush`
+  como si fuera el texto primario (16,65:1: un aprobado falso), no busca `SystemFillColorCriticalBrush`, y
+  no ve la `Opacity`. Por ahí pasaron **cinco textos por debajo de AA** en tema claro, entre ellos el
+  cronómetro del pie (3,83:1): la línea que `T12-07` defendió como la señal de vida de una operación larga.
+- **Lo más grave de cara al usuario:** *Reinicializar* se confirma con un botón que dice «Formatear». Es lo
+  que `T6-01` dejó a medias: hizo obligatorio el título, no el verbo.
+- **Una medición que cambia prioridades:** la ventana **no mide 900 DIP** en la mayoría de portátiles.
+  `SizeAndCenterWindow` la acota al área de trabajo: 656 DIP en una 1080p al 150 %. El pliegue es mayor que
+  en la galería, y `T13-10` localiza ~150 DIP sin tocar el tamaño fijo.
+
+Detalle y criterios de aceptación, en el [ROADMAP](roadmap-historico.md#-tier-13--lo-que-solo-se-ve-midiendo-abierto-2026-09-18).
+
+**CI: se revisa `T2-10` porque el repositorio es público.** La decisión del 2026-08-15 se apoyaba en una
+consecuencia asumida —un PR externo no ejecuta nada hasta que el mantenedor lo corre en su máquina— que, con
+el repositorio abierto, deja sin red justo al código que no escribió el mantenedor. Se recupera el workflow
+revertido y se le añade lo que respondía a la objeción de entonces («un ✅ que solo cubre las unitarias
+afirma más de lo que prueba»):
+
+- **El check dice lo que cubre y lo que no.** Se llama «Compilación y unitarias» —es el texto de su
+  insignia en el README— y el resumen de cada ejecución lista lo que no se ejecutó (las pruebas de UI) y qué
+  unitarias se omitieron, con el motivo que declara su atributo, como hace `release.ps1` desde `T2-12`.
+- **Compila las pruebas de UI sin ejecutarlas.** Es la trampa de §4 —el proyecto está fuera de la solución
+  y un error de compilación en él no aparecía en ninguna parte— cerrada donde sí se nota.
+- **CodeQL** sobre la app, y **Dependabot solo para las acciones**, que van fijadas a un commit. NuGet queda
+  fuera a propósito: el Windows App SDK se sube a mano.
+- **Verificado antes de publicarlo:** la secuencia exacta del CI en local (restauración, compilación con
+  `-warnaserror`, 626 pruebas, 46 s), el proyecto de UI compilado con `-warnaserror` (0 advertencias), el
+  script del resumen ejecutado en tres escenarios —verde, una unitaria rota sobre un `.trx` manipulado y la
+  compilación rota— y `actionlint` sin errores. **Lo que no se ha podido verificar es la primera ejecución
+  en GitHub**: el repositorio no había ejecutado nunca un workflow.
+
+**De paso:** el árbol de §2 ya no lleva recuentos de pruebas (decía 563 y 30, y hoy son 626 y 38): el
+recuento vive en §3, por lo mismo que la cabecera dejó de llevar estado en `T9-14`.
+
+### 2026-09-01 — `T12-07`: la franja de rendimiento se retira, porque el problema que resolvía no existía
+
+Se va entera: `Core/SystemLoad.cs` con `MovingAverage`, `Services/PerformanceMonitor.cs`,
+`UI/MainWindow.Performance.cs`, la franja del XAML, los tres estilos `Metric*`,
+`AppServices.Performance`, las 11 claves `perf.*` en cinco idiomas y sus **41 unitarias**. Es decir,
+`T11-01` y `T11-04` completas. Quedan **626 pruebas**.
+
+**El motivo de peso: la justificación de partida era falsa, y no se comprobó.** `T11-01` se defendió con
+«en un borrado seguro de 40 minutos la única señal de vida era una barra de progreso». No lo era:
+`TimerElapsed_Tick` ya escribía en el pie `03:41 · 42,3 MB/s · ETA 05:12` — y **para las mismas dos
+operaciones** que alimentaban la fila de Disco, verificación de capacidad y borrado seguro. La fila de
+Disco era un duplicado de la línea que tenía justo debajo, y peor, porque no llevaba ETA. Bastaba leer
+ese método antes de proponer la franja.
+
+**Las tres filas fallaban por motivos distintos**, y por eso no había subconjunto que salvar: Disco
+**duplicaba**; CPU y RAM del equipo **decoraban**. Lo segundo estaba dicho en la propia conversación que
+la encargó —«en un formateador de discos eso es decoración»— y se construyó igual. Quitar CPU/RAM y dejar
+Disco conserva el duplicado; quitar Disco y dejar CPU/RAM conserva lo decorativo.
+
+**Lo que costaba:** ~34 px permanentes en una ventana de **alto fijo** donde los Tiers 11 y 12 llevaban
+peleando por espacio vertical —`T12-03` existe precisamente porque las opciones de formato quedaban bajo
+el pliegue—, más un servicio Win32 con temporizador atado a la activación de la ventana, 41 pruebas y 55
+cadenas traducidas. Y la fila de Disco enseñaba `–` en 3 de las 5 operaciones.
+
+**Lo único que se pierde y no está en otro sitio es el pico** de velocidad. Se deja fuera a propósito:
+cabría en el cronómetro en una línea, pero nadie lo ha pedido, y añadirlo «por si acaso» es exactamente
+como empezó esto.
+
+**Lo que sobrevive de aquel trabajo, porque se sostiene solo:**
+
+- El **color de la barra de progreso** (`T12-05`) — salió de mirar la franja funcionando, y arregla un
+  defecto real que llevaba ahí desde siempre.
+- El **galón de scroll** (`T12-06`).
+- **`SeverityPalette.MutedText` y su barrido** (`T12-01`) — nació de medir los grises que la franja usaba
+  y ahora protege a toda la ventana.
+
+**La lección, y va al §4 en espíritu:** una petición de producto no exime de comprobar el problema que
+dice resolver. La franja se construyó **bien** —compacta, medida, accesible, con 41 pruebas y traducida a
+cinco idiomas— sobre un problema que no existía. Todo ese cuidado no la salvó, y no podía: ningún test
+comprueba que la funcionalidad haga falta.
+
+**Una trampa al retirarla**, anotada porque volvería igual: el bloque de claves `perf.*` estaba pegado al
+de `bar.*` en `Localization.cs`, y borrarlo por rango se llevó las etiquetas de la barra de acciones.
+La app arrancó enseñando `bar.health` en crudo —`L.T` devuelve la clave cuando falta, que es lo correcto
+y también lo que hace el fallo silencioso—. Lo cazó **regenerar las capturas**, otra vez; y al
+restaurarlas se duplicaron tres claves, que un barrido de duplicados encontró. Un `Dictionary` con
+indexador no se queja de una clave repetida: sobrescribe.
+
+---
+
+### 2026-09-01 — `T12-05` y `T12-06`: la captura de un usuario encuentra lo que ningún test miraba
+
+**`T12-05` — el éxito y el fallo eran el mismo color.** Lo destapó una captura del propio usuario: un
+benchmark que **terminó bien** dejaba la barra de progreso llena y **roja**, exactamente igual que uno
+que falla.
+
+La causa: `FormatProgress` nunca fijaba `Foreground`, así que se pintaba con el **color de acento** que
+el usuario tiene en Windows —rojo en ese equipo—, y `ShowError` pinta de rojo al fallar o cancelar. El
+único canal que distinguía las dos cosas no distinguía ninguna.
+
+**Y es una decisión que ya estaba tomada en este repo, sin aplicar aquí.** `CapacityBrush` lo dice con
+todas las letras: «una barra de capacidad no debe usar el color de ACENTO del sistema (lo que hace un
+`ProgressBar` por defecto): en un equipo con acento rojo se veía roja con el disco medio vacío y leía
+como alarma». Mismo control, misma trampa, otro sitio — y aquí la consecuencia era peor: no «leía como
+alarma», es que **no se podía saber si había ido bien**.
+
+Ahora el `Foreground` sale de `SeverityPalette.For(SmartLevel.Ok)`: verde mientras va y al terminar bien,
+rojo de `ShowError` al fallar o cancelar. Los dos del inventario que el barrido mide, ninguno dependiente
+de lo que el usuario tenga configurado.
+
+**Verificado en los DOS estados, y no por gusto:** fijar `Foreground` a mano podía haber ganado al estado
+de error del propio control y dejar el fallo sin rojo — es decir, el arreglo podía haber roto justo lo
+que venía a arreglar. Con la app en marcha: benchmark completo → barra **verde** llena; benchmark
+cancelado → barra **roja**.
+
+**Una corrección que sale de aquí.** La documentación de `T11-01` decía que el benchmark alimenta la fila
+de Disco de la franja de rendimiento. **No lo hace, y no debe.** Su `IProgress` reporta porcentaje, no
+bytes, y lo hace una vez por **ventana de medición** —cada varios segundos, no cada segundo—: un caudal
+derivado de ahí sería grueso, a saltos, y **contradiría** la mediana de MB/s que el propio benchmark
+calcula sobre ventanas cronometradas y enseña en su diálogo. Dos cifras distintas para lo mismo en la
+misma pantalla es justo lo que esa franja se diseñó para evitar. Las operaciones que **sí** informan de
+bytes son dos: verificación de capacidad y borrado seguro. Durante un benchmark, un formateo o un
+`chkdsk`, la fila enseña un guion y su tooltip dice por qué.
+
+**`T12-06` — el contenido se cortaba sin decir que seguía, y costó tres intentos.** La ventana es de
+tamaño fijo, así que el contenido casi siempre desborda, y Windows oculta las barras de desplazamiento
+hasta que alguien interactúa. Quedaba una tarjeta cortada por el borde inferior sin ninguna señal — y lo
+que quedaba debajo eran las **opciones de formato**.
+
+*Intento 1: un degradado en el borde inferior.* Sobre el material **Mica** no hay un color de fondo que
+igualar —el degradado tiene que acabar en algo opaco y la ventana no lo es—, así que se leyó como una
+**franja clara**; y al superponerse a un `TextBox` lo dejaba con aspecto de **deshabilitado**. Ese segundo
+problema lo tiene cualquier velo sobre el contenido, no solo un degradado.
+
+*Intento 2: forzar `VerticalScrollBarVisibility="Visible"`.* Se dio por bueno **sin comprobarlo**, y no
+hace nada: con las barras auto-ocultas de Windows 11 —el valor por defecto— el `ScrollBar` se hace
+visible pero su estado de indicador lo sigue colapsando hasta que hay interacción. Se descubrió al
+**regenerar las capturas del README**: no salía el rail, y ampliando ×6 la franja derecha de la captura no
+había barra ninguna. Compilaba, corría, y no hacía nada de lo que decía.
+
+*Intento 3, el que está:* un **galón** (`⌄`) centrado bajo el contenido, en **su propia fila**. No tapa
+nada, no lava ningún control y no depende de ningún color de fondo. Cuesta 14 px y solo cuando hay algo
+que desplazar. No oscila: al aparecer quita alto al `ScrollViewer`, lo que solo puede *aumentar* el
+desbordamiento.
+
+*Y el disparador tampoco era el que parecía.* `SizeChanged` del `ScrollViewer` mide el **hueco**, que en
+una ventana de tamaño fijo no cambia nunca; lo que crece es el **contenido** —la tarjeta de unidad al
+rellenarse—, así que el manejador va en el `StackPanel` de dentro. Con él solo en el `ScrollViewer`, el
+galón no salía.
+
+**La lección, que es la de siempre aquí:** un arreglo de UI que no se ha *visto* funcionar no se sabe si
+funciona. Los dos primeros intentos pasaron build y pruebas sin hacer nada.
+
+**Y dos refinamientos que se propusieron y NO se hicieron**, con su porqué en el
+[`ROADMAP.md`](roadmap-historico.md#dos-refinamientos-que-se-propusieron-y-no-se-hicieron): encoger el aviso de
+unidad protegida (redundar en el aviso más importante de la app no es despilfarro) y quitar el botón
+«Cerrar» (durante una operación es «Cancelar», y ahí se gana el sitio de sobra).
+
+---
+
+### 2026-09-01 — `T12-01`: el mismo fallo de contraste, entrando por la puerta que nadie vigilaba
+
+**El hallazgo.** `TextFillColorTertiaryBrush` da **3,29:1** sobre el fondo claro —medido con la fórmula
+de la propia app—, por debajo del **4,5:1** que WCAG AA exige al texto normal. Pintaba **18 controles**
+de la ventana principal a través de `HintTextStyle`, `DriveMetaStyle` y `MetricCaptionStyle`: las pistas
+que explican qué sistema de archivos y qué tamaño de clúster elegir, la línea de tipo y conexión de la
+unidad, «Libre: …» y las etiquetas de la franja de rendimiento. No es texto decorativo.
+
+**Por qué el barrido no lo veía, que es lo que importa.** `SeverityPaletteTests` recorre
+`SeverityPalette.All()`, y la documentación de esa clase decía que sus colores eran «los **únicos** que
+no salen de un `ThemeResource` de Windows». Esa frase, que describía un hecho, funcionaba como una
+frontera: lo que viene de Windows no se mide. Y es **el mismo fallo que ese inventario existe para
+evitar** —«así entró un gris de 3.52:1 que WCAG AA no admite»— repitiéndose por el otro lado.
+
+Que un color venga de Windows no lo hace correcto **para cualquier uso**. Fluent define el terciario para
+texto de apoyo sobre superficies grandes, no para contenido; ponerlo en una pista fue decisión nuestra, y
+por tanto su contraste también.
+
+**Qué se hizo, en tres piezas:**
+
+1. **`SeverityPalette.MutedText`** — el tercer nivel de texto, ahora elegido y medido: `#6C6C6C` /
+   `#9A9A9A`, **5,07:1** y **5,03:1**. La salida fácil era subirlo al secundario de Fluent (6,17:1), pero
+   eso borraba el tercer escalón de la jerarquía. Si el paso más callado no puede leerse, es que estaba
+   mal elegido, no que sobre. Y con margen: no se tomó el primero que pasa, por lo mismo que en
+   `ForResult`.
+2. **`Core/FluentTextPalette`** — los tokens de texto de Fluent que la app usa, con su valor real. No
+   elige colores: declara los que hay para que se puedan medir.
+3. **`TextContrastTests`** — **recorre el XAML** buscando `TextFillColor*Brush` y mide lo que hay puesto,
+   no una lista que alguien mantiene. Un token no declarado también falla: significa que la app usa un
+   color de texto que nadie ha medido. Es el mismo principio que hace enumerable a `SeverityPalette.All`:
+   añadir un color tiene que ser lo mismo que ponerlo bajo test, sin un segundo paso que se olvide.
+
+**`HighContrast` no usa el gris**, y es deliberado: en alto contraste manda el color del sistema, y
+sustituirlo por uno propio —por muy medido que esté— es justo lo que ese modo existe para impedir.
+
+**La copia está anclada.** Un `ResourceDictionary` no puede llamar a `Core`, así que los dos hex están
+duplicados en `AppTheme.xaml`. Una prueba los lee de ese archivo y exige que coincidan con
+`SeverityPalette`. Sin ella la duplicación sería, literalmente, el agujero que esta tarea cierra.
+
+**Verificado en negativo:** se volvió a poner el terciario en un estilo y el barrido **falló**. Un test de
+contraste que no se ha visto fallar no se sabe si mide.
+
+---
+
+### 2026-09-01 — `T12-02` a `T12-04`: el pie dice qué va a pasar, y los presets bajan a donde se usan
+
+**`T12-02` — el botón que puede destruir un disco no lo nombraba.** `StartButton` decía «Iniciar»,
+siempre. El peor fallo posible de esta herramienta es formatear la unidad equivocada, y ese botón era el
+**único sitio de la pantalla** donde el destino no aparecía. Ahora dice **«Formatear H:»**. La
+confirmación reforzada —escribir la letra— sigue siendo la red; esto llega antes que ella. Su texto tiene
+**un solo dueño**, `UpdateFooterSummary`, por lo mismo que `UpdateToolsMenuAvailability` lo es del de los
+siete ítems del menú: depende del idioma *y* de la unidad, y dos dueños dejarían el nombre perdido o
+duplicado según cuál corriera el último.
+
+**`T12-03` — se podía formatear sin haber visto nunca las opciones.** En una ventana de alto fijo, la
+tarjeta *Opciones de formato* queda entera bajo el pliegue mientras el botón que la ejecuta está siempre
+visible. El pie resume ahora **`NTFS · 4 KB · rápido`** en la columna del medio de la fila de botones,
+que estaba vacía. Sale de los propios controles, no de un estado paralelo: así no puede mentir sobre lo
+que la operación hará. Reutiliza la cadena que ya construía `MnuManagePresets_Click` para el diálogo de
+presets — ahora hay un solo `CurrentFormatSummary` para los dos sitios.
+
+**`T12-04` — los presets estaban a tres menús de la tarjeta que configuran.** Un `DropDownButton` en la
+cabecera de *Configuración de formato*. El menú se queda: quitarlo rompería la ruta conocida y las
+pruebas de UI. Las dos listas las llena **el mismo constructor**, porque son la misma lista.
+
+**La trampa de WinUI que costó un arranque en negro.** `IsChecked="True"` en el XAML de un `CheckBox` que
+además declara `Checked="…"` **dispara el manejador durante el propio parseo**, cuando los controles
+declarados más abajo en el archivo aún no existen. El manejador nuevo tocaba el pie, y el
+`NullReferenceException` salió envuelto como `XamlParseException: Failed to assign to property
+'ToggleButton.IsChecked'` — un mensaje que señala al atributo y no a la causa.
+
+Lo encontró **el propio registro de la app**: la red global de `T0-01` dejó la traza completa en
+`history.log`, con archivo y línea, mientras el visor de eventos de Windows solo tenía un `0xc000027b` en
+`Microsoft.UI.Xaml.dll`. Esa red se escribió para que un fallo de E/S no se llevara la app por delante, y
+ha servido para depurar un fallo de arranque.
+
+La guarda es el campo `_uiBuilt`, puesto justo después de `InitializeComponent`. **No confundir con
+`_uiReady`**, que marca el final del constructor entero y sirve para no persistir preferencias mientras
+se restauran: son dos momentos distintos y hacen falta los dos.
+
+---
+
+### 2026-09-01 — `T11-04`: el desplegable era la pieza equivocada
+
+Sale de ver `T11-01` funcionando. El `Expander` estaba bien resuelto y aun así sobraba.
+
+**El razonamiento que estaba mal.** Se plegó por el **alto**: la ventana es de tamaño fijo y el panel
+desplegado ocupaba ~230 px. Pero un desplegable cobra su propio precio —un clic para ver un dato que se
+consulta de un vistazo, y un encabezado que hay que llenar con un resumen para que plegado diga algo—, y
+ese precio se paga **siempre**, mientras que el del alto solo se pagaba desplegado. El error no fue elegir
+mal entre plegar y no plegar: fue **aceptar los 230 px como dados** en vez de atacarlos.
+
+**Qué hay ahora.** Tres columnas —etiqueta + valor arriba, barra de 4 px debajo—. La franja entera cabe en
+**~34 px**, menos que el encabezado que el `Expander` ocupaba *plegado*. Sin problema de alto no queda
+motivo para plegar, así que es fija: siempre visible, sin clic y sin resumen que inventar. La preferencia
+`ShowPerformance` se elimina — ya no hay nada que recordar.
+
+**Lo que se sacrifica, y adónde va.** El pie de cada métrica —el pico, los núcleos, el consumo de la
+propia app— ya no cabe y pasa al **tooltip**, junto al valor. No se pierde, y esta vez el tooltip sí
+sirve: estos controles **nunca se deshabilitan**, que era justo lo que lo inutilizaba en los ítems de
+menú de `T7-08`. Ese mismo texto es el nombre de automatización de cada columna, así que un lector de
+pantalla recibe «Disco: 42,3 MB/s — Pico 58,1 MB/s» y no un número suelto.
+
+**Las columnas no son iguales, y es deliberado** (`1.15* / 0.7* / 1.15*`). «100 %» de CPU siempre es corto
+y «13,5 GB / 31,9 GB» de RAM siempre es largo: a tercios, la RAM saldría truncada con hueco sobrante a su
+izquierda.
+
+**El muestreo cambia de disparador.** Ya no puede depender de si el panel está abierto, porque siempre lo
+está. Ahora corre mientras la ventana está **al frente** o hay una operación en curso: con la app detrás
+no hay nadie mirando la franja, y con una operación en curso hay que seguir midiendo aunque el usuario se
+haya ido a otra ventana, porque al volver el pico tiene que ser el de **toda** la operación, no el de los
+ratos en que estuvo mirando.
+
+**Verificado:** build 0/0, 664/664, y con la app en marcha — la franja ocupa una línea y el contenido de
+arriba recupera el alto que el panel desplegado le quitaba.
+
+---
+
+### 2026-09-01 — `T11-02` y `T11-03`: qué se ve primero, y qué no debería estar a un clic
+
+Las dos salen de la misma revisión que `T11-01` y atacan la misma raíz: **qué enseña la ventana principal
+y con qué peso**.
+
+**`T11-02` — la mitad de la app vivía dentro de un menú.** La salud S.M.A.R.T., el benchmark y el
+historial —tres de las funciones que más justifican instalar esto— no existían para quien no abriera
+`Herramientas`. Ahora hay una barra de tres botones bajo el menú.
+
+*Por qué esas tres y no cuatro, ni siete:* son **exactamente** las que ya tenían atajo de teclado
+(Ctrl+I / Ctrl+B / Ctrl+H), y por el criterio que se escribió al dárselo — son las únicas que **no
+escriben nada**. Formatear, reinicializar, verificar capacidad, quitar protección y borrado seguro se
+quedan en el menú: una operación que borra datos no debe estar a un clic, y su confirmación reforzada
+existe precisamente para que llegar ahí cueste. La barra **no añade un criterio nuevo**, aplica el que ya
+había en un segundo sitio.
+
+*Y de paso esquiva `T7-08` sin repetir su solución.* WinUI **no pinta el tooltip de un control
+deshabilitado** —no existe el `ShowOnDisabled` de WPF—, así que un botón de icono apagado sería mudo: es
+el fallo que `T7-08` tuvo que resolver metiendo el motivo en el texto del ítem. Aquí no hace falta porque
+estas tres solo se apagan **cuando no hay unidad**, y entonces el propio selector, dos centímetros más
+arriba, ya dice «No hay unidades — conecta un dispositivo». El historial no se apaga nunca.
+
+Dos detalles que constan para que nadie los «arregle»: los botones **no declaran `KeyboardAccelerator`**
+—vive en su ítem del menú, y declararlo dos veces lo duplicaría—, y su estado se **espeja** del ítem
+(`BtnHealth.IsEnabled = MnuHealth.IsEnabled`) en vez de recalcularse. Dos condiciones para la misma
+acción acabarían discrepando, y el usuario vería un botón vivo sobre un menú apagado.
+
+**`T11-03` — seis datos con el mismo peso son seis datos que hay que leer.** La tarjeta de unidad era una
+rejilla de 2×3 con seis líneas «Etiqueta: valor», todas del mismo tamaño y del mismo color: «Conexión:
+USB» pesaba tanto como «Salud: Crítico». Las dos preguntas que uno se hace al seleccionar una unidad
+—cuánto cabe y si está sana— había que buscarlas entre las otras cuatro.
+
+Ahora hay tres niveles: la **capacidad** como dato principal, la **salud** a su derecha con su punto de
+color, y sistema de archivos, tipo y conexión en una línea de contexto atenuada. El **espacio libre** baja
+bajo la barra de ocupación, que es de lo que habla — antes estaba a tres líneas del dato con el que se
+compara. Mismo contenido, mismos seis controles, reordenados por importancia.
+
+*La parte que no se ve es la que importa:* los rótulos desaparecen de la **pantalla**, no de la
+**accesibilidad**. `SetInfo` pinta el valor y pone la frase entera en `AutomationProperties.Name`, en un
+solo sitio para que las dos cosas no puedan separarse: un lector de pantalla sigue leyendo «Total: 930,5
+GB». La jerarquía visual no se paga con información.
+
+*Y el punto de color no sustituye al texto* (WCAG 1.4.1): repite en color lo que la palabra ya dice, va en
+`AccessibilityView="Raw"`, y con salud desconocida se pone **gris** en vez de ocultarse — un hueco donde
+había un círculo se lee como que el dato cambió de sitio. Su pincel es **el mismo objeto** que el del
+texto, no una segunda derivación del mismo color: ese es exactamente el camino por el que entró el fallo
+de contraste que documenta `SeverityPalette.All`.
+
+**Verificado** con la app en marcha: `931,5 GB` · `● Normal` · `NTFS · Disco fijo · NVMe · SSD` ·
+`Libre: 181,6 GB`, y los tres botones nuevos. Sin colores nuevos: los dos estilos usan `ThemeResource` de
+Fluent y el punto reusa `HealthDialog.LevelBrush` / `SeverityPalette`, ya medidos.
+
+**Pendiente, y anotado a propósito:** la galería del README (`tools/capture-screenshots.ps1`) es de la
+ventana anterior. No se regeneró aquí porque conduce la app por UI Automation contra unidades reales y
+merece su propia pasada.
+
+---
+
+### 2026-09-01 — `T11-01`: el pie deja de ser solo una barra (se abre el Tier 11)
+
+**De dónde sale.** De una petición de producto —un panel de uso de recursos— sobre una carencia que ya
+estaba ahí: durante un borrado seguro de 40 minutos o una verificación de capacidad larga, **la única
+señal de vida era la barra de progreso**. Con ella quieta no hay forma de distinguir «va lento» de «se
+colgó».
+
+**Qué hay ahora.** Un `Expander` en el **pie**, encima de la barra de progreso, con tres métricas de la
+misma forma —etiqueta + valor, barra, pie de contexto—: **Disco** (caudal de la operación y su pico),
+**CPU** y **RAM** del equipo. Se despliega solo al empezar una operación y se queda desplegado al
+terminar, con el pico: en ese momento deja de ser un monitor y pasa a ser el **resumen** de lo que acaba
+de pasar. Plegado deja un resumen de una línea en su encabezado.
+
+**Por qué en el pie y no en una cuarta tarjeta.** La ventana es de **tamaño fijo** (§4). Las tres
+tarjetas ya llenan los 900 DIP de diseño: una cuarta siempre visible empujaría *Opciones de formato*
+fuera de la vista para cobrar sitio permanente por un dato que solo tiene sentido mientras algo corre. En
+el pie está además pegado a la barra de progreso y al cronómetro, que describen **la misma operación**.
+
+**Lo que se decidió NO enseñar, que es la mitad del trabajo.**
+
+- **CPU del proceso.** Diría casi 0 durante un formateo: formatear, comprobar y reinicializar los
+  ejecutan `format.com`, `chkdsk.exe` o PowerShell en **procesos aparte**. Se enseña la del equipo, y se
+  dice así en el pie de la fila. El consumo propio de la app va al pie de RAM, donde no engaña.
+- **Un contador de disco del sistema.** Daría el tráfico de toda la máquina. El caudal sale de los
+  **bytes que la propia operación reporta** —el mismo dato del que ya vivían la velocidad y el ETA del
+  cronómetro—, así que no hay dos cifras distintas para lo mismo en la misma pantalla.
+- **Un máximo teórico para la barra de disco.** No existe: depende del medio, del bus y de la operación.
+  La barra se escala contra el **pico de esta operación**, que responde a la pregunta útil: ¿se está
+  frenando?
+
+**Cuatro trampas, y por qué constan.**
+
+1. **`PerformanceCounter` no vale aquí.** Los nombres de categoría de PDH están **traducidos** —en un
+   Windows en español la categoría es «Procesador», no «Processor»— y esta app se instala en cinco
+   idiomas: se habría caído en la mitad de las máquinas, y solo en las de los usuarios. Además su primera
+   lectura tarda y devuelve 0, justo cuando el usuario acaba de abrir el panel. Se usa `GetSystemTimes` +
+   `GlobalMemoryStatusEx`.
+2. **`GetSystemTimes` mete el tiempo ocioso DENTRO del de núcleo.** Restarlo no es una corrección
+   opcional, es la fórmula; hay una prueba anclada a eso para que nadie la «simplifique».
+3. **Las barras no son `ProgressBar`**, por lo mismo que la de ocupación: su plantilla fija la pista en
+   1 px mientras el relleno ocupa el `MinHeight`, así que no pueden tener el mismo grosor. Pista =
+   `Border`, relleno = su hijo, ancho por columnas estrella.
+4. **Ni un `Color.FromArgb` nuevo.** Los colores salen de `SeverityPalette` —el inventario que el barrido
+   WCAG mide— y con los **mismos umbrales 80/90** que la barra de ocupación: dos barras iguales que
+   cambiaran de color en umbrales distintos enseñarían que el color no significa nada.
+
+**Coste, acotado a propósito.** El temporizador corre con el panel desplegado **o** con una operación en
+curso, y en ningún otro momento. La app arranca elevada en toda sesión y muchas se pasan enteras sin
+formatear nada.
+
+**Accesibilidad.** Sin región activa nueva: `StatusText` ya es la del pie, y otra que se actualizara cada
+segundo con tres cifras haría inusable un lector de pantalla durante una operación de horas. Las barras
+van en `AccessibilityView="Raw"` y el valor queda en texto, al lado.
+
+**Verificado:** build 0/0, **+41 unitarias** sobre `SystemLoad` y `MovingAverage` (664/664, 1 omitida), y
+con la **app en marcha**: plegado, desplegado, valores vivos y preferencia persistida entre arranques.
+
+---
+
+### 2026-08-27 — `T10-01`: el camino de fallo de la cobertura deja pruebas en vez de señalar mal
+
+`Get-CoreCoverage` devolvía `$null` a **cuatro** situaciones distintas y el corte las contaba todas con el
+mismo mensaje: «revisa que coverlet.collector siga referenciado». Las dos veces que ha fallado de verdad,
+el paquete estaba referenciado. Ahora devuelve un `.Status` —`missing`, `unreadable`, `empty`, `nocore`— y
+cada uno aborta diciendo lo suyo; `nocore`, en particular, ni siquiera es del recolector.
+
+**Lo que se decidió, y por qué:**
+
+- **La segunda pasada con `--diag` no es un reintento.** Es la distinción que sostiene toda la tarea: se
+  vuelve a medir, sí, pero **el corte muere igual gane o pierda**. Lo único que cambia es el veredicto que
+  imprime —«es intermitente» o «es reproducible aquí y ahora»— y el consejo. Un fallo intermitente al que
+  se le pone un reintento deja de aparecer sin dejar de existir, y esta puerta es la que decide si un
+  corte sale.
+- **Las pruebas se conservan FUERA del repo.** `%TEMP%\FormatDiskPro_cobertura_fallida\...`, no una
+  carpeta del proyecto: un archivo nuevo dentro del árbol haría abortar el siguiente corte por árbol sucio
+  (`T9-01`). El remedio de un fallo no puede estropear el diagnóstico del siguiente.
+- **El directorio de trabajo lo borra la corrida siguiente**, y eso es justo lo que hacía desaparecer la
+  única prueba: al cortar la v1.25.0, del fallo solo quedó lo que se copió a mano antes de relanzar.
+
+**Verificado en dos niveles**, y el segundo es el que importa: las cinco clasificaciones contra informes
+fabricados (5/5, incluido el `<packages />` real de 235 bytes), y el **camino de fallo completo** con una
+copia desechable del script apuntando a ese informe. Clasificó `empty`, conservó el informe, repitió con
+`--diag` —midió 98,1 %, veredicto «intermitente»—, guardó **3,7 MB de diagnósticos** (entre ellos el log
+del *datacollector*, que es el que puede explicar por qué no se instrumentó nada) y abortó con `exit 1` sin
+nombrar a `coverlet.collector`.
+
+**Lo que NO se ha resuelto, y se deja abierto en vez de darlo por cerrado:** la causa. Se abre **`T10-02`**,
+bloqueada a propósito **hasta que el fallo vuelva a ocurrir**, porque no se puede investigar lo que no se
+reproduce. Su criterio de cierre exige nombrar la causa con un log delante, o decir qué se descartó y con
+qué pruebas. Cerrar `T10-01` y callar la pregunta habría sido fingir que se resolvió.
+
+### 2026-08-26 — v1.25.0 publicada, y un corte que abortó sin causa conocida: se abre el Tier 10
+
+**Publicada la [v1.25.0](https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.25.0)**, que lleva el
+Tier 9 entero. Unitarias **623/623 con 0 omitidas** —la de capacidad sobre unidad real corrió por fin, con
+`FORMATDISKPRO_VERIFY_DRIVE`—, `Core/` al **98,1 %**, UI **34/37** con los tres omitidos *opt-in*, y los
+dos assets arriba (instalador de 58,9 MB y su `.sha256`). El commit del corte llevó **solo el `.csproj`**,
+que es lo que `T9-01` vino a garantizar, y el cuerpo del release renderiza bien: `T8-04` y `T8-05` se
+sostienen en una publicación de verdad.
+
+**Pero el primer intento abortó**, y eso es lo que merece quedar escrito. Murió en la puerta de cobertura
+con el informe **vacío** —235 bytes, `<packages />`—, con las 623 pruebas en verde: el artefacto exacto de
+`T8-06`, **con el arreglo de `T8-06` puesto y ejecutado** (compiló 18,5 s y midió con `--no-build`).
+
+**No se reprodujo.** Tres intentos, los tres con informe de 1,6 MB, incluido el que replica la condición
+que provocaba `T8-06` —desactualizar la compilación a propósito—. El reintento del corte completo salió
+limpio a la primera. De modo que `T8-06` sigue cerrada y correcta: **cerró una** de las causas del informe
+vacío, y hay **al menos otra que no se conoce**. Se abre el **Tier 10** con `T10-01`, y se abre diciendo
+justo eso.
+
+**Lo que se decidió, y por qué:**
+
+- **Nada de reintentar la medición automáticamente.** Es la tentación obvia y sería el peor arreglo: un
+  fallo intermitente al que se le pone un reintento deja de aparecer sin dejar de existir, y esta puerta
+  es la que decide si un corte sale. La tarea va de **dejar pruebas la próxima vez** —distinguir informe
+  *ausente* de informe *vacío*, conservar el vacío en vez de dejarlo en un `%TEMP%` que se borra solo, y
+  pedir los diagnósticos del recolector únicamente por ese camino—.
+- **El mensaje vuelve a señalar mal.** Dice «revisa que coverlet.collector siga referenciado» y en las dos
+  ocasiones registradas el paquete estaba perfectamente referenciado. Es literalmente la moraleja que ya
+  dejó escrita `T8-06` —*un fallo de herramienta que señala mal se arregla dos veces*— sin aplicar del
+  todo, porque entonces se arregló la causa y no el mensaje.
+- **La puerta falló hacia el lado seguro**, y eso también consta: abortó **antes del bump**, con el árbol
+  limpio, sin commit, sin tag y el `.csproj` intacto. Un corte a medias habría costado mucho más que un
+  reintento.
+
+**Nota de banco de pruebas:** la USB `utilidades` está en **`I:`** (en `G:` hay ahora otro medio), y la
+variable de la prueba de capacidad es `FORMATDISKPRO_VERIFY_DRIVE`. Con ella puesta, las unitarias pasan de
+622/1 omitida a **623/0**.
+
+### 2026-08-26 — Tier 9 CERRADO (20/20): las doce restantes
+
+Aplicadas las doce que quedaban tras los *quick wins*: `T9-02`, `T9-04`, `T9-05`, `T9-06`, `T9-08`,
+`T9-09`, `T9-13`, `T9-14`, `T9-17`, `T9-18`, `T9-19` y `T9-20`. **El Tier 9 se abre y se cierra el mismo
+día.** Build **0/0**, **622 pasan / 1 omitida** (623, eran 611).
+
+**Lo que merece recordarse:**
+
+- **La galería vuelve a ser una herramienta fiable de auditoría.** Cada toma declara su precondición y se
+  le busca una unidad que la cumpla (`T9-04`); si no la hay se **omite declarando el motivo**, y al final
+  hay recuento y **código de salida** (`T9-05`). **Verificado: 26/26 sin `-Drive`**, cuando antes salían
+  22 y decía «completada». Además comprueba que la ventana abierta **es la app** y no el diálogo de error
+  de .NET (`T9-06`), que es lo que fotografiaba en silencio tras un `dotnet build` plano.
+- **El corte deja de dar consejos imposibles.** `-ResumeRelease` (`T9-02`) retoma un corte muerto después
+  de etiquetar reutilizando tag e instalador. Antes el mensaje decía «reintenta» y la validación de
+  arriba abortaba con «el tag ya existe». Y el `-DryRun` en ese modo enseña el plan **real**: listar los
+  pasos que se salta sería la misma clase de mentira que las notas genéricas de `T8-04`.
+- **Un fallo de lectura ya no destruye lo que no se pudo leer.** Un `settings.json` ilegible se aparta a
+  `.corrupt.json` en vez de esperar a que el primer `Save()` lo pise con los presets dentro (`T9-08`).
+- **La cabecera de este archivo ya no lleva estado** (`T9-14`). Es la segunda vez que la duplicación con
+  §3 y el ROADMAP la envejece hasta contradecirse; ahora solo lleva lo que no caduca, y la regla está
+  escrita dentro de la propia tabla.
+
+**Dos trampas nuevas, las dos encontradas al VALIDAR y no al escribir:**
+
+1. **Un comentario `{ … }` de Pascal en un `.iss` se cierra con la PRIMERA llave de cierre.** El
+   comentario que documentaba `T9-20` contenía `{app}`, así que terminaba a mitad y el resto se compilaba
+   como código: *«'BEGIN' expected. Compile aborted.»*. No lo habría visto nadie hasta el siguiente corte
+   —el instalador solo se compila ahí—. Se detectó porque **se compiló el `.iss` a propósito** para
+   validarlo. Queda anotado en el propio archivo.
+2. **Los textos legales embebidos se truncan por encima de 78 columnas.** `T6-14` fijó el ancho del visor
+   (430 px, cuerpo a 10 px, `NoWrap`) pero nada vigilaba el **contenido**, y al ampliar los avisos de
+   terceros cinco líneas se pasaron. Con `NoWrap` y sin barra visible el texto **se pierde**, que es peor
+   que verlo mal. Ahora hay una prueba que barre `LICENSE` y `THIRD-PARTY-NOTICES.txt`.
+
+**Y una decisión de producto, pequeña pero con criterio:** la comprobación de actualizaciones al arrancar
+se puede desactivar (`T9-18`), pero viene **activada**. Apagarla de serie dejaría sin avisos de seguridad
+a quien nunca abra el menú; lo que faltaba no era apagarla, era poder hacerlo.
+
+### 2026-08-26 — Tier 9: los ocho *quick wins* (`T9-01`, `T9-03`, `T9-07`, `T9-10`, `T9-11`, `T9-12`, `T9-15`, `T9-16`)
+
+Aplicados los ocho arreglos de esfuerzo bajo que abrió la re-auditoría de esa misma fecha. Build **0/0**,
+**610 pasan / 1 omitida / 0 fallan** (611, eran 607: +4 unitarias).
+
+**Lo que importa recordar de cada uno:**
+
+- **`T9-01` — el corte ya no publica lo que no ha mirado.** Comprobaba los archivos *sin rastrear* pero no
+  los *modificados*, que son los que `git add -u` sí barre. Como `build-installer.ps1` publica **lo que hay
+  en disco**, no lo que hay en HEAD, el instalador podía no corresponder al commit etiquetado. Ambos casos
+  quedan bajo `-AllowDirty`, que es lo que su ayuda prometía desde el principio: el fallo estaba en el
+  código, no en la documentación.
+- **`T9-07` — la convención de invariante llegó a los sitios que escriben.** Los cuatro que leen ya la
+  respetaban. Un formato personalizado sin proveedor usa el **calendario** de la cultura: en `th-TH` el
+  historial se fechaba con el año budista y `Parse` lo aceptaba como gregoriano. Ahora ambos lados usan la
+  misma constante, `HistoryEntry.TimeFormat`, que pasó a `internal` por eso.
+- **`T9-12` — el barrido que a `T6-12` le faltaba.** `L.T` pasa `Culture` como proveedor. **No cambia una
+  sola cadena hoy**; cambia que la regla deje de depender de que cada punto de llamada se acuerde de
+  preformatear. Es el patrón de `T1-04` y `T1-07` aplicado al último arreglo que no lo tenía.
+- **`T9-10` — lo que ya estaba traducido y no se usaba.** `health.level.*` y `SmartInfo.HealthLevel`
+  existían desde `#16` y solo elegían el **color**. Ahora dan también el texto, y `LevelLabel` pasó a
+  `internal` para que la tarjeta principal comparta el mismo que el diálogo — como ya compartían
+  `LevelBrush`.
+
+**Trampa nueva, y conviene tenerla escrita.** Al verificar por reversión, restaurar los fuentes con
+`Copy-Item` desde un respaldo **no rehace la compilación**: `Copy-Item` conserva la marca de tiempo del
+origen, MSBuild ve los archivos «al día» y `dotnet test --no-build` ejecuta el **DLL con el código
+revertido**. Las pruebas seguían en rojo con el arreglo ya restaurado en disco. Es primo hermano de la
+trampa del `.slnx` (§4, *Build y publicación*): siempre que un resultado no cuadre con lo que se ve en el
+fuente, sospechar del binario. Se resolvió tocando la marca de tiempo antes de recompilar.
+
+**Verificado por reversión** `T9-07` y `T9-12`: quitando cada arreglo, sus pruebas caen —la de la fecha
+mostrando literalmente `2569-08-26`— y vuelven a pasar al restaurarlo.
+
+**Quedan 12 tareas abiertas** del Tier 9, ninguna de esfuerzo bajo: las de la galería de capturas
+(`T9-04`/`T9-05`/`T9-06`), las dos de corrección restantes (`T9-02`, `T9-08`), `T9-09`, `T9-13`, `T9-14`,
+`T9-17` y las tres de cumplimiento (`T9-18`, `T9-19`, `T9-20`).
+
+### 2026-08-26 — Re-auditoría transversal con la app en marcha: se abre el Tier 9 (20 tareas)
+
+**Qué se hizo.** Una re-auditoría de las **12 áreas aplicables** —las 13 menos SEO, y dentro del área 6 sin
+la responsividad web: no aplica a una app de escritorio de ventana fija— **ejecutada sobre la máquina**,
+no leída: build,
+607 unitarias con cobertura, los 37 UI tests con la USB `utilidades` conectada, la galería completa de
+capturas en ambos temas, y medición propia de arranque y de contraste. No se tocó código: el resultado son
+**20 tareas** en un **Tier 9** nuevo (1 Alta, 9 Medias, 10 Bajas).
+
+**Punto de partida verificado, no supuesto:** build **0 advertencias / 0 errores**; unitarias **606 pasan /
+1 omitida / 0 fallan**; `Core/` al **97,9 %** (Localization 100 %, Services 65,4 %, UI 0 %); UI **34 pasan /
+3 omitidas / 0 fallan** de 37 en 2 min.
+
+**Nada de lo cerrado estaba cerrado en falso.** Se comprobó en el código lo que tocaba a las áreas
+revisadas —`T8-01`, `T8-02`, `T7-09`, `T6-12`/`T7-05`, `T1-04` y `T1-01`— y todo sigue en pie. `T1-04` se
+volvió a medir de verdad, muestreando cuatro pares de píxeles sobre los PNG: 5,1 · 8,11 · 6,94 · 5,49 : 1,
+los cuatro por encima del 4,5:1 de AA.
+
+**Lo que enseñó, y es lo que conviene recordar:**
+
+- **La parte más frágil no es la app, es el corte.** `T9-01`: `release.ps1` valida los archivos **sin
+  rastrear** pero no los **modificados**, y `git add -u` los barre al commit de release. Como el instalador
+  se compila desde el árbol de trabajo, **el binario publicado puede no corresponder al commit etiquetado**.
+  La propia ayuda de `-AllowDirty` promete algo que el script no hace. Es la tercera vez que el corte
+  aparece como el eslabón débil (`T2-12`, `T8-04`/`T8-06`, y ahora esto): las pruebas del producto están
+  mucho mejor vigiladas que el proceso que lo publica.
+- **La herramienta de auditoría también hay que auditarla.** `T9-04`/`T9-05`: la galería eligió `D:` —fija
+  y de 223 GB— y con esa unidad *FAT32* no se oferta y *Reinicializar* sale deshabilitado, así que
+  **4 de las 26 tomas no podían existir**, incluida la del **diálogo destructivo**. Terminó diciendo
+  «Galería completada». Verificado que es la configuración y no las tomas: con `-Drive I` (extraíble,
+  27,3 GB) ambas salen a la primera. Es literalmente la lección de `T2-12` —distinguir «omitido» de
+  «correcto»— aplicada a las pruebas y no a las capturas.
+- **Una convención sin barrido vuelve por donde escribe.** `T9-07`: los **cuatro** sitios que leen,
+  exportan o muestran la fecha del historial usan `InvariantCulture` explícita; los **dos** que la
+  **escriben**, no. En un Windows `th-TH` el historial se fecha con el año budista (**2569** en vez de
+  2026) y `TryParseExact` lo acepta, así que la entrada queda 543 años en el futuro. Misma familia que
+  `T1-01` (cultura turca). Medido, no razonado.
+- **Y el reverso de `T6-12`.** `T9-12`: `L.T(clave, args)` formatea con la cultura de Windows. Hoy no
+  falla —ninguna plantilla lleva especificador y los ~45 puntos de llamada preformatean con `L.Culture`—,
+  pero es el único arreglo de este proyecto que **no** se convirtió en un barrido que lo vigile, al
+  contrario que `T1-04` (inventario de color) o `T1-07` (tablas de cadenas). Una línea lo vuelve
+  estructural.
+- **Lo que ya estaba traducido y no se usaba.** `T9-10`: `health.level.ok/warning/critical` llevan tiempo
+  traducidas a los cinco idiomas y `SmartInfo.HealthLevel` ya clasifica el valor — pero solo se usan para
+  elegir el **color**. La tarjeta principal muestra «Salud: **Healthy**» en los cinco idiomas y el diálogo
+  S.M.A.R.T. muestra «**Healthy — Normal**»: el inglés crudo junto a su traducción.
+
+**Lo que se persiguió y NO llevó a ningún sitio** (consta para no repetirlo): la ruta de **escalada local**
+vía `settings.json` —vive en `%AppData%`, se escribe sin elevación y lo lee un proceso elevado—. Se siguió
+entera hasta `Format-Volume` y está **cerrada**: `MnuPreset_Click` exige que el sistema de archivos del
+preset coincida con un ítem del `ComboBox` (`IndexOf`), y `ReinitDrive` **revalida** el plan contra la lista
+blanca antes de construir el script. También se descartaron dos sospechas: el botón de maximizar (el código
+sí fija `IsResizable`/`IsMaximizable` en `false`) y la lectura del `.csproj` en `build-installer.ps1`
+(`[xml](Get-Content …)` **sí** respeta el BOM; se comprobó que el acento de `<Authors>` sobrevive).
+
+**Qué quedó a medias:** nada del código —la auditoría no toca código a propósito—. Sí se actualizó la
+contabilidad del `ROADMAP.md`, que **se había quedado dos tiers atrás**: el índice marcaba el Tier 6 como
+«lo único abierto» y sumaba 60 tareas cuando ya eran 75. Las dos tareas de deriva documental (`T9-14`, la
+cabecera de este archivo contradiciendo a §3; `T9-15`, el árbol de §2 listando `Core/SecureWipe.cs`, que no
+existe, y omitiendo `Core/ErrorText.cs`, que sí) quedan **abiertas a propósito**: los valores de estado sí
+se han puesto al día, pero quitar la **duplicación** que los envejece es un cambio a decidir, no un
+refresco.
+
+### 2026-08-26 — `T8-04` a `T8-06`: el corte salió en verde y publicó unas notas vacías
+
+**La v1.24.0 se publicó bien y contó mal.** El corte terminó impecable —604 pruebas, 98,1 % de cobertura,
+34 UI tests sobre la app real, instalador y `.sha256` subidos— y el cuerpo del release era una **plantilla
+genérica**: «Instalador self-contained para Windows x64…» y nada de lo que traía la versión. Se lanzó
+`release.ps1` sin `-NotesFile`, y sin ese parámetro el script no leía el CHANGELOG: se inventaba un texto.
+
+Es la peor forma de fallo para un script de publicación, porque **no avisa**. La sección del CHANGELOG es
+obligatoria —el script aborta si falta— así que estaba escrita, revisada y a mano; simplemente no se usaba.
+Ahora es de ahí de donde salen las notas cuando no se pasa `-NotesFile`, que sigue mandando cuando se pasa:
+un registro por versión y unas notas de publicación pueden querer contar lo mismo de otra forma. Y el plan
+del `-DryRun` dice de dónde van a salir, que es justo donde se habría visto antes de publicar.
+
+**`T8-05` — y la plantilla arrastraba un carácter invisible.** La pantalla de *Novedades* mostraba
+«`## FormatDiskPro v1.24.0`» con las almohadillas a la vista, aunque `ToPlainText` quita encabezados desde
+siempre. El cuerpo del release empezaba por una **marca de orden de bytes** (`U+FEFF`): `Out-File
+-Encoding utf8` de PowerShell 5.1 la escribe, y viaja intacta hasta la API de GitHub. Con ella delante, el
+`#` ya no estaba al principio de su línea y la expresión regular no lo veía.
+
+Lo traicionero es que **`U+FEFF` no es espacio en blanco para .NET** —categoría `Cf`, no `Zs`—, así que ni
+`\s` ni `Trim()` lo tocan: hay que nombrarlo. Se quita antes de cualquier otra cosa, y se quitan todas y no
+solo la primera, porque al pegar notas de varias fuentes puede aparecer a mitad del texto. El origen queda
+arreglado en `T8-04` (ya escribe sin BOM), pero el conversor no puede fiarse de eso: el cuerpo de un
+release puede venir de cualquier editor.
+
+**Verificado por reversión:** quitando el reemplazo caen las tres pruebas nuevas, y con él vuelven a verde.
+El release de la v1.24.0 se reeditó con las notas de verdad, así que la pantalla de *Novedades* de la
+versión ya publicada también se ve bien: el texto lo pide a la API cada vez, no lo lleva dentro.
+
+**`T8-06` — y la cobertura fallaba «al azar», que tampoco era al azar.** Dos veces abortó el corte con
+«Se pidió cobertura y no se obtuvo informe. […] revisa que coverlet.collector siga referenciado». No
+faltaba ningún paquete: el informe estaba ahí y estaba **vacío**, 235 bytes con `<packages />`. Cuando la
+compilación no está al día, coverlet instrumenta los ensamblados que encuentra y **MSBuild los sobrescribe
+acto seguido** con los recién compilados; no queda nada instrumentado que medir.
+
+La primera vez se descartó como transitorio —al repetir salió bien—, y ese razonamiento era **malo**: salió
+bien porque la corrida anterior había dejado la compilación hecha. A la segunda se midió en vez de suponer:
+informe vacío 2 de 2 con cambios sin compilar, 1,6 MB 4 de 4 con la compilación al día. Es decir, falla
+**siempre** en la situación de cualquier corte real, porque se publica justo después de tocar código.
+`dotnet build` antes de medir y `dotnet test --no-build` después, verificado desactualizando la compilación
+a propósito.
+
+Lo que más costó aquí fue el mensaje: culpaba a un paquete que estaba perfectamente puesto. Un fallo de
+herramienta que señala mal se arregla dos veces, una buscando donde no es.
+
+**Lo que este trío deja escrito:** el Tier 8 salió de mirar la app en uso, y estos tres salieron de mirar
+**el resultado de publicarla**. Un corte en verde dice que el código está bien, no que lo publicado esté
+completo — y un corte en rojo no siempre acusa a quien tiene la culpa.
+
+### 2026-08-26 — Tier 8: lo que solo se ve usando la app (`T8-01` a `T8-03`)
+
+**Una captura encontró lo que dos revisiones enteras no.** El Tier 6 miró capturas de la galería y el
+Tier 7 miró el código; este tier salió de una **captura de la app en uso real**, con el historial lleno,
+enviada de pasada para enseñar otra cosa. En ella había cuatro entradas seguidas que decían
+`EXPORT ERROR:` y nada más.
+
+**`T8-01` — *Exportar CSV* nunca funcionó en ninguna versión publicada.** El
+`FileSavePicker` de WinRT delega en un intermediario que **rechaza a los procesos elevados**, y
+FormatDiskPro corre siempre elevada (`requireAdministrator`, decisión cerrada). `PickSaveFileAsync`
+lanzaba `COMException 0x80004005` **en el acto**, sin llegar a mostrar ninguna ventana: para el usuario,
+un botón que no hacía nada. Los tres primeros fallos del historial están separados por **3 y 4 segundos**
+—demasiado poco para elegir un nombre de archivo—, que fue la primera señal de que el diálogo ni se abría.
+
+**Medido, no supuesto.** Una sonda de UI pulsó el botón contra el .exe real y enumeró las ventanas del
+proceso: ninguna nueva. Con el arreglo, la misma sonda ve aparecer la ventana `Exportar CSV` de clase
+`#32770` —la de los diálogos comunes de Windows—. Las ventanas se enumeran por `EnumWindows` y **no** por
+UI Automation: un modal del sistema bloquea el hilo de UI de la app y toda consulta UIA caduca con
+«Operation timed out», que es un síntoma del bloqueo y no una medida. Tomarlo por resultado habría sido el
+error que `T6-11` existe para no repetir. La sonda se convirtió en prueba de regresión y se borró.
+
+**El arreglo es el diálogo de Windows por COM** (`IFileSaveDialog`), que lo crea el propio proceso y por
+tanto la elevación le da igual — y es el mismo diálogo moderno del resto del sistema, no el
+`GetSaveFileName` de los noventa. De la interfaz se declaran los métodos **en orden de vtable** hasta el
+último que se usa: en COM el orden ES el contrato. La escritura pasa a `File.WriteAllTextAsync` con
+**UTF-8 con BOM**, que es lo que hacía `FileIO.WriteTextAsync`: sin BOM, Excel abre el CSV en la página de
+códigos del sistema y destroza los acentos.
+
+**Por qué viajó en todas las versiones:** no había **ninguna** prueba de la exportación. La había de
+`HistoryEntry.ToCsv` —la parte pura, con su escape RFC 4180 y su defensa contra fórmulas— pero ninguna del
+camino que el usuario pulsa. La lección no es «faltaba un test», es que la cobertura estaba donde era
+fácil ponerla.
+
+**`T8-02` — y el error que lo tapaba.** Las cuatro líneas del historial no estaban truncadas: la `Message`
+de esa excepción era **de verdad la cadena vacía**. Una excepción que cruza la frontera de WinRT lleva su
+texto en un `IRestrictedErrorInfo`, y cuando ese descriptor viene sin descripción —lo habitual en los
+fallos de COM— lo que llega a .NET es un mensaje en blanco. El `InfoBar` mostraba título sin cuerpo y el
+historial registraba que algo falló sin decir qué. `ErrorText.Describe(ex)` respalda con el tipo y el
+`HRESULT`, y **fue lo que diagnosticó `T8-01`**: con el respaldo puesto, la app dijo
+`COMException (HRESULT 0x80004005)` en pantalla y eso señaló directamente al selector.
+
+Lo usan los once sitios que enseñan o registran un error, incluida la línea de un formateo fallido
+(`OperationFailure`), que es la más importante del archivo. Y una prueba **barre las fuentes** y falla si
+vuelve a aparecer el mensaje en crudo fuera de `ErrorText`: no es una regla de estilo, cada uno de esos
+sitios podía escribir un error vacío.
+
+**`T8-03` — dos botones más que podían no hacer nada.** Buscando la misma familia de fallo aparecieron dos
+`catch` vacíos: `History.Open()` (*Abrir archivo*) y `UpdateService.OpenUrl()` (*Apoyar el proyecto*,
+*GitHub*, *Ver en GitHub*). Sin editor asociado a `.log` o sin navegador, el botón no producía **ningún**
+efecto visible. Ahora `Open()` deja salir la excepción y el diálogo la cuenta en la `InfoBar` que ya
+tenía, y `OpenUrl()` devuelve `bool` para que quien llama enseñe la dirección. Detalle que casi se cuela:
+*Ver en GitHub* debe **seguir cerrando** el diálogo cuando el navegador sí abre —es lo que se espera de
+ese botón—, así que solo se queda abierto cuando hay algo que contar.
+
+**Lo que este tier deja escrito:** las tres revisiones de UI han encontrado cosas distintas porque miraron
+fuentes distintas —capturas de galería, código, y la app en uso—. La tercera es la única que encontró un
+defecto de corrección, y encontró el mayor de los tres.
+
+### 2026-08-26 — `T7-08` y `T7-09`: se cierra el Tier 7 (9/9)
+
+**La respuesta era «no», y la propuesta de la tarea también.** Con el disco de sistema seleccionado y el
+ratón sobre *Reinicializar unidad…*, **no aparece nada**: WinUI no tiene el `ShowOnDisabled` de WPF, y un
+control deshabilitado no recibe eventos de puntero, así que su tooltip no se pinta jamás. El motivo que
+`T7-02` había escrito llegaba solo por `HelpText`, es decir, **solo a un lector de pantalla**. Un ítem gris
+y mudo para quien mira era exactamente lo que esa tarea se prohibió a sí misma.
+
+**Pero la `InfoBar` que la tarea proponía era el sitio equivocado, y mirarlo lo dejó claro.** El flyout de
+*Herramientas* se despliega **justo encima** de la fila donde vive `ProtectedBar`: el aviso habría quedado
+tapado por el propio menú que lo motiva. Y hay un problema anterior al de la geometría: el motivo es **por
+ítem** —protegida, no extraíble, sin unidad—, mientras que una barra es **por ventana**, y con tres ítems
+apagados por razones distintas tendría que resumirlas sin poder decir a cuál corresponde cada una.
+
+**Dónde fue, entonces: al texto del propio ítem.** «Reinicializar unidad… (unidad protegida)», «Expulsar
+unidad (solo extraíbles)». Tres claves nuevas (`menu.tagNoDrive`, `menu.tagProtected`,
+`menu.tagRemovable`) × 5 idiomas, cortas y entre paréntesis porque son un apéndice del nombre, no una
+frase aparte. Las `menu.why*` de `T7-02` **se quedan tal cual**: la etiqueta cabe en un menú, la frase
+completa dice el porqué, y cada una va donde sirve —la primera a la vista, la segunda al `HelpText`—. El
+tooltip se conserva aunque hoy no se pinte: no cuesta nada y deja de ser deuda el día que la plataforma lo
+muestre.
+
+**El efecto colateral fue el hallazgo de verdad.** El texto de esos siete ítems tenía **dos dueños**:
+`ApplyLanguage` lo escribía al cambiar de idioma y `UpdateToolsMenuAvailability` al cambiar de unidad.
+Mientras el texto era constante, la duplicación era inocua; con la etiqueta dentro se vuelve un fallo
+—según cuál corriera el último, la etiqueta se perdía o se acumulaba en cada repintado—. `ApplyLanguage`
+deja de escribirlos (ya llamaba a `UpdateToolsMenuAvailability` al final, por los motivos de `T7-02`), y
+el texto se re-deriva **siempre** de la clave de localización, nunca del que el ítem trae puesto.
+
+**Verificado por reversión:** quitando la etiqueta del `Text`, la prueba de `T7-02` —ampliada con una
+comprobación del texto **visible**, no solo del `HelpText`— falla; con ella, verde. La aserción es
+independiente del idioma (el texto de un ítem apagado termina en `)`), porque el idioma activo en la
+máquina de pruebas es el que el usuario tenga guardado. +6 unitarias sobre las etiquetas en los cinco
+idiomas.
+
+**`T7-09` — y mirar el resultado abrió otra cosa.** El mismo repaso con la app delante enseñó que, al
+tabular hasta el primer filtro del *Historial*, su **marco de foco salía cortado por la izquierda**. La
+causa no está en ese combo: WinUI dibuja el marco de foco **hacia fuera** de los límites del control —2 px
+de trazo primario más 1 px de secundario— y el `ContentDialog` envuelve su contenido en un `ScrollViewer`
+que recorta. Cualquier control pegado al borde de la raíz pierde el lado que cae fuera, y **los seis
+diálogos** ponían su raíz pegada al borde. Al buscador y a la fila de botones les pasaba igual; solo se
+notó en el combo porque su marco es el más visible.
+
+Por eso el arreglo no vive en el historial sino en un recurso compartido —`DialogContentPadding` = 3 px,
+que es exactamente lo que el trazo necesita—, aplicado a la raíz de los seis. Va **dentro** de
+`MinWidth`/`MaxWidth`, así que no mueve el ancho de nadie ni toca lo que fijó `T6-07`. Esa tarea es
+justamente el precedente: un criterio por diálogo acabó en seis criterios distintos y en una ventana que
+saltaba al abrir el siguiente.
+
+**La excepción va declarada, no borrada.** `LegalTextDialog` se queda sin relleno porque su ancho es el
+valor **medido** en `T6-14` para que quepan las 78 columnas de la GPL sin barra horizontal: 6 px menos
+volverían a partir el texto legal. Y no lo necesita — su raíz es un `ScrollViewer` que ocupa el diálogo
+entero, sin ningún control tabulable pegado al borde. El nombre y el porqué están en la propia prueba, que
+es donde hay que ir a discutirlos si algún día cambian.
+
+**Qué prueba la prueba, y qué no.** Barre los `*Dialog.xaml` y falla nombrando el que se olvide del
+relleno —verificado por reversión—, pero lo que defiende es **la convención, no los píxeles**: que el
+recorte ya no se vea es una comprobación de ojo, igual que la que abrió `T7-08`. Un diálogo nuevo que se
+salte el relleno recorta el foco exactamente igual, y nadie lo notaría hasta que alguien tabulara.
+
+### 2026-08-25 — Tier 7: siete de ocho (`T7-01` a `T7-07`)
+
+**Por qué hay otro tier de UI con el Tier 6 recién cerrado.** El Tier 6 nació de las **capturas** y cerró
+la clase «la interfaz afirma algo que no es cierto». Esta revisión partió del **código** de `UI/` y buscó
+lo que una galería no puede enseñar: qué ocurre **al pulsar**, qué se ofrece para negarse después, y qué
+obliga a hacer a mano. Los seis hallazgos son de esa naturaleza —consistencia, prevención de errores y
+eficiencia—, **ninguno es un defecto de corrección**. Que la segunda revisión encuentre cosas distintas a
+la primera no es que la primera fuera mala: es que miraba otra superficie, igual que `T6-11` encontró tres
+cosas que la ronda sobre capturas no podía ver.
+
+**`T7-01` — el hallazgo era una comparación, no un juicio.** Borrar un preset hacía `Remove` + `Persist()`
+en un clic, sin confirmar ni deshacer, con la papelera pegada a «Editar» en una fila de cuatro iconos.
+Aisladamente se puede defender (no es dato del disco). Lo que no se puede defender es que en el **mismo
+producto** *Vaciar historial* sí confirme: dos acciones igual de irreversibles pidiendo cosas distintas.
+Por eso el arreglo no inventa un patrón — reusa el `Flyout` dentro del contenido que ya existía allí,
+que a su vez existe porque **un `ContentDialog` no puede abrir otro**.
+
+Dos detalles que salieron al hacerlo: la pregunta lleva **el nombre del preset dentro** (en una lista de
+papeleras idénticas, «¿Eliminar?» no dice cuál se pierde), y el flyout hay que **capturarlo en `Opening`**
+para poder cerrarlo: su contenido vive en un `Popup`, así que desde el botón que confirma no se sube hasta
+él por el árbol visual. Solo puede haber uno abierto a la vez, de modo que un campo basta.
+
+**`T7-03` — la ayuda estaba donde no hacía falta.** El sistema de archivos tiene descripción bajo su combo
+desde `T1-05`; *Tamaño de unidad de asignación* —el campo que menos gente sabe elegir— no tenía ninguna. Al
+redactarla apareció la trampa: el borrador decía «Predeterminado sirve para casi todo», pero **no existe
+ninguna opción llamada así**: `UpdateAllocationUnits` puebla el combo con tamaños concretos (`4 KB`,
+`64 KB`) y el recomendado llega *preseleccionado*. Habría sido justo el fallo del Tier 6 —la interfaz
+afirmando algo que no es cierto— en una cadena nueva. La prueba barre los cinco idiomas y falla si alguna
+traducción futura vuelve a inventarse la opción.
+
+**`T7-05` — el caso intermedio.** El estado vacío del historial ya distinguía *sin historial* de *sin
+coincidencias*; lo que no había forma de saber es cuándo **hay** resultados pero no todos. Ahora el
+buscador es un `AutoSuggestBox` (por el botón de limpiar; sugerencias apagadas, no hay corpus que sugerir)
+con **nombre accesible propio** —apoyarse en el placeholder como nombre es lo que falló en `T6-02`— y
+debajo un «12 de 340» que se oculta con el historial vacío, porque ahí el estado vacío ya lo dice con
+palabras. Los dos números se formatean con `L.Culture` **antes** de entrar en `L.T`: `string.Format` usa
+`CurrentCulture`, es decir la de Windows, y por ahí volvía `T6-12`.
+
+**`T7-04` — el atajo que había que probar, no razonar.** `Ctrl+I` (salud), `Ctrl+B` (benchmark), `Ctrl+H`
+(historial) y `Ctrl+E` (exportar, dentro del historial). Formatear, reinicializar, verificar capacidad y
+borrado seguro **no llevan atajo a propósito**: una combinación mal pulsada no puede ser el primer paso de
+algo que borra datos, y la confirmación reforzada existe justamente para que llegar ahí cueste.
+
+Lo que no era obvio: los `MenuFlyoutItem` de un `MenuBar` viven en un flyout que puede no haberse
+desplegado **nunca**, así que un `KeyboardAccelerator` puesto ahí bien podía no registrarse. Hay un UI test
+que pulsa `Ctrl+H` **sin abrir el menú** contra el `.exe` real, y está **verificado por reversión**:
+quitando el acelerador, falla. Tampoco hizo falta `KeyboardAcceleratorTextOverride` —el ítem pinta solo el
+texto cuando el acelerador existe de verdad; el *override* es para anunciar uno que no existe—, y el F5 sí
+va escrito a mano en su tooltip porque con un `ToolTip` explícito WinUI ya no añade el suyo.
+
+Y una consecuencia que hubo que atender: `MnuHistory_Click` **no comprobaba `_isBusy`**. No hacía falta
+mientras el único camino fuera el menú, que se deshabilita entero durante una operación; con un atajo
+global sí, y un `ContentDialog` modal encima de un formateo tapa el progreso y el botón de cancelar.
+**Añadir un atajo no es solo añadir una tecla: es añadir un camino nuevo a un handler.**
+
+**`T7-02` — apagar sin decir por qué habría sido peor.** *Herramientas* se ajusta ahora a la unidad
+seleccionada, con las condiciones copiadas **una a una** de las guardas de `Operations.cs` — que **siguen
+ahí**: entre abrir el menú y pulsar, la unidad puede cambiar (`WM_DEVICECHANGE` existe para eso). El menú
+es la primera línea; aquellas son la red. *Comprobar errores* y *Benchmark* no se apagan nunca con una
+unidad seleccionada: chkdsk en solo lectura sí corre sobre el disco de sistema —lo que no se ofrece allí es
+la reparación— y el benchmark no escribe fuera de su archivo temporal.
+
+El motivo va en el ítem (tooltip **y** `HelpText`) y se reescribe al cambiar de idioma, o se quedaría en el
+anterior. **Lo que no está verificado, y va a `T7-06`:** el `HelpText` sí lo comprueba un test —es lo que
+lee un lector de pantalla—, pero que WinUI **pinte** el tooltip sobre un `MenuFlyoutItem` deshabilitado no
+se ha podido confirmar. Una sonda con FlaUI no encontró tooltip ninguno… tampoco sobre un control
+habilitado que sí lo tiene, así que la sonda no prueba nada. Se deja escrito como pregunta abierta en vez
+de como hecho, que es la diferencia entre `T6-11` y la ronda que la precedió.
+
+**`T7-06` — la revisión con la app en marcha desmintió su propia sospecha.** La tarea salió de suponer que
+un `ListView` con `SelectionMode="None"` no se podría recorrer con el teclado. **Se puede**: tres
+tabulaciones desde el buscador caen en una fila del historial y ↓/AvPág la desplazan (0 % → 30 %). El foco
+inicial es el correcto en los dos diálogos y el flyout de borrado de `T7-01` funciona a teclado —el foco
+cae en el botón que confirma y el tab se queda dentro—. **No había nada que arreglar en lo que la tarea iba
+a arreglar**, y eso también es un resultado: hay dos pruebas que lo fijan y que **siguen verdes al revertir
+todos los arreglos de este tier**, porque no prueban código nuestro sino una promesa de la plataforma.
+
+El método importa más que el resultado: se escribió una **sonda que no afirmaba nada** —recorría la app e
+imprimía lo que veía— y solo con su salida delante se escribieron los asserts. Escribir primero los asserts
+habría fijado la suposición falsa. La sonda se borró al convertirse en las cinco pruebas, que era su
+condición de existencia: una prueba que no puede fallar es ruido verde.
+
+**`T7-07` — y encontró lo que la lectura no podía ver.** Las filas de las dos listas se anunciaban con el
+`ToString()` del record: «HistoryRow { Time = …, Glyph = , Accent = Microsoft.UI.Xaml.Media.SolidColorBrush }»
+y «FormatPreset { Name = …, AllocationUnit = 4096, … }». Pasa porque el contenido del ítem es un **objeto**,
+no texto. Y los dos `ComboBox` de filtro del historial no exponían nombre: «cuadro combinado», sin decir
+qué filtran —el buscador de al lado sí lo tenía desde `T7-05`—.
+
+El arreglo va en el **contenedor** (`ContainerContentChanging`), no en la plantilla: el nombre que se
+anuncia es el del `ListViewItem`, y ponerlo dentro no lo toca. **Verificado por reversión, y la reversión
+reparte**: sin los arreglos caen las tres pruebas de nombres y siguen verdes las dos de teclado. Que una
+prueba siga verde al revertir es sospechoso salvo que se sepa **por qué** —aquí, porque mide la plataforma—.
+
+**`T7-08` — lo único que queda, y no es código.** ¿Pinta WinUI el tooltip de un `MenuFlyoutItem`
+deshabilitado? De eso depende que `T7-02` cumpla su propia condición. **FlaUI no puede contestarlo**: no
+detecta el tooltip ni sobre un control habilitado que sí lo tiene, con el ratón encima confirmado por
+`FromPoint`. Un cero ahí no distingue «no hay tooltip» de «no sé verlo», así que **no se afirma nada**: la
+tarea es poner el ratón encima y mirar. Si no aparece, el motivo se lleva a la `InfoBar` de la ventana,
+que ya hace eso mismo para la unidad protegida.
+
+### 2026-08-17 — `T6-12` a `T6-15`: se cierra el Tier 6 (15/15)
+
+**`T6-13` — *Novedades* enseñaba el Markdown.** Dos fallos en el mismo conversor: se quitaban `**` y `__`
+pero no la cursiva de un asterisco, y se respetaban los saltos de línea del original —ajustado a ~100
+columnas— que el diálogo volvía a ajustar por su cuenta, partiendo las frases dos veces. El «cuidado»
+anotado en la tarea era real y marcó el diseño: las regex de énfasis exigen marcador **pareado y pegado a
+un no-espacio** (y el subrayado, que no haya letra alrededor), así que `2 * 3 = 6` y `notas_de_version`
+salen intactos; el desenvolvido va por bloques, de modo que una viñeta no se pega a la siguiente pero su
+continuación ajustada sí se le une. Tres de las nueve pruebas nuevas guardan justo eso: lo que **no** debe
+tocarse.
+
+**`T6-14` — el primer intento fue peor que el problema.** Con `NoWrap` y el cuerpo a 11 px el texto legal
+dejaba de partirse… y pasaba a salir **cortado** en el borde, sin barra visible. Cambié un ajuste feo por
+una truncación silenciosa, y no lo vi razonando: lo vio la captura. La solución fue medir en vez de elegir
+entre las tres opciones que proponía la tarea — `LICENSE` mide 78 columnas como mucho, y a 10 px de
+Consolas entran ~78 en 430 px, que es todo lo que da una ventana de 500. Con eso la GPL entera, 674 líneas,
+se lee sin tocar la barra horizontal. Es la **única excepción declarada** al ancho común de `T6-07`, y está
+documentada en los dos sitios donde alguien podría intentar «arreglarla».
+
+Las tres líneas que aún no cabían resultaron ser **nuestras**: `THIRD-PARTY-NOTICES.txt` es el documento de
+atribución del proyecto, no texto ajeno, así que se reajustó a 78 columnas. El texto MIT que cita y la GPL
+no se tocaron — eso era exactamente lo prohibido.
+
+**`T6-15` — la prueba no ancla las cadenas.** Los resúmenes de reinicialización traían saltos puestos a mano
+que peleaban con el ajuste del control, y quedaban partidos en un sitio distinto en cada idioma. Se podía
+arreglar y anclar el resultado; en vez de eso, la prueba recorre **cada `\n` de los tres textos en los cinco
+idiomas** y falla si no separa párrafos ni abre un elemento de la lista numerada. Así caza también el que se
+cuele en una traducción futura, que es cuando esto vuelve.
+
+**`T6-12` — el fallo estaba dentro de la propia suite.** Decidido: los números que se **muestran** siguen al
+idioma elegido en la app. Es lo coherente con dejar cambiar de idioma sin tocar Windows — si cambia el
+texto, cambia el número. Nueva `L.Culture`, que `L.Set` actualiza junto al idioma y que `FormatBytes` usa
+por defecto (aceptando además una cultura explícita, que es lo que hace testeable la escalera de unidades
+sin mezclarla con el separador).
+
+Lo que **no** se hizo, y es la mitad del trabajo: `L.Culture` **no** se asigna a `CultureInfo.CurrentCulture`.
+La cultura del hilo gobierna también comparaciones y mayúsculas, que es por donde volvería `T1-01` (la
+guarda de disco de sistema fallando bajo cultura turca). Hay una prueba que fija `tr-TR`, cambia el idioma
+y comprueba que el hilo no se ha movido.
+
+Y el detalle que lo delató: al aplicarlo se pusieron rojas **cuatro pruebas existentes** que afirmaban el
+separador **inglés** con la app arrancando en español. Pasaban porque `FormatBytes` leía la cultura del
+hilo y el fixture la fijaba invariante — medían el separador de la prueba, no el de la app. Estaban verdes
+describiendo algo que el usuario nunca veía. Ahora cada una dice en qué idioma habla.
+
+---
+
+### 2026-08-17 — `T6-11`: la revisión completa encuentra lo que la incompleta no podía
+
+26 tomas, 13 pantallas × 2 temas, con la app corriendo y la USB conectada. Confirmó en ejecución `T6-01`,
+`T6-02`, `T6-06`, `T6-07` y `T6-10`, y la barra de ocupación en los dos temas —en claro, relleno `#5C5C5C`
+sobre pista `#E0E0E0`: se distinguen sin esfuerzo, que era lo que el cálculo prometía y nadie había visto—.
+
+**Y abrió tres tareas que la primera ronda no podía ver**, todas en pantallas que entonces no se pudieron
+abrir: `T6-13` (*Novedades* muestra los asteriscos de la cursiva de Markdown y parte los párrafos por donde
+venían ajustados en el original), `T6-14` (los textos legales vienen a ~75 columnas y en el diálogo entran
+~60, así que hasta las líneas separadoras salen cortadas) y `T6-15` (los resúmenes de confirmación llevan
+`\n` incrustados y el control vuelve a ajustar encima).
+
+**Esto es el argumento de la tarea, no una nota al pie.** Una revisión que solo mira lo que puede mirar
+produce una lista que parece completa. Anotar el hueco (`T6-11`) y luego cerrarlo fue lo que convirtió
+«diez hallazgos» en trece — y los tres nuevos están en sitios que importan: la primera pantalla tras
+actualizar, el texto legal y lo que hay que leer antes de borrar un disco.
+
+**Y siguió pagando después.** Al implementar `T6-14` el primer intento truncaba el texto legal en silencio
+—peor que el ajuste feo que venía a arreglar— y no lo detectó ningún razonamiento: lo detectó volver a
+fotografiar el diálogo. La captura no es la verificación de esta tarea; es la verificación de todas.
+
+**Detalle de intendencia:** `docs/screenshots/gallery/` está en `.gitignore`, así que refrescarla no mete
+26 binarios en el repo. Es material de revisión local; las tres capturas del README viven aparte y esas sí
+se versionan.
+
+---
+
+### 2026-08-17 — `T6-06`, `T6-07` y `T6-08`: dos trampas de WinUI y un hallazgo medio equivocado
+
+**`T6-07` es el aviso de que una revisión también puede estar mal.** Anoté que «cada diálogo coloca sus
+botones distinto» como si fuera descuido. Los botones apilados de *chkdsk* **no** lo son: con tres botones
+nativos en fila, WinUI truncaba «Comprobar y reparar» **sin puntos suspensivos** («Comprobar y repar»), y
+en PT/IT es peor. Estaba explicado en un comentario del propio código, que no leí antes de escribir el
+hallazgo. Uniformarlos habría reintroducido un fallo real. Lo mismo el *Historial*: sus tres botones **no
+cierran** el diálogo, así que van en el contenido; abajo solo va lo que cierra.
+
+Lo que **sí** estaba mal era el **ancho**: siete diálogos con seis criterios (360, 380, 400, 300–420,
+360–420, y el de chkdsk **sin ninguno**, ajustándose a su texto). Abrir dos seguidos hacía «saltar» la
+ventana. Ahora los fijan dos tokens compartidos. Y la regla que la app ya seguía sin estar escrita —qué va
+en los botones nativos, qué en el contenido, cuándo se apila— queda escrita en `AppTheme.xaml`, **con el
+porqué de la excepción de chkdsk**, para que el siguiente que la mire no la «arregle».
+
+**`T6-08`: en WinUI un panel no se puede deshabilitar.** `IsEnabled` vive en `Control` y `Panel` deriva de
+`FrameworkElement`, así que `<StackPanel IsEnabled="False">` no compila (`WMC0011`) — al contrario que en
+WPF, donde `UIElement` sí lo tiene. Fue lo primero que intenté.
+
+Y su corolario, que es el que de verdad hay que recordar: **un `TextBlock` tampoco es un `Control`**, así
+que no tiene estado visual deshabilitado. Apagar solo los desplegables dejaría las etiquetas a pleno
+contraste, más vivas que el control al que acompañan. Se atenúan aparte con `TextFillColorDisabledBrush`
+—el token del tema, no un alfa inventado— y al reactivarlas con `ClearValue`, para no dejarles un color
+clavado que sobreviva a un cambio de tema en caliente.
+
+---
+
+### 2026-08-17 — `T6-04` y `T6-05`: el mismo principio en dos sitios
+
+Las dos tareas son la misma idea: **la app guarda datos de máquina y los enseñaba sin traducir**.
+«32161 h» y `small-fat32=2147483648` son correctos y no responden a la pregunta que el usuario tenía al
+abrir esa pantalla.
+
+**`T6-04` — un decimal siempre, y así no hay que pluralizar.** «1,0 años» concuerda en los cinco idiomas;
+«1 años» no. Evitar la concordancia singular/plural en cinco traducciones vale más que ahorrar un decimal.
+Los cortes de tramo están a **dos** unidades, no a una: con 33 días se dice «≈ 33,5 días», no «≈ 1,1 meses».
+
+**`T6-05` — transforma lo que se MUESTRA, nunca lo que se guarda.** Era tentador arreglarlo en las llamadas
+a `History.Log`, y habría sido peor por dos motivos: `history.log` y el CSV tienen consumidores y el byte
+exacto es justo lo que sirve al depurar; y las entradas **ya escritas** seguirían ilegibles. Como función
+de presentación, el historial de hace un mes también se arregla.
+
+**Lista blanca de claves, no heurístico.** En la misma línea conviven `code=1`, `passes=3` y `quick=True`.
+Un «convierte los números que parezcan grandes» acabaría diciendo «1 B» donde pone `code=1`. Añadir un
+tamaño nuevo obliga a tocar la lista, que es justo la decisión que conviene tomar a conciencia.
+
+**Lo que casi se cuela.** El buscador del historial filtra por el detalle crudo. Con la lista mostrando
+«2 GB» y el fichero guardando «2147483648», teclear lo que estás viendo no habría devuelto nada — un
+buscador que no encuentra lo que hay en pantalla es peor que no tener buscador. `Matches` busca ahora en
+los dos.
+
+**Y una tarea nueva, `T6-12`.** Poner un decimal al lado de una palabra traducida hizo visible algo
+anterior: los números se formatean con la cultura de **Windows** y el texto con el idioma de **la app**,
+que son cosas distintas porque la app deja cambiar el idioma sin tocar Windows. Sale `32,161 h (≈ 3.7
+años)`. No es una regresión de `T6-04`: `FormatBytes` lleva haciéndolo desde siempre (`223.6 GB`), y
+`T6-04` se implementó con el mismo criterio para no dejar dos conviviendo. Arreglarlo es un cambio
+transversal y va aparte.
+
+---
+
+### 2026-08-17 — `T6-03`: «no lo sé» y «no aplica» no son lo mismo
+
+La fila decía «Velocidad de rotación: **SSD**» —una velocidad cuyo valor es un tipo de medio— con «Tipo de
+medio: SSD» justo encima. En un disco de estado sólido no es que el dato falte: es que la pregunta no
+existe.
+
+**Lo interesante fue el caso de en medio.** Hay tres estados, no dos:
+
+| Señal | Qué significa | Qué se pinta |
+|---|---|---|
+| `RPM = 0` | el disco dice «no giro» | fila **oculta** |
+| `RPM > 0` | gira a esa velocidad | fila con las RPM |
+| sin RPM, medio = SSD | no hay contador, pero se declara SSD | fila **oculta** |
+| sin RPM, medio desconocido | **no se sabe** | fila con *No disponible* |
+
+El último es el que obliga a pensar. Esconder la fila ahí sería **afirmar que es de estado sólido sin
+saberlo**, que es exactamente el tipo de mentira que esta tarea venía a quitar. Por eso `HasSpindle`
+devuelve `true` cuando no hay ninguna señal: «asume que gira» no es una suposición sobre el hardware, es
+la instrucción de mostrar la fila como desconocida en vez de decidir por el usuario.
+
+**Dónde vive.** En `Core/SmartInfo`, no en el diálogo: es una decisión y aquí las decisiones se miden.
+De paso se va el literal `"SSD"` del code-behind, que era texto de cara al usuario fuera de
+`Localization/` — justo el patrón que `LocalizationCoverageTests` persigue.
+
+**Verificado por las dos caras, en la app real** (`capture-screenshots.ps1 -Only health`): en **D:** (SATA
+SSD) la fila ya no aparece; en **I:** (USB que no informa de nada) **sigue apareciendo** como *No
+disponible*. Una sola de las dos capturas no habría distinguido «lo arreglé» de «la borré para todos».
+
+---
+
+### 2026-08-17 — `T6-02`: el placeholder que regalaba la respuesta, y lo que tapaba
+
+El campo de confirmación llevaba como `PlaceholderText` la propia letra a teclear: parecía relleno, y
+ponía la respuesta dentro del hueco donde hay que transcribirla — el único punto de fricción deliberada de
+la app. Quitar esa línea es el arreglo entero… salvo por lo que se descubre al quitarla.
+
+**WinUI usa el `PlaceholderText` como NOMBRE ACCESIBLE del `TextBox` cuando no hay otro.** El campo se
+llamaba `I`: un lector de pantalla **anunciaba la respuesta en voz alta**. El fallo era peor de lo que la
+revisión había anotado, y la mitad grave era la que no se veía en la captura. Y borrar el placeholder sin
+más lo habría dejado llamándose «…», que no es mejor. Se le da nombre explícito
+(`confirm.inputName` ×5), que además no depende de lo que se pinte dentro.
+
+**La primera prueba que escribí no valía, y lo dijo la reversión.** Buscaba «un elemento del diálogo cuyo
+texto visible sea exactamente la letra», razonando que así daba igual cómo expusiera WinUI el placeholder.
+Pasó en verde — y **volvió a pasar con el fallo reintroducido**: WinUI no lo publica como texto de ningún
+elemento. Un diagnóstico volcando las propiedades del `TextBox` señaló el sitio real (`Name`), y la prueba
+se reescribió contra él. Ahí sí falla al revertir.
+
+**La lección no es sobre placeholders.** Es que «lo escribí, pasa en verde» no dice nada sobre si la prueba
+mira donde cree mirar. Esta pasó dos veces por motivos opuestos, y solo la reversión distinguió una de la
+otra. Es el mismo patrón que ya había mordido en `T1-04` y en `T1-07`.
+
+---
+
+### 2026-08-17 — `T6-01`: el título del diálogo destructivo deja de ser un valor por defecto
+
+Reinicializar se anunciaba como «Confirmar formato». Lo arreglado no es la cadena: es **de dónde salía**.
+`ConfirmDialog` fijaba `Title = L.T("confirm.title")` **en su constructor**, así que las dos operaciones
+irreversibles no podían tener títulos distintos aunque quisieran. Ahora el título es un **parámetro
+obligatorio**, no opcional con valor por defecto: una tercera operación destructiva no puede heredar el
+nombre equivocado por omisión, porque no compila sin decidirlo. Nueva clave `confirm.titleReinit` ×5.
+
+**La prueba unitaria recorre los cinco idiomas**, no solo el español: el fallo era una cadena compartida,
+y la forma natural de reintroducirlo es traducir uno nuevo copiando el de al lado. Exige que los dos
+títulos existan y **difieran** en cada idioma.
+
+**La prueba de UI no se ancla a un texto fijo.** `FormatDiskPro.UiTests` conduce el `.exe` como caja negra
+—no referencia el ensamblado de la app— así que comparar contra «Confirmar reinicialización» rompería la
+suite con la app en inglés. Lo que exige es lo que define el fallo: que cada operación tenga **su propio**
+título y ninguno esté vacío. Hizo falta un `DialogHelper.ReadTitle`: la plantilla de WinUI pinta el título
+en un `ContentControl x:Name="Title"`, con caída al `Name` del diálogo.
+
+**Verificada por reversión, no solo en verde.** Contra la app real lee `'Confirmar formato'` y
+`'Confirmar reinicialización'`; devolviendo la llamada a `confirm.title` **falla**, y el mensaje dice cuál
+es el problema en vez de «esperaba X, obtuve Y». Una prueba que solo se ha visto en verde no demuestra que
+mire lo que dice mirar.
+
+**Dato de intendencia:** las etiquetas de la USB de pruebas se habían quedado en `UTIL`/`TEST` y
+`TestDrive` busca `utilidades`/`Bios Flash` — las pruebas se **omitían**, que es lo correcto (precondición
+ausente no es fallo), pero se leen como «pasadas» en el resumen si no se mira el desglose. Se reetiquetaron.
+FAT32 guarda su etiqueta en mayúsculas (`BIOS FLASH`); `FindLetter` compara con `OrdinalIgnoreCase`, así
+que da igual.
+
+---
+
+### 2026-08-17 — Revisión de UX/UI: se abre el Tier 6
+
+Revisión enfocada **solo** en interfaz, sobre las capturas del corte de la v1.22.0 y contrastando cada
+hallazgo contra el código. Resultado: **[Tier 6](roadmap-historico.md#-tier-6--refinado-de-uxui)**, 11 tareas.
+
+**Los tres que no son cuestión de gusto** —la interfaz afirma algo que no es cierto—:
+
+1. **`ConfirmDialog` titula «Confirmar formato» también al reinicializar.** El título está fijado en el
+   constructor, así que la operación **más** destructiva de la app (borra el disco físico entero) se
+   anuncia con el nombre de otra menos grave. El cuerpo sí lo explica bien; el título no.
+2. **El campo de confirmación lleva la letra como *placeholder***. Parece relleno —en las capturas se ve
+   una «G» gris sin que nadie haya tecleado— y regala la respuesta justo donde el diseño puso fricción a
+   propósito.
+3. **«Velocidad de rotación: SSD»**. Una velocidad cuyo valor es un tipo de medio, con la fila de encima
+   ya diciendo «Tipo de medio: SSD».
+
+**El de más recorrido** es `T6-05`: el historial muestra la línea de log en crudo
+(`REINIT I: -> G: fs=FAT32 style=MBR small-fat32=2147483648`). Eso son bytes sin convertir en una pantalla
+que la gente abre para comprobar qué le hizo a un disco. Al arreglarlo hay dos cosas que no se pueden
+romper: el CSV y `history.log` tienen consumidores, y el parseo por líneas ya se partió una vez (`T3-11`).
+
+**Lo que esta revisión NO vio, y está anotado como `T6-11`.** El terminal no estaba elevado, así que ni
+`capture-screenshots.ps1` ni FlaUI pudieron correr —los dos abortan por diseño contra una app
+`requireAdministrator`—. Las capturas usadas son **anteriores** al bloque de ocupación nuevo, y quedaron
+sin fotografiar Presets, Acerca de, Novedades, Licencia y Terceros. Los 10 hallazgos son válidos porque
+cada uno está verificado en el código, pero **la cobertura no fue completa**, y eso vale la pena tenerlo
+escrito en vez de dar el tier por exhaustivo.
+
+**Nota de nombres:** ya existía un «Tier 6 — Pulido UX/UI» en la Parte 1 del ROADMAP (v1.13.0, IDs
+`#28`–`#36`). Este es de la Parte 2 y usa `T6-xx`. Se parecen porque tratan de lo mismo; no son el mismo
+tier. Está advertido en las dos cabeceras.
+
+---
+
+### 2026-08-16 — La barra de ocupación pasa a tener dos colores (y deja de ser un `ProgressBar`)
+
+Hasta aquí el espacio **libre** no se pintaba: era el hueco del `ProgressBar`, una línea de 1 px del color
+de pista del sistema. En una unidad recién formateada —0 % usado— la barra no mostraba absolutamente nada,
+que es justo el estado en el que el usuario acaba de mirarla.
+
+**Por qué no bastaba con engordar el `ProgressBar`.** Su plantilla (WinUI 1.8) pinta la pista con
+`Height="{ThemeResource ProgressBarTrackHeight}"` = **1**, mientras el relleno ocupa el `MinHeight` del
+control. Aunque se suba el `MinHeight`, usado y libre **no pueden tener el mismo grosor** sin sobrescribir
+dos recursos internos de la plantilla, uno de ellos a través de un `Binding` con `StaticResource` que se
+resuelve al aplicar el template. Se cambió por un `Border` (pista = libre) con un `Border` hijo (relleno =
+usado) y columnas estrella para el reparto: dos colores, un grosor, y sitio para más segmentos el día que
+la barra tenga que representar varias particiones.
+
+**Lo que se rompía al añadir el segundo color.** El relleno neutro del tema claro era `#8A8A8A`, elegido
+cuando su vecino era el fondo de la tarjeta. Con la pista pintada al lado, la frontera usado/libre se
+quedaba en **2.62:1**: por debajo del 3:1 de WCAG 1.4.11, y esa frontera es *toda* la información de la
+barra. Se oscureció a `#5C5C5C` → **5.07:1**. El tema oscuro no se tocó: allí el relleno ya era el claro de
+los dos.
+
+**El barrido de contraste tuvo que aprender a medir contra un vecino.** La pista **no debe** llegar al 3:1
+contra la tarjeta —es un hueco, no una segunda barra—, así que meterla en `All()` tal cual la habría
+suspendido, y la reacción natural habría sido oscurecerla hasta que compitiera con el relleno: el umbral
+correcto aplicado al par equivocado. `PaletteColor` gana un `Against` opcional, y la pista entra al
+inventario con **una entrada por cada relleno con el que puede compartir barra** (neutro, ámbar, rojo × 2
+temas). Medidos: 5.07 / 3.98 / 4.29 en claro, 3.39 / 5.70 / 4.37 en oscuro. Un test fija que esas entradas
+declaren su `Against`, para que nadie se lo quite «para que se mida como las demás».
+
+**Accesibilidad:** un `Border` no expone valor de rango como hacía el `ProgressBar`, así que el nombre
+accesible dejó de ser suficiente como etiqueta suelta. `info.used` pasa a llevar el dato
+(«Espacio utilizado: 43 %») y se fija en `RenderCapacity`, no en `ApplyLanguage` — ese ya termina llamando
+a `UpdateInfo`, y la barra está oculta mientras no haya unidad.
+
+**Segunda pasada, el mismo día:** esquinas rectas en vez de píldora y el dato de ocupación **fuera** de la
+barra, en su propio bloque: separador, línea `Ocupación` … `Usado 780,9 GB / 930,5 GB` (etiqueta izquierda,
+dato derecha) y la barra debajo, a **6 px**.
+
+- **Por qué 6 px y no 10.** La barra es el único bloque de color saturado de la tarjeta; el resto es
+  tipografía gris con un título de acento. A 10 px, con la unidad al 84 % —ámbar—, pesaba más que el
+  título de sección y desencajaba. Es un dato, no un control: la mitad de superficie de color basta.
+- **Por qué el dato lleva etiqueta.** Suelto y alineado a la derecha era el único texto así de toda la
+  tarjeta (las otras seis entradas son «Etiqueta: valor» en dos columnas a la izquierda), y se leía como
+  huérfano. Emparejado con `Ocupación` a la izquierda reproduce la estructura de la referencia y encaja en
+  la rejilla.
+
+- **El rótulo por dentro se probó y se descartó.** Anclado a la derecha, el texto cae sobre el espacio
+  libre casi siempre… salvo con la unidad casi llena, que es justo cuando hay que leerlo: ahí queda sobre
+  el relleno ámbar o rojo. Se resolvió dándole fondo propio del color de la pista, que funcionaba pero
+  dejaba una muesca gris dentro de la barra al llenarse. Fuera no hay problema que resolver: es texto de
+  la tarjeta, con el contraste de cualquier otro. **Si alguien vuelve a intentar meterlo dentro, este es
+  el caso que hay que resolver primero**, y medir anchos en tiempo de ejecución no basta: queda el tramo
+  en que el texto pisa los dos segmentos.
+- **Fallo encontrado mientras el rótulo estaba dentro, y que se queda arreglado:**
+  `ContrastAgainstReference` componía el alfa sobre el fondo de la tarjeta aunque el color se pintara
+  encima de otra cosa. Con colores opacos da igual, pero el color de texto claro lleva alfa (`#E4000000`):
+  la cifra no correspondía a lo que se ve, que es el fallo exacto que ese barrido existe para cazar. Ahora
+  se compone sobre la referencia, con un test propio — no depende de que haya hoy un color translúcido
+  sobre un vecino.
+
+---
+
+### 2026-08-16 — Corte de la **v1.22.0** (Tier 5 completo)
+
+`release.ps1 -Version 1.22.0 -UiTests -NotesFile docs\release-notes-1.22.0.md` desde terminal elevada, tras
+un `-DryRun` previo.
+
+**El dry run hizo su trabajo**: abortó porque `docs/release-notes-1.22.0.md` estaba sin rastrear. Es la
+guarda de archivos nuevos, y avisó **antes** de tocar nada — que es exactamente para lo que está.
+
+**Puertas superadas:** CHANGELOG con su sección · **521/521** unitarias · `Core/` al **97,9 %**
+(463/473, mínimo 90) · UI **24/27** con 3 omitidas, todas de opt-in.
+
+**Verificado contra el release real, no contra lo que dijo el script:**
+
+- Hash local, contenido del `.sha256` y **el digest que GitHub calculó sobre el asset subido** coinciden:
+  `3000c3de…0f17`.
+- Asset del checksum con el nombre exacto `FormatDiskPro-1.22.0-setup.exe.sha256`, **96 bytes** (bajo el
+  tope de 512 que impone `T2-07`).
+- `.csproj` tras el bump: **BOM UTF-8 presente** y acentos intactos (`Ricky Angel Jiménez Bueno`) — la
+  corrupción acumulativa de `Get-Content -Raw` no volvió.
+- Metadatos del `.exe`: `1.22.0`, empresa y copyright correctos.
+- Instalador de 58,8 MB (61 684 481 bytes).
+
+**Dato que se corrige aquí:** el corte ejecuta **27** de las 28 pruebas de UI, no las 28. `release.ps1`
+pasa `--filter "Category!=Slow"`. No es un fallo, pero la cifra del corte y la de una corrida manual no son
+comparables, y conviene no confundirlas.
+
+---
+
+### 2026-08-16 — `T5-03`: qué queda cuando el plan falla a mitad (y el Tier 5 se cierra)
+
+**El fallo estaba en el sitio menos evidente: dónde se imprimían los marcadores.** Iban todos agrupados al
+final del script. Con `ErrorActionPreference='Stop'`, un fallo en la segunda partición abortaba **antes de
+emitir el de la primera**, así que «no se creó nada» y «la primera salió bien y la segunda no» producían
+exactamente la misma salida: cero letras. Ninguna cantidad de código en la UI podía distinguirlas.
+
+Ahora cada partición emite lo suyo **en cuanto lo alcanza**, y son **dos** marcadores porque son dos estados:
+
+- `PART:i:` — creada, existe en la tabla de particiones.
+- `LETTER:i:X` — además formateada y utilizable.
+
+Una partición cuyo `Format-Volume` falla se queda **entre las dos cifras**, y decir «no se creó ninguna»
+sería falso. De ahí `ReinitResult.PartitionsCreated` junto a `Letters`.
+
+**Decisiones:**
+
+- **No se revierte.** El disco ya está borrado: «deshacer» solo podría significar borrarlo otra vez, y esa
+  no es una decisión que el usuario haya pedido. Hay una prueba que lo exige de la única forma que no admite
+  interpretación — que **no se lance un segundo proceso** tras el fallo.
+- El aviso dice explícitamente que **el disco ya estaba borrado cuando falló**. Un «no se pudo
+  reinicializar» a secas deja creer que no pasó nada, que es lo contrario de la verdad.
+- El mensaje detallado solo aparece con planes de **más de una** partición: con una, el fallo es binario y
+  el mensaje de siempre ya lo cuenta.
+
+**El camino de fallo parcial NO está verificado sobre hardware**, y no es un descuido: forzar que
+`Format-Volume` falle en la segunda partición de un USB real no es reproducible a voluntad. Se cubre con
+`FakeProcessRunner`, que es exactamente para lo que existe la costura de `T4-02`.
+
+**El fallo de proceso de esta sesión, que sí enseñó algo.** La primera ejecución en hardware falló, pero
+**la app se comportó bien**: el `settings.json` del usuario tenía `CreateSecondPartition: true` de haber
+probado la función, y la app recordó esa preferencia. La equivocada era la prueba, que daba por supuesto el
+valor de fábrica de un ajuste **persistido** — es decir, pasaba o fallaba según lo que hubiera hecho antes
+el usuario de esa máquina. Los pasos 2 y 3 fijan ahora su estado explícitamente. De rebote, ese fallo
+confirmó `T5-02` por una vía que nadie había planeado: creó las dos particiones con NTFS en el resto.
+
+**Con esto el Tier 5 queda cerrado**: `T5-01`, `T5-02`, `T5-03` y `T5-05` completadas, `T5-04` (N
+particiones) **descartada** por decisión de producto — el motor admite N, lo que se limitó es la interfaz.
+**521/521 unitarias** (+12).
+
+---
+
+### 2026-08-16 — `T5-02` y `T5-05`: el sobrante deja de morir sin asignar
+
+El hueco que abrió el Tier 5, cerrado. Al crear una FAT32 pequeña, la tarjeta ofrece qué hacer con el resto:
+dejarlo sin asignar (por defecto, sin cambio para quien no toque nada) o **una segunda partición** que lo
+ocupe entero. Sin diálogo nuevo: dos filas más en la tarjeta, la misma operación y la misma confirmación.
+
+**Alcance acordado con el usuario (2026-08-16): dos particiones, no N.** `T5-04` sigue cerrado. Las razones,
+por si se reabre: la ventana es de 500×900 y de tamaño fijo, así que una tabla de filas variables obliga a
+un diálogo aparte; MBR solo admite 4 primarias y MBR es lo que se elige en todo USB de menos de 2 TB, así
+que «N» en la práctica es «3 o 4»; y el caso que originó el tier lo cubren dos. El **motor admite N desde
+`T5-01`** — lo que se limitó es la interfaz.
+
+**Decisiones:**
+
+- **La FAT32 va siempre primera**, y no es cosmético: los equipos anteriores a Windows 10 1703 y muchos
+  aparatos empotrados solo leen la primera partición de un medio extraíble, y la FAT32 es justo la que
+  interesa que vean. La nota de plataforma vive en la **interfaz** (`opt.restNote`), no solo aquí.
+- **FAT32 y FAT no se ofrecen para el sobrante**: el resto de un pendrive grande supera sus límites (32 GB
+  y 2 GB), así que ofrecerlos sería ofrecer un fallo con el disco ya borrado. ReFS tampoco, por no ser un
+  sistema para medios extraíbles. Quedan exFAT (primero) y NTFS.
+- **`RestPicker` se selecciona por índice en las pruebas**, no por texto: sus ítems están traducidos a cinco
+  idiomas y buscarlos por su cadena ataría la prueba al idioma activo.
+
+**`T5-05` comprueba el disco físico, no el diálogo.** Si la segunda partición no se creara, el diálogo de
+éxito diría exactamente lo mismo. `AssertDiskLayout` cuenta particiones y mide el espacio libre.
+
+**Verificado sobre hardware** (USB de pruebas, 29,3 GiB): 2 particiones y **0 MB sin asignar** — partición 1
+en `G:` de 1 GB en FAT32, partición 2 en `I:` de 28,296 GB en exFAT. Windows asignó **G e I, no G y H**: la
+confirmación en vivo de por qué `T5-01` tuvo que emitir `LETTER:<índice>:`. Sin el índice, la app habría
+tomado la partición de 28 GB por la FAT32.
+
+**El fallo de la sesión, que merece quedar escrito.** La primera ejecución de `T5-05` salió **en verde sin
+haber probado nada**: `dotnet build FormatDiskPro.slnx` no compila el proyecto de pruebas de UI (no está en
+la solución, a propósito — ver §4), así que con `--no-build` se ejecutó la DLL anterior. El código nuevo ni
+siquiera compilaba. Lo destapó comprobar el disco en vez de fiarse del verde, que es la misma disciplina que
+la propia prueba aplica.
+
+**509/509 unitarias** (+16).
+
+---
+
+### 2026-08-16 — `T5-01`: el layout deja de ser un `long?`
+
+Primera tarea del Tier 5, y la única que se puede probar entera sin hardware. **No cambia nada de lo que la
+app hace**: la UI sigue mandando una sola partición.
+
+**El problema.** El layout vivía en `long? partitionSizeBytes`: «una partición de este tamaño, o todo el
+disco si es `null`». Con una partición se sostenía. Ese tipo no distingue «el resto» de «todavía no lo sé»,
+y el significado estaba en un comentario en vez de en el tipo.
+
+**Qué hay ahora.** `Core/PartitionPlan.cs`: `PartitionSize` (jerarquía cerrada `Exact` | `Remainder`),
+`PartitionSpec`, `PartitionPlan` y `Validate(diskSizeBytes)` → `PlanValidation(PlanProblem, PartitionIndex)`.
+Trece motivos, **valores y no cadenas** —se traducen en la UI y se comparan en una prueba— y con el índice
+de la partición culpable para que `T5-02`/`T5-04` puedan señalar la fila.
+
+**Decisiones que merecen quedar escritas:**
+
+- **«El resto» se delega a `-UseMaximumSize` al ejecutar, pero se calcula al validar.** Parece
+  contradictorio y no lo es: calcular los bytes para crearlos es pedir un error de alineación, pero para
+  saber si un FAT32 cabe en 32 GB hay que conocer su tamaño, y el de «el resto» solo se sabe con el del
+  disco. De ahí `EffectiveSizes`. Pedir el resto de un pendrive de 256 GB en FAT32 se rechaza **antes** de
+  borrar nada.
+- **Un tamaño de disco desconocido no invalida un plan que no lo necesita.** La primera versión rechazaba
+  todo plan sin tamaño, y eso habría roto *Reinicializar* en unidades **RAW** — justo el caso para el que la
+  función existe, y donde `Get-Disk` puede no devolver nada. Una sola partición «el resto» no necesita el
+  dato; cualquier otra cosa sí.
+- **Las reglas de «el resto» se miran sobre el plan entero, no partición a partición.** Dentro del bucle, un
+  plan con dos «resto» se rechazaba por «no es la última»: cierto, pero no es el problema. El motivo acaba
+  en un mensaje al usuario y conviene que sea el que explica. Lo destaparon dos pruebas.
+- **`ReinitDrive` revalida** aunque la UI ya lo haya hecho. Es la última línea antes de `Clear-Disk`.
+- **`ReinitResult.Letters` va aparte de `NewLetter`** y no lo sustituye: son dos preguntas distintas. La UI
+  necesita saber **cuál seleccionar**; `T5-03` necesitará saber **qué llegó a crearse**. Con una lista vacía
+  y `Ok` en falso no se distinguiría «no se creó nada» de «se creó algo y falló después».
+- **Se exige una letra por partición** para dar la operación por buena. Con un plan de dos, que solo salga
+  la primera es exactamente el fallo parcial que no debe pasar por éxito.
+- **`MinPartitionBytes` = 64 MiB.** Queda por encima del volumen más pequeño que Windows formatea con
+  cualquiera de los sistemas admitidos (FAT32 necesita ~33 MiB). Sin ese suelo, «el resto» cuando apenas
+  queda nada pasaría la validación y reventaría en `Format-Volume`, otra vez con el disco borrado.
+- **El margen se reserva por partición**, no una vez por disco: cada una alinea su inicio. Es generoso a
+  propósito — quedarse corto es fallar con el disco borrado; pasarse son unos MiB sin usar.
+
+**493/493 unitarias** (+40) · `Core/` al **97,8 %** (445/455) · build 0/0.
+
+**Verificado sobre hardware** (USB `utilidades`, disco 6): `DestructiveLifecycleTests` **3/3**, y el disco
+queda **idéntico** al resultado anterior a `T5-01` — partición de 1 GB en FAT32 sobre MBR y 28,3 GB sin
+asignar—, que es justo lo que se buscaba de un refactor. Confirma las tres cosas que las unitarias no
+alcanzan: el camino `-Size` del bucle nuevo, que `LETTER:0:` se emite y se parsea (si no, `Ok` sería falso
+al exigirse una letra por partición), y que releer por `-PartitionNumber $p<i>.PartitionNumber` funciona en
+un USB real. Esa relectura sustituyó a «la primera partición que tenga letra», que deja de valer con dos, y
+era el único cambio del script sin red.
+
+> **Las pruebas de UI no dejan rastro en el historial**: `SettingsBackup` restaura `history.log` al
+> terminar. Buscar ahí lo que hizo la suite no sirve — el estado del disco sí.
+
+---
+
+### 2026-08-16 — *FAT32 pequeña*: la función estaba escondida justo donde más falta hacía
+
+Reportado probando la app con un pendrive: **en unidades de menos de 32 GB la sección no aparecía**. Una
+sola condición en `MainWindow.FormatOptions.cs`:
+
+```csharp
+bool qualifies = type == DriveType.Removable && bytes >= FormatLogic.Fat32MaxBytes;
+```
+
+**Por qué estaba así, y por qué estaba mal.** La función (#37, Tier 7) se concibió como *rodeo al límite de
+Windows*: como no deja crear volúmenes FAT32 de más de 32 GB, en un USB grande se recorta la partición para
+que FAT32 sea legal. Con esa lectura, ocultarla en discos menores tenía sentido — allí FAT32 ya está en el
+selector. Lo que la condición no vio es que el **mecanismo** que hay debajo (`New-Partition -Size N` y dejar
+el resto sin asignar) es útil por sí mismo, independientemente de FAT32. Es el fallo clásico de codificar
+la *motivación* de una función como su *precondición*.
+
+**Tres cosas más salieron al tirar del hilo**, todas de la misma raíz:
+
+1. **El selector no comprobaba si el tamaño cabía.** Ofrecía siempre 1/2/4/8/16/32 GB, fijos en el XAML. Un
+   pendrive de "16 GB" son ~14,9 GiB reales: elegir 16 pedía una partición imposible y `New-Partition`
+   habría fallado **con el disco ya borrado**. No se notaba solo porque el `≥ 32 GB` lo tapaba — el bug
+   llevaba ahí desde la 1.14.0, latente detrás de la condición equivocada.
+2. **El tope se medía sobre el volumen.** `DriveInfo.TotalSize` es la partición actual, no el disco. Como
+   `Clear-Disk` borra el disco entero, el tope correcto es el del disco. Con el del volumen, usar la
+   función una vez (16 GB → partición de 2 GB) dejaba el tope en 2 GB: un **trinquete que solo baja**. Es
+   exactamente el problema que la revisión del `T5-01` había anticipado, aquí ya en producción.
+3. **`StyleFor` recibía también el tamaño del volumen.** El límite de 2 TB es de MBR y se aplica al disco.
+
+**Qué se hizo.** `Core`: `SmallFat32SizesFor(diskSizeBytes)` filtra los tamaños que caben —con
+`PartitionReserveBytes` (16 MiB) de margen para la alineación de la partición y la copia de la tabla GPT al
+final del disco— y `PickSmallFat32Size` elige la preselección. `Services`: `DiskService.GetDiskSizeAsync`,
+hermano de `GetDiskNumberAsync`. `UI`: la sección aparece en cualquier extraíble donde quepa el menor de los
+tamaños, el selector se pobla por código, y `LoadDiskSizeAsync` corre **en paralelo** con `LoadHealthAsync`
+al seleccionar unidad.
+
+**Decisiones que merecen quedar escritas:**
+
+- **Mientras la consulta del disco está en vuelo se usa el tamaño del volumen**, que siempre es menor o
+  igual. Se ofrece de menos, nunca de más: el error posible es una opción que falta un instante, no una que
+  destruye un disco. Lo mismo si la consulta falla (unidad RAW): no se toca nada.
+- **`SelectedSmallFat32SizeGb()` devuelve `0` y no `32`** cuando no hay selección válida. Con la lista fija
+  del XAML caer al máximo era inocuo; con una lista que depende del disco, pediría una partición que no cabe.
+- **La preselección programática no se persiste** (`_repopulatingSizes`). Si hoy hay conectado un pendrive
+  de 8 GB, guardar «8» borraría la preferencia de 32 GB del usuario para el siguiente disco.
+- **Se revalida el tamaño contra el disco justo antes de `Clear-Disk`.** El selector se pobló al seleccionar
+  la unidad; entre eso y pulsar el botón el disco puede haber cambiado. Pasarse de tamaño falla en el peor
+  momento posible: con el disco ya borrado.
+- **El sistema de archivos sigue forzado a FAT32** (decisión explícita del usuario, 2026-08-16). Que la
+  partición pequeña use el sistema de archivos del selector es más útil y más coherente, pero es un paso
+  hacia el `T5` y arrastra renombrar la opción en los cinco idiomas. Queda anotado, no hecho.
+
+Nueva clave `opt.smallFat32HintSmall` (×5 idiomas): en discos que no llegan a 32 GB, hablar del límite de
+Windows no explica nada — lo que aporta la opción allí es dejar espacio sin asignar. Y `reinit.sizeTooBig`
+para la revalidación. **453/453 unitarias** (+20).
+
+**Verificado sobre hardware real** (2026-08-16, USB `utilidades`, disco 6, 29,3 GiB — justo por debajo del
+umbral antiguo, así que antes la sección no aparecía):
+
+- Suite de UI sin opt-in: **25 pasan / 3 se omiten / 0 fallan** de 28 (59 min).
+- `FullLifecycle_FormatThenReinit_OnDedicatedTestUsb` con `ALLOW_DESTRUCTIVE=1`: **3/3** (1 min 5 s).
+  Este paso 3 **se omitía siempre** hasta ahora: la USB no llegaba a 32 GB y la casilla nunca era visible.
+- Estado final del disco comprobado con `Get-Partition`, no solo por el verde de la prueba: partición 1 de
+  **1 GB en FAT32** (`XINT13`) sobre MBR, y **28,3 GB sin asignar**. El estilo MBR es el correcto para 29,3 GiB.
+
+Ese estado final es además la demostración del arreglo del tope: el volumen queda en 0,996 GB pero el disco
+sigue teniendo 29,3 GiB, así que el selector debe seguir ofreciendo hasta 16 GB. Con el tope medido sobre el
+volumen —lo que hacía antes— la sección habría desaparecido por completo.
+
+---
+
+### 2026-08-16 — Corte de la **v1.21.0** (auditoría cerrada)
+
+`release.ps1 -Version 1.21.0 -UiTests -NotesFile docs
+elease-notes-1.21.0.md` desde terminal elevada y
+con la USB conectada, precedido de un `-DryRun` completo — el primer corte que pasa por la **puerta del
+`CHANGELOG`** de `T4-01`, y convenía verla funcionar antes de tocar git. Cobertura de `Core/` **97.4 %**
+(368/378, mínimo 90), **433/433** unitarias y **24/27** de UI, con los 3 omitidos siendo exactamente los
+opt-in. Instalador 58.8 MB.
+
+Verificado contra el release ya publicado, como en los cortes anteriores: el `digest` que **GitHub**
+calculó del instalador subido (`25fb7d78…`) coincide con el hash local y con el contenido del asset, que
+se llama exactamente `FormatDiskPro-1.21.0-setup.exe.sha256` —el nombre que busca el emparejamiento de
+`T2-06`— y ocupa **96 bytes**, holgadamente bajo el tope de 512 de `T2-07`. El `.csproj` conserva los
+acentos de `<Authors>`/`<Copyright>` tras el bump y mantiene su BOM (`#45`), y el `.exe` publicado los
+muestra bien.
+
+> **Es un corte de mantenimiento, y las notas lo dicen por delante.** La app se comporta *exactamente*
+> igual que la 1.20.0: sin funciones nuevas, sin cambios de interfaz, sin correcciones de algo que
+> estuviera fallando al usuario. Prometer otra cosa en un release que solo mueve tripas gasta la
+> atención de quien lo lea la próxima vez, y esa atención es lo que hace que se lean los avisos que sí
+> importan. Hay precedente en el proyecto (la v1.14.1 fue mantenimiento de pruebas).
+
+---
+
+### 2026-08-16 — `T4-04` y `T4-03`: la auditoría queda cerrada
+
+Con estas dos, la Parte 2 del ROADMAP se cierra: **39/40 completadas y 2 descartadas**, 0 abiertas. Lo
+único que queda vivo en el repositorio es el Tier 5, que no es remediación sino ampliación.
+
+**`T4-03` — descartada, y el motivo no es el dinero.** Es que **nunca fue una tarea**: «firmar el
+instalador» contradice la decisión `#13` (2026-06-24), que ya había decidido *no* firmar y que es la razón
+de existir de la verificación por SHA-256. Tenerla abierta en el backlog afirmaba algo falso —que el
+proyecto debía firmar y aún no lo había hecho— cuando lo cierto es lo contrario.
+
+> **Y no esconde trabajo pendiente.** El pipeline ya admite firmar, el `.sha256` se genera *después* de
+> firmar (firmar cambia el binario) y la ruta Authenticode quedó endurecida en `T1-08`. Falta un
+> certificado, que es una **compra**. El día que aparezca, lo que hay que hacer no es «firmar»: es poner
+> `SignsItsInstallers` en `true` **y** fijar el publicador esperado, y esa condición ya la vigila un test
+> tripwire que falla si se hace a medias. Está mejor custodiada por el build que por una casilla.
+
+**`T4-04` — el README pasa de 3 a 12 capturas**, seis pantallas en los dos temas: principal, S.M.A.R.T.,
+chkdsk, reinicializar, confirmación destructiva e historial. Se regeneraron todas (las anteriores eran de
+la v1.15.2) fotografiando el **publish self-contained**, que es lo que se distribuye. La galería completa
+sigue siendo un artefacto de revisión y sigue ignorada por git; lo que se versiona son las 12 elegidas.
+
+> **La tarea decía «copiar capturas» y lo que apareció fue un defecto en la herramienta.** Tres tomas
+> —`reinit`, `confirm`, `checkdisk`— esperaban con un `Start-Sleep` fijo de 1,2 s en lugar de esperar a un
+> elemento, pese a que el comentario que las encabeza afirma que todas «esperan a un elemento estable».
+> Sobre una unidad **extraíble válida**, *Reinicializar* consulta antes el número de disco físico del
+> objetivo y el de Windows —dos llamadas a PowerShell— para la guarda de «no es el disco del sistema»: la
+> foto salía con la ventana principal **y sin ningún diálogo**. Ahora esperan al `InputBox` de
+> `ConfirmDialog` y al `CheckScanButton`.
+
+**La trampa que solo se ve mirando las fotos, no ejecutando el script:** capturar *Reinicializar* sin
+`-Drive <USB>` **no falla** — produce una imagen impecable del mensaje «solo unidades extraíbles». Eso es
+la **guarda**, no la característica, y habría acabado en el README anunciando lo que la app *no* hace. Es
+la misma lección que `T2-12` en otro sitio: un proceso que termina en verde no está diciendo que el
+resultado sea bueno. Queda avisado en el README, junto al comando.
+
+Por eso las 12 no salen todas de la misma unidad: *Reinicializar* y *chkdsk* van sobre la USB de pruebas y
+el resto sobre un SSD interno, porque **un USB no expone los contadores S.M.A.R.T.** que hacen interesante
+esa pantalla. El README lo explica en vez de disimularlo.
+
+---
+
+### 2026-08-16 — `T4-02`, `T4-01` y `T4-05`: que fallar sea observable
+
+El Tier 4 era «futuro / opcional» por definición, pero dos de sus tareas eran deuda de verdad. Auditoría
+**38/40**: solo quedan las dos que no dependen del código —`T4-03` necesita un certificado de firma y
+`T4-04`, una tanda de capturas regeneradas—.
+
+**`T4-02` — los `Services` dejan de ser estáticos.** Los once pasan a clases con interfaz, y el grafo se
+construye en una **raíz de composición** (`Services/AppServices`) que `App` crea y pasa a `MainWindow`, y
+esta a los diálogos que la necesitan. **No es un localizador de servicios:** nadie le pide nada «desde
+dentro», así que cada constructor sigue declarando de qué depende — que es la mitad del valor de esto.
+
+> **Lo caro de probar no era la estática: era `new Process(...)`.** La tarea decía «todos son `static`, lo
+> que hace imposible probar los caminos de error sin hardware», y la parte operativa de esa frase es la
+> segunda. Cada servicio construía su propio proceso, así que reproducir un `chkdsk` que devuelve 2, un
+> `Clear-Disk` que revienta a mitad o un `powershell.exe` bloqueado por directiva exigía **provocar la
+> avería de verdad** — y en el caso de *Reinicializar unidad*, borrar un disco. La costura que lo cambia
+> todo es `IProcessRunner`.
+
+**La abstracción se queda en *arrancar* el proceso, no en «ejecutar y devolver la salida».** Es la decisión
+que más importa aquí. Cada servicio lee su salida de forma distinta y con matices que costaron hardware
+descubrir: el solapamiento de marcadores (`T3-02`), cerrar la entrada estándar (`T1-02`), esperar con
+`CancellationToken.None` para no perder el código de salida al cancelar. Unificar esos bucles en un
+«runner que lo hace todo» habría sido **reescribirlos**, y este cambio no podía cambiar comportamiento.
+Los bucles quedan intactos; solo cambia de dónde sale el proceso.
+
+**Resultado en pruebas: 398 → 433, y ninguna toca un disco.** Entre las 35 nuevas están las del camino
+destructivo que nunca se habían podido escribir: reinicializar con `Clear-Disk` fallando, y —el peor caso—
+salir con **código 0 pero sin letra asignada**, o sea el disco borrado y sin volumen montable. También se
+fija por prueba que `CheckDisk.RunAsync` **no atrapa nada** (deliberado: la excepción tiene que llegar al
+`catch` del handler, `T0-02`), que `/f` solo se pasa al reparar y que `/Y` siempre se pasa a `format.com`.
+
+> **Verificado por reversión, no por «pasa en verde».** Deshaciendo la guarda de la letra nueva falla
+> `Reinit_ExitZeroButNoLetterAssigned_IsAFailure`; poniendo el solapamiento de marcadores a 0 falla
+> `Reinit_Success_ReportsEveryStageOnceAndInOrder`. Esa segunda solo funciona porque el doble entrega la
+> salida **partida en trozos de 6 caracteres**: con un `StringReader` normal llegaría entera de una vez y
+> la prueba pasaría igual con el solapamiento roto. Es la misma lección de siempre aquí — una prueba que
+> no puede fallar no prueba nada.
+
+**Dos costuras artificiales desaparecen al llegar la real.** `History.LogTo`/`ReadLinesFrom`/`ClearAt` eran
+`internal static` con la ruta como parámetro, la única forma que había de no escribir en el `%AppData%` del
+usuario al probar. Con la ruta inyectada por constructor vuelven a ser privadas.
+
+**`UpdateService` conserva sus miembros internos `static`, y es una excepción razonada.** Ya se probaba
+entero —sus pruebas levantan un servidor HTTP local y ejercitan hash correcto, hash que no coincide,
+checksum ausente y respuesta desmedida—, así que instanciarlos habría significado **reescribir la ruta de
+verificación que corre elevada** sin ganar una sola prueba. Se instancia lo que consume la UI.
+
+**`T4-01` — `CHANGELOG.md`, con puerta en el corte.** Las 28 versiones publicadas más una sección *Sin
+publicar*. Lo que lo hace sostenible no es el archivo: `release.ps1` **aborta si no existe ya la sección de
+la versión que se va a publicar**, con un mensaje que dice exactamente qué escribir. Misma forma que la
+cobertura mínima y el `.sha256`, y por el mismo motivo — un changelog que se queda atrás **afirma ser el
+registro del proyecto y miente**, que es peor que no tenerlo.
+
+> **Las fechas salen de `git for-each-ref`, no del recuerdo.** Escritas a ojo desde el índice de versiones
+> de este mismo archivo, **18 de las 28 estaban mal**, alguna con ocho días de desviación. El índice de
+> arriba nunca las tuvo: solo dice qué trajo cada versión, no cuándo salió. Escribir un documento cuyo
+> propósito es responder «¿cuándo entró esto?» a base de memoria era garantizar que respondiera mal.
+
+**`T4-05` — el último resto de Windows Forms.** No era una propiedad `Name`: eran `SetFormEnabled` (ahora
+`SetControlsEnabled`, que además describe lo que hace) y un comentario *«same as MainForm»*.
+
+Build 0/0, **433/433** unitarias. La suite de UI no se ha vuelto a ejecutar tras estos cambios: el refactor
+no toca XAML ni `AutomationId`, pero **eso es un razonamiento, no una medida** — el corte con `-UiTests`
+sigue siendo la puerta que lo comprueba.
+
+---
+
+### 2026-08-15 — **Tier 5 «Ocurrencias para features existentes»** abierto en el ROADMAP
+
+Nace de usar la app, no de auditarla: tras *Reinicializar unidad → FAT32 pequeña*, el disco queda con la
+partición pedida y **el resto sin asignar**, así que un pendrive de 256 GB se queda con 32 usables hasta
+que el usuario abre *Crear y formatear particiones* de Windows — **la herramienta que esta app existe para
+no tener que abrir**. La característica `#37` resolvía el flasheo de BIOS y dejaba a medias el disco.
+
+Cinco tareas (`T5-01`…`T5-05`), **fuera del recuento de la auditoría**: las 40 de la Parte 2 no añaden
+funcionalidad y estas sí. Va documentado como excepción explícita en los dos sitios donde se afirma lo
+contrario, para que el ROADMAP no se contradiga consigo mismo.
+
+Tres decisiones que quedan tomadas antes de escribir código:
+
+- **No reabre el «gestor de particiones completo»**, que sigue fuera de alcance. Lo vetado ahí es
+  **redimensionar, fusionar y mover** — operar sobre particiones **con datos**. Aquí `Clear-Disk` ya borra
+  el disco entero de todos modos y solo cambia **cuántas particiones se crean sobre el vacío**. El criterio
+  para saber si nos hemos salido queda escrito: **si hay que preservar datos, nos salimos.**
+- **El plan de particiones se convierte en dato puro (`T5-01`) antes que nada.** Hoy el layout es un
+  `long?` con dos significados («este tamaño» / «todo el disco»). Es la única parte probable **sin
+  hardware**, y es donde el error duele: un plan mal calculado se descubre **con el disco ya borrado**.
+- **Un fallo a mitad no se revierte solo (`T5-03`).** Con varias particiones existe un estado intermedio
+  real; «deshacer» solo podría significar borrar otra vez, y esa no es una decisión que tomar por el
+  usuario. Se informa de qué se creó y qué no, y se deja elegir.
+
+`T5-04` (N particiones a gusto del usuario) queda **condicionada y desaconsejada como punto de partida**:
+el motor lo admitiría, pero la interfaz no — la ventana es un diálogo de tarea de tamaño fijo por decisión
+firme, y una tabla editable de filas variables no cabe ahí sin convertirla en otra cosa. Dos particiones
+cubren el caso que originó esto; N es una hipótesis. Si entra, va en diálogo aparte.
+
+---
+
+### 2026-08-15 — Corte de la **v1.20.0** (Tier 3 completo)
+
+`release.ps1 -Version 1.20.0 -UiTests -NotesFile docs\release-notes-1.20.0.md` desde terminal elevada con
+la USB conectada. Cobertura de `Core/` **97.1 %** (367/378 líneas, mínimo 90 %), **398/398** unitarias y
+**24/27** de UI — los 3 omitidos son los opt-in por variable de entorno, ninguno por falta de hardware,
+y el resumen final lo dice con esas palabras desde el arreglo del corte anterior. Instalador 58.8 MB.
+
+Verificado contra el release ya publicado: el asset `.sha256` se llama exactamente
+`FormatDiskPro-1.20.0-setup.exe.sha256` y ocupa 96 bytes, y el `digest` que GitHub calculó del instalador
+subido (`c547889e…`) coincide con el hash local — o sea, el hash que la app usará para verificar
+corresponde al binario realmente publicado, no solo al que se compiló aquí. El `.csproj` conserva los
+acentos de `<Authors>`/`<Copyright>` tras el bump.
+
+---
+
+### 2026-08-15 — Tier 3 completo: nueve arreglos de pulido, tres con matiz
+
+Ninguno cambia lo que la app hace; varios cambian lo que la app **cuenta** cuando algo va mal.
+
+- **`T3-01` — la exportación CSV ya no falla en silencio.** Un `catch { }` se tragaba cualquier error de
+  escritura: el usuario elegía destino, no veía nada y se quedaba **creyendo que había exportado**. Ahora
+  el diálogo muestra un `InfoBar` con el motivo real y se registra `EXPORT ERROR`. Va dentro del propio
+  diálogo porque WinUI no permite abrir un `ContentDialog` sobre otro.
+- **`T3-03` — `LoadHealthAsync` pasa a `async Task`** con descarte explícito. **El matiz que la tarea no
+  decía:** al dejar de ser `async void`, una excepción ya no llega a la red global de `T0-01` — se
+  quedaría en una `Task` que nadie observa, o sea, en silencio. Se añade un `catch` que pinta «no
+  disponible» y registra `HEALTH ERROR`. Cambiar el tipo de retorno **es** cambiar dónde se manejan los
+  errores; no verlo habría convertido un arreglo en una regresión callada.
+- **`T3-04` — `AppSettings.Load` normaliza de verdad.** La documentación decía «se valida al cargar» y no
+  era cierto: lo hacía la UI al construir sus ComboBox. Se arregla por la vía preferible —normalizar en
+  `Load()`—, no reescribiendo el texto: así un `settings.json` con 0 pasadas deja de entrar vivo.
+- **`T3-06` — `L.T(clave, args)` ya no lanza.** Un marcador mal escrito en una traducción tumbaba la
+  pantalla que solo quería mostrar un texto; ahora devuelve la plantilla sin formatear, que además delata
+  el fallo. Verificado por reversión.
+- **`T3-08` — iconos decorativos fuera del árbol de automatización**, puesto **en el estilo** y no en cada
+  icono: cualquier icono de sección futuro lo hereda, así que la corrección se queda puesta sola.
+- **`T3-10` — el borrado seguro usa RNG criptográfico.** Para destruir datos da igual el origen de la
+  aleatoriedad, pero «borrado seguro» invita a suponer otra cosa y el coste frente a la E/S es
+  despreciable: sale más barato cumplir la expectativa que documentar por qué no se cumple.
+- **`T3-02`** (sin `ToString()` por chunk en `ReinitDrive`, con solapamiento como el `carry` de
+  `CheckDisk`), **`T3-07`** (formato del diccionario) y **`T3-09`**, abajo.
+
+> **`T3-09` merece decirse entero.** La contraseña del certificado pasa a `SecureString` en los dos
+> scripts, con alternativa por variable de entorno, y solo se descifra al construir los argumentos. **Lo
+> que no arregla:** `signtool.exe` solo la acepta por `/p`, así que durante esa llamada sigue en **su**
+> línea de comandos. Se elimina la exposición en el historial de PowerShell y en nuestros scripts, no la
+> de signtool. La única vía sin exposición es el `.pfx` en el almacén con `-CertThumbprint`, y así queda
+> documentado para el día que se firme.
+
+Build 0/0, **398/398** unitarias (+9) y UI **24/27** con la USB. Auditoría **35/40** + 1 descartada:
+**Tiers 0–3 cerrados**, solo queda el Tier 4 (fuera del alcance inmediato por definición).
+
+---
+
+### 2026-08-15 — Corte de la **v1.19.0** (Tier 2 completo)
+
+`release.ps1 -Version 1.19.0 -UiTests` desde terminal elevada con la USB conectada. Primer corte que pasa
+por la **puerta de cobertura** de `T2-04`: 97.1 % de `Core/` sobre un mínimo de 90 %, impreso al ejecutar
+las pruebas y repetido en el resumen final. 389/389 unitarias, **24/27** de UI (los 3 omitidos, los
+opt-in). Instalador 58.8 MB.
+
+Verificado contra el release ya publicado, como en la 1.18.0: el `.sha256` se llama exactamente
+`FormatDiskPro-1.19.0-setup.exe.sha256`, coincide con el instalador y ocupa 96 bytes; el `.csproj`
+conserva los acentos tras el bump.
+
+---
+
+### 2026-08-15 — `T2-08`: `MainWindow` de 2.107 a 753 líneas (Tier 2 cerrado)
+
+Dos extracciones **reales**, las que pedía la tarea, y luego una partición del resto:
+
+1. **`Services/FormatProcess`** — `RunFormatVolumeAsync`/`RunFormatComAsync` salen de la ventana y se
+   ponen junto a sus hermanos (`CheckDisk`, `ReinitDrive`, `SecureWipe`). Lanzar procesos y leer su salida
+   no era responsabilidad de la UI, y era el único flujo de formateo sin un sitio propio donde mirarlo. El
+   proceso en marcha se entrega por *callback* en vez de guardarse en el servicio —quien llama es quien lo
+   cancela— y el progreso va por `IProgress<int>`, así que el servicio no toca ni la barra ni el estado.
+2. **`UI/DeviceChangeWatcher`** — los cuatro `DllImport`, el delegado que hay que mantener vivo para que
+   no lo recoja el GC y el *debounce* del `WM_DEVICECHANGE`, en su propia clase `IDisposable`.
+3. **El resto, en `partial class` por asunto**: `.DriveInfo`, `.FormatOptions`, `.Operations`,
+   `.HelpAndUpdates`, `.Preferences`.
+
+**Resultado:** `MainWindow.xaml.cs` **2 107 → 753** líneas; el mayor de `UI/` es ahora
+`MainWindow.Operations.cs` (509). Ninguno pasa de 800.
+
+> **Lo que este cambio NO es.** Partir un archivo en `partial` no reduce el acoplamiento: sigue siendo la
+> misma clase con el mismo estado compartido. Arregla exactamente lo que la tarea decía —encontrar algo
+> en 2.000 líneas— y nada más. El rediseño de verdad (inyección de dependencias, `Services` no estáticos)
+> es `T4-02`, **cerrado el 2026-08-16** — y que `MainWindow` siga siendo una clase grande con estado
+> compartido tampoco lo arregló aquello: lo que arregló fue que los fallos de los servicios sean observables.
+
+Verificado como toca para un refactor que promete no cambiar comportamiento: build 0/0, 389/389
+unitarias y la suite de UI **24/27 con la USB conectada** — el mismo resultado, tras cada paso.
+
+> **Trampa de PS 5.1, otra vez y en un sitio nuevo:** el script auxiliar del reparto se guardó **sin BOM**
+> y PowerShell lo leyó con la página de códigos ANSI, rompiendo el parser en la primera tilde. Es la misma
+> historia del `.csproj` (`#45`) y del `.trx` (`T2-12`). **Regla, ya sin excepciones: todo archivo de texto
+> con acentos que vaya a leer PS 5.1 necesita BOM.**
+
+Con esto **el Tier 2 queda cerrado**: auditoría 26/40 + 1 descartada, quedan T3 (9) y T4 (5).
+
+---
+
+### 2026-08-15 — `T2-04` y `T2-11`: cobertura medida y exigida, y los documentos que faltaban
+
+**`T2-04`.** «390 pruebas» era un recuento, no una medida. Ahora `release.ps1` recoge cobertura en la
+misma pasada de las unitarias y **aborta el corte** si `Core/` baja del mínimo. Primera medición:
+**97.1 % de línea** (367/378).
+
+Dos decisiones que explican el número:
+
+- **El umbral es 90 %, deliberadamente por debajo de lo medido.** Un listón pegado al valor actual obliga
+  a escribir pruebas de relleno para que el corte no rompa al añadir un método; lo que se quiere es un
+  suelo que avise de una **regresión real**.
+- **Solo se mide `Core/`.** Es la capa que puede probarse entera sin hardware, así que ahí un hueco es una
+  decisión y no una limitación. Aplicar la misma vara a `Services/` y `UI/` premiaría escribir pruebas
+  fáciles de lo que no importa — su red son los UI tests.
+
+Verificado que la puerta cierra: con el umbral a 99 el corte aborta **y lista las cinco clases con menos
+cobertura**, para que el mensaje diga qué hacer, no solo que algo va mal.
+
+**`T2-11`.** Una herramienta GPLv3 que formatea discos, corre elevada y se auto-actualiza no publicaba
+canal de reporte de vulnerabilidades ni guía de contribución. Ya hay `.github/SECURITY.md`,
+`.github/CONTRIBUTING.md`, plantillas de issue (formularios YAML) y de PR, enlazadas desde el README.
+
+> **`SECURITY.md` dice también lo que NO es una vulnerabilidad** —correr como administrador, el instalador
+> sin firmar, el alcance *en tránsito* del SHA-256—, porque son decisiones documentadas y recibir reportes
+> de ellas gasta el tiempo de todos. El canal es el reporte privado de GitHub: **no se publica ninguna
+> dirección de correo**. `CONTRIBUTING.md` recoge lo que aquí falla si no lo sabes de antemano: terminal
+> elevada, precondiciones que omiten en vez de fallar, los tests que vigilan la i18n y el contraste, y que
+> **no se aceptan PRs con GitHub Actions**.
+
+Auditoría **25/40** · T2: 1 abierta (`T2-08`).
+
+---
+
+### 2026-08-15 — `T2-03`: la verificación de capacidad ya no puede leer de la caché
+
+*Verificar capacidad* escribía con `WriteThrough` pero **releía con E/S normal**, así que la caché de
+archivos de Windows podía servir los bloques desde RAM — justo lo que la prueba existe para descartar. En
+una USB falsa **pequeña** (menor que la RAM libre) eso podía dar un **falso OK**: el peor resultado
+posible aquí, decirle a alguien que su unidad es auténtica cuando no lo es.
+
+La relectura usa ahora `FILE_FLAG_NO_BUFFERING` con `RandomAccess.ReadAsync` y buffer alineado (el mismo
+patrón que ya tenía `BenchmarkRunner`). El objetivo se redondea a la baja al sector, y con eso todos los
+tamaños de archivo —y todos los bloques, incluido el último— quedan alineados, que es lo que ese modo
+exige. Se sacrifican menos de 4 KB del margen de seguridad de 64 MB.
+
+> **Cómo se demuestra que el flag está realmente activo**, que era la parte que la tarea dejaba como
+> «razonado, no medido»: sustituyendo el buffer alineado por uno desplazado **un byte**, las pruebas
+> fallan con `IOException: El parámetro no es correcto` — el error que Windows devuelve a la E/S sin
+> caché ante un buffer desalineado. **Con la caché de por medio esa desalineación sería irrelevante y las
+> pruebas pasarían.** Ese contraste es la prueba: no hay API que diga «este bloque vino del medio», pero
+> sí una que solo se comporta así cuando no hay caché.
+
+Probado además sobre la **USB real** (64 MB en `D:`, 7 s): un disco fijo y un medio extraíble no tienen
+por qué anunciar la misma geometría, y este modo no degrada —falla— si no cuadra. Esa prueba se **omite**
+salvo que se defina `FORMATDISKPRO_VERIFY_DRIVE=<letra>`, para que las unitarias sigan corriendo en
+cualquier máquina.
+
+Build 0/0, **390/390** (389 + la de unidad real). Auditoría **23/40** · T2: 3 abiertas.
+
+---
+
+### 2026-08-15 — Corte de la **v1.18.0**, y la verificación del actualizador comprobada en producción
+
+Corte con `release.ps1 -Version 1.18.0 -UiTests` desde terminal elevada y con la USB conectada: 388/388
+unitarias, **24/27** de UI (los 3 omitidos son los opt-in, que un corte nunca debe ejecutar) y el resumen
+del corte lo dijo por escrito — que es lo que `T2-12` existía para arreglar.
+
+**Lo nuevo se comprobó contra el release ya publicado, no solo en pruebas:** el asset del hash se llama
+`FormatDiskPro-1.18.0-setup.exe.sha256` —el nombre exacto que ahora busca el emparejamiento de `T2-06`—,
+coincide con el instalador subido y ocupa **96 bytes**, holgadamente por debajo del tope de 512 de
+`T2-07`. Y el `.csproj` conserva los acentos de `<Authors>`/`<Copyright>` tras el bump, que es el fallo
+del `#45` y conviene seguir mirando en cada corte.
+
+**Detalle de proceso, por honestidad:** el retoque final de `release.ps1` (el consejo del resumen de UI)
+no llegó a tener commit propio —falló el `git commit` que lo intentaba— y acabó dentro del commit
+`release: v1.18.0`, que `release.ps1` crea con `git add -u`. Sin consecuencias, pero explica por qué ese
+commit toca `release.ps1` además del `.csproj`.
+
+---
+
+### 2026-08-15 — `T2-01`/`T2-02`: la app se puede seguir sin verla
+
+Las operaciones de esta app duran minutos u horas y **nada mueve el foco** mientras avanzan: con un lector
+de pantalla no había forma de saber si el formateo progresaba, había fallado o había terminado. Y el error
+de la etiqueta aparecía debajo del campo sin ninguna relación programática con él, así que desde el propio
+cuadro de texto no se podía averiguar por qué no dejaba continuar.
+
+- **`StatusText` es región activa `Polite`** y `MainWindow.AnnounceStatus` emite una notificación UIA en
+  los **hitos**: inicio de las cinco operaciones y —en un solo sitio, `EndOperation`— fin, error o
+  cancelación, con `ActionCompleted`/`ActionAborted` según cómo haya terminado.
+- **`LabelErrorText` es `Assertive`** y `VolumeLabelBox` lo referencia con `DescribedBy`. El vínculo se
+  hace en code-behind: en WinUI esa propiedad es una **colección** y no admite `x:Reference` desde XAML.
+
+> **La decisión que importa aquí es qué NO se anuncia.** Una notificación por cada tick de porcentaje
+> convertiría el lector de pantalla en ruido continuo durante una hora de formateo — peor que el silencio
+> del que se partía. El avance queda en la región activa, que se consulta cuando se quiere; se anuncia
+> solo lo que no puede perderse. Por lo mismo, el error de etiqueta se anuncia al **aparecer o cambiar**,
+> no en cada pulsación de tecla.
+
+**Dos cosas las enseñó la prueba al fallar, no el razonamiento:**
+
+1. **Un elemento `Collapsed` no existe en el árbol de UI Automation.** Buscar `LabelErrorText` con la
+   etiqueta válida no devuelve nada: hay que provocar el error primero. Que el vínculo solo exista
+   mientras el mensaje se muestra es lo correcto, pero una prueba escrita sin saberlo habría fallado sin
+   que nada estuviera mal.
+2. **Los UI tests lanzan el `.exe` de `bin`, no el XAML del repo.** Al verificar por reversión, quitar el
+   `LiveSetting` del XAML **sin recompilar** deja la prueba en verde. Casi cuela como «verificado»: la
+   reversión solo prueba algo si se reconstruye el binario que la prueba va a ejecutar.
+
+**Y un arreglo de la suite que este equipo destapó:** las cuatro pruebas de la tarjeta de opciones
+necesitan alguna unidad que no sea la de sistema, y en una máquina de un solo disco **fallaban** con un
+error que habla del hardware, no de la app. Ahora hay `NonSystemDriveFact` y se **omiten**, que es la
+regla que este proyecto ya se dio con `TestDriveFact`.
+
+Suite de UI **27** (era 25). Sin USB ni segundo disco: 15 pasan / 12 se omiten / 0 fallan. **Con la USB
+`utilidades` conectada (2026-08-15): 24 pasan / 3 se omiten / 0 fallan**, y los 3 omitidos son
+exactamente los opt-in (2 de *yank* + 1 destructivo) que un corte de release nunca debe ejecutar.
+Build 0/0, unitarias 388/388. Auditoría **22/40** · T2: 4 abiertas.
+
+---
+
+### 2026-08-15 — `T2-09`: el historial deja de crecer sin fin (y `T2-10` queda descartada)
+
+**`T2-09` — rotación con dos generaciones.** `history.log` solo crecía y el visor lo interpreta **entero**
+en memoria cada vez que se abre. Con una entrada por operación eso tarda años en notarse; con las trazas
+de pila completas que registra `T0-01` desde agosto, no tanto. Ahora rota a los 2 MB: la política vive
+pura en `Core/HistoryRotation` y el movimiento de archivos en `History`.
+
+Lo que decide si esto es una mejora o un regalo envenenado no es el umbral, es qué ve el usuario después:
+
+> El visor lee **las dos** generaciones, la vieja primero. Rotando solo el archivo activo, la entrada que
+> provoca la rotación dejaría a alguien mirando un historial casi vacío justo después de una operación —
+> y en un registro de auditoría eso no se lee como «ha rotado», se lee como **«he perdido mis datos»**.
+
+Por lo mismo, *Borrar el historial* se lleva también `history.1.log`: si no, limpiar dejaría 2 MB a la
+vista. Y se rota **antes** de escribir, no después, para que el archivo activo nunca quede por encima del
+umbral. Verificado por reversión: sin la rotación fallan dos de las seis pruebas del comportamiento.
+
+`SettingsBackup` (UI tests) respalda ahora también `history.1.log`. Hacen falta 2 MB para que aparezca,
+pero ese respaldo existe justamente para no dejar rastro en el `%AppData%` real, y una excepción «que casi
+nunca pasa» es como se cuelan las cosas.
+
+**`T2-10` — CI de solo unitarias: implementada y revertida el mismo día.** Se llegó a escribir el workflow
+(`windows-latest`, build sin advertencias + `dotnet test` sobre la solución, con los comandos verificados
+en local) y se **descartó por decisión del mantenedor**: el testing de este proyecto es **local**, sin
+GitHub Actions ni workflows de ningún tipo. Queda como **decisión cerrada** en §4, no como tarea aplazada.
+
+El argumento que la cierra es el mismo que hace especial a este repositorio: la prueba que vale aquí es la
+que **ejerce el binario real** contra hardware real —elevación y USB de pruebas—, y eso no cabe en un
+runner. Un ✅ verde que solo cubre los unitarios afirma más de lo que prueba, que es literalmente el
+problema que `T2-12` acababa de corregir en el otro extremo del proceso. La puerta de calidad es
+`release.ps1 -UiTests` desde terminal elevada, y ya existe.
+
+Build 0/0, **388/388** (375 → +13). Auditoría **20/40** + 1 descartada · T2: 6 abiertas.
+
+---
+
+### 2026-08-15 — `T2-12`, `T2-06`, `T2-07`: que el corte no pueda mentir, y el hash correcto
+
+Tres tareas del Tier 2, todas en el mismo punto del proyecto: **lo que se verifica antes de ejecutar como
+administrador**, y **lo que un corte de release afirma haber probado**.
+
+**`T2-12` — el corte ya dice qué cobertura NO llevó.** `release.ps1` pide el logger `trx` y lo lee: la
+salida de consola de `dotnet test` no lista los tests omitidos ni su motivo, el `.trx` sí. El resumen sale
+**dos veces** —al terminar las pruebas y en el bloque final, que es el único que se mira cuando todo ha
+ido bien— con el nombre de cada omitido y el motivo que declara su propio atributo:
+
+```
+[!] UI tests: 17/25 — 8 OMITIDOS por precondición ausente:
+      - …CheckDisk_ScanOnly_CompletesForTestDrive: Requiere la USB de pruebas conectada (…'utilidades').
+      - …Benchmark_DriveDisappears_…: Define FORMATDISKPRO_ALLOW_YANK=1 antes de 'dotnet test'…
+```
+
+Omitir en vez de fallar **sigue siendo lo correcto** —un corte no debe caer por falta de hardware—; lo que
+faltaba era el rastro. Sin él, los cortes de la v1.15.2 y la v1.16.0 salieron «en verde» con
+`CheckDisk_ScanOnly_CompletesForTestDrive` roto y omitido. Verificado sobre un `.trx` **real** (la corrida
+no elevada produce los 8 omitidos), no sobre uno inventado.
+
+> **Y la trampa de PS 5.1 volvió a aparecer, en otro archivo.** El `.trx` se lee con `XmlDocument.Load`,
+> no con `[xml](Get-Content -Raw)`: eso último lee con la página de códigos ANSI y destroza los acentos de
+> los motivos, que están en español. Es exactamente el fallo del `.csproj` (`#45`) en otro sitio.
+
+**`T2-06` — el hash que se comprueba es el del instalador que se va a ejecutar.** `ParseRelease` se
+quedaba con el **último** asset terminado en `.sha256`; ahora busca `<nombre-del-exe>.sha256`. Si no está,
+`ChecksumUrl` queda vacía y la actualización se rechaza por no verificable. El síntoma del defecto no era
+un agujero sino lo contrario —una actualización legítima rechazada siempre, porque el hash de otro archivo
+nunca coincide—, pero la corrección es la misma. Verificado por reversión: con la lógica vieja, dos de las
+cinco pruebas nuevas fallan.
+
+**`T2-07` — leer un checksum no puede costar memoria arbitraria.** `GetStringAsync` leía la respuesta
+entera; ahora hay un tope de 512 bytes (un hash en hex ocupa 64, y `build-installer.ps1` escribe unos 110
+con el nombre). Se comprueban las dos cosas, la cabecera `Content-Length` y el flujo real, porque un
+servidor puede mentir en la primera o no enviarla. **Lo que hace discriminante a la prueba** es que el hash
+servido es el **correcto** —va al principio, seguido de 64 KB de relleno—: lo que rechaza la respuesta es
+su tamaño, no la comparación. Con `GetStringAsync`, pasaba.
+
+**Detalle que dice algo del proyecto:** el barrido de `T1-07` **paró este cambio dos veces**. La primera,
+por un `Dictionary<string,string>` legítimo (nombre de asset → URL, sin texto de usuario); la segunda, por
+mencionarlo en un **comentario**. Se resolvió sin abrir excepciones en la red: una lista de tuplas, que
+para tres assets es igual de buena. Un barrido que se pasa de celoso se corrige cambiando el código, no
+debilitando la red.
+
+Build 0/0, **375/375** (369 → +6). Auditoría **19/40** · T2: 8 abiertas.
+
+---
+
+### 2026-08-14 — `T1-02`: el formato completo se colgaba en medio Windows, y no era el único idioma
+
+`format.com` hace dos preguntas por consola, y se les respondía escribiendo `"Y"` y `"S"` en la entrada
+estándar — las teclas de un Windows **inglés y español**. En uno francés (`O`) o alemán (`J`) ninguna
+coincide y **el proceso se queda esperando entrada con el formato a medias**.
+
+**Reproducido, no deducido.** La tarea llevaba la nota «pendiente de verificación: necesita un Windows no
+ES/EN». No hacía falta: basta con **no escribir nada**, que es lo que efectivamente ocurre cuando la tecla
+no coincide. Sobre un VHD de 400 MB:
+
+| | Resultado |
+|---|---|
+| Con `/Y` | Termina en **0.1 s**, exit 0, «Formato completado» |
+| Sin `/Y` | **Se cuelga** esperando una tecla que nunca llega |
+
+`/Y` suprime las **dos** preguntas —también la de la etiqueta de volumen, que la nota original dejaba como
+duda abierta, porque asume etiqueta vacía si no se pasa `/V:`— y fuerza el desmontaje si hace falta. Ya no
+se escribe nada por stdin: se **cierra**, para que una build hipotética sin `/Y` falle rápido en vez de
+colgarse indefinidamente.
+
+**Y había un segundo fallo de idioma en la misma ruta que la tarea no mencionaba.** `ExtractPercent`
+reconocía `%`, `percent` y `por ciento`: el mismo par inglés/español, en el mismo archivo. Como
+`format.com` escribe la **palabra** y no el símbolo, en un Windows francés o italiano la barra de progreso
+se quedaba clavada en 0 durante todo un formato completo **sin que nada fallara**. Añadidos `por cento`
+(pt), `per cento` (it), `pour cent` (fr) y `Prozent` (de).
+
+> **El matiz que hace esto distinto de `T1-05`/`T1-06`:** aquí el idioma que manda es el de **Windows**, no
+> el de la app. Alguien puede tener FormatDiskPro en español sobre un Windows alemán. Por eso esta lista es
+> incompleta por naturaleza y no puede dejar de serlo — lo que importa es **cómo se degrada**: sin
+> coincidencia, barra parada y formato correcto, nunca un fallo. Hay test de esa degradación.
+
+**Residuo honesto:** las cuatro palabras nuevas son traducciones, **no observaciones**. No se pudo ver la
+salida real de un `format.com` no español: un VHD montado se anuncia como aprovisionamiento fino y Windows
+rechaza el formato **completo** sobre él, que es el único que imprime porcentajes.
+
+**Y el barrido de `T1-07` no habría cazado esto**: busca `Dictionary<string,string>` y esto es un
+`[GeneratedRegex]`. La red tiene un agujero con la forma de lo que no se imaginó — que es, otra vez, el
+patrón de siempre.
+
+Build 0/0, **369/369** (359 → +10). Auditoría **16/40**: **Tiers 0 y 1 cerrados**.
+
+---
+
+### 2026-08-14 — `T2-13`: los `catch` ejecutados de verdad, quitando la unidad
+
+`T2-05` dejó bajo test lo que los `catch` de `T0-02` **escriben**; faltaba lo otro: que lleguen a
+**ejecutarse**. `DriveYank.ForceDismount` desmonta el volumen a la fuerza a mitad de la operación e
+invalida los handles abiertos de la app — el efecto exacto de que le quiten la USB de las manos. Dos
+pruebas: *Verificar capacidad* y *Benchmark*.
+
+**Lo que hace que la prueba valga algo es una sola línea:**
+
+```csharp
+Assert.DoesNotContain("CRASH:", added);
+```
+
+Sin ella, la prueba pasaría **igual con los `catch` borrados**: la red global de `T0-01` también deja la
+app viva y también muestra un diálogo, así que desde fuera las dos rutas son indistinguibles. Lo único
+que las separa es qué línea aparece en el historial. Verificado por reversión: con el `catch` de `VERIFY`
+neutralizado, el historial recibe `2026-08-14 12:03:31⇥CRASH: System.IO.IOException…` y la prueba falla
+diciendo qué faltaba. Ese mismo experimento valida **las dos** redes a la vez, que hasta hoy solo estaban
+razonadas.
+
+**`Set-Disk -IsOffline` no sirve para desmontar una USB** — Windows lo rechaza de plano: *«Removable media
+cannot be set to offline»*. Poner un disco offline es una operación de discos fijos. Lo que sí vale es
+`FSCTL_DISMOUNT_VOLUME` sobre el volumen: es lo que hace Windows al "quitar hardware de forma segura" y,
+a diferencia de `FSCTL_LOCK_VOLUME`, **no falla cuando hay archivos abiertos** — los invalida, que es
+justo lo que hace falta aquí. Se remonta solo al primer acceso, sin tocar el cable.
+
+**Trampa aprendida (costó una corrida entera):** una prueba que aborta a mitad deja la app **ocupada**, y
+la siguiente falla con un `DrivePicker` vacío — un síntoma que no se parece en nada a su causa. El
+`finally` ahora devuelve la app a estado ocioso además de remontar la unidad.
+
+**Otra:** no vale esperar a que `StartButton` se rehabilite para dar la app por ociosa. En
+`SetFormEnabled` es `enabled && !_isDriveProtected`, y al desaparecer la USB el selector puede caer en
+`C:`, que está protegida: quedaría deshabilitado con la app perfectamente ociosa. Se miran `DrivePicker`
+y `MnuTools`.
+
+Opt-in propio `FORMATDISKPRO_ALLOW_YANK=1`, separado del destructivo: no borra datos, pero hace
+desaparecer una unidad del sistema.
+
+Suite de UI **25/25** con hardware (era 23). Auditoría **15/40**.
+
+---
+
+### 2026-08-13 — `T2-05`: los caminos de error, y el defecto que escondían
+
+Ninguna prueba cubría qué pasa cuando una operación **falla** — que era la causa raíz de `T0-02`. Dos
+costuras nuevas, y un hallazgo que justifica la tarea entera.
+
+**`CapacityVerifier.RunInAsync(dir, target, …, afterWriteAsync)`.** El motor de la verificación, sin la
+unidad. El parámetro `afterWriteAsync` corre entre la fase de escritura y la de lectura, y permite
+**corromper lo escrito**: es decir, reproducir una unidad falsificada sin tener una. Hasta hoy, lo único
+que ejercitaba la detección era un test de UI de 57 minutos sobre una USB **auténtica** — o sea, sobre el
+único caso en el que la detección nunca se dispara. Ahora hay pruebas de bloque corrompido
+(`mismatch@1`), lectura corta (`short-read@1`), cancelación con limpieza y unidad no lista, todas en
+menos de medio segundo y sin tocar ninguna unidad real. Verificado por reversión: anular la comparación
+de patrones hace fallar la prueba del bloque corrompido.
+
+**`Core/OperationFailure.LogLine`**, extraído de `MainWindow.ReportOperationErrorAsync`, para poder
+comprobar que lo que escribe el camino de error **se vuelve a leer bien** por el visor de historial.
+
+Y al recorrerlo de punta a punta apareció un defecto real, registrado como `T3-11`:
+
+> `history.log` es un formato de **una entrada por línea**, pero `History.Log` escribía el texto recibido
+> tal cual. `T0-01` —de esta misma mañana— había empezado a registrar `e.Exception` **completa, con su
+> traza de pila**. Cada caída partía el historial en **decenas de entradas fantasma** sin marca de tiempo,
+> categoría `Other` y resultado `Info`: un fallo disfrazado de información, justo en el registro que uno
+> consulta cuando algo ha ido mal.
+
+Lo arregla `HistoryEntry.SanitizeDetail` (pura), que aplana los saltos a `⏎`. No recorta la longitud a
+propósito: en una entrada `CRASH:` la traza es justo lo que se quiere leer.
+
+**La lección, que es la misma de siempre en este proyecto:** el arreglo de la mañana introdujo el defecto
+de la tarde, y sobrevivió medio día porque el camino que tocaba no tenía pruebas. Un `catch` que nadie ha
+visto ejecutarse no es una red.
+
+**Lo que sigue sin estar verificado:** que esos `catch` *lleguen a ejecutarse*. Bajo test está lo que
+escriben, no que se disparen. Eso solo lo demuestra desconectar la USB a mitad de cada operación.
+
+Build 0/0, **359/359** (330 → +29). Auditoría **14/39**.
+
+---
+
+### 2026-08-13 — `T1-08`: la firma Authenticode dejó de ser un atajo
+
+Se reafirmó **no firmar** (#13). Esa decisión, que parecía dejar `T1-08` en endurecimiento preventivo, es
+justo lo que convierte el hallazgo en real:
+
+> `VerifyAuthenticodeSignature` responde a «¿lo firmó **alguien** en quien Windows confía?», no a «¿lo
+> firmamos **nosotros**?». Y `VerifyInstallerAsync` devolvía sin mirar el hash si la firma pasaba. Como el
+> proyecto **no firma**, esa rama solo podía activarse sobre un binario que no produjimos: era un modo de
+> saltarse el SHA-256 usando cualquier ejecutable firmado por cualquier CA de confianza — y al otro lado
+> está `LaunchInstaller` ejecutando **como administrador**.
+
+El SHA-256 pasa a ser obligatorio. El atajo queda tras `UpdateService.SignsItsInstallers` (`static readonly
+bool`, no `const`: como constante el compilador pliega el `if` y salta CS0162, y aquí se compila a 0
+advertencias). Se aplicó además el contenido original de la tarea: `WTD_REVOKE_WHOLECHAIN` +
+`WTD_CACHE_ONLY_URL_RETRIEVAL`, para que un certificado revocado deje de valer **sin** que la validación
+pase a depender de tener red.
+
+**Verificado con un binario firmado de verdad**, no con una simulación: `dotnet.exe` tiene firma Authenticode
+*embebida* y válida, y está garantizado presente porque las pruebas corren sobre él. (Los binarios de Windows
+como `explorer.exe` no sirven: su firma es de *catálogo* y `WinVerifyTrust` con `WTD_CHOICE_FILE` no la ve.)
+Dos pruebas nuevas: que una firma legítima siga aceptándose —el riesgo real de tocar los flags de
+revocación— y que un instalador firmado sin hash publicado se rechace igual. Con el flag en `true` esta
+última falla: se aceptaba un ejecutable de Microsoft como si fuera nuestro instalador. Ese es el agujero.
+
+También se corrigió el mensaje `update.unverifiable` en los cinco idiomas: explicaba una regla («no está
+firmado y…») que ya no existe.
+
+Build 0/0, **330/330** (327 → +3). Auditoría **11/38**; del Tier 1 solo queda `T1-02`, que necesita un
+Windows no ES/EN para verificarse.
+
+---
+
+### 2026-08-13 — Auditoría: `T1-06`/`T1-07`, la i18n medida desde el otro lado
+
+Los nombres de los cinco presets integrados estaban **fijos en español** dentro de `Core/Presets.cs` y el
+menú los pintaba tal cual en los cinco idiomas. `FormatPreset` gana un `NameKey` opcional y `Presets`
+un `DisplayName` que lo resuelve con `L.T`; los presets del usuario lo dejan en `null` y se muestran
+literales, que es lo correcto: ese nombre lo escribió una persona. **Detalle que importa:** la detección
+de duplicados de `PresetsDialog` compara ahora contra el nombre **mostrado**, así que con la app en
+inglés sigue sin poder crearse un preset propio llamado «Windows data disk». `NameKey` es opcional, de
+modo que los ajustes guardados por versiones anteriores se leen sin migración.
+
+Lo relevante no es la traducción, es **por qué la suite no la echaba de menos**. Este es el mismo patrón
+que ya apareció en `T1-03`, `T1-04` y `T1-05`, y conviene tenerlo escrito:
+
+> `EveryEntry_HasFiveNonEmptyTranslations` comprobaba que **lo registrado** estuviera traducido, no que
+> **lo mostrado** estuviera registrado. No faltaba un test: había un test que cubría menos de lo que su
+> nombre sugiere.
+
+`tests/FormatDiskPro.Tests/LocalizationCoverageTests.cs` ataca el lado que faltaba: recorre el **código
+fuente** de `src/FormatDiskPro/` buscando `Dictionary<string, string>` fuera de `Localization/` — la forma
+exacta que tomó el fallo de `T1-05` (`FsDescEs`/`FsDescEn` dentro de `MainWindow`). Incluye dos guardas
+contra el propio barrido: aborta si encuentra menos de 15 fuentes, y comprueba que el patrón sigue
+reconociendo el diccionario real de `Localization.cs` — *un barrido que ha dejado de detectar nada no se
+distingue de uno limpio*.
+
+Verificado por reversión, no por confianza: quitar la clave a un preset y reintroducir un
+`Dictionary<string,string>` en `MainWindow` hace fallar cuatro pruebas, cada una nombrando al culpable
+con fichero y línea.
+
+También se añadió `LanguageCollection`: `L.Current` es estado estático global y ya son tres clases las que
+lo mueven; xUnit paraleliza entre colecciones, así que sin serializarlas entre sí habría fallos
+intermitentes. Solo se frenan esas tres.
+
+Build 0/0, **327/327** (321 → +6). Auditoría **10/38**; queda `T1-08` para cerrar el Tier 1.
+
+---
+
+### 2026-08-13 — Auditoría: primera tanda (T0 completo + 4 de T1)
+
+Seis tareas del backlog. Build 0/0, **314/314** unitarias (289 → +25). Sin cambios funcionales: nada de
+lo que hace la app cambia, solo deja de romperse y empieza a decirlo en cinco idiomas.
+
+- **T0-01 · La app ya no muere en silencio.** `App.OnLaunched` engancha `UnhandledException`: registra
+  `CRASH:` en el historial, fija `Handled` y muestra un diálogo. **El orden importa** — `e.Handled` se
+  fija de forma síncrona antes del primer `await`, porque en un `async void` el método "vuelve" ahí y es
+  entonces cuando WinUI lee la propiedad.
+- **T0-02 · Cada operación cuenta su propio fallo.** Los cuatro handlers que solo tenían `try/finally`
+  (verificar capacidad, chkdsk, reinicializar, benchmark) ya capturan, vía el helper compartido
+  `MainWindow.ReportOperationErrorAsync`. El benchmark guarda la excepción y la trata **después** del
+  `finally`, para respetar su decisión previa de cerrar la operación antes de abrir un modal.
+- **T1-01 · `Core/DriveLetter` (nuevo archivo).** `IsSystemDrive` comparaba con `char.ToUpper`, sensible a
+  la cultura: en turco `ToUpper('i')` es `'İ'`, así que la unidad `I:` habría dejado de reconocerse como
+  disco de sistema y la guarda no se habría activado. La comparación se aisló en `Core` para poder
+  probarla; el test fija `tr-TR` y **primero comprueba que la cultura se comporta como se afirma**, para
+  no seguir en verde si .NET cambia ese detalle.
+- **T1-03 · Contraste.** El gris de «Cancelado» en el historial pasa de `#868686` (3.52:1 sobre `#FBFBFB`)
+  a `#6E6E6E` (**4.93:1**). No se eligió el primer valor que cumple (`#747474`, 4.52:1): demasiado justo.
+  El tema oscuro ya cumplía. **Sigue sin test hasta `T1-04`** — ver abajo.
+- **T1-05 · `fs.desc.*`.** Las descripciones de sistema de archivos eran dos diccionarios ES/EN dentro de
+  `MainWindow`; PT/FR/IT veían inglés. Ahora viven en `Localization`, y el test nuevo no se conforma con
+  que existan: **exige que PT/FR/IT difieran del inglés**, que es la forma exacta en que el fallo se
+  camuflaba.
+- **T1-09 · `UpdateService.SafeAssetFileName`.** El nombre de asset de GitHub iba directo a
+  `Path.Combine`, que descarta su primer argumento ante una ruta absoluta. Ahora se sanea con
+  `Path.GetFileName` + validación, con reserva al nombre versionado.
+
+**La lección que dejan T1-01, T1-05 y T1-03 juntas:** las tres eran fallos que el proyecto **ya tenía
+mecanismos para cazar** —tests de cultura, test de completitud de traducciones, test de contraste— y que
+pasaron igualmente, porque cada mecanismo cubría un poco menos de lo que parecía. El patrón a vigilar no es
+«falta un test», es «hay un test que cubre menos de lo que su nombre sugiere».
+
+### 2026-08-13 — Suite de UI completa sobre hardware real (23/23) y un test roto desde la v1.15.2
+
+Primera vez que se ejecutan **los 23 UI tests sin omitir ninguno**: USB de pruebas conectada
+(`utilidades`, 29.3 GB, extraíble) **y** `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`. Todos en verde.
+
+- **Ciclo destructivo completo, 59 s:** Formatear (NTFS, rápido) → Reinicializar (`Clear-Disk` +
+  partición + formato). La letra se mantuvo en `G:` y el `finally` devolvió la etiqueta a `utilidades`.
+  El paso 3 (FAT32 pequeña) se omitió **correctamente**: exige ≥ 32 GiB y la unidad son 29.3.
+- **`VerifyCapacity`, 57 min 3 s:** escribió y releyó los ~29 GB libres. Unos 58 GB de E/S a ~17 MB/s de
+  media. Deja la unidad limpia (borra sus propios archivos).
+  - *Dato para el `T2-03` del roadmap:* a este tamaño la caché del SO no puede falsear la relectura —29 GB
+    no caben en RAM—, así que esta corrida **no valida ni invalida** aquella preocupación. Confirma su
+    alcance: el riesgo se concentra en unidades pequeñas, no aquí.
+
+**El hallazgo de la sesión: `CheckDisk_ScanOnly_CompletesForTestDrive` llevaba roto desde la v1.15.2.**
+El pase de UX de aquella versión apiló los botones del diálogo de chkdsk dentro del `Content` (para que
+«Comprobar y reparar» no se truncara), lo que **eliminó el `PrimaryButton`** que el test invocaba. El test
+no se actualizó.
+
+Lo grave no es el test: es que **los cortes de v1.15.2 y v1.16.0 salieron en verde con él roto**. Sin la
+USB, ese test se *omite*, y en el resumen de `dotnet test` «omitido» y «correcto» se distinguen mal. La
+decisión de omitir en vez de fallar **sigue siendo la correcta** —un corte no debe caer por falta de
+hardware—, pero no dejaba rastro de qué cobertura se estaba sacrificando. Anotado como **`T2-12`**.
+
+Arreglado dando `AutomationId` explícito a los dos botones (`CheckScanButton` / `CheckRepairButton`): al
+crearse en código no hay `x:Name` del que WinUI lo derive, así que quedaban fuera del alcance de los UI
+tests. **Regla:** todo control creado en code-behind que un UI test deba tocar necesita su `AutomationId`
+a mano.
+
+### 2026-08-13 — Auditoría: `T1-04`, el inventario de color medido
+
+Cierra el hueco que `T1-03` dejó abierto: aquel arregló un color **a mano y sin test**, que es literalmente
+cómo se coló el fallo. Build 0/0, **321/321** (+7).
+
+- **`SeverityPalette` pasa de ser una función a ser un inventario.** `All()` enumera *todos* los colores
+  semánticos —severidad S.M.A.R.T., resultado del historial, texto primario, relleno neutro— en ambos temas
+  y con el **umbral que le toca a cada uno**: 4.5:1 para texto, 3:1 para objeto gráfico (`ContrastRequirement`).
+  El barrido recorre el inventario, no una función, así que **añadir un color es ponerlo bajo test**.
+- **`Flatten` compone el alfa antes de medir.** El color de texto claro es `#E4000000` (el token real de
+  Fluent, con alfa). La fórmula de WCAG solo está definida entre colores opacos: medirlo sin componerlo
+  sobre el fondo habría dado un número que no corresponde a lo que se ve.
+- **Los cuatro consumidores delegan:** `HistoryDialog.ColorFor`, `MainWindow.ProtectedColor`, `DriveBrush` y
+  `CapacityBrush`. Correcto y fallido del historial **reutilizan** el verde y el rojo de severidad —mismo
+  significado, mismo color— y hay un test que lo fija, para que no diverjan.
+- **Verificado que el barrido caza el fallo original:** revirtiendo el gris a `#868686`, el test falla y
+  nombra el color. Un test que nunca has visto fallar no es una red, es una suposición.
+
+**`T3-05` se cierra aquí también**, porque este cambio dejó desactualizada la documentación que describía:
+`AppTheme.xaml` decía «No hay colores hardcodeados» (nunca fue cierto) y §4 contaba la barra de capacidad
+como una excepción aparte de `SeverityPalette` (ahora vive dentro). Ambos textos enumeran ya las dos únicas
+excepciones reales.
+
+> **Siguiente paso recomendado: `T1-07`** — el mismo movimiento, aplicado a la i18n.
+> `EveryEntry_HasFiveNonEmptyTranslations` sigue recorriendo solo `L.Map`, así que un texto de UI nuevo
+> fuera de `Localization` volvería a pasar desapercibido: es exactamente como entraron `T1-05` y `T1-06`.
+
+### 2026-08-13 — Auditoría técnica transversal (sin cambios de código)
+
+Revisión de las 12 áreas del repositorio completo contra el código real, no contra la documentación.
+Resultado en el [`ROADMAP.md`](roadmap-historico.md) **Parte 2**: **37 tareas**, ninguna de ellas funcionalidad nueva.
+El archivo se **fusionó de forma aditiva** — la Parte 1 (historial de tiers 1–9) se conserva íntegra.
+
+Lo que hay que saber sin abrir el roadmap:
+
+- **T0 — la app puede morir en mitad de una operación.** Cuatro handlers `async void`
+  (`MnuVerify_Click`, `MnuCheck_Click`, `MnuReinit_Click`, `MnuBenchmark_Click`) usan `try/finally`
+  **sin `catch`**, y ni `CapacityVerifier` ni `CheckDisk` atrapan `IOException`/`Win32Exception`. En
+  Release **no hay red de seguridad**: el único `UnhandledException` del proyecto lo genera WinUI bajo
+  `#if DEBUG`. Un USB que se desconecta durante *Verificar capacidad* —el escenario que la herramienta
+  existe para provocar— termina el proceso sin aviso ni línea de historial.
+- **La barrera de i18n que el test no veía.** `EveryEntry_HasFiveNonEmptyTranslations` solo recorre
+  `L.Map`, así que daba verde mientras **PT/FR/IT veían en inglés** las descripciones de sistema de
+  archivos (`MainWindow.FsDescEs/FsDescEn`) y **en español** los nombres de los presets integrados
+  (`Presets.All`). Un test que solo cubre parte del texto de UI produce confianza, no cobertura.
+- **El mismo patrón, en color.** Los RGB de severidad están duplicados a mano en `HistoryDialog.ColorFor`
+  y `MainWindow.ProtectedColor`, fuera de `SeverityPalette` — que es justo lo que mide
+  `SeverityPaletteTests`. Por ahí se coló un `#868686` sobre `#FBFBFB` a **3.52:1**, por debajo del 4.5:1
+  de WCAG AA. Medido, no estimado.
+- **`IsSystemDrive` usa `char.ToUpper` sensible a la cultura** en una guarda contra formatear el disco de
+  sistema (bug de la I turca). `ParseDriveLetter` y `CheckDisk`, al lado, ya usan `ToUpperInvariant`.
+- **Confirmado sano:** el blindaje anti-inyección de PowerShell (sin una sola ruta explotable), la
+  ausencia de secretos, la disciplina de versión exacta del SDK y el pipeline de `release.ps1`. Las
+  **289/289** unitarias se ejecutaron y pasan (224 ms).
+
+### 2026-07-20 — Pase de refinamiento UX/UI dirigido por capturas — **v1.15.2**
+
+Revisión visual de **cada** pantalla/diálogo conduciendo la app real por UI Automation. Se amplió
+`tools/capture-screenshots.ps1` con un **modo galería** (`-Gallery`, `-Only`): en una corrida fotografía
+los 12 diálogos/estados en claro **y** oscuro (proceso fresco por toma → una toma que falle no arrastra al
+resto). Salida en `docs/screenshots/gallery/` (gitignorada, no toca las 3 del README). Encontró y arregló:
+
+- **P1 — chkdsk: "Comprobar y reparar" salía truncado** a "Comprobar y repar" (3 botones no cabían en la
+  fila del `ContentDialog`, en **ambos** temas). Ahora las dos acciones van **apiladas a todo el ancho**
+  dentro del `Content` (nunca truncan, en ningún idioma); *Solo comprobar* queda enfocado para preservar
+  Enter. `MainWindow.MnuCheck_Click`.
+- **P2 — barra de capacidad en color de acento** → falsa alarma (roja con el disco sano). Ahora **semántica**
+  por ocupación (neutro/ámbar/rojo). Ver §4 *Otros*.
+- **P3 — S.M.A.R.T. "Velocidad: SSD"** era ambiguo (suena a MB/s) y redundante con "Tipo de medio". Renombrado
+  a **"Velocidad de rotación"** en ES/PT/IT (EN/FR ya lo eran). `health.spindle`.
+- **Fix de calidad de captura:** las 3 imágenes del README tenían una tira multicolor de 1px a la izquierda
+  (columna del borde semitransparente del DWM). `Save-WindowPng` recorta 1px en los 4 lados. README
+  regenerado limpio.
+
+**Lección (costó un round trip):** las capturas deben hacerse contra el **publish self-contained**, no contra
+`dotnet build`. Ver §4 *Otros*. **Falsos positivos descartados:** "JimÃ©nez" en Novedades (el changelog cita
+el string corrupto del #45, intencional) y el subrayado rojo de cajas con foco (acento estándar de WinUI).
+
+Build 0/0, **289/289** unitarias, **17 UI tests** pasan (6 omitidos sin la USB). Cortado con
+`release.ps1 -UiTests` (los UI tests contra el publish self-contained, vía `FORMATDISKPRO_EXE`).
+
+### 2026-07-13 — Tier 9 (#41, #42, #45) + capturas + cierre del proyecto — **v1.15.1**
+
+**#41 — Los UI tests entran en el pipeline.** El obstáculo no era `release.ps1`: **6 tests fallaban por
+diseño** sin la USB de pruebas conectada, así que integrarlos habría tumbado cualquier corte hecho sin el
+hardware delante.
+- `TestDriveFacts.cs`: `[TestDriveFact]` y `[DestructiveFact]` marcan `Skip` al **descubrir** el test si falta
+  su precondición. **Un test omitido dice "no tengo el hardware"; uno fallido dice "la app está rota".**
+  Confundirlos era el problema de fondo. Sin la USB: **17 pasan, 6 se omiten, 0 fallan**.
+- Flag **`-UiTests`** con tres guardas: exige **terminal elevada**, **rechaza**
+  `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` (un corte jamás debe formatear una unidad) y **rechaza**
+  `-UiTests -SkipTests` juntos, que se contradicen y dejarían el release sin ninguna prueba.
+
+**#42 — Instalador probado end-to-end** (con log de Inno):
+- **Instalación limpia:** 511 archivos, **una sola** entrada de desinstalación, y `%AppData%` **conservado**
+  (son datos del usuario).
+- **Actualización in-place con el flujo silencioso real** (`/VERYSILENT /NORESTART /AUTOUPDATE=1`, los
+  argumentos exactos de `UpdateService.LaunchInstaller`): cierra la app, actualiza y **la relanza sola**.
+- ⚠️ **Hallazgo:** con un **diálogo modal abierto**, la app no atiende `CloseApplications` y Setup cae al aviso
+  del `AppMutex` — **que bloquea incluso en `/VERYSILENT`**. Si se cancela ahí, `[InstallDelete]` ya borró
+  `{app}\*` y la instalación queda **incompleta** (observado: 498 de 511 archivos). **No afecta a la
+  auto-actualización real**: allí la app se cierra sola antes de que el instalador arranque. Solo se alcanza
+  lanzándolo **a mano** con la app abierta y un diálogo encima — y entonces avisar es lo correcto.
+
+**#45 — La codificación del `.csproj` se corrompía en CADA release.** Apareció **inspeccionando el binario
+instalado**, no revisando código: el `.exe` publicado mostraba `Ricky Angel JimÃ©nez Bueno` en sus propiedades.
+El bump de versión leía con `Get-Content -Raw` (ANSI, sin BOM) y reescribía como UTF-8 sin BOM → **una capa de
+mojibake por release**, acumulada durante 14 versiones. Ver §4. Verificado simulando 3 bumps: el patrón viejo
+corrompe en cada uno (`Jiménez` → `JimÃ©nez` → `JimÃƒÂ©nez`), el nuevo aguanta los tres.
+
+**Capturas del README** (`docs/screenshots/`): las genera `tools/capture-screenshots.ps1` conduciendo la app
+real por UI Automation — se **regeneran**, no se editan a mano, así que no envejecen en silencio. Exige
+terminal elevada, preselecciona la unidad desde el `settings.json` (`LastDriveLetter`) en vez de manipular el
+ComboBox, no redimensiona la ventana (es fija) y evita la unidad del sistema (sale `[Protegido]`: mala foto).
+
+**Cierre del proyecto:** descartadas las dos ideas mayores (elevación `asInvoker`, ventana redimensionable).
+Ver §4.
+
+### 2026-07-12 — Tier 8 (#38–#40, #44) — seguridad y confianza — **v1.15.0**
+
+Port de tres puntos que **WingetUSoft** (proyecto hermano) resolvió antes, con sus tests y sus tropiezos ya
+conocidos. Pruebas: 269 → **289**.
+
+- **#38 — Verificar el instalador antes de ejecutarlo elevado.** Era el agujero más serio: `UpdateService`
+  descargaba por HTTPS y lo lanzaba **con permisos de administrador sin comprobar nada** (el README lo
+  reconocía como "modelo de confianza asumido"). Detalle y consecuencias en §4.
+- **#39 — Neutralizar fórmulas en el CSV del historial.** **Alcance honesto:** las líneas que escribe la app
+  siempre empiezan por una palabra clave (`FORMAT`, `WIPE`…) y la etiqueta de volumen va incrustada a mitad
+  del detalle, así que **no alcanza la primera posición del campo** — el plan original se equivocaba al
+  atribuirle el riesgo. Lo que esto blinda: `history.log` es texto plano en `%AppData%` que otro proceso puede
+  tocar, y cualquier formato de log futuro.
+- **#40 — Contraste WCAG AA de los colores de severidad, medido por tests.** Los RGB salen de `HealthDialog` a
+  `Core/SeverityPalette`, y un test mide el contraste real contra el fondo de cada tema (8 casos, mínimo
+  4.5:1). **Los ocho ya pasaban:** aquí no había bug latente (en WingetUSoft, el mismo test sí destapó uno).
+  El valor es preventivo — a partir de ahora, un color mal elegido **rompe el build**.
+- **#44 — Build reproducible.** Apareció al compilar el instalador del propio Tier 8: **ya no compilaba**.
+  Causa doble — MAX_PATH + `Microsoft.WindowsAppSDK` referenciado como `1.8.*`. Ver §4.
+
+**Fix del pipeline:** `release.ps1` abortaba a mitad del push si se capturaba su salida (`Invoke-Git`). Ver §4.
+
+### 2026-07-05 — `FormatDiskPro.UiTests`: de 4 a 24 tests, y 8 causas raíz reales
+
+El proyecto de UI tests pasa de un smoke test a cubrir la app entera. Verificado contra **hardware real**,
+incluido el ciclo destructivo completo (Formatear → Reinicializar → Reinicializar con FAT32 pequeña).
+
+Conducir la app de verdad destapó **8 causas raíz** que ninguna revisión de código habría encontrado. Las que
+siguen valiendo hoy están recogidas en §2 (*Pruebas de UI*): el proxy de Popup vacío junto a cada
+`ContentDialog`, la necesidad de terminal elevada (UIPI), el backup de `%AppData%`, y la prohibición de correr
+dos suites en paralelo (dos instancias elevadas compitiendo por el mismo `DrivePicker` y el mismo
+`settings.json` producían fallos imposibles de diagnosticar).
+
+### 2026-07-02 — Tier 7 (#37) — partición FAT32 pequeña al reinicializar — **v1.14.0**
+
+Windows **nunca** permite crear un volumen FAT32 mayor de 32 GB (ni `Format-Volume` ni `format.com`: es una
+restricción de la plataforma). El selector ya ocultaba FAT32 en discos ≥ 32 GB por eso, lo que dejaba sin
+salida a quien necesita un USB grande con **una** partición FAT32 pequeña — el caso real: **flashear el
+BIOS/UEFI de una placa base**, cuya utilidad solo lee FAT32.
+
+Nueva opción en *Reinicializar unidad* (solo en extraíbles ≥ 32 GB) que crea una partición FAT32 de tamaño
+elegible (1–32 GB) y deja el resto sin asignar. El flujo de *Iniciar* **no cambia**.
+
+- **`SmallFat32PartitionBytes`** resta un margen de 4 MiB bajo el límite exacto en el tramo máximo: sin él, el
+  redondeo de alineación de partición lo igualaba o superaba, y Windows rechazaba el formato.
+- **Fix de plataforma (hallado con hardware real):** `Clear-Disk` **no siempre deja el disco en RAW**. El
+  `Initialize-Disk` posterior se tolera cuando falla específicamente con *"already been initialized"* (el disco
+  ya está listo para particionar); cualquier otro error se sigue propagando. **Afectaba a *toda* Reinicializar
+  unidad**, no solo a esta opción.
+
+### 2026-07-02 — Tier 6 (#28–#36) — pulido UX/UI — **v1.13.0**
+
+No añade capacidades: refina **presentación y feedback** con patrones Fluent estándar.
+
+InfoBar para la unidad protegida (antes competía con el estado transitorio en el footer) · `ConfirmDialog` con
+foco inicial y Enter para confirmar (mantiene la fricción deliberada de escribir la letra, sin obligar a soltar
+el teclado) · barra de capacidad · iconos por tipo de unidad · estado vacío del selector · salud coloreada en
+la tarjeta · validación inline de la etiqueta · progreso en la barra de tareas (`ITaskbarList3`) · estado de
+error en la barra de progreso.
+
+**Fix incluido:** `LegalTextDialog` y `ConfirmDialog` **desbordaban el ancho de la ventana** — la licencia y
+los avisos de terceros salían pegados a los bordes.
+
+### 2026-06-27 — Tier 5 (#23–#27) — confianza, legal y sostenibilidad — **v1.12.0**
+
+Relicencia de **MIT a GNU GPL v3.0** (copyleft: los derivados siguen abiertos), con el texto **embebido en el
+`.exe`** y visible en *Ayuda → Licencia*. Disclaimer de uso destructivo/sin garantía, avisos de terceros, aviso
+de privacidad (sin telemetría) y **donaciones voluntarias** (PayPal) que **no bloquean ninguna función**.
+
+### 2026-06-25 / 06-27 — Tier 4 (#14–#22) — refinado de lo existente — **v1.10.0 / v1.11.0**
+
+Pasadas de borrado seguro configurables (1/3/7; NIST 800-88: 1 basta en discos modernos) · IOPS en el benchmark
+· idioma automático en el primer arranque · changelog en el aviso de actualización · umbrales de color + botón
+Actualizar en S.M.A.R.T. · búsqueda/filtros y exportación CSV del historial · editar y reordenar presets ·
+accesibilidad transversal · autorefresco de unidades por `WM_DEVICECHANGE`.
+
+**v1.10.1 — fix de DPI/escalado:** la ventana se dimensiona por DPI y los diálogos llevan `MaxWidth`, para que
+el texto no se corte en pantallas de alta densidad.
+
+**v1.9.1 — mantenimiento:** correcciones de una revisión de código, sin tocar la lógica de formateo (doble
+corchete en la unidad protegida, `MaxLength` de etiqueta dinámico por FS, validación de etiqueta compartida
+entre formato y reinit, limpieza de claves de localización sin uso).
+
+### 2026-06-24 — decisión: descartado el #13 (winget + firma) → Tier 3 cerrado
+
+GitHub Releases con auto-actualización integrada es la distribución del proyecto, y **no se firmará el
+instalador**. La firma sigue disponible como **opción** del pipeline, no como objetivo. Ver §4.
+
+### 2026-06-23 — benchmark refinado a perfil CrystalDiskMark — **v1.9.0**
+
+**Secuencial** (1 MiB, cola **Q8**) y **4 KiB aleatorio** (Q1), lectura y escritura. Toda la E/S **sin caché
+del sistema** (`FILE_FLAG_NO_BUFFERING` + buffer alineado al sector); la fase secuencial mantiene varias
+operaciones en vuelo para **no infravalorar NVMe/SSD**. Se mide por ventanas de tiempo (se adapta a unidades
+rápidas y lentas) y se toma la **mediana** de 3 pasadas, que descarta el arranque en frío y los picos.
+
+### 2026-06-22 — Tier 3 (#10–#12) — **v1.8.0** · Tier 2 completado — **v1.7.0**
+
+Presets personalizados, **5 idiomas** (ES/EN/PT/FR/IT, con test de completitud: cada clave tiene sus 5
+traducciones) y aviso al terminar (sonido + parpadeo, solo si la ventana no está en primer plano).
+
+Antes, la **v1.7.0** cerró el Tier 2 con *Reinicializar unidad* (#8) y el *benchmark* (#9), más el diálogo de
+novedades. **v1.7.1** lo corrigió: no aparecía al actualizar desde una versión que no guardaba
+`LastVersionSeen`.
+
+### 2026-06-21 — Tier 2 (#5–#7) y Tier 1 — **v1.4.0 / v1.5.0 / v1.6.0**
+
+S.M.A.R.T. ampliado en diálogo dedicado (temperatura, horas, desgaste, errores; "No disponible" en unidades
+que no exponen contadores, típico en USB) · chkdsk con *Solo comprobar* / *Comprobar y reparar* (la reparación
+**bloqueada en el disco de sistema**, para no programar un reinicio) · detección y quita de **protección de
+escritura**, que evita el fallo críptico al formatear.
+
+**Tier 1 (v1.4.0):** persistencia de preferencias, ETA + velocidad, **borrado seguro con progreso real**
+(sobrescritor propio, en sustitución de `cipher /w`) y visor de historial.
+
+**Rediseño (v1.3.0):** sistema de tarjetas inspirado en Win11Debloat, con el **acento del sistema**. Incluyó el
+fix del crash al cambiar el tema de Windows en caliente.
+
+### 2026-06-19 / 06-20 — migración a WinUI 3 y el bug crítico de la 1.2.0
+
+Migración de **Windows Forms a WinUI 3** (Windows App SDK 1.8, unpackaged): barra de título nativa, tema
+automático y colores del sistema.
+
+- **La 1.2.0 crasheaba al iniciar.** `dotnet publish` de una app WinUI 3 unpackaged **no copia el `.pri` propio
+  de la app**, y sin él WinUI no puede resolver el XAML. Se arregló con el target `CopyAppPriToPublish`
+  (v1.2.1). **No quitarlo.**
+- **La 1.2.2 arregló la auto-actualización:** el cierre intencional para actualizar quedaba **bloqueado por
+  `_isBusy`**, que cancelaba `Application.Current.Exit()`. La auto-actualización silenciosa funciona **desde la
+  1.2.2 en adelante**.
+
+### 2026-06-18 — **v1.1.0**: arquitectura por capas, hardening, tests, actualizaciones e instalador
+
+La base del proyecto: separación `Core`/`Services`/`UI`, blindaje anti-inyección de los comandos de PowerShell,
+suite de pruebas, auto-actualización vía GitHub Releases e instalador con Inno Setup.
