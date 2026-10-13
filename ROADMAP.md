@@ -29,23 +29,22 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **61 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **59 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
-| **1** | Alto | 1 |
-| **2** | Medio | 15 |
+| **1** | Alto | 0 |
+| **2** | Medio | 14 |
 | **3** | Bajo | 44 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **61** |
+| | **Total** | **59** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **60** y se han cerrado **11**
-(`AUD-001`, `AUD-002`, `AUD-004`, `AUD-012`, `AUD-013`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-029`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **58** y se han cerrado **13**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-029`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
-| Accesibilidad | 1 | 1 | – | 2 |
 | Seguridad | – | 1 | – | 1 |
 | Código | – | 6 | 4 | 10 |
 | QA | – | 1 | 1 | 2 |
@@ -57,27 +56,18 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **60** y se han cerrado **
 | Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **1** | **15** | **44** | **60** |
+| **Total** | **–** | **14** | **44** | **58** |
 
-**Esfuerzo:** 50 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 48 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-003`,
-`AUD-014` (accesibilidad) → los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
+**Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio (`AUD-005` a `AUD-009`, `AUD-011`, `AUD-027`,
 `AUD-044` a `AUD-047`, `AUD-066`) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
 `AUD-056` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
 del autor.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
-
-## 🟠 Tier 1 — Alto
-
-- [ ] **AUD-003 · El selector de unidad no tiene nombre accesible y todas sus opciones se anuncian igual**
-  - **Área:** Accesibilidad · **Severidad:** Alto · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.xaml:167-179` · `src/UI/DriveViewModel.cs:6-40` · `src/UI/MainWindow.Preferences.cs:219` (solo recibe un texto de sugerencia; los demás combos reciben nombre en `:189-190` y `:221-224`) · evidencias: `evidencias/uia-arbol-principal.txt` (línea 23), `evidencias/uia-selector-desplegado.txt`
-  - **Qué hacer:** `AutomationProperties.LabeledBy="{x:Bind UnitGroupLbl}"` en el combo, y nombre por ítem: `public override string ToString() => DisplayText;` en `DriveViewModel` (o `AutomationProperties.Name="{x:Bind DisplayText}"` en la plantilla).
-  - **Criterio de aceptación:** una prueba de UI exige `Name` no vacío en `DrivePicker` y que el `Name` de cada ítem contenga su letra; el volcado de UIA no lista ningún control interactivo sin nombre.
 
 ## 🟡 Tier 2 — Medio
 
@@ -104,7 +94,7 @@ del autor.
   - **Ubicación:** `src/Services/DiskService.cs:145-156` · `src/UI/MainWindow.Operations.cs:120-131` · evidencia: `evidencias/expulsar.txt`
   - **Qué hacer:** tras invocar el verbo, sondear unos segundos si el volumen sigue montado (`DriveInfo.IsReady` o `Get-Volume`) y devolver `false` si sigue; el texto de fallo ya existe (`eject.fail`).
   - **Criterio de aceptación:** con un archivo abierto en la USB, «Expulsar» muestra el aviso de que no se pudo y no registra `EJECT`.
-  - **Visto al hacer `AUD-013` (2026-10-13), sin comprobar en pantalla:** «Unidad expulsada» se escribe en el estado **antes** de `LoadDrives()`, y seleccionar una unidad vacía el estado (`ApplyProtection`). Es probable que ese texto no llegue a verse; al tocar esto, escribirlo después de recargar.
+  - **Ya hecho al cerrar `AUD-014` (2026-10-13):** «Unidad expulsada» se escribía en el estado antes de `LoadDrives()` y no llegaba a verse; ahora se escribe después y se anuncia. Lo que queda de esta tarea es comprobar que la unidad se expulsó de verdad.
 
 - [ ] **AUD-009 · El borrado seguro puede no ejecutarse y aun así registrarse y anunciarse como hecho**
   - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
@@ -123,12 +113,6 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:604-607`, `:673` · `src/Services/FormatProcess.cs:63-67` · `src/Services/ReinitDrive.cs:147` · evidencia: `evidencias/format-volume-fallido-stderr.txt`
   - **Qué hacer:** extraer el texto de los nodos `<S S="Error">` (deshaciendo los escapes `_xHHHH_`) antes de mostrarlo, en una función pura de `Core/` con su prueba; o añadir al script un `try/catch` que escriba `$_.Exception.Message` por `stdout`.
   - **Criterio de aceptación:** una prueba pasa el contenido de la evidencia a la función y obtiene «Format-Volume : No se encontraron objetos MSFT_Volume…» sin etiquetas.
-
-- [ ] **AUD-014 · Dos regiones activas declaradas nunca avisan al lector de pantalla, y un error no se anuncia**
-  - **Área:** Accesibilidad · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/HistoryDialog.xaml:32-33` y `HistoryDialog.xaml.cs:104-107` · `src/UI/PresetsDialog.xaml:22-23` y `PresetsDialog.xaml.cs:199-203` · estados sin anuncio: `src/UI/MainWindow.Operations.cs:124`, `:174`, `src/UI/MainWindow.HelpAndUpdates.cs:128`
-  - **Qué hacer:** mover `RaiseLiveRegionChanged` a un ayudante compartido y llamarlo al cambiar `CountText` y `ErrorText`; usar `SetStatusAndAnnounce` en los tres estados.
-  - **Criterio de aceptación:** Accessibility Insights registra un evento `LiveRegionChanged` al filtrar el historial y al rechazar un nombre de preset.
 
 - [ ] **AUD-016 · El borrado seguro no tiene ninguna prueba automatizada**
   - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio

@@ -61,6 +61,38 @@
 
 ## Entradas
 
+### 2026-10-13 — `AUD-003` y `AUD-014`: lo que la app dice a quien no la ve
+
+**`AUD-003`, la única de severidad alta que quedaba.** El selector de unidad —el control que decide qué
+se formatea— no tenía nombre accesible, y todas sus opciones se anunciaban como
+«FormatDiskPro.UI.DriveViewModel». Un `ComboBox` enlazado a objetos nombra cada ítem con su `ToString()`;
+la plantilla que pinta el icono y el texto no cuenta. Dos líneas: `LabeledBy` hacia el título de la
+tarjeta y un `ToString()` que devuelve lo que se ve.
+
+**`AUD-014`.** `LiveSetting="Polite"` en el XAML parece un arreglo terminado y no lo es: dice cómo leer,
+no cuándo. Sin el evento `LiveRegionChanged`, el recuento del historial era una región activa muda. El
+aviso vivía como método privado de `MainWindow`, así que los diálogos no tenían con qué avisar; ahora
+es `UI/LiveRegion`. El error de nombre repetido de los presets ni siquiera estaba declarado.
+
+**Cómo se comprobó, y por qué no con Accessibility Insights.** El criterio pedía ver el evento en esa
+herramienta. Se hizo con pruebas de UI que se suscriben al mismo evento por UI Automation: comprueban
+lo mismo y se quedan en la suite. Por reversión, las cuatro nuevas fallan.
+
+**Dos cosas que salieron al pasar la suite.**
+
+- «Unidad expulsada» y «protección quitada» no se veían nunca: se escribían antes de `LoadDrives()`,
+  que vacía la fila de estado. Estaba anotado como sospecha en `AUD-008`; era cierto.
+- **Una pasada en verde que no había probado lo que decía.** El ciclo destructivo omite sus pasos 3 y 4
+  si la casilla de FAT32 pequeña no está, pensando en una unidad demasiado pequeña. Lo decidía con una
+  sola consulta justo tras reinicializar, cuando la casilla puede tardar un instante en aparecer: se
+  los saltó, pasó, y solo se notó porque la USB quedó con una partición en vez de dos. Ahora espera
+  antes de decidir. Es el mismo tipo de fallo que el de `AUD-029`, visto desde el otro lado: allí la
+  prueba fallaba por un instante; aquí aprobaba por él.
+
+**Lo que no se probó.** Los tres estados que ahora se anuncian: expulsar y desbloquear actúan sobre la
+unidad de verdad, y su aviso no deja rastro que una prueba pueda consultar. Y nada de esto se ha oído
+con un lector de pantalla real; lo comprobado son los eventos y los nombres que un lector recibe.
+
 ### 2026-10-13 — `AUD-002`, `AUD-004`, `AUD-025` y `AUD-026`: la frontera con la cuenta sin elevar (y `AUD-029`)
 
 **Qué tienen en común.** La app corre siempre elevada, y en cuatro sitios lo que hacía con esos

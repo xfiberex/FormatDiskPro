@@ -120,10 +120,12 @@ public sealed partial class MainWindow
         bool ok = await _services.Disk.EjectAsync(item.Letter);
         if (ok)
         {
-            StatusText.ClearValue(TextBlock.ForegroundProperty);
-            StatusText.Text = L.T("status.ejected");
             _services.History.Log($"EJECT {item.Letter}:");
+            // Primero recargar y después decirlo: seleccionar una unidad vacía la fila de estado, así
+            // que escrito antes este texto no llegaba a verse —ni a anunciarse— (`AUD-014`).
             LoadDrives();
+            StatusText.ClearValue(TextBlock.ForegroundProperty);
+            SetStatusAndAnnounce(L.T("status.ejected"));
         }
         else
         {
@@ -170,10 +172,10 @@ public sealed partial class MainWindow
 
         if (await _services.Disk.ClearReadOnlyAsync(item.Letter))
         {
-            StatusText.ClearValue(TextBlock.ForegroundProperty);
-            StatusText.Text = L.T("unlock.cleared", item.Letter);
             _services.History.Log($"UNLOCK {item.Letter}:");
-            LoadDrives();
+            LoadDrives();   // antes que el estado, por lo mismo que en Expulsar
+            StatusText.ClearValue(TextBlock.ForegroundProperty);
+            SetStatusAndAnnounce(L.T("unlock.cleared", item.Letter));
         }
         else
         {

@@ -22,6 +22,17 @@ public sealed class DriveViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>
+    /// El texto que se ve, que es también <b>cómo se anuncia</b> la unidad (`AUD-003`).
+    /// </summary>
+    /// <remarks>
+    /// Un ítem de <c>ComboBox</c> enlazado a un objeto toma su nombre accesible de <c>ToString()</c>, no
+    /// de la plantilla que lo pinta. Sin esta línea todas las unidades se anunciaban igual —con el
+    /// nombre del tipo, «FormatDiskPro.UI.DriveViewModel»—: un lector de pantalla no distinguía el
+    /// pendrive del disco de Windows en el selector de lo que se va a formatear.
+    /// </remarks>
+    public override string ToString() => DisplayText;
+
     public DriveViewModel(char letter, string label, DriveInfo info, bool isProtected, SolidColorBrush brush)
     {
         Letter = letter;

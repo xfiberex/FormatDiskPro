@@ -38,6 +38,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   misma letra—, la operación no se ejecuta y la aplicación lo dice. Y una confirmación abierta se cierra
   sola si se conecta o se retira un dispositivo.
 
+- **Con un lector de pantalla, el selector de unidad dice qué es y qué unidad es cada una.** No tenía
+  nombre, y todas sus opciones se anunciaban igual: no había forma de distinguir de oído el pendrive
+  del disco de Windows en el control que elige qué se va a formatear.
+- **El historial y los presets avisan de lo que cambia.** Al filtrar el historial se anuncia cuántas
+  entradas quedan, y al guardar un preset con un nombre repetido se anuncia el motivo; antes, con un
+  lector de pantalla, ese botón parecía no hacer nada.
+- **«Unidad expulsada» y «protección contra escritura quitada» ya se ven.** El mensaje se borraba
+  antes de llegar a mostrarse.
+
 - **Conectar o retirar un dispositivo ya no deshace lo que se estaba configurando.** La lista de
   unidades se recarga sola cuando Windows detecta un cambio —basta conectar un ratón—, y eso devolvía la
   etiqueta escrita a la del volumen y restablecía las opciones. Ahora, si la unidad seleccionada sigue

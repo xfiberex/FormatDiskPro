@@ -346,7 +346,17 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
             // antes hacía falta que llegara a 32 GB, y con la USB de pruebas este paso se omitía siempre.
             // Se elige "1 GB" precisamente porque es el único tamaño que está en el selector en TODA unidad
             // que cualifique: los demás dependen del disco.
-            var smallFat32Check = Window.FindFirstDescendant(cf => cf.ByAutomationId("SmallFat32Check"));
+            //
+            // Se ESPERA a la casilla antes de darla por ausente. Recién reinicializado, el volumen puede
+            // tardar un instante en montarse y la opción no aparece hasta que llega el tamaño del disco:
+            // con una sola consulta, este paso y el siguiente se omitían en silencio y la prueba salía
+            // en verde sin haber probado ninguno de los dos (visto el 2026-10-13: la USB quedó con una
+            // sola partición tras una pasada «correcta»).
+            var smallFat32Check = FlaUI.Core.Tools.Retry.WhileNull(
+                () => Window.FindFirstDescendant(cf => cf.ByAutomationId("SmallFat32Check")),
+                timeout: TimeSpan.FromSeconds(15),
+                interval: TimeSpan.FromMilliseconds(250),
+                ignoreException: true).Result;
             if (smallFat32Check is null)
             {
                 output.WriteLine("SmallFat32Check no visible (la unidad de pruebas no llega a 1 GB): se omite el paso 3.");

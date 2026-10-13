@@ -190,6 +190,10 @@ public sealed partial class MainWindow : Window
         AutomationProperties.GetDescribedBy(AllocUnitPicker).Add(AllocHintText);
         AutomationProperties.GetDescribedBy(SmallFat32Check).Add(SmallFat32HintText);
         AutomationProperties.GetDescribedBy(RestPicker).Add(RestNoteText);
+        // El selector de unidad toma su nombre del título de su tarjeta («Unidad»), que ya se traduce
+        // (`AUD-003`). Era el único desplegable sin nombre: solo tenía texto de sugerencia, que se
+        // anuncia cuando está vacío y nunca cuando hay algo elegido.
+        AutomationProperties.SetLabeledBy(DrivePicker, UnitGroupLbl);
 
         ((FrameworkElement)Content).ActualThemeChanged += OnActualThemeChanged;
 
@@ -683,22 +687,7 @@ public sealed partial class MainWindow : Window
         // lectura. Solo al aparecer o cambiar el mensaje: se escribe letra a letra, y repetir el mismo
         // error en cada pulsación sería insoportable con un lector de pantalla.
         if (LabelErrorText.Text.Length > 0 && LabelErrorText.Text != previous)
-            RaiseLiveRegionChanged(LabelErrorText);
-    }
-
-    /// <summary>
-    /// Avisa a los lectores de pantalla de que una región activa ha cambiado. Defensivo: la accesibilidad
-    /// no puede tumbar la UI que describe.
-    /// </summary>
-    private static void RaiseLiveRegionChanged(UIElement element)
-    {
-        try
-        {
-            var peer = FrameworkElementAutomationPeer.FromElement(element)
-                    ?? FrameworkElementAutomationPeer.CreatePeerForElement(element);
-            peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-        }
-        catch { /* ignorar */ }
+            LiveRegion.Announce(LabelErrorText);
     }
 
     private void VolumeLabelBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateLabelHint();

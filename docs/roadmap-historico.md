@@ -23,6 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-13 | `AUD-014` | Las regiones activas del historial y de los presets avisan al lector de pantalla, y tres estados se anuncian | sin publicar |
+| 2026-10-13 | `AUD-003` | El selector de unidad tiene nombre accesible y cada unidad se anuncia con el suyo | sin publicar |
 | 2026-10-13 | `AUD-029` | Recargar la lista de unidades ya no restablece la etiqueta ni las opciones que se estaban configurando | sin publicar |
 | 2026-10-13 | `AUD-026` | `powershell.exe`, `chkdsk.exe`, `format.com` y `explorer.exe` se lanzan por ruta absoluta, desde un único punto | sin publicar |
 | 2026-10-13 | `AUD-025` | La app no lee, escribe, mueve ni borra a través de una carpeta de estado que resulte ser un enlace | sin publicar |
@@ -36,6 +38,26 @@
 | 2026-10-13 | `AUD-018` | §2 y §3 de `CONTEXT.md`, al día y sin cifras duplicadas | sin publicar (solo documentación) |
 
 <!-- Al cerrar una tarea: fila nueva ARRIBA en la tabla y su bloque bajo el área que le toque. -->
+
+### Accesibilidad
+
+- [x] **AUD-014 · Dos regiones activas declaradas nunca avisan al lector de pantalla, y un error no se anuncia**
+  - **Área:** Accesibilidad · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/HistoryDialog.xaml:32-33` y `HistoryDialog.xaml.cs:104-107` · `src/UI/PresetsDialog.xaml:22-23` y `PresetsDialog.xaml.cs:199-203` · estados sin anuncio: `src/UI/MainWindow.Operations.cs:124`, `:174`, `src/UI/MainWindow.HelpAndUpdates.cs:128`
+  - **Qué hacer:** mover `RaiseLiveRegionChanged` a un ayudante compartido y llamarlo al cambiar `CountText` y `ErrorText`; usar `SetStatusAndAnnounce` en los tres estados.
+  - **Criterio de aceptación:** Accessibility Insights registra un evento `LiveRegionChanged` al filtrar el historial y al rechazar un nombre de preset.
+  - **Hecho (2026-10-13):** el aviso `LiveRegionChanged` sale de `MainWindow` a `UI/LiveRegion.Announce`, y lo llaman el recuento del historial (solo cuando el número cambia: se filtra tecla a tecla) y el error de nombre duplicado de los presets (cada vez que se rechaza). Ese error no estaba declarado como región activa: ahora es `Assertive` y va vinculado al campo del nombre con `DescribedBy`, como el de la etiqueta en la ventana principal. «Unidad expulsada», «protección contra escritura quitada» y «buscando actualizaciones» pasan por `SetStatusAndAnnounce`.
+  - **Un fallo más, que estaba anotado en `AUD-008`:** «Unidad expulsada» y «protección quitada» se escribían **antes** de `LoadDrives()`, y seleccionar una unidad vacía la fila de estado: no llegaban a verse. Ahora se escriben después.
+  - **Verificado:** en vez de Accessibility Insights, dos pruebas de UI que se suscriben al evento `LiveRegionChanged` de UI Automation —lo mismo que escucha un lector de pantalla—: `FilteringTheHistory_AnnouncesTheNewCount` y `RejectingADuplicatePresetName_AnnouncesTheError`. Por reversión —`Announce` sin lanzar el evento— fallan las dos.
+  - **Lo que no se probó:** los tres estados. Expulsar y quitar la protección contra escritura actúan sobre la unidad de verdad —la primera obliga a reconectarla a mano—, y sus avisos van por `RaiseNotificationEvent`, que no deja rastro consultable en el árbol. Se comprobó leyendo el código, no en pantalla ni con un lector.
+
+- [x] **AUD-003 · El selector de unidad no tiene nombre accesible y todas sus opciones se anuncian igual**
+  - **Área:** Accesibilidad · **Severidad:** Alto · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml:167-179` · `src/UI/DriveViewModel.cs:6-40` · `src/UI/MainWindow.Preferences.cs:219` (solo recibe un texto de sugerencia; los demás combos reciben nombre en `:189-190` y `:221-224`) · evidencias: `evidencias/uia-arbol-principal.txt` (línea 23), `evidencias/uia-selector-desplegado.txt`
+  - **Qué hacer:** `AutomationProperties.LabeledBy="{x:Bind UnitGroupLbl}"` en el combo, y nombre por ítem: `public override string ToString() => DisplayText;` en `DriveViewModel` (o `AutomationProperties.Name="{x:Bind DisplayText}"` en la plantilla).
+  - **Criterio de aceptación:** una prueba de UI exige `Name` no vacío en `DrivePicker` y que el `Name` de cada ítem contenga su letra; el volcado de UIA no lista ningún control interactivo sin nombre.
+  - **Hecho (2026-10-13):** `DrivePicker` toma su nombre del título de su tarjeta («Unidad», ya traducido) con `AutomationProperties.SetLabeledBy`, y `DriveViewModel.ToString()` devuelve el texto que se ve. Un ítem de `ComboBox` enlazado a un objeto se anuncia con su `ToString()`, no con la plantilla que lo pinta: sin eso todas las unidades sonaban igual, «FormatDiskPro.UI.DriveViewModel».
+  - **Verificado:** dos pruebas de UI nuevas sobre la app real. `DrivePicker_HasANameAndEveryDriveIsAnnouncedByItsOwn` exige nombre en el selector y, en cada opción, que el nombre sea el texto visible, contenga la letra y no se repita. `NoInteractiveControlInTheMainWindow_IsNameless` recorre botones, desplegables, casillas, campos y menús de la ventana principal y exige nombre en todos: es el volcado de UIA de la auditoría convertido en prueba. Por reversión —sin `LabeledBy` y sin `ToString()`— fallan las dos.
 
 ### Código
 

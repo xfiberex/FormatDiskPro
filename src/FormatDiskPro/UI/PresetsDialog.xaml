@@ -19,7 +19,10 @@
             <TextBlock x:Name="CurrentText" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             <TextBox x:Name="NameBox" MaxLength="40" />
             <CheckBox x:Name="UpdateConfigCheck" Visibility="Collapsed" />
+            <!-- Assertive: es lo que impide guardar, no información de fondo. El aviso lo lanza
+                 ShowError; sin él esta declaración no se oye (`AUD-014`). -->
             <TextBlock x:Name="ErrorText" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                       AutomationProperties.LiveSetting="Assertive"
                        Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
                 <Button x:Name="CancelEditBtn" CornerRadius="4" Visibility="Collapsed" Click="CancelEdit_Click" />

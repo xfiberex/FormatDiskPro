@@ -125,4 +125,186 @@ public sealed class AccessibilityTests(AppFixture fixture)
         Assert.NotNull(describedBy);
         Assert.Contains(describedBy, e => e.AutomationId == hintId);
     }
+
+    // ── AUD-003: el selector de unidad ────────────────────────────
+
+    /// <summary>
+    /// El control desde el que se elige <b>qué se va a formatear</b> tiene nombre, y cada unidad se
+    /// anuncia con el suyo.
+    /// </summary>
+    /// <remarks>
+    /// Era el único desplegable sin nombre accesible, y todas sus opciones se anunciaban con el nombre
+    /// del tipo («FormatDiskPro.UI.DriveViewModel»): con un lector de pantalla, el pendrive y el disco
+    /// de Windows sonaban igual. Se compara el nombre de cada opción con el texto que <b>se ve</b> en
+    /// ella, que es lo que tiene que decir.
+    /// </remarks>
+    [Fact]
+    public void DrivePicker_HasANameAndEveryDriveIsAnnouncedByItsOwn()
+    {
+        var picker = MainWindowActions.DrivePicker(Window);
+        Assert.False(string.IsNullOrWhiteSpace(picker.Name),
+            "DrivePicker no tiene nombre accesible: se anuncia como «cuadro combinado» a secas.");
+
+        picker.Expand();
+        Thread.Sleep(200);
+        try
+        {
+            var items = picker.Items;
+            Assert.NotEmpty(items);
+            Assert.All(items, item =>
+            {
+                string shown = item.FindFirstDescendant(cf => cf.ByControlType(ControlType.Text))?.Name ?? "";
+                Assert.False(string.IsNullOrWhiteSpace(shown), "Una unidad no muestra ningún texto.");
+                Assert.Equal(shown, item.Name);
+                Assert.Matches("[A-Z]:", item.Name);
+            });
+            Assert.Equal(items.Length, items.Select(i => i.Name).Distinct().Count());
+        }
+        finally
+        {
+            picker.Collapse();
+        }
+    }
+
+    /// <summary>
+    /// Ningún control con el que se pueda interactuar en la ventana principal está sin nombre. Es el
+    /// volcado de UI Automation de la auditoría convertido en prueba: lo que encuentre aquí es lo que
+    /// un lector de pantalla anunciaría como «botón» o «cuadro combinado», sin más.
+    /// </summary>
+    [Fact]
+    public void NoInteractiveControlInTheMainWindow_IsNameless()
+    {
+        ControlType[] interactive =
+        [
+            ControlType.Button, ControlType.ComboBox, ControlType.CheckBox, ControlType.Edit,
+            ControlType.MenuItem, ControlType.RadioButton, ControlType.Slider, ControlType.Hyperlink,
+            ControlType.SplitButton, ControlType.ListItem, ControlType.TabItem,
+        ];
+
+        var nameless = Window.FindAllDescendants()
+            .Where(e => interactive.Contains(e.ControlType))
+            // Los botones de la barra de título los pone Windows, no la app, y se anuncian por su cuenta.
+            .Where(e => e.Properties.FrameworkId.ValueOrDefault == "XAML")
+            .Where(e => string.IsNullOrWhiteSpace(e.Name))
+            .Select(e => $"{e.ControlType} '{e.AutomationId}'")
+            .ToList();
+
+        Assert.True(nameless.Count == 0, "Controles sin nombre accesible: " + string.Join(", ", nameless));
+    }
+
+    // ── AUD-014: las regiones activas avisan ──────────────────────
+
+    /// <summary>
+    /// Ejecuta <paramref name="act"/> escuchando los avisos de región activa bajo
+    /// <paramref name="scope"/>, y devuelve los AutomationId de los elementos que avisaron.
+    /// </summary>
+    /// <remarks>
+    /// Es lo que un lector de pantalla escucha. <c>LiveSetting</c> en el árbol solo dice que la región
+    /// <i>está declarada</i>; que hable depende de este evento, y eso no se ve inspeccionando nada.
+    /// </remarks>
+    private List<string> LiveRegionAnnouncementsDuring(AutomationElement scope, Action act)
+    {
+        var announced = new List<string>();
+        using var handler = scope.RegisterAutomationEvent(
+            fixture.Automation.EventLibrary.Element.LiveRegionChangedEvent,
+            TreeScope.Subtree,
+            (element, _) =>
+            {
+                string id;
+                try { id = element.AutomationId; } catch { id = "?"; }
+                lock (announced) announced.Add(id);
+            });
+
+        act();
+
+        Retry.WhileFalse(
+            () => { lock (announced) return announced.Count > 0; },
+            timeout: TimeSpan.FromSeconds(5), interval: TimeSpan.FromMilliseconds(100));
+        lock (announced) return [.. announced];
+    }
+
+    /// <summary>
+    /// Filtrar el historial <b>dice</b> cuántas entradas quedan. El recuento estaba declarado como región
+    /// activa y nunca avisaba: quien filtraba sin ver la lista no sabía si quedaban tres o ninguna.
+    /// </summary>
+    [Fact]
+    public void FilteringTheHistory_AnnouncesTheNewCount()
+    {
+        // Con el historial vacío el recuento no se muestra. Se garantiza una entrada escribiéndola
+        // donde la app la lee; SettingsBackup devuelve el archivo a su estado al terminar la suite.
+        string log = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FormatDiskPro", "history.log");
+        File.AppendAllText(log, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\tEJECT Z:{Environment.NewLine}");
+
+        MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuHistory");
+        var dialog = DialogHelper.WaitForDialogContaining(fixture, "ExportButton");
+        try
+        {
+            var count = DialogHelper.WaitForChild(dialog, "CountText");
+            Assert.True(count.FrameworkAutomationElement.LiveSetting.TryGetValue(out LiveSetting live));
+            Assert.Equal(LiveSetting.Polite, live);
+            string before = count.Name;
+
+            var search = DialogHelper.WaitForChild(dialog, "SearchBox")
+                .FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit))
+                ?? throw new InvalidOperationException("El cuadro de búsqueda no tiene campo de texto.");
+
+            var announced = LiveRegionAnnouncementsDuring(dialog,
+                () => search.AsTextBox().Text = "esto-no-esta-en-ningun-historial");
+
+            Assert.Contains("CountText", announced);
+            Assert.NotEqual(before, DialogHelper.WaitForChild(dialog, "CountText").Name);
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
+
+    /// <summary>
+    /// Guardar un preset con un nombre que ya existe <b>dice</b> por qué no se guarda. El mensaje
+    /// aparecía en rojo bajo el campo y nada más: para un lector de pantalla, pulsar «Guardar» no hacía
+    /// nada.
+    /// </summary>
+    [NonSystemDriveFact]
+    public void RejectingADuplicatePresetName_AnnouncesTheError()
+    {
+        MainWindowActions.SelectAnyNonSystemDrive(Window);
+        MainWindowActions.ClickMenuPath(Window, "MnuConfig", "MnuPresets");
+        var manage = Retry.WhileNull(
+            () => Window.FindAllDescendants(cf => cf.ByControlType(ControlType.MenuItem))
+                .FirstOrDefault(mi => mi.Name == "Gestionar presets…"),
+            timeout: TimeSpan.FromSeconds(5), interval: TimeSpan.FromMilliseconds(200),
+            ignoreException: true).Result
+            ?? throw new InvalidOperationException("No se encontró «Gestionar presets…».");
+        manage.Patterns.Invoke.Pattern.Invoke();
+
+        var dialog = DialogHelper.WaitForDialogContaining(fixture, "SaveHeader");
+        try
+        {
+            string name = "UITEST-" + Guid.NewGuid().ToString("N")[..8];
+            var nameBox = DialogHelper.WaitForChild(dialog, "NameBox").AsTextBox();
+            var save = DialogHelper.WaitForChild(dialog, "SaveBtn").AsButton();
+
+            nameBox.Text = name;
+            save.Invoke();                       // la primera vez se guarda
+            Thread.Sleep(300);
+            nameBox.Text = name;
+
+            var announced = LiveRegionAnnouncementsDuring(dialog, save.Invoke);   // la segunda, se rechaza
+
+            Assert.Contains("ErrorText", announced);
+
+            var error = DialogHelper.WaitForChild(dialog, "ErrorText");
+            Assert.False(string.IsNullOrWhiteSpace(error.Name));
+            Assert.True(error.FrameworkAutomationElement.LiveSetting.TryGetValue(out LiveSetting live));
+            Assert.Equal(LiveSetting.Assertive, live);
+            Assert.True(nameBox.FrameworkAutomationElement.DescribedBy.TryGetValue(out AutomationElement[]? describedBy));
+            Assert.Contains(describedBy!, e => e.AutomationId == "ErrorText");
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
 }

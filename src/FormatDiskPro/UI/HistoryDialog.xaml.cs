@@ -101,10 +101,18 @@ public sealed partial class HistoryDialog : ContentDialog
         // «12 de 340» mientras haya historial; con el historial vacío el recuento sobra, porque el
         // estado vacío ya lo dice con palabras. Los números se formatean con L.Culture (T6-12): van
         // dentro de una frase traducida, y string.Format los pondría en la cultura de Windows.
+        string previousCount = CountText.Text;
         CountText.Visibility = _all.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         CountText.Text = _all.Count > 0
             ? L.T("history.count", _rows.Count.ToString(L.Culture), _all.Count.ToString(L.Culture))
             : "";
+
+        // El recuento es una región activa (Polite), pero declararla no la hace hablar: sin este aviso
+        // quien filtra con un lector de pantalla no se entera de cuántas entradas quedan (`AUD-014`).
+        // Solo cuando el número cambia: se filtra tecla a tecla, y repetir «12 de 340» en cada una
+        // que no altera el resultado sería ruido.
+        if (CountText.Text.Length > 0 && CountText.Text != previousCount)
+            LiveRegion.Announce(CountText);
     }
 
     private void Search_Changed(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs e)

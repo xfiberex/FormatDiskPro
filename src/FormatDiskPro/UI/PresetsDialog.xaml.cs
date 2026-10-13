@@ -36,6 +36,9 @@ public sealed partial class PresetsDialog : ContentDialog
         CurrentText.Text= L.T("preset.currentIs", currentSummary);
         NameBox.Header  = L.T("preset.nameLabel");
         NameBox.PlaceholderText = L.T("preset.namePlaceholder");
+        // El error de nombre se lee desde el propio campo, como el de la etiqueta en la ventana
+        // principal: sin el vínculo aparece debajo, sin relación programática con lo que lo provoca.
+        AutomationProperties.GetDescribedBy(NameBox).Add(ErrorText);
         SaveBtn.Content = L.T("preset.saveBtn");
         CancelEditBtn.Content = L.T("preset.cancelEdit");
         UpdateConfigCheck.Content = L.T("preset.updateConfig", currentSummary);
@@ -200,6 +203,9 @@ public sealed partial class PresetsDialog : ContentDialog
     {
         ErrorText.Text = L.T("preset.dupName");
         ErrorText.Visibility = Visibility.Visible;
+        // Se anuncia cada vez que se rechaza, también si el texto es el mismo: es la respuesta a pulsar
+        // «Guardar», y sin ella el botón no hace nada que un lector de pantalla pueda contar (`AUD-014`).
+        LiveRegion.Announce(ErrorText);
     }
 
     private void UpdateEmptyState()

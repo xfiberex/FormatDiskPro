@@ -125,7 +125,7 @@ public sealed partial class MainWindow
         if (manual)
         {
             StatusText.ClearValue(TextBlock.ForegroundProperty);
-            StatusText.Text = L.T("update.checking");
+            SetStatusAndAnnounce(L.T("update.checking"));
         }
 
         ReleaseInfo? rel;

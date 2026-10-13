@@ -94,6 +94,7 @@ src/FormatDiskPro/
 │  ├─ LegalTextDialog     Visor de licencia / avisos de terceros
 │  ├─ SaveFileDialog.cs   «Guardar como» por COM (IFileSaveDialog): el selector de WinRT rechaza a un proceso elevado
 │  ├─ HighContrast.cs     ¿Tema de alto contraste? Y los pinceles del sistema con los que pintar entonces
+│  ├─ LiveRegion.cs       Aviso LiveRegionChanged compartido por ventana y diálogos (AUD-014)
 │  ├─ Theme/AppTheme.xaml Tokens de diseño (tarjetas, encabezados, footer)
 │  └─ DriveViewModel.cs   Binding del ComboBox de unidades (icono por tipo)
 ├─ Localization/    Localization.cs — 5 idiomas (ES/EN/PT/FR/IT), L.T("clave")
@@ -177,7 +178,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
 | **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-13: **844** (843 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-13, con la USB de pruebas y el opt-in destructivo: **46** (44 pasan · 2 de `ALLOW_YANK` se omiten). Sin la USB se omiten además las que la necesitan |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-13, con la USB de pruebas y el opt-in destructivo: **50** (48 pasan · 2 de `ALLOW_YANK` se omiten). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 97,7 % el 2026-10-11 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
@@ -252,6 +253,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
     `%ProgramData%` se descartó porque haría de máquina unas preferencias que hoy son de cada persona.
 - **Un diálogo en el arranque espera a que el contenido esté cargado** (`WhenContentLoadedAsync`): en
   la primera activación aún no hay `XamlRoot`, y un `ContentDialog` sin él lanza.
+- **Una región activa declarada no habla sola** (`AUD-014`, 2026-10-13). `LiveSetting` en el XAML dice
+  *cómo* leer un texto; lo que hace que se lea es el evento, y hay que lanzarlo: `UI/LiveRegion.Announce`
+  tras cambiar el texto, con el elemento ya visible. Los hitos del pie van por `SetStatusAndAnnounce`.
+  Y **todo control interactivo tiene nombre accesible** (`AUD-003`): un `ComboBox` enlazado a objetos
+  anuncia cada opción con su `ToString()`, no con la plantilla. Las dos cosas las vigilan pruebas de UI
+  que escuchan los eventos de UI Automation y recorren la ventana buscando controles sin nombre.
 - **Recargar la lista no es elegir una unidad** (`AUD-029`, 2026-10-13). `LoadDrives` ignora los
   cambios de selección que ella misma provoca y, si la unidad sigue siendo la misma (letra y huella del
   volumen), refresca lo que se lee y no toca lo que la persona escribió. Lo que deba restablecer
