@@ -17,6 +17,7 @@
 
 | Versión | Qué trajo |
 |---|---|
+| **1.30.0** | **Que la app diga lo que pasó.** Las 19 correcciones de la auditoría del 2026-10-11 cerradas hasta el corte. Cancelar un formato lo cancela (o no se ofrece), lo que se formatea o reinicializa es la unidad que se confirmó, y *Comprobar*, *Expulsar* y el borrado seguro dejan de anunciar el caso feliz. Seguridad: el instalador de una actualización se descarga a una carpeta solo de administradores y queda bloqueado hasta ejecutarse, y la cuenta sin elevar deja de decidir qué ejecuta la app. Accesibilidad: el selector de unidad tiene nombre. |
 | **1.29.0** | **La base, al día: Windows App SDK 1.8 → 2.5.1**, el primer salto de versión mayor del componente sobre el que está construida la app. **Sin una línea de código cambiada** y sin diferencia visible: la galería de 28 tomas sale idéntica comparándola con la 1.8 y el mismo código. Las notas de la 2.0 no documentan cambios incompatibles, así que lo que decidió el salto fue la puerta del corte. El instalador crece 2,8 MB (58,9 → 61,7) por componentes de Windows AI y Search que el paquete trae de serie. Cierra el **Tier 13, 20/20**. |
 | **1.28.1** | **Dos fallos que no se veían hasta buscarlos**, los dos anotados días antes sin reproducir y los dos ciertos. Abrir un segundo diálogo —pulsar dos veces seguidas un botón que abre un aviso— dejaba un `CRASH` en el historial: WinUI no admite dos `ContentDialog` a la vez. Y con el tema de la app distinto al de Windows, las etiquetas apagadas tomaban el gris del tema contrario: «Pasadas:» salía a **1,07:1**, invisible. Solo correcciones. |
 | **1.28.0** | **Que el color no diga lo que no es, y que un «no» venga con su porqué.** La segunda mitad de la auditoría que abrió la 1.27.0. Con un tema de **contraste** de Windows, la app cede el color también en lo que no es texto —barra de ocupación, punto de salud, progreso—, que era lo único que seguía con la paleta propia. El **botón de cerrar** vuelve a ponerse rojo: los ocho colores que se fijaban a mano se van a favor de `PreferredTheme`, y con ellos la última excepción a que los colores vivan en un solo sitio. **Reinicializar dice por qué rechaza** un plan y qué cambiar, en vez de una frase para todo. Y lo visual: los **títulos de tarjeta** dejan el color de acento —que en la 1.8 es el mismo pincel que el de un enlace— y se quedan en texto primario, con el acento en el icono; idioma y tema se marcan con un **punto de opción**; las pistas dejan la cursiva y la tipografía vuelve a la rampa de Fluent. Interno: Windows App SDK al último *servicing* de la 1.8 (`1.8.260804001`), con instalador y galería comprobados. |
@@ -60,6 +61,26 @@
 ---
 
 ## Entradas
+
+### 2026-10-14 — Corte de la v1.30.0
+
+**Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre
+ellas todas las de severidad alta— y ninguna había llegado a quien usa la app; varias son de seguridad o de datos (`AUD-001`,
+`AUD-002`, `AUD-013`). Es *minor* y no *patch* porque trae algo nuevo (la salida de `chkdsk` legible).
+
+**Lo que el script aún no comprueba, comprobado a mano.** El `ROADMAP` pide arreglar `AUD-020`, `AUD-021`
+y `AUD-052` a `AUD-056` antes del próximo corte; este se hizo sin ellos, cubriéndolos a mano: `master` al
+día con `origin` (`AUD-020`), `dotnet build -c Release -warnaserror` sin avisos y unitarias en Release
+(`AUD-052`), Inno Setup y la sesión de `gh` verificados antes de empezar (`AUD-053`) y ninguna variable
+`FORMATDISKPRO_*` activa (`AUD-056`). Siguen abiertas: la próxima vez conviene que lo haga el script.
+
+**45 de 50 pruebas de UI fallaron en la primera pasada, y no era la app.** El `dotnet build -c Release` de
+esa comprobación dejó en `bin\Release\…\win-x64` un `.exe` *framework-dependent* junto a `hostfxr.dll` y
+`coreclr.dll` de una publicación *self-contained* anterior. Al ver `coreclr.dll`, el lanzador busca .NET
+solo en esa carpeta y muestra «You must install or update .NET», aunque el runtime x64 esté instalado.
+`AppFixture` lanza el `FormatDiskPro.exe` **más reciente** de `bin\`, así que eligió ese. Borrar
+`bin\Release` lo arregló. Es la misma trampa que ya describe §4 para las capturas: no se arregla
+reinstalando .NET. Para comprobar Release sin dejar este rastro, compilar a otra carpeta (`-o`).
 
 ### 2026-10-13 — `AUD-006` a `AUD-009`, `AUD-011` y `AUD-027`: operaciones que contaban el caso feliz
 

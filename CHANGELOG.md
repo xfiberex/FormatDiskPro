@@ -16,6 +16,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.30.0] — 2026-10-14
+
+**Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar
+un formato lo cancela de verdad, lo que se formatea o se reinicializa es exactamente la unidad que se
+confirmó, y operaciones como comprobar, expulsar o el borrado seguro ya no dan por bueno lo que no
+ocurrió. Además, la aplicación cierra varios caminos por los que un programa sin privilegios podía influir
+en lo que ejecuta como administrador, y el selector de unidad se entiende con un lector de pantalla.
+
 ### Corregido
 
 - **Cancelar un formato completo lo cancela de verdad.** En exFAT, y en NTFS con compresión, la
@@ -880,7 +888,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.29.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.0...HEAD
+[1.30.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.0
 [1.29.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.29.0
 [1.28.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.1
 [1.28.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.0
