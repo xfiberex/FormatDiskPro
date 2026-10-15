@@ -83,18 +83,58 @@ public sealed class SecureWipe : ISecureWipe
         CancellationToken ct)
     {
         if (!char.IsLetter(letter)) return -1;
-        if (passes < 1) passes = 1;
 
-        string dir = $"{letter}:\\__fdp_wipe__";
+        // Fuera del try de RunInAsync a propósito, como en CapacityVerifier: si la unidad no está lista,
+        // el directorio de trabajo aún no existe y no hay nada que limpiar.
+        var drive = new DriveInfo(letter.ToString());
+        if (!drive.IsReady) return -1;
+
+        long perPass = Math.Max(0, drive.AvailableFreeSpace - SafetyMarginBytes);
+        await RunInAsync($"{letter}:\\__fdp_wipe__", perPass, passes, progress, ct);
+        return 0;
+    }
+
+    /// <summary>
+    /// El motor del borrado, sin la unidad: escribe <paramref name="perPass"/> bytes en
+    /// <paramref name="dir"/> en cada una de las <paramref name="passes"/> pasadas y borra el directorio al
+    /// terminar, también si se cancela o falla. Existe aparte para poder probar sobre una carpeta temporal
+    /// lo que se escribe en cada pasada (`AUD-016`).
+    /// </summary>
+    /// <remarks>
+    /// Todas las pasadas sobrescriben <b>los mismos archivos</b>, desde el principio: la pasada 0 los crea
+    /// y las siguientes los reabren. Así cada pasada pisa los mismos clústeres y la unidad nunca necesita
+    /// más de <paramref name="perPass"/> bytes. Antes cada pasada creaba archivos nuevos sin borrar los de
+    /// la anterior: la segunda pedía otra vez todo el espacio libre, que la primera ya había ocupado.
+    /// </remarks>
+    /// <param name="dir">Directorio de trabajo; se crea si no existe y se borra entero al terminar.</param>
+    /// <param name="perPass">Bytes que escribe cada pasada.</param>
+    /// <param name="passes">Número de pasadas (se fuerza a un mínimo de 1).</param>
+    /// <param name="progress">Progreso reportado tras cada bloque escrito.</param>
+    /// <param name="ct">Token de cancelación.</param>
+    /// <param name="afterPassAsync">
+    /// Solo para pruebas: se ejecuta al terminar cada pasada, con su índice y con los archivos ya cerrados,
+    /// antes de la siguiente y antes de borrar el directorio. Permite leer lo que dejó escrito cada una.
+    /// </param>
+    /// <param name="maxFileSize">
+    /// Solo para pruebas: tamaño máximo de cada archivo, para ejercitar el reparto en varios archivos sin
+    /// escribir gigabytes.
+    /// </param>
+    /// <exception cref="OperationCanceledException">Si se cancela mediante <paramref name="ct"/>.</exception>
+    internal static async Task RunInAsync(
+        string dir, long perPass, int passes,
+        IProgress<(int percent, long bytesDone, long totalBytes)> progress,
+        CancellationToken ct,
+        Func<int, Task>? afterPassAsync = null,
+        long maxFileSize = MaxFileSize)
+    {
+        if (passes < 1) passes = 1;
+        perPass = Math.Max(0, perPass);
+
+        long total     = perPass * passes;
         long bytesDone = 0;
 
         try
         {
-            var drive = new DriveInfo(letter.ToString());
-            if (!drive.IsReady) return -1;
-
-            long perPass = Math.Max(0, drive.AvailableFreeSpace - SafetyMarginBytes);
-            long total   = perPass * passes;
             Directory.CreateDirectory(dir);
 
             var buffer = new byte[BlockSize];
@@ -104,14 +144,18 @@ public sealed class SecureWipe : ISecureWipe
                 var (random, fill) = PassPattern(pass, passes);
                 if (!random) Array.Fill(buffer, fill);   // patrón fijo: rellenar una vez
 
+                // La primera pasada crea (y trunca, si quedó alguno de una ejecución interrumpida); las
+                // demás reabren el mismo archivo y lo sobrescriben desde el byte 0.
+                var mode = pass == 0 ? FileMode.Create : FileMode.Open;
+
                 long passWritten = 0;
                 int fileNo = 0;
                 while (passWritten < perPass)
                 {
-                    long fileTarget = Math.Min(MaxFileSize, perPass - passWritten);
-                    string path = Path.Combine(dir, $"wipe_{pass}_{fileNo:D4}.bin");
+                    long fileTarget = Math.Min(maxFileSize, perPass - passWritten);
+                    string path = Path.Combine(dir, $"wipe_{fileNo:D4}.bin");
 
-                    await using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write,
+                    await using (var fs = new FileStream(path, mode, FileAccess.Write,
                                      FileShare.None, 1 << 20, FileOptions.WriteThrough))
                     {
                         long fileWritten = 0;
@@ -135,9 +179,9 @@ public sealed class SecureWipe : ISecureWipe
                     }
                     fileNo++;
                 }
-            }
 
-            return 0;
+                if (afterPassAsync is not null) await afterPassAsync(pass);
+            }
         }
         finally
         {

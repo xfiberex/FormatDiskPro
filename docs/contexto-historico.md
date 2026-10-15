@@ -62,6 +62,49 @@
 
 ## Entradas
 
+### 2026-10-15 — `AUD-016` (sin cerrar) y `AUD-064`: pruebas del borrado seguro, y un fallo que ninguna veía
+
+**Qué se hizo.** El borrado seguro tiene ahora una costura como la de `CapacityVerifier`.
+`SecureWipe.RunInAsync(dir, perPass, passes, …)` escribe en una carpeta cualquiera, y `RunAsync` solo
+resuelve la unidad y se lo delega. Hay dos parámetros solo para pruebas:
+
+- `afterPassAsync` se llama al terminar cada pasada, con los archivos cerrados, para leer lo que dejó.
+- `maxFileSize` sirve para ejercitar el reparto en varios archivos sin escribir gigabytes.
+
+Las nueve unitarias nuevas comprueban el contenido de cada pasada: 0x00, 0xFF y una última aleatoria, que
+debe contener al menos 250 de los 256 valores de byte. También comprueban el progreso, que cancelar lance y
+limpie, el caso sin nada que escribir y la unidad que no está lista. Usan un `IProgress` síncrono y no
+`Progress<T>`, que entrega los avisos más tarde y en otro hilo: así se puede contar los avisos y cancelar
+en el primero.
+
+**El fallo que apareció al escribir la prueba.** Los archivos se llamaban `wipe_{pasada}_{n}.bin` y no se
+borraban hasta el final. La pasada 0 llenaba la unidad hasta el margen de 64 MB, y la 1 creaba archivos
+nuevos que necesitaban otra vez todo ese espacio. En una unidad real, con 3 o 7 pasadas, la segunda
+lanzaba «disco lleno». Sobre una carpeta temporal no se nota, porque el disco tiene sitio de sobra, así que
+la prueba no mira si lanza: mira que el directorio nunca pase de `perPass` bytes. Ahora todas las pasadas
+reabren los mismos archivos (`wipe_{n}.bin`): la 0 con `FileMode.Create` y las demás con `FileMode.Open`,
+desde el byte 0. Es además lo que da sentido a varias pasadas, porque cada una pisa el mismo espacio y no
+otro. Con la compresión NTFS activada, el sistema de archivos puede reubicar los clústeres al sobrescribir.
+Este cambio no lo resuelve, y tampoco lo hacía antes.
+
+**La prueba de UI cancela en vez de esperar al final.** `SecureWipe_AfterFormat_WritesToTheDrive_AndCancelCleansUp`
+hace un formato rápido FAT32 con borrado de 1 pasada, espera a ver `__fdp_wipe__` en la unidad, cancela y
+comprueba cuatro cosas: el directorio ya no está, el espacio libre ha vuelto, el historial dice
+`WIPE CANCELLED` y la unidad conserva la etiqueta que buscan las demás pruebas. Esperar a que termine
+haría que la duración dependiera del tamaño de la USB, y que el motor termine ya lo cubren las unitarias.
+
+**Por qué `AUD-016` sigue abierta.** Su criterio pide más de un 90 % de cobertura de `SecureWipe.cs`, y la
+sesión que escribió esto no tenía el SDK de .NET: el proxy bloqueó la descarga. Por la cuenta de líneas,
+solo quedan sin cubrir las tres de `RunAsync` que corren con una unidad lista. Eso no es una medida, así que
+falta ejecutar `dotnet test --collect:"XPlat Code Coverage"` y la prueba de UI con la USB.
+
+**`AUD-064`.** `TestResults/` y `*.trx` van a `.gitignore`.
+
+**Una prueba ajena que falló en el CI del PR.** `PlanRejectionTests` cambia el idioma activo con `L.Set`,
+pero no estaba en `LanguageCollection`, la colección que serializa a las clases que lo cambian. En el CI del
+PR corrió en paralelo con otra y comparó «54.7 GB» con «54,7 GB». En la ejecución anterior, sobre el mismo
+commit, había pasado. Entra en la colección, como las otras seis.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre

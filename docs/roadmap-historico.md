@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-15 | `AUD-064` | `TestResults/` y `*.trx`, ignorados: el comando de cobertura de la guía ya no deja el árbol sucio | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -219,6 +220,16 @@
   - **Lo que apareció por el camino, y también se arregló:** (1) `format.com` rechaza `/A:16384` y mayores —exige `16K`, `64K`, `1M`—, así que **un formato completo con unidad de asignación de 16 KB o más fallaba siempre**, en cualquier sistema de archivos; ahora lo escribe `FormatLogic.ComAllocationSize`. (2) La app se negaba a formatear una unidad «no lista», que es justo como queda tras cancelar: no tenía salida sin ir a *Reinicializar* o a Windows. Ahora solo rechaza si detrás de la letra no hay partición.
   - **Verificado:** `CancellingAFormat_DoesWhatItSays_OnBothRoutes` (UI, opt-in destructivo) sobre la USB de pruebas: cancela un exFAT completo a los 4 s, comprueba que el volumen **sigue sin formato 75 s después** (un formato completo de esa partición tarda unos 50 s) y que durante un formato rápido el botón no estuvo habilitado en ninguna de 43 muestras. Unitarias: 711. Suite de UI con opt-in destructivo: 42 pasan y 2 de `ALLOW_YANK` se omiten.
   - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
+
+### DevOps
+
+- [x] **AUD-064 · El comando de cobertura que recomienda la guía deja archivos que hacen abortar el corte siguiente**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/CONTRIBUTING.md:24` · `.gitignore` · `release.ps1:484-487`
+  - **Qué hacer:** añadir `TestResults/` y `*.trx` a `.gitignore`.
+  - **Criterio de aceptación:** tras ejecutar el comando de la guía, `git status` no lista nada nuevo.
+  - **Hecho (2026-10-15):** `TestResults/` y `*.trx` entran en `.gitignore`, con un comentario que dice qué comando los deja y por qué molestaban.
+  - **Verificado:** se crearon a mano los dos rastros que deja ese comando, `tests/FormatDiskPro.Tests/TestResults/<guid>/coverage.cobertura.xml` y un `.trx` en la raíz, y `git status --short` no los lista. No se ejecutó `dotnet test` de verdad porque la sesión no tenía el SDK.
 
 ### Documentación
 

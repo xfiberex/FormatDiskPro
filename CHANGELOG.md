@@ -16,6 +16,21 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **El borrado seguro con 3 o 7 pasadas no terminaba.** Cada pasada escribía archivos nuevos sin borrar
+  los de la anterior, así que la segunda pedía otra vez todo el espacio libre de la unidad, que la primera
+  ya había ocupado. Ahora todas las pasadas sobrescriben los mismos archivos, que es además lo que hace
+  que cada pasada pise el mismo espacio.
+
+### Interno
+
+- El borrado seguro tiene pruebas: lo que queda escrito tras cada pasada, que la última sea aleatoria,
+  el progreso, y que cancelar lo detenga y lo limpie. También hay una variante del ciclo destructivo de UI
+  con el borrado activado (`AUD-016`).
+- `TestResults/` y `*.trx` se ignoran en git. El comando de cobertura de la guía de contribución ya no deja
+  el árbol sucio para el corte siguiente (`AUD-064`).
+
 ## [1.30.0] — 2026-10-14
 
 **Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar

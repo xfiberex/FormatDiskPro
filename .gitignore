@@ -36,6 +36,12 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Resultados de pruebas (AUD-064): «dotnet test --collect:"XPlat Code Coverage"» (CONTRIBUTING.md) deja
+# TestResults/ en cada proyecto de prueba, y un .trx suelto contaría como archivo sin rastrear: los dos
+# hacían abortar el corte siguiente de release.ps1 por árbol sucio.
+TestResults/
+*.trx
+
 # OS
 Thumbs.db
 Desktop.ini

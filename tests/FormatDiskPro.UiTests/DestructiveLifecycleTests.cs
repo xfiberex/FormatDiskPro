@@ -532,6 +532,81 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
         }
     }
 
+    // ── Formatear con borrado seguro (`AUD-016`) ────────────────────────────────────
+
+    /// <summary>
+    /// El borrado seguro, por el camino de la app: tras el formato rápido arranca el borrado, que
+    /// <b>escribe de verdad</b> en la unidad (aparece su directorio de trabajo), se cancela a mitad y
+    /// <b>no deja nada</b>: ni el directorio ni el espacio ocupado, y el historial dice que se canceló.
+    ///
+    /// <para>Se cancela en vez de esperar al final porque lo que tarda un borrado completo depende del
+    /// tamaño y la velocidad de la USB. Lo que se escribe en cada pasada, y que termine, lo prueban las
+    /// unitarias de <c>SecureWipeTests</c> sobre una carpeta temporal; aquí se prueba que la app lo lanza
+    /// contra la unidad correcta y que cancelar lo detiene y limpia.</para>
+    ///
+    /// <para>Formatea en FAT32 con la etiqueta de la unidad de pruebas: si todo va bien, la unidad acaba
+    /// como la encuentran las demás pruebas.</para>
+    /// </summary>
+    [DestructiveFact]
+    public void SecureWipe_AfterFormat_WritesToTheDrive_AndCancelCleansUp()
+    {
+        TestDrive.RequireDestructiveOptIn();
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        string wipeDir = $"{letter}:\\__fdp_wipe__";
+        string historyPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FormatDiskPro", "history.log");
+
+        try
+        {
+            SelectTestDrive(letter);
+            MainWindowActions.SelectComboText(Window, "FileSystemPicker", "FAT32");
+            MainWindowActions.TextBox(Window, "VolumeLabelBox").Text = TestDrive.PrimaryLabel;
+            MainWindowActions.SetChecked(Window, "QuickFormatCheck", true);
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", true);
+            MainWindowActions.SelectComboIndex(Window, "WipePassesPicker", 0);   // 1 pasada
+            // Antes de abrir ningún diálogo: los ContentDialog tienen un botón con el mismo AutomationId.
+            var footerCancel = MainWindowActions.Button(Window, "CloseButton");
+            ConfirmStart(letter);
+
+            // Que el borrado esté escribiendo en la unidad, no solo que la app diga que ha empezado.
+            bool writing = FlaUI.Core.Tools.Retry.WhileFalse(
+                () => Directory.Exists(wipeDir) && Directory.EnumerateFiles(wipeDir).Any(),
+                timeout: TimeSpan.FromMinutes(2),
+                interval: TimeSpan.FromMilliseconds(250),
+                ignoreException: true).Success;
+            Assert.True(writing, $"El borrado seguro no llegó a escribir en {wipeDir}.");
+            Thread.Sleep(TimeSpan.FromSeconds(3));
+
+            Assert.True(footerCancel.IsEnabled, "El borrado seguro se tiene que poder cancelar.");
+            footerCancel.Invoke();
+            DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Invoke();
+            DialogHelper.WaitForNoDialog(fixture);
+            MainWindowActions.WaitUntilEnabled(Window, "DrivePicker", TimeSpan.FromSeconds(60));
+
+            Assert.False(Directory.Exists(wipeDir), "Cancelar el borrado dejó su directorio en la unidad.");
+
+            var drive = new DriveInfo(letter.ToString());
+            Assert.True(drive.IsReady, "Tras cancelar el borrado, la unidad (ya formateada) debería estar lista.");
+            output.WriteLine($"Libre tras cancelar: {drive.AvailableFreeSpace:N0} de {drive.TotalSize:N0} bytes.");
+            Assert.True(drive.AvailableFreeSpace >= drive.TotalSize * 95 / 100,
+                "Tras cancelar, lo escrito por el borrado sigue ocupando la unidad.");
+
+            string history = File.Exists(historyPath) ? File.ReadAllText(historyPath) : "";
+            Assert.Contains($"WIPE CANCELLED {letter}:", history);
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+
+            // Si la prueba se cayó con la unidad sin formato o con otra etiqueta, las demás no la
+            // encontrarían. Se devuelve a FAT32 «utilidades» sin pasar por la UI.
+            if (TestDrive.FindLetter(TestDrive.PrimaryLabel) is null)
+                RunPowerShell($"Format-Volume -DriveLetter {letter} -FileSystem FAT32 " +
+                              $"-NewFileSystemLabel '{TestDrive.PrimaryLabel}' -Confirm:$false -Force | Out-Null");
+        }
+    }
+
     /// <summary>Pulsa el botón de formatear y confirma escribiendo la letra.</summary>
     private void ConfirmStart(char letter)
     {
