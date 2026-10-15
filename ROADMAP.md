@@ -29,19 +29,19 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-15 · **Publicado:** v1.30.0 · **34 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-15 · **Publicado:** v1.30.0 · **29 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 6 |
-| **3** | Bajo | 27 |
+| **2** | Medio | 4 |
+| **3** | Bajo | 24 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **34** |
+| | **Total** | **29** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **33** y se han cerrado **38**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-031`, `AUD-033`, `AUD-034`, `AUD-037`, `AUD-040`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-064`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **28** y se han cerrado **43**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-031`, `AUD-033`, `AUD-034`, `AUD-037`, `AUD-040`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-064`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
@@ -49,21 +49,20 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **33** y se han cerrado **
 | Código | – | – | 2 | 2 |
 | QA | – | – | – | 0 |
 | Documentación | – | – | – | 0 |
-| DevOps | – | 4 | 10 | 14 |
+| DevOps | – | 2 | 7 | 9 |
 | Legal | – | 1 | 5 | 6 |
 | Rendimiento | – | – | 1 | 1 |
 | UI/UX | – | – | 1 | 1 |
 | Arquitectura y resiliencia | – | – | 3 | 3 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 2 | 2 |
-| **Total** | **–** | **6** | **27** | **33** |
+| **Total** | **–** | **4** | **24** | **28** |
 
-**Esfuerzo:** 26 de esfuerzo bajo (hasta 2 horas) y 7 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 21 de esfuerzo bajo (hasta 2 horas) y 7 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
 **Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
-`AUD-066`, dos interruptores en GitHub) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a `AUD-054`.
-Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
+`AUD-066`, dos interruptores en GitHub). Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
 del autor.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
@@ -76,18 +75,6 @@ del autor.
   - **Ubicación:** `.github/SECURITY.md:20-22` · configuración del repositorio
   - **Qué hacer:** activar *Private vulnerability reporting* en *Settings → Code security*. De paso, activar las alertas de Dependabot (ver AUD-066).
   - **Criterio de aceptación:** la API devuelve `enabled: true` y el enlace de `SECURITY.md` abre el formulario desde una cuenta sin permisos.
-
-- [ ] **AUD-020 · El corte no comprueba en qué rama está ni si va por detrás de `origin`**
-  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:421-426`, `:745-749`, `:805`
-  - **Qué hacer:** al principio de las validaciones, `git fetch origin $branch`, abortar si `git rev-list --count HEAD..origin/$branch` es mayor que 0 y avisar si la rama no es `master`. En `-ResumeRelease`, comprobar que el tag está contenido en `origin/$branch`.
-  - **Criterio de aceptación:** con un commit de más en `origin/master`, `release.ps1 -DryRun` aborta antes de las pruebas diciendo cuántos commits faltan.
-
-- [ ] **AUD-021 · `-ResumeRelease` publica el instalador que haya en la carpeta de salida sin comprobar que es el del tag**
-  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:473-474`, `:731-742`, `:771-781`, `:847`
-  - **Qué hacer:** antes de `gh release create`, recalcular `Get-FileHash` y abortar si no coincide con el `.sha256`; anotar el hash en el mensaje del tag y exigir en `-ResumeRelease` que el instalador presente sea ese.
-  - **Criterio de aceptación:** con el `.exe` sustituido tras etiquetar, `-ResumeRelease` aborta nombrando la discrepancia.
 
 - [ ] **AUD-022 · La compilación solo es reproducible para el Windows App SDK**
   - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Medio
@@ -198,24 +185,6 @@ del autor.
   - **Criterio de aceptación:** en la galería en francés no conviven «Go» y «GB».
 
 ### DevOps
-
-- [ ] **AUD-052 · El corte prueba una compilación de depuración y sin el listón de cero advertencias**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:515`, `:519` · `src/installer/build-installer.ps1:183-190` · `.github/workflows/ci.yml:74-84`
-  - **Qué hacer:** `dotnet build -c Release -warnaserror` y `dotnet test -c Release --no-build` en el corte.
-  - **Criterio de aceptación:** una advertencia introducida a propósito aborta `release.ps1 -DryRun`.
-
-- [ ] **AUD-053 · Las herramientas de los últimos pasos se validan después de mutar, y la simulación no las comprueba**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:689-728`, `:753-770`, `:814-844` · `src/installer/build-installer.ps1:129`, `:139`, `:177`
-  - **Qué hacer:** una comprobación previa compartida con `-DryRun` (Inno Setup, `gh` y su sesión, certificado si se firma) y restaurar el `.csproj` si falla el instalador.
-  - **Criterio de aceptación:** sin `gh` en el `PATH`, `release.ps1 -DryRun` aborta nombrándolo.
-
-- [ ] **AUD-054 · La guarda de «sección del CHANGELOG vacía» no salta cuando dos encabezados de versión van seguidos**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:653-662`
-  - **Qué hacer:** exigir `$end -gt $start` y que el cuerpo contenga alguna línea que no sea encabezado.
-  - **Criterio de aceptación:** con dos encabezados seguidos, el corte aborta.
 
 - [ ] **AUD-059 · El script de capturas falla o se degrada cuando lo lanza otro proceso**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo

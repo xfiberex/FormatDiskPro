@@ -4,11 +4,13 @@
 
 .DESCRIPTION
     Flujo completo en un paso:
-      1. Valida la versión y el árbol de trabajo.
-      2. Ejecuta las pruebas (salvo -SkipTests).
-      3. Actualiza <Version> en el .csproj si cambió.
+      1. Valida la versión, la sección del CHANGELOG, que la rama no vaya por detrás de origin, el árbol
+         de trabajo y las herramientas de los últimos pasos (gh y su sesión, Inno Setup, el certificado).
+         Todo antes de la primera prueba, y también con -DryRun.
+      2. Ejecuta las pruebas (salvo -SkipTests) sobre una compilación Release sin advertencias.
+      3. Actualiza <Version> en el .csproj si cambió (y lo restaura si el instalador falla).
       4. Compila el instalador (publish self-contained + Inno Setup).
-      5. Commit del bump de versión + tag anotado vX.Y.Z.
+      5. Commit del bump de versión + tag anotado vX.Y.Z, con el SHA-256 del instalador en su mensaje.
       6. Push de la rama y el tag a origin.
       7. Crea el GitHub Release adjuntando el instalador Y su .sha256.
 
@@ -65,8 +67,8 @@
     ningún sitio, justo en el momento en que el corte está a medias y hay prisa.
 
     Con este flag se omiten las pruebas, el bump, la compilación, el commit y el tag —todo eso ya ocurrió—
-    y se comprueba que estén el instalador y su .sha256 en installer\Output. Si el tag aún no está en
-    origin, se sube.
+    y se comprueba que estén el instalador y su .sha256 en installer\Output, que el instalador sea el que
+    anota el tag y que el tag esté en origin/<rama>. Si el tag aún no está en origin, se sube.
 
 .EXAMPLE
     .\release.ps1 -Version 1.2.0
@@ -366,6 +368,92 @@ function Show-UnitTestSummary {
     }
 }
 
+<#
+.SYNOPSIS
+    Líneas de la sección de una versión en el CHANGELOG: de su encabezado "## [X.Y.Z]" al siguiente "## ".
+    Devuelve $null si no hay encabezado, y un array vacío si lo hay pero no le sigue nada.
+
+.DESCRIPTION
+    Antes se cortaba con $lines[$start..($end - 1)] sin comprobar que $end fuera mayor que $start
+    (`AUD-054`). Con dos encabezados de versión seguidos, $end - 1 queda POR DEBAJO de $start, y en
+    PowerShell un rango descendente no sale vacío: devuelve las líneas al revés, el propio encabezado entre
+    ellas. Una sección vacía pasaba así por tener contenido, y salía como notas del release.
+#>
+function Get-ChangelogSection {
+    param([Parameter(Mandatory)][string]$Raw, [Parameter(Mandatory)][string]$Version)
+
+    $lines = $Raw -split "`r?`n"
+    $start = -1; $end = $lines.Count
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($start -lt 0) {
+            if ($lines[$i] -match "^##\s*\[$([regex]::Escape($Version))\]") { $start = $i + 1 }
+            continue
+        }
+        if ($lines[$i] -match '^##\s') { $end = $i; break }
+    }
+    if ($start -lt 0)    { return $null }
+    if ($end -le $start) { return ,@() }
+    return ,@($lines[$start..($end - 1)])
+}
+
+<#
+.SYNOPSIS
+    Ruta de gh (GitHub CLI), o $null. La usan la comprobación previa y el último paso.
+#>
+function Find-GitHubCli {
+    $found = @(
+        "C:\Program Files\GitHub CLI\gh.exe",
+        "C:\Program Files (x86)\GitHub CLI\gh.exe"
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $found) {
+        $cmd = Get-Command gh -ErrorAction SilentlyContinue
+        if ($cmd) { $found = $cmd.Source }
+    }
+    return $found
+}
+
+<#
+.SYNOPSIS
+    Ruta de ISCC.exe (Inno Setup 6), o $null. Busca igual que build-installer.ps1, que es quien la usa.
+#>
+function Find-InnoSetup {
+    $found = @(
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+        "C:\Program Files\Inno Setup 6\ISCC.exe"
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $found) {
+        $cmd = Get-Command iscc.exe -ErrorAction SilentlyContinue
+        if ($cmd) { $found = $cmd.Source }
+    }
+    return $found
+}
+
+<#
+.SYNOPSIS
+    Comprueba que el instalador es el que dice su .sha256, y devuelve su hash y el problema, si lo hay.
+
+.DESCRIPTION
+    El .sha256 es lo único con lo que la app verifica una actualización sin firmar antes de ejecutarla como
+    administrador. Si instalador y .sha256 se desemparejan, la app descarga el release, no lo verifica y lo
+    borra: la auto-actualización queda rota para todos hasta la versión siguiente (`AUD-021`).
+#>
+function Test-InstallerHash {
+    param([Parameter(Mandatory)][string]$Setup, [Parameter(Mandatory)][string]$HashFile)
+
+    $actual = (Get-FileHash $Setup -Algorithm SHA256).Hash
+    $leaf   = Split-Path $Setup -Leaf
+    $line   = [System.IO.File]::ReadAllText($HashFile).Trim()
+    $problem = $null
+    if ($line -notmatch '^([0-9A-Fa-f]{64}) \*(.+)$') {
+        $problem = "el .sha256 no tiene la forma 'HASH *nombre': '$line'"
+    } elseif ($Matches[2] -ne $leaf) {
+        $problem = "el .sha256 nombra '$($Matches[2])', no '$leaf'"
+    } elseif ($Matches[1] -ne $actual) {
+        $problem = "el instalador tiene el hash $actual y su .sha256 dice $($Matches[1])"
+    }
+    [pscustomobject]@{ Hash = $actual; Problem = $problem }
+}
+
 # ── Rutas ──────────────────────────────────────────────────────────────────
 $root          = $PSScriptRoot
 $changelog     = Join-Path $root "CHANGELOG.md"
@@ -441,7 +529,8 @@ if (-not (Test-Path $changelog)) {
     Die "No se encontró CHANGELOG.md. Un corte no puede salir sin su registro de cambios."
 }
 $changelogRaw = [System.IO.File]::ReadAllText($changelog)
-if ($changelogRaw -notmatch "(?m)^##\s*\[$([regex]::Escape($Version))\]") {
+$changelogSection = Get-ChangelogSection -Raw $changelogRaw -Version $Version
+if ($null -eq $changelogSection) {
     Die @"
 CHANGELOG.md no tiene una sección para la $Version.
 
@@ -453,6 +542,14 @@ y añade abajo su enlace:
 
     [$Version]: https://github.com/xfiberex/FormatDiskPro/releases/tag/$tag
 "@
+}
+# Que exista el encabezado no basta: tiene que contar algo. Solo subencabezados, separadores o líneas en
+# blanco es una sección vacía, y saldría como notas del release (`AUD-054`).
+$changelogContent = @($changelogSection | Where-Object {
+    $_ -match '\S' -and $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*-{3,}\s*$'
+})
+if ($changelogContent.Count -eq 0) {
+    Die "La sección [$Version] del CHANGELOG está vacía: no tiene ni una línea de texto debajo del encabezado. ¿Falta mover lo de '## [Sin publicar]'?"
 }
 Ok "CHANGELOG.md tiene la sección de la $Version."
 
@@ -492,6 +589,41 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
 "@
         }
         if ($remoteTag) { Die "El tag $tag ya existe en origin. Usa otra versión, o retoma con -ResumeRelease si solo falta publicar el release." }
+    }
+
+    # ── Rama y origin (`AUD-020`) ────────────────────────────────────────────
+    # Antes no se miraba ni la rama ni origin. Con commits en origin que este clon no tiene —una fusión
+    # hecha en GitHub, un PR de Dependabot—, el corte entero se ejecutaba (pruebas, bump, instalador, commit
+    # y tag) y moría al subir la rama, con un mensaje que no decía cómo seguir. Se comprueba aquí, antes de
+    # la primera prueba, también en el -DryRun.
+    if ($branch -eq 'HEAD') { Die "HEAD está desacoplado: un corte sale de una rama. Cámbiate a master y reintenta." }
+    if ($branch -ne 'master') {
+        Warn "El corte se lanza desde '$branch', no desde master: el commit y el tag del release quedarán en esa rama."
+    }
+    $onOrigin = (& git ls-remote --heads origin $branch 2>$null)
+    if (-not $onOrigin) {
+        if ($ResumeRelease) { Die "-ResumeRelease necesita que '$branch' esté en origin, para comprobar que el tag $tag está en ella, y no está." }
+        Warn "La rama '$branch' no existe en origin: el corte la creará al subirla."
+    } else {
+        Info "Comprobando origin/$branch..."
+        if ((Invoke-Git fetch origin "+refs/heads/${branch}:refs/remotes/origin/$branch") -ne 0) {
+            Die "git fetch de origin/$branch falló: sin él no se sabe si este clon va por detrás. Revisa la conexión y reintenta."
+        }
+        if ($ResumeRelease) {
+            # Se publicaría un release cuyo código no está en la rama: quien la clone no tendría ese commit.
+            & git merge-base --is-ancestor "$tag^{commit}" "origin/$branch" 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                Die "El tag $tag no está en origin/${branch}: publicarías un release cuyo código no está en la rama. Sube antes la rama con el commit del release ('git push origin $branch')."
+            }
+            Ok "El tag $tag está en origin/$branch."
+        } else {
+            $behind = [int](& git rev-list --count "HEAD..origin/$branch")
+            if ($behind -gt 0) {
+                Die "origin/$branch tiene $behind commit(s) que este clon no tiene: el corte moriría al subir la rama, después de etiquetar. Trae los cambios ('git pull --ff-only'), vuelve a probar y reintenta."
+            }
+            $ahead = [int](& git rev-list --count "origin/$branch..HEAD")
+            Ok "Al día con origin/$branch ($ahead commit(s) por subir)."
+        }
     }
 
     # ── Estado del árbol de trabajo ──────────────────────────────────────────
@@ -534,6 +666,49 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
         $untracked | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
     }
 
+    # ── Herramientas de los últimos pasos (`AUD-053`) ────────────────────────
+    # Inno Setup, gh y su sesión se buscaban justo antes de usarlos: después de cambiar el .csproj, o
+    # después de subir la rama y el tag. Faltar uno de ellos dejaba el corte a medias, y el -DryRun, que no
+    # llega a esos pasos, los daba por buenos. Se comprueban aquí, antes de la primera prueba y en el
+    # -DryRun también.
+    $gh = Find-GitHubCli
+    if (-not $gh) { Die "No se encuentra gh (GitHub CLI): sin él, el corte subiría la rama y el tag y moriría al crear el release. Instálalo (winget install GitHub.cli) y reintenta." }
+
+    # Si gh no tiene sesión se reutiliza la credencial cacheada de git (local, no se muestra). El finally
+    # del final borra el token, porque lo puso este script.
+    $eap = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    & $gh auth status *> $null
+    $authOk = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = $eap
+    if (-not $authOk -and -not $env:GH_TOKEN) {
+        Warn "gh no tiene sesión; se reutilizará la credencial de git cacheada."
+        $eap = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
+        $cred = "protocol=https`nhost=github.com`n`n" | & git credential fill 2>$null
+        $ErrorActionPreference = $eap
+        $pwdLine = $cred | Where-Object { $_ -like 'password=*' } | Select-Object -First 1
+        if ($pwdLine) { $env:GH_TOKEN = $pwdLine.Substring(9); $script:ClearedGhToken = $true }
+        if (-not $env:GH_TOKEN) { Die "gh no tiene sesión y no hay credencial de git que reutilizar. Ejecuta 'gh auth login' y reintenta." }
+    }
+
+    if (-not $ResumeRelease) {
+        $iscc = Find-InnoSetup
+        if (-not $iscc) { Die "No se encuentra ISCC.exe (Inno Setup 6): el corte cambiaría el .csproj y moriría al compilar el instalador. Instálalo (winget install JRSoftware.InnoSetup) y reintenta." }
+        if ($CertFile -and -not (Test-Path $CertFile)) { Die "-CertFile apunta a un archivo que no existe: $CertFile" }
+        if ($CertThumbprint) {
+            $thumb = $CertThumbprint -replace '\s', ''
+            $cert = @('Cert:\CurrentUser\My', 'Cert:\LocalMachine\My') |
+                ForEach-Object { Get-ChildItem $_ -ErrorAction SilentlyContinue } |
+                Where-Object { $_.Thumbprint -eq $thumb } | Select-Object -First 1
+            if (-not $cert)              { Die "No hay ningún certificado con la huella $thumb en el almacén (CurrentUser\My ni LocalMachine\My)." }
+            if (-not $cert.HasPrivateKey) { Die "El certificado $thumb está en el almacén, pero sin su clave privada: no puede firmar." }
+        }
+        Ok "Herramientas: gh, su sesión e Inno Setup$(if ($CertThumbprint -or $CertFile) { ', y el certificado de firma' })."
+    } else {
+        Ok "Herramientas: gh y su sesión."
+    }
+
     # ── Pruebas ──────────────────────────────────────────────────────────────
     $uiSummary   = $null   # cobertura real de UI de este corte; se repite en el resumen final
     $unitSummary = $null   # resultado de las unitarias leído de su .trx (`AUD-055`); también se repite
@@ -556,16 +731,35 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
         # No es una sospecha: medido dos veces seguidas. Con cambios sin compilar, informe vacío (2 de 2);
         # con la compilación al día, 1,6 MB (4 de 4). Y es justo lo que pasa SIEMPRE en un corte de verdad,
         # porque se corta después de tocar código.
-        Info "Compilando la solución antes de medir cobertura..."
-        & dotnet build $solution --nologo -v q
-        if ($LASTEXITCODE -ne 0) { Die "La compilación de la solución falló. Release abortado." }
+        #
+        # En Release y con -warnaserror (`AUD-052`): antes se probaba una compilación de depuración sin el
+        # listón de cero advertencias, y lo que se publica sale de Release.
+        #
+        # Y desde una bin\Release LIMPIA. build-installer.ps1 publica self-contained, y esa publicación
+        # compila en bin\Release\<tfm>\win-x64 dejando allí coreclr.dll y hostfxr.dll. Cuando un `dotnet build
+        # -c Release` posterior regenera la configuración del runtime, el .exe pasa a depender del .NET
+        # instalado; al ver coreclr.dll a su lado, el lanzador busca .NET SOLO en esa carpeta y responde «You
+        # must install or update .NET». No pasa siempre —un build que no regenera esa configuración deja un
+        # .exe que arranca—, y por eso se borra en vez de confiar: el 2026-10-14 dejó 45 de 50 pruebas de UI
+        # en rojo, con .NET instalado.
+        $appRelease = Join-Path $root "src\FormatDiskPro\bin\Release"
+        if (Test-Path $appRelease) {
+            try { Remove-Item $appRelease -Recurse -Force -ErrorAction Stop }
+            catch { Die "No se pudo vaciar $appRelease (¿hay una FormatDiskPro.exe abierta desde ahí?): $($_.Exception.Message)" }
+        }
+        Info "Compilando la solución (Release, sin advertencias) antes de medir cobertura..."
+        & dotnet build $solution -c Release -warnaserror --nologo -v q
+        if ($LASTEXITCODE -ne 0) { Die "La compilación de la solución en Release falló, o tiene advertencias (-warnaserror). Release abortado." }
+        $releaseExe = Get-ChildItem $appRelease -Recurse -Filter "FormatDiskPro.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if (-not $releaseExe) { Die "La compilación en Release terminó, pero no se encuentra FormatDiskPro.exe bajo $appRelease." }
 
         # Con .trx (`AUD-055`): el código de salida dice que nada falló, no qué se omitió. Sin el informe, una
         # prueba que pasara a omitirse no dejaba rastro en el corte. Un .trx ausente o sin resultados es un
         # fallo: no hay de dónde sacar qué se probó.
         $unitTrxName = "unitarias-$Version.trx"
         Info "Ejecutando pruebas unitarias (con cobertura)..."
-        & dotnet test $solution --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $covDir `
+        & dotnet test $solution -c Release --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $covDir `
             --logger "trx;LogFileName=$unitTrxName"
         if ($LASTEXITCODE -ne 0) { Die "Las pruebas unitarias fallaron. Release abortado." }
         $unitSummary = Get-TestRunSummary -TrxPath (Join-Path $covDir $unitTrxName)
@@ -601,7 +795,7 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
             if (Test-Path $diagDir) { Remove-Item $diagDir -Recurse -Force -ErrorAction SilentlyContinue }
             New-Item -ItemType Directory -Path $diagDir -Force | Out-Null
             $diagLog = Join-Path $diagDir "dotnet-test.diag.log"
-            & dotnet test $solution --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $diagDir --diag:$diagLog
+            & dotnet test $solution -c Release --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $diagDir --diag:$diagLog
             $segunda   = Get-CoreCoverage -CoverageDir $diagDir
             $diagKept  = Save-CoverageEvidence -CoverageDir $diagDir -Label "$Version-diag"
 
@@ -674,10 +868,17 @@ reprodujo en tres intentos. Ver ROADMAP.md, Tier 10.
             $trxPath = Join-Path $trxDir $trxName
             if (Test-Path $trxPath) { Remove-Item $trxPath -Force -ErrorAction SilentlyContinue }
 
-            Info "Ejecutando UI tests (conducen la app real; se abrirán ventanas)..."
-            & dotnet test $uiTestProject --filter "Category!=Slow" --nologo `
-                --logger "trx;LogFileName=$trxName" --results-directory $trxDir
-            if ($LASTEXITCODE -ne 0) { Die "Los UI tests fallaron. Release abortado." }
+            # La app que se prueba es la de Release recién compilada, la misma que las unitarias. Sin decírselo,
+            # AppFixture lanza el FormatDiskPro.exe más reciente que encuentre bajo bin\, sea el que sea.
+            Info "Ejecutando UI tests sobre $($releaseExe.FullName) (conducen la app real; se abrirán ventanas)..."
+            $prevExe = $env:FORMATDISKPRO_EXE
+            $env:FORMATDISKPRO_EXE = $releaseExe.FullName
+            try {
+                & dotnet test $uiTestProject --filter "Category!=Slow" --nologo `
+                    --logger "trx;LogFileName=$trxName" --results-directory $trxDir
+                $uiExit = $LASTEXITCODE
+            } finally { $env:FORMATDISKPRO_EXE = $prevExe }
+            if ($uiExit -ne 0) { Die "Los UI tests fallaron. Release abortado." }
             Ok "UI tests correctos."
 
             $uiSummary = Get-TestRunSummary -TrxPath $trxPath
@@ -703,14 +904,8 @@ reprodujo en tres intentos. Ver ROADMAP.md, Tier 10.
     $notesPath = $NotesFile
     $tempNotes = $null
     if (-not $notesPath) {
-        # De "## [X.Y.Z]" hasta el siguiente "## " (la siguiente versión) o el final.
-        $lines = $changelogRaw -split "`r?`n"
-        $start = -1; $end = $lines.Count
-        for ($i = 0; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match "^##\s*\[$([regex]::Escape($Version))\]") { $start = $i + 1; continue }
-            if ($start -ge 0 -and $lines[$i] -match '^##\s') { $end = $i; break }
-        }
-        $body = if ($start -ge 0) { ($lines[$start..($end - 1)] -join "`n").Trim().TrimEnd('-').Trim() } else { "" }
+        # La sección que ya se validó arriba (Get-ChangelogSection, `AUD-054`), sin el separador del final.
+        $body = ($changelogSection -join "`n").Trim().TrimEnd('-').Trim()
         if (-not $body) {
             Die "No se pudo extraer la sección de la $Version del CHANGELOG. Revísala o pasa -NotesFile."
         }
@@ -738,6 +933,35 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         Ok "Notas tomadas del CHANGELOG ($($body.Length) caracteres)."
     }
     if (-not (Test-Path $notesPath)) { Die "No se encontró el archivo de notas: $notesPath" }
+
+    # ── Al retomar: el instalador tiene que ser el del tag (`AUD-021`) ───────
+    # Se publicaba lo que hubiera en installer\Output sin mirar qué era. Si entre el corte fallido y el
+    # reintento se recompilaba —otra rama, otro commit—, salía un binario que no corresponde al tag, y nada
+    # avisaba. El corte anota el hash en el mensaje del tag; aquí se exige que el instalador presente sea
+    # ese, y que su .sha256 lo diga. Va antes del -DryRun para que la simulación también lo compruebe.
+    if ($ResumeRelease) {
+        $setup     = Join-Path $outputDir "FormatDiskPro-$Version-setup.exe"
+        $setupHash = "$setup.sha256"
+        if (-not (Test-Path $setup)) {
+            Die "-ResumeRelease no encuentra el instalador de la $Version en $setup. Si ya no está, rehaz el corte: borra el tag ('git tag -d $tag', y 'git push origin :refs/tags/$tag' si llegó a subirse) y vuelve a lanzarlo."
+        }
+        if (-not (Test-Path $setupHash)) { Die "-ResumeRelease no encuentra el checksum esperado: $setupHash" }
+
+        $check = Test-InstallerHash -Setup $setup -HashFile $setupHash
+        if ($check.Problem) { Die "-ResumeRelease no publica: $($check.Problem)." }
+
+        $tagText   = (& git tag -l "--format=%(contents)" $tag) -join "`n"
+        $taggedHash = if ($tagText -match 'SHA-256 del instalador: ([0-9A-Fa-f]{64})') { $Matches[1] } else { $null }
+        if (-not $taggedHash) {
+            Warn "El tag $tag no anota el hash del instalador (es anterior a ``AUD-021``): solo se ha podido cotejar con su .sha256."
+        } elseif ($taggedHash -ne $check.Hash) {
+            Die "-ResumeRelease no publica: el instalador de $outputDir no es el del tag. El tag $tag anota $taggedHash y el instalador tiene $($check.Hash). Recompílalo desde el commit del tag ('git checkout $tag') o rehaz el corte."
+        } else {
+            Ok "El instalador es el que anota el tag $tag ($($check.Hash))."
+        }
+        $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
+        Ok "Instalador reutilizado: $setup ($sizeMB MB)"
+    }
 
     # ── DRY RUN: mostrar plan y salir ────────────────────────────────────────
     if ($DryRun) {
@@ -784,18 +1008,8 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
 
     # ── 1. Bump de versión ───────────────────────────────────────────────────
     if ($ResumeRelease) {
-        # Nada de esto se rehace: ya ocurrió en el corte que dejó el tag. Solo se comprueba que los dos
-        # assets sigan donde los dejó, porque sin ellos no hay release que publicar.
-        $setup     = Join-Path $outputDir "FormatDiskPro-$Version-setup.exe"
-        $setupHash = "$setup.sha256"
-        if (-not (Test-Path $setup)) {
-            Die "-ResumeRelease no encuentra el instalador de la $Version en $setup. Si ya no está, rehaz el corte: borra el tag ('git tag -d $tag', y 'git push origin :refs/tags/$tag' si llegó a subirse) y vuelve a lanzarlo."
-        }
-        if (-not (Test-Path $setupHash)) { Die "-ResumeRelease no encuentra el checksum esperado: $setupHash" }
-        $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
-        Ok "Instalador reutilizado: $setup ($sizeMB MB)"
-        Ok "Checksum reutilizado:   $setupHash"
-
+        # Nada de esto se rehace: ya ocurrió en el corte que dejó el tag. Los dos assets ya se comprobaron
+        # arriba, antes del -DryRun (`AUD-021`).
         # El tag puede estar solo en local si lo que falló fue su push.
         if (-not $remoteTag) {
             Info "El tag $tag aún no está en origin; subiéndolo..."
@@ -821,19 +1035,33 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     if ($CertFile)       { $buildArgs.CertFile       = $CertFile }
     if ($CertPassword)   { $buildArgs.CertPassword   = $CertPassword }
     if ($TimestampUrl)   { $buildArgs.TimestampUrl   = $TimestampUrl }
-    & $buildScript @buildArgs
-    if ($LASTEXITCODE -ne 0) { Die "La compilación del instalador falló." }
-    $setup = Join-Path $outputDir "FormatDiskPro-$Version-setup.exe"
-    if (-not (Test-Path $setup)) { Die "No se encontró el instalador esperado: $setup" }
-    $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
-    Ok "Instalador: $setup ($sizeMB MB)"
-
+    # Si el instalador falla, el .csproj vuelve a como estaba (`AUD-053`): antes quedaba con la versión nueva
+    # y el corte siguiente lo encontraba como árbol sucio. build-installer.ps1 avisa con `throw`, no con un
+    # código de salida, así que hacen falta las dos cosas.
+    $installerError = $null
+    try {
+        & $buildScript @buildArgs
+        if ($LASTEXITCODE -ne 0) { $installerError = "build-installer.ps1 terminó con código $LASTEXITCODE" }
+    } catch { $installerError = $_.Exception.Message }
+    $setup     = Join-Path $outputDir "FormatDiskPro-$Version-setup.exe"
+    $setupHash = "$setup.sha256"
+    if (-not $installerError -and -not (Test-Path $setup))     { $installerError = "no se encontró el instalador esperado: $setup" }
     # Lo genera build-installer.ps1. Es con lo que la app verifica la descarga mientras los instaladores
     # se publiquen sin firmar (UpdateService.VerifyInstallerAsync): si no se sube como asset, la
     # auto-actualización no puede verificar nada, borra el instalador y falla.
-    $setupHash = "$setup.sha256"
-    if (-not (Test-Path $setupHash)) { Die "No se encontró el checksum esperado: $setupHash" }
-    Ok "Checksum: $setupHash"
+    if (-not $installerError -and -not (Test-Path $setupHash)) { $installerError = "no se encontró el checksum esperado: $setupHash" }
+    if ($installerError) {
+        if ($currentVersion -ne $Version) {
+            [System.IO.File]::WriteAllText($csproj, $csprojRaw, (New-Object System.Text.UTF8Encoding($true)))
+            Die "La compilación del instalador falló ($installerError). El .csproj vuelve a la ${currentVersion}: no ha cambiado nada."
+        }
+        Die "La compilación del instalador falló ($installerError)."
+    }
+    $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
+    Ok "Instalador: $setup ($sizeMB MB)"
+    $check = Test-InstallerHash -Setup $setup -HashFile $setupHash
+    if ($check.Problem) { Die "El instalador recién compilado no coincide con su .sha256: $($check.Problem)." }
+    Ok "Checksum: $setupHash ($($check.Hash))"
 
     # ── 3. Commit + tag ──────────────────────────────────────────────────────
     # Añade todos los archivos rastreados modificados/eliminados (tracked changes).
@@ -850,7 +1078,9 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         Info "Sin cambios que commitear; se etiqueta el HEAD actual."
     }
     Info "Creando tag $tag..."
-    if ((Invoke-Git tag -a $tag -m "FormatDiskPro $tag") -ne 0) { Die "git tag falló." }
+    # El hash del instalador va en el mensaje del tag: es lo que deja a -ResumeRelease comprobar que publica
+    # el binario de ESTE corte y no uno recompilado después (`AUD-021`).
+    if ((Invoke-Git tag -a $tag -m "FormatDiskPro $tag" -m "SHA-256 del instalador: $($check.Hash)") -ne 0) { Die "git tag falló." }
 
     # ── 4. Push ──────────────────────────────────────────────────────────────
     # Vía Invoke-Git a propósito: git escribe el resumen del push por stderr y, con
@@ -866,36 +1096,11 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     }   # fin del bloque que -ResumeRelease se salta
 
     # ── 5. GitHub Release ────────────────────────────────────────────────────
-    $gh = @(
-        "C:\Program Files\GitHub CLI\gh.exe",
-        "C:\Program Files (x86)\GitHub CLI\gh.exe"
-    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if (-not $gh) {
-        $cmd = Get-Command gh -ErrorAction SilentlyContinue
-        if ($cmd) { $gh = $cmd.Source }
-    }
-    if (-not $gh) { Die "gh (GitHub CLI) no está instalado. Instálalo: winget install GitHub.cli  — el tag YA está publicado; crea el release manualmente o reintenta." }
-
-    # Asegurar autenticación: si gh no está logueado, reutilizar la credencial cacheada de git.
-    # PS 5.1: 2>$null en exes nativos con ErrorActionPreference=Stop genera NativeCommandError;
-    # se baja a SilentlyContinue solo durante las llamadas que necesitan suprimir stderr.
-    $eap = $ErrorActionPreference
-    $ErrorActionPreference = "SilentlyContinue"
-    & $gh auth status 2>$null
-    $authOk = $LASTEXITCODE -eq 0
-    $ErrorActionPreference = $eap
-
-    if (-not $authOk) {
-        Warn "gh no autenticado; reutilizando la credencial de git cacheada (local, no se muestra)."
-        $eap = $ErrorActionPreference
-        $ErrorActionPreference = "SilentlyContinue"
-        $cred = "protocol=https`nhost=github.com`n`n" | & git credential fill 2>$null
-        $ErrorActionPreference = $eap
-        $pwdLine = $cred | Where-Object { $_ -like 'password=*' } | Select-Object -First 1
-        # Se marca que el token lo pone ESTE script, para que el finally lo borre al terminar y no se
-        # quede vivo en la terminal. Si $env:GH_TOKEN ya venía del entorno del usuario, no se toca.
-        if ($pwdLine) { $env:GH_TOKEN = $pwdLine.Substring(9); $script:ClearedGhToken = $true }
-        if (-not $env:GH_TOKEN) { Die "No se pudo obtener credencial para gh. Ejecuta 'gh auth login' y reintenta (el tag ya está publicado)." }
+    # gh y su sesión ya se comprobaron antes de la primera prueba (`AUD-053`). El instalador se vuelve a
+    # cotejar con su .sha256 justo antes de subirlo: es lo último que puede cambiar en disco (`AUD-021`).
+    $check = Test-InstallerHash -Setup $setup -HashFile $setupHash
+    if ($check.Problem) {
+        Die "No se publica: $($check.Problem). La app no podría verificar la descarga y la auto-actualización fallaría para todos. El tag $tag ya existe: recompila el instalador desde ese commit o rehaz el corte."
     }
 
     Info "Creando el GitHub Release..."

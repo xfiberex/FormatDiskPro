@@ -177,7 +177,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.0** (2026-10-14). En `master`, sin publicar: las siete tandas de la auditoría del 2026-10-11 hechas el 2026-10-15 (PRs #3 a #10), fusionadas y validadas en local ese mismo día. Son la sección *Sin publicar* del [`CHANGELOG.md`](CHANGELOG.md) |
+| **Publicado** | **v1.30.0** (2026-10-14). En `master`, sin publicar: las siete tandas de la auditoría del 2026-10-11 hechas el 2026-10-15 (PRs #3 a #10), fusionadas y validadas en local ese mismo día, y los arreglos del corte (`AUD-020`, `021`, `052`–`054`). Son la sección *Sin publicar* del [`CHANGELOG.md`](CHANGELOG.md) |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
@@ -437,8 +437,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Publicar versión** | `.\release.ps1 -Version X.Y.Z -UiTests` (`-DryRun` para simular) |
 | CI (GitHub Actions) | Automático en cada push a `master` y cada PR; a mano: *Actions → Compilación y unitarias → Run workflow* |
 
-`release.ps1` hace: validar → tests (unitarias + UI si `-UiTests`) → bump `<Version>` → build del instalador →
-commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su `.sha256`**.
+`release.ps1` hace: validar (rama al día con origin, herramientas, también en `-DryRun`) → tests en Release con `-warnaserror` → bump → instalador → commit + tag con el SHA-256 del instalador → push → `gh release create` con el instalador **y su `.sha256`** (`AUD-020`/`021`/`052`/`053`).
 
 > **Corte recomendado:** `.\release.ps1 -Version X.Y.Z -UiTests` desde una **terminal elevada**. Con el flag,
 > el release **no sale si la app real falla**. `release.ps1` **aborta**, también en `-DryRun`, si encuentra
@@ -446,8 +445,8 @@ commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su 
 >
 > Solo hace `git add -u`, así que **los archivos nuevos hay que `git add`earlos antes**.
 >
-> **Y aborta si [`CHANGELOG.md`](CHANGELOG.md) no tiene la sección de la versión** que se va a publicar
-> (`T4-01`): mueve antes lo que haya bajo *Sin publicar* a `## [X.Y.Z] — fecha` y añade su enlace abajo.
+> **Y aborta si [`CHANGELOG.md`](CHANGELOG.md) no tiene la sección de la versión, o si está vacía** (`T4-01`,
+> `AUD-054`): mueve antes lo que haya bajo *Sin publicar* a `## [X.Y.Z] — fecha` y añade su enlace abajo.
 
 ## 6. Qué queda fuera, y por qué
 
