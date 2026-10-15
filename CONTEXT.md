@@ -107,7 +107,8 @@ src/FormatDiskPro/
 ├─ app.manifest     requireAdministrator + PerMonitorV2
 ├─ FormatDiskPro.csproj  Versión (fuente única), Windows App SDK fijado, target CopyAppPriToPublish
 ├─ FormatDiskPro.ico     Icono de la app y del instalador
-└─ Program.cs       Punto de entrada
+├─ Program.cs       Punto de entrada: mutex de la app y, si ya hay otra instancia, le cede el paso
+└─ SingleInstance.cs  Trae al frente la instancia abierta (`AUD-037`)
 
 tests/FormatDiskPro.Tests/    Pruebas xUnit sobre Core y los Services (con IProcessRunner falso); recuento en §3
 tests/FormatDiskPro.UiTests/  Pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)

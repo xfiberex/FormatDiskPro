@@ -50,6 +50,59 @@ public sealed class AppSettingsTests : IDisposable
         Assert.True(File.Exists(_path));
     }
 
+    // ── Guardado atómico y lectura fallida (`AUD-037`) ─────────────────────────
+
+    /// <summary>
+    /// El criterio de `AUD-037`: si el archivo existe y no se puede leer —aquí, bloqueado por otro
+    /// proceso—, la app arranca con los valores por defecto pero <b>no</b> los guarda encima. Antes el
+    /// arranque guardaba siempre, y un bloqueo pasajero se llevaba los presets del usuario.
+    /// </summary>
+    [Fact]
+    public void Load_WhenTheFileCannotBeRead_NeverOverwritesIt()
+    {
+        new AppSettings { Language = "fr", UserPresets = [new FormatPreset("Mío", "exFAT", 0, true, false, false)] }.Save(_path);
+        byte[] original = File.ReadAllBytes(_path);
+
+        AppSettings loaded;
+        using (new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.None))
+            loaded = AppSettings.Load(_path);
+
+        Assert.True(loaded.ReadFailed);
+        Assert.Equal("es", loaded.Language);   // valores por defecto, como antes
+
+        loaded.Language = "en";
+        loaded.Save(_path);                     // lo que hace el arranque
+
+        Assert.Equal(original, File.ReadAllBytes(_path));
+    }
+
+    /// <summary>Un archivo que no existe no es un fallo de lectura: es una instalación nueva, y se guarda.</summary>
+    [Fact]
+    public void Load_MissingFile_IsNotAReadFailure()
+    {
+        var s = AppSettings.Load(_path);
+
+        Assert.False(s.ReadFailed);
+        s.Save(_path);
+        Assert.True(File.Exists(_path));
+    }
+
+    /// <summary>
+    /// Guardar sustituye el archivo entero y no deja el temporal. Si queda uno de un guardado anterior que
+    /// murió, se descarta y se escribe de cero.
+    /// </summary>
+    [Fact]
+    public void Save_ReplacesTheFile_AndLeavesNoTemporary()
+    {
+        new AppSettings { Language = "pt" }.Save(_path);
+        File.WriteAllText(AppSettings.TempPathFor(_path), "restos de un guardado que murió");
+
+        new AppSettings { Language = "it" }.Save(_path);
+
+        Assert.Equal("it", AppSettings.Load(_path).Language);
+        Assert.False(File.Exists(AppSettings.TempPathFor(_path)), "El temporal no debe quedarse en la carpeta.");
+    }
+
     [Fact]
     public void Load_CorruptJson_ReturnsDefaults()
     {

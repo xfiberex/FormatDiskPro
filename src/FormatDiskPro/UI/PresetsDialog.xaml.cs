@@ -76,9 +76,10 @@ public sealed partial class PresetsDialog : ContentDialog
         if (_editIndex >= 0)   // editar preset existente
         {
             FormatPreset original = _userPresets[_editIndex];
-            if (!Presets.IsRenameAvailable(name, original.Name, ExistingNames()))
+            var renameProblem = Presets.CheckRename(name, original.Name, ExistingNames());
+            if (renameProblem != PresetNameProblem.None)
             {
-                ShowError();
+                ShowError(renameProblem);
                 return;
             }
             FormatPreset baseConfig = UpdateConfigCheck.IsChecked == true ? _current : original;
@@ -89,9 +90,10 @@ public sealed partial class PresetsDialog : ContentDialog
         }
 
         // añadir preset nuevo
-        if (!Presets.IsNameAvailable(name, ExistingNames()))
+        var problem = Presets.CheckName(name, ExistingNames());
+        if (problem != PresetNameProblem.None)
         {
-            ShowError();
+            ShowError(problem);
             return;
         }
         ErrorText.Visibility = Visibility.Collapsed;
@@ -199,9 +201,10 @@ public sealed partial class PresetsDialog : ContentDialog
         _settings.Save();
     }
 
-    private void ShowError()
+    private void ShowError(PresetNameProblem problem)
     {
-        ErrorText.Text = L.T("preset.dupName");
+        // Un texto por motivo (`AUD-034`): antes, un nombre vacío respondía «Ya existe un preset con ese nombre».
+        ErrorText.Text = L.T(Presets.MessageKey(problem), Presets.MaxNameLength);
         ErrorText.Visibility = Visibility.Visible;
         // Se anuncia cada vez que se rechaza, también si el texto es el mismo: es la respuesta a pulsar
         // «Guardar», y sin ella el botón no hace nada que un lector de pantalla pueda contar (`AUD-014`).

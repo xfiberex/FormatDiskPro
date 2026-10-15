@@ -294,9 +294,11 @@ public sealed partial class MainWindow
 
         // La barra rápida (`T11-02`) ESPEJA el estado de su ítem, no lo recalcula: dos condiciones para
         // la misma acción acabarían discrepando, y el usuario vería un botón vivo sobre un menú apagado.
-        // `MnuHistory` no aparece porque no depende de la unidad: su botón no se apaga nunca.
-        BtnHealth.IsEnabled    = MnuHealth.IsEnabled;
-        BtnBenchmark.IsEnabled = MnuBenchmark.IsEnabled;
+        // `MnuHistory` no aparece porque no depende de la unidad: su botón solo se apaga durante una
+        // operación, en SetControlsEnabled. Este método también corre en mitad de una (cambia la unidad
+        // o el idioma), y por eso la barra respeta `_isBusy`: si no, la volvería a encender (`AUD-033`).
+        BtnHealth.IsEnabled    = MnuHealth.IsEnabled && !_isBusy;
+        BtnBenchmark.IsEnabled = MnuBenchmark.IsEnabled && !_isBusy;
 
         // El pie nombra la unidad y resume las opciones (`T12-02`/`T12-03`), así que depende de lo mismo
         // que este método: la selección, la protección y el idioma. Colgarlo aquí es lo que evita una

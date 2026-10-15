@@ -38,6 +38,7 @@
 | 2026-10-15 | `AUD-051` | El README dice qué muestra cada operación larga, no velocidad y tiempo restante en todas | sin publicar (solo documentación) |
 | 2026-10-15 | `AUD-050` | La plantilla de sugerencias ya no presenta el CI como fuera de alcance | sin publicar (solo documentación) |
 | 2026-10-15 | `AUD-017` | El mínimo de Windows es uno solo, 10 2004 (19041), declarado en el `.csproj` y citado igual en README, guía e instalador | sin publicar |
+| 2026-10-15 | `AUD-034` | Guardar un preset sin nombre, con un nombre demasiado largo o con uno repetido da tres mensajes distintos | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -336,6 +337,16 @@
   - **Antecedente:** ya conocido (`T6-12`), cierre incompleto: «los números pasan a seguir al idioma de la app» no llegó a este punto
   - **Hecho (2026-10-15):** el formateo sale de `MainWindow` a `Benchmark.FormatIops`, con `L.Culture` por defecto, como `FormatBytes`. La línea del historial `BENCH` usa la misma función, y en ella las velocidades ya seguían al idioma de la app.
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
+
+### UI/UX
+
+- [x] **AUD-034 · Guardar un preset sin nombre responde «Ya existe un preset con ese nombre»**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/PresetsDialog.xaml.cs:89-93`, `:199-203` · `src/Core/Presets.cs:62-67`
+  - **Qué hacer:** distinguir los tres motivos (vacío, demasiado largo, duplicado) con su texto.
+  - **Criterio de aceptación:** cada motivo de rechazo muestra un texto distinto, en los cinco idiomas.
+  - **Hecho (2026-10-15):** `Presets.CheckName` y `CheckRename` devuelven el motivo (`PresetNameProblem`: vacío, demasiado largo o repetido), y `MessageKey` da su texto: `preset.emptyName`, `preset.longName` (con el límite) y el `preset.dupName` de siempre, en los cinco idiomas. `IsNameAvailable` e `IsRenameAvailable` siguen existiendo, ahora sobre ellos. El diálogo muestra el texto del motivo.
+  - **Verificado:** cuatro pruebas nuevas en `PresetsTests`. Comprueban cada motivo, el renombrado (conservar el propio nombre vale; tomar el de otro, no) y que, en cada idioma, los tres textos son distintos y el de longitud nombra el 40.
 
 ### Documentación
 

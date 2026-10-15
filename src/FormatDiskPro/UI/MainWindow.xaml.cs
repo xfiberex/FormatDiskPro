@@ -308,6 +308,12 @@ public sealed partial class MainWindow : Window
         if (_settings.PreservedUnreadablePath is { } preserved)
             _services.History.Log($"SETTINGS UNREADABLE: se apartó a {preserved}; se arrancó con los valores por defecto");
 
+        // Si el archivo existía y no se pudo leer (bloqueado, sin permiso), esta sesión no guarda nada
+        // encima: los presets siguen en el disco (`AUD-037`). Sin esta línea, la persona vería sus
+        // preferencias «perdidas» durante la sesión y bien en la siguiente, sin saber por qué.
+        if (_settings.ReadFailed)
+            _services.History.Log("SETTINGS READ ERROR: no se pudo leer settings.json; esta sesión usa los valores por defecto y no lo sobrescribe");
+
         // Si la carpeta de estado es un enlace a otro sitio, ni el historial ni las preferencias se
         // tocan (`AUD-025`). Eso incluye esta misma línea de historial, que no se escribiría: el único
         // sitio donde se puede decir es la pantalla. Se dice una vez, al arrancar, porque lo que la
@@ -1106,6 +1112,12 @@ public sealed partial class MainWindow : Window
         MnuTools.IsEnabled   = enabled;
         MnuConfig.IsEnabled  = enabled;
         MnuHelp.IsEnabled    = enabled;
+        // La barra rápida duplica tres ítems de esos menús, y se apaga con ellos (`AUD-033`). Antes seguía
+        // con aspecto de activa durante toda la operación, y sus manejadores salían sin decir nada. Al
+        // volver, UpdateToolsMenuAvailability devuelve Salud y Benchmark al estado de su ítem.
+        BtnHealth.IsEnabled    = enabled;
+        BtnBenchmark.IsEnabled = enabled;
+        BtnHistory.IsEnabled   = enabled;
         DrivePicker.IsEnabled   = enabled;
         RefreshButton.IsEnabled = enabled;
         FileSystemPicker.IsEnabled  = canFormat;

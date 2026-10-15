@@ -52,7 +52,7 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **51** y se han cerrado **
 | DevOps | – | 4 | 14 | 18 |
 | Legal | – | 1 | 5 | 6 |
 | Rendimiento | – | – | 1 | 1 |
-| UI/UX | – | – | 3 | 3 |
+| UI/UX | – | – | 2 | 2 |
 | Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
@@ -147,12 +147,7 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:942-968` · `src/UI/MainWindow.xaml:116-132` · `src/UI/MainWindow.Operations.cs:136`, `:525` · `src/UI/MainWindow.HelpAndUpdates.cs:34`
   - **Qué hacer:** deshabilitarlos en `SetControlsEnabled`, como los menús que duplican.
   - **Criterio de aceptación:** durante una operación, los tres botones tienen `IsEnabled = false`.
-
-- [ ] **AUD-034 · Guardar un preset sin nombre responde «Ya existe un preset con ese nombre»**
-  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/PresetsDialog.xaml.cs:89-93`, `:199-203` · `src/Core/Presets.cs:62-67`
-  - **Qué hacer:** distinguir los tres motivos (vacío, demasiado largo, duplicado) con su texto.
-  - **Criterio de aceptación:** cada motivo de rechazo muestra un texto distinto, en los cinco idiomas.
+  - **Avance (2026-10-15):** hecho el código, falta verificarlo. `SetControlsEnabled` apaga `BtnHealth`, `BtnBenchmark` y `BtnHistory` con los menús, y `UpdateToolsMenuAvailability`, que también corre en mitad de una operación, ya no los vuelve a encender (`&& !_isBusy`). **Para cerrarla falta** ejecutar la prueba de UI nueva, `DriveDiagnosticsTests.QuickBar_IsDisabledDuringAnOperation_AndComesBackAfter`. Necesita la USB de pruebas: arranca un benchmark, comprueba los tres botones y lo cancela. Solo se ha compilado.
 
 - [ ] **AUD-035 · La confirmación de «Reinicializar» no identifica el disco físico ni las otras unidades que se van a perder**
   - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
@@ -174,6 +169,7 @@ del autor.
   - **Ubicación:** `src/Services/AppSettings.cs:162-165`, `:217-229` · `src/UI/MainWindow.HelpAndUpdates.cs:93-94` · `src/Program.cs:13-19`
   - **Qué hacer:** escribir a un temporal y sustituir con `File.Replace`; no guardar en el arranque si la carga falló por E/S; y, si ya hay una instancia, activar su ventana y salir.
   - **Criterio de aceptación:** una prueba simula un fallo de E/S en la lectura y comprueba que el archivo original no se sobrescribe; lanzar la app dos veces deja una sola ventana.
+  - **Avance (2026-10-15):** hecho el código; verificada la parte de los ajustes y no la de la instancia única. `Save` escribe a un temporal que entra en la comprobación de enlaces de `AUD-025`, se borra si existía y se crea con `CreateNew`, y sustituye el archivo con `File.Replace`. Si el archivo existía y no se pudo leer, `ReadFailed` impide guardar encima y el historial lo registra. `AppSettingsTests.Load_WhenTheFileCannotBeRead_NeverOverwritesIt` lo prueba con el archivo bloqueado por otro proceso. La instancia única está en `SingleInstance.HandOffToExisting`: con otra instancia viva y con ventana, la trae al frente y sale; si el mutex es de una que se está cerrando, sigue. **Para cerrarla falta** ejecutar `SingleInstanceTests.LaunchingASecondInstance_LeavesOnlyTheFirstWindow`, que lanza la app dos veces. Solo se ha compilado.
 
 - [ ] **AUD-038 · Si el proceso muere, los archivos temporales de borrado, verificación y benchmark se quedan en la unidad**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo

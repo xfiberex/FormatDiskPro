@@ -104,17 +104,31 @@ public sealed class AppSettings
     [JsonIgnore]
     public string? PreservedUnreadablePath { get; private set; }
 
+    /// <summary>
+    /// <c>true</c> si el archivo existía y <b>no se pudo leer</b> (bloqueado, sin permiso, un error de E/S),
+    /// a diferencia de uno que se leyó y no se pudo interpretar (`AUD-037`). Esta instancia tiene entonces
+    /// los valores por defecto, no los del usuario, y <see cref="Save"/> no hace nada: guardarla
+    /// sobrescribiría unos presets que siguen intactos en el disco. Antes se guardaba ya en el arranque.
+    /// </summary>
+    [JsonIgnore]
+    public bool ReadFailed { get; private set; }
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     /// <summary>Ruta por defecto del archivo de configuración (mismo directorio que el historial).</summary>
     public static string DefaultPath => Path.Combine(StateFolder.DefaultDirectory, "settings.json");
 
     /// <summary>
-    /// ¿Lleva la configuración —la carpeta, el archivo o la copia apartada— a otro sitio? Si es así no
-    /// se lee ni se escribe: ver <see cref="StateFolder"/> (`AUD-025`).
+    /// ¿Lleva la configuración —la carpeta, el archivo, la copia apartada o el temporal de
+    /// <see cref="Save"/>— a otro sitio? Si es así no se lee ni se escribe: ver <see cref="StateFolder"/>
+    /// (`AUD-025`).
     /// </summary>
     private static bool IsRedirected(string path)
-        => StateFolder.IsRedirected(path, UnreadablePathFor(path));
+        => StateFolder.IsRedirected(path, UnreadablePathFor(path), TempPathFor(path));
+
+    /// <summary>Temporal en el que <see cref="Save"/> escribe antes de sustituir el archivo (`AUD-037`).</summary>
+    /// <param name="path">Ruta del archivo de configuración.</param>
+    internal static string TempPathFor(string path) => path + ".tmp";
 
     /// <summary>
     /// Carga la configuración desde <paramref name="path"/> (o <see cref="DefaultPath"/> si es <c>null</c>).
@@ -123,9 +137,11 @@ public sealed class AppSettings
     /// <param name="path">Ruta del archivo; útil para pruebas. Si es <c>null</c> usa la ruta por defecto.</param>
     public static AppSettings Load(string? path = null)
     {
+        bool resolved = false;
         try
         {
             path ??= DefaultPath;
+            resolved = true;
             // Leer no escribe, pero un archivo ilegible se APARTA, y eso es mover un archivo como
             // administrador dentro de una carpeta que apunta a otro sitio. No se lee y no se aparta.
             if (IsRedirected(path)) return new AppSettings();
@@ -173,7 +189,10 @@ public sealed class AppSettings
         }
         catch
         {
-            return new AppSettings();
+            // Llegar aquí con la ruta ya resuelta es que el archivo existía y algo falló al leerlo o
+            // tratarlo. No se puede distinguir de un fallo propio, así que se trata igual: con lo que hay
+            // en el disco intacto, y esta sesión sin guardar encima (`AUD-037`).
+            return new AppSettings { ReadFailed = resolved };
         }
     }
 
@@ -226,14 +245,32 @@ public sealed class AppSettings
     /// No lanza ante errores de E/S: persistir nunca debe romper la aplicación.
     /// </summary>
     /// <param name="path">Ruta del archivo; útil para pruebas. Si es <c>null</c> usa la ruta por defecto.</param>
+    /// <remarks>
+    /// Se escribe a un temporal junto al archivo y se sustituye con <see cref="File.Replace(string, string, string?)"/>
+    /// (`AUD-037`). Antes, <c>File.WriteAllText</c> truncaba y escribía: si el proceso moría en medio,
+    /// <c>settings.json</c> quedaba vacío o a medias, y con él los presets. Si esta instancia no pudo leer
+    /// el archivo (<see cref="ReadFailed"/>), no guarda.
+    /// </remarks>
     public void Save(string? path = null)
     {
+        if (ReadFailed) return;
         try
         {
             path ??= DefaultPath;
             if (IsRedirected(path)) return;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, JsonSerializer.Serialize(this, JsonOptions));
+
+            // El temporal vive en la carpeta de la cuenta sin elevar, como el resto (`AUD-025`): si ya hay
+            // uno —de un guardado que murió, o puesto ahí por otro—, se borra y se crea de cero, para no
+            // escribir a través de lo que hubiera en su lugar.
+            string temp = TempPathFor(path);
+            if (File.Exists(temp)) File.Delete(temp);
+            using (var fs = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            using (var writer = new StreamWriter(fs))
+                writer.Write(JsonSerializer.Serialize(this, JsonOptions));
+
+            if (File.Exists(path)) File.Replace(temp, path, destinationBackupFileName: null);
+            else                   File.Move(temp, path);
         }
         catch
         {
