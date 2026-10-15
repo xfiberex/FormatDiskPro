@@ -177,7 +177,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.0** (2026-10-14). En `master`, sin publicar: las siete tandas de la auditoría del 2026-10-11 hechas el 2026-10-15 (PRs #3 a #10), fusionadas y validadas en local ese mismo día, y los arreglos del corte (`AUD-020`, `021`, `052`–`054`). Son la sección *Sin publicar* del [`CHANGELOG.md`](CHANGELOG.md) |
+| **Publicado** | **v1.30.1** (2026-10-15): las siete tandas de la auditoría del 2026-10-11 (PRs #3 a #10) y los arreglos del corte. `master` sin trabajo pendiente de publicar |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |

@@ -17,6 +17,7 @@
 
 | Versión | Qué trajo |
 |---|---|
+| **1.30.1** | **La segunda tanda de la auditoría, sin funciones nuevas.** El borrado seguro con 3 o 7 pasadas no terminaba: la segunda pedía otra vez el espacio que la primera ya había ocupado. Un fallo pasajero al leer la configuración podía borrar los presets. Una unidad averiada dejaba la app esperando sin límite. La app pasa a tener instancia única, y la barra rápida se apaga durante las operaciones. Interno: el corte comprueba antes de empezar (rama, herramientas, CHANGELOG), prueba en Release sin advertencias y anota en el tag el hash del instalador. Es la primera versión cortada así. |
 | **1.30.0** | **Que la app diga lo que pasó.** Las 19 correcciones de la auditoría del 2026-10-11 cerradas hasta el corte. Cancelar un formato lo cancela (o no se ofrece), lo que se formatea o reinicializa es la unidad que se confirmó, y *Comprobar*, *Expulsar* y el borrado seguro dejan de anunciar el caso feliz. Seguridad: el instalador de una actualización se descarga a una carpeta solo de administradores y queda bloqueado hasta ejecutarse, y la cuenta sin elevar deja de decidir qué ejecuta la app. Accesibilidad: el selector de unidad tiene nombre. |
 | **1.29.0** | **La base, al día: Windows App SDK 1.8 → 2.5.1**, el primer salto de versión mayor del componente sobre el que está construida la app. **Sin una línea de código cambiada** y sin diferencia visible: la galería de 28 tomas sale idéntica comparándola con la 1.8 y el mismo código. Las notas de la 2.0 no documentan cambios incompatibles, así que lo que decidió el salto fue la puerta del corte. El instalador crece 2,8 MB (58,9 → 61,7) por componentes de Windows AI y Search que el paquete trae de serie. Cierra el **Tier 13, 20/20**. |
 | **1.28.1** | **Dos fallos que no se veían hasta buscarlos**, los dos anotados días antes sin reproducir y los dos ciertos. Abrir un segundo diálogo —pulsar dos veces seguidas un botón que abre un aviso— dejaba un `CRASH` en el historial: WinUI no admite dos `ContentDialog` a la vez. Y con el tema de la app distinto al de Windows, las etiquetas apagadas tomaban el gris del tema contrario: «Pasadas:» salía a **1,07:1**, invisible. Solo correcciones. |
@@ -61,6 +62,17 @@
 ---
 
 ## Entradas
+
+### 2026-10-15 — Corte de la v1.30.1
+
+**Por qué parche y no *minor*.** Durante la preparación se habló de una «v1.31.0», pero *Sin publicar* solo
+tiene correcciones, cambios de documentación e internos: ninguna función nueva. La instancia única va en
+*Corregido* porque lo que arregla es que se pudieran abrir dos ventanas a la vez. Es el mismo criterio que
+la v1.28.1.
+
+**Primer corte con las comprobaciones de `AUD-020`, `AUD-021` y `AUD-052` a `AUD-054`.** Su tag es el
+primero que anota el SHA-256 del instalador: a partir de él, `-ResumeRelease` puede comprobar que publica
+el binario etiquetado.
 
 ### 2026-10-15 — `AUD-020`, `AUD-021` y `AUD-052` a `AUD-054`: el corte comprueba antes de empezar
 

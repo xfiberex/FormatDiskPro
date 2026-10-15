@@ -23,30 +23,30 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
-| 2026-10-15 | `AUD-020` | El corte aborta si la rama va por detrás de origin, antes de probar nada; al retomar, el tag tiene que estar en la rama | sin publicar |
-| 2026-10-15 | `AUD-021` | El hash del instalador va en el tag, y `-ResumeRelease` no publica un instalador distinto del etiquetado | sin publicar |
-| 2026-10-15 | `AUD-052` | El corte compila y prueba en Release con `-warnaserror`, desde una `bin\Release` limpia | sin publicar |
-| 2026-10-15 | `AUD-053` | gh, su sesión, Inno Setup y el certificado se comprueban antes de probar nada, y el `.csproj` se restaura si falla el instalador | sin publicar |
-| 2026-10-15 | `AUD-054` | Una sección del CHANGELOG sin texto aborta el corte, también con dos encabezados seguidos | sin publicar |
-| 2026-10-15 | `AUD-037` | Los ajustes se guardan de forma atómica y no se pisan si no se pudieron leer; la app tiene instancia única | sin publicar |
-| 2026-10-15 | `AUD-033` | Salud, Benchmark e Historial se apagan durante una operación, con los menús que duplican | sin publicar |
-| 2026-10-15 | `AUD-016` | El borrado seguro tiene pruebas (95 % de `SecureWipe.cs`) y una variante de UI destructiva; con 3 o 7 pasadas ya termina | sin publicar |
-| 2026-10-15 | `AUD-064` | `TestResults/` y `*.trx`, ignorados: el comando de cobertura de la guía ya no deja el árbol sucio | sin publicar |
-| 2026-10-15 | `AUD-058` | El CI publica como el instalador (exige el `.pri` y rutas dentro de MAX_PATH) y analiza los `.ps1` en PowerShell 5.1 | sin publicar |
-| 2026-10-15 | `AUD-057` | Una sola versión por paquete en las pruebas, y Dependabot las vigila (salvo el Windows App SDK) | sin publicar |
-| 2026-10-15 | `AUD-056` | El corte rechaza, antes de la primera prueba y también en el dry run, las tres variables que hacen tocar hardware | sin publicar |
-| 2026-10-15 | `AUD-055` | El corte nombra las unitarias omitidas, y un `.trx` ausente o vacío lo aborta | sin publicar |
-| 2026-10-15 | `AUD-040` | El respaldo de ajustes de las pruebas de UI va también a disco, y la corrida siguiente lo restaura si la anterior murió | sin publicar |
-| 2026-10-15 | `AUD-047` | Las IOPS del benchmark siguen el separador de millares del idioma de la app | sin publicar |
-| 2026-10-15 | `AUD-046` | El rechazo por etiqueta no válida da los límites reales (exFAT admite 11, no 32) | sin publicar |
-| 2026-10-15 | `AUD-045` | El aviso de privacidad nombra el menú como se ve en cada idioma | sin publicar |
-| 2026-10-15 | `AUD-044` | Las pistas de la FAT32 pequeña nombran el botón «Formatear», no el «Iniciar» que ya no existe | sin publicar |
-| 2026-10-15 | `AUD-031` | El resultado del historial se decide con la cabecera de la línea, no con la etiqueta que escribió el usuario | sin publicar |
-| 2026-10-15 | `AUD-010` | Las consultas a PowerShell de `DiskService` tienen un plazo de 15 s y dejan de redirigir la salida de error | sin publicar |
-| 2026-10-15 | `AUD-051` | El README dice qué muestra cada operación larga, no velocidad y tiempo restante en todas | sin publicar (solo documentación) |
-| 2026-10-15 | `AUD-050` | La plantilla de sugerencias ya no presenta el CI como fuera de alcance | sin publicar (solo documentación) |
-| 2026-10-15 | `AUD-017` | El mínimo de Windows es uno solo, 10 2004 (19041), declarado en el `.csproj` y citado igual en README, guía e instalador | sin publicar |
-| 2026-10-15 | `AUD-034` | Guardar un preset sin nombre, con un nombre demasiado largo o con uno repetido da tres mensajes distintos | sin publicar |
+| 2026-10-15 | `AUD-020` | El corte aborta si la rama va por detrás de origin, antes de probar nada; al retomar, el tag tiene que estar en la rama | v1.30.1 |
+| 2026-10-15 | `AUD-021` | El hash del instalador va en el tag, y `-ResumeRelease` no publica un instalador distinto del etiquetado | v1.30.1 |
+| 2026-10-15 | `AUD-052` | El corte compila y prueba en Release con `-warnaserror`, desde una `bin\Release` limpia | v1.30.1 |
+| 2026-10-15 | `AUD-053` | gh, su sesión, Inno Setup y el certificado se comprueban antes de probar nada, y el `.csproj` se restaura si falla el instalador | v1.30.1 |
+| 2026-10-15 | `AUD-054` | Una sección del CHANGELOG sin texto aborta el corte, también con dos encabezados seguidos | v1.30.1 |
+| 2026-10-15 | `AUD-037` | Los ajustes se guardan de forma atómica y no se pisan si no se pudieron leer; la app tiene instancia única | v1.30.1 |
+| 2026-10-15 | `AUD-033` | Salud, Benchmark e Historial se apagan durante una operación, con los menús que duplican | v1.30.1 |
+| 2026-10-15 | `AUD-016` | El borrado seguro tiene pruebas (95 % de `SecureWipe.cs`) y una variante de UI destructiva; con 3 o 7 pasadas ya termina | v1.30.1 |
+| 2026-10-15 | `AUD-064` | `TestResults/` y `*.trx`, ignorados: el comando de cobertura de la guía ya no deja el árbol sucio | v1.30.1 |
+| 2026-10-15 | `AUD-058` | El CI publica como el instalador (exige el `.pri` y rutas dentro de MAX_PATH) y analiza los `.ps1` en PowerShell 5.1 | v1.30.1 |
+| 2026-10-15 | `AUD-057` | Una sola versión por paquete en las pruebas, y Dependabot las vigila (salvo el Windows App SDK) | v1.30.1 |
+| 2026-10-15 | `AUD-056` | El corte rechaza, antes de la primera prueba y también en el dry run, las tres variables que hacen tocar hardware | v1.30.1 |
+| 2026-10-15 | `AUD-055` | El corte nombra las unitarias omitidas, y un `.trx` ausente o vacío lo aborta | v1.30.1 |
+| 2026-10-15 | `AUD-040` | El respaldo de ajustes de las pruebas de UI va también a disco, y la corrida siguiente lo restaura si la anterior murió | v1.30.1 |
+| 2026-10-15 | `AUD-047` | Las IOPS del benchmark siguen el separador de millares del idioma de la app | v1.30.1 |
+| 2026-10-15 | `AUD-046` | El rechazo por etiqueta no válida da los límites reales (exFAT admite 11, no 32) | v1.30.1 |
+| 2026-10-15 | `AUD-045` | El aviso de privacidad nombra el menú como se ve en cada idioma | v1.30.1 |
+| 2026-10-15 | `AUD-044` | Las pistas de la FAT32 pequeña nombran el botón «Formatear», no el «Iniciar» que ya no existe | v1.30.1 |
+| 2026-10-15 | `AUD-031` | El resultado del historial se decide con la cabecera de la línea, no con la etiqueta que escribió el usuario | v1.30.1 |
+| 2026-10-15 | `AUD-010` | Las consultas a PowerShell de `DiskService` tienen un plazo de 15 s y dejan de redirigir la salida de error | v1.30.1 |
+| 2026-10-15 | `AUD-051` | El README dice qué muestra cada operación larga, no velocidad y tiempo restante en todas | v1.30.1 (solo documentación) |
+| 2026-10-15 | `AUD-050` | La plantilla de sugerencias ya no presenta el CI como fuera de alcance | v1.30.1 (solo documentación) |
+| 2026-10-15 | `AUD-017` | El mínimo de Windows es uno solo, 10 2004 (19041), declarado en el `.csproj` y citado igual en README, guía e instalador | v1.30.1 |
+| 2026-10-15 | `AUD-034` | Guardar un preset sin nombre, con un nombre demasiado largo o con uno repetido da tres mensajes distintos | v1.30.1 |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | v1.30.0 |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | v1.30.0 |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | v1.30.0 |

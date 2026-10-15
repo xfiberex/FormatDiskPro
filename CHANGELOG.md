@@ -16,6 +16,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.30.1] — 2026-10-15
+
+**Correcciones de la auditoría, segunda tanda.** El borrado seguro con 3 o 7 pasadas por fin termina, y la
+configuración ya no puede perder los presets por un fallo pasajero al leerla. Con una unidad averiada, la
+aplicación deja de quedarse esperando para siempre. Abrirla dos veces trae al frente la ventana que ya
+estaba abierta. Durante una operación, los botones que no hacen nada aparecen desactivados. Además se
+corrigen varios textos que contaban algo que ya no era cierto. No hay funciones nuevas.
+
 ### Corregido
 
 - **El borrado seguro con 3 o 7 pasadas no terminaba.** Cada pasada escribía archivos nuevos sin borrar
@@ -955,7 +963,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.1...HEAD
+[1.30.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.1
 [1.30.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.0
 [1.29.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.29.0
 [1.28.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.28.1
