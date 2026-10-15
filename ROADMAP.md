@@ -318,18 +318,6 @@ del autor.
   - **Qué hacer:** rechazar o anunciar las tres antes de la primera ejecución de pruebas.
   - **Criterio de aceptación:** con cualquiera de las tres definida, `release.ps1 -DryRun` aborta o lo declara.
 
-- [ ] **AUD-057 · Los paquetes de prueba no los actualiza nadie y ya divergen entre los dos proyectos**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `.github/dependabot.yml` · `tests/FormatDiskPro.Tests/FormatDiskPro.Tests.csproj:12-17` · `tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj:12-16`
-  - **Qué hacer:** añadir `nuget` a Dependabot con `ignore` para `Microsoft.WindowsAppSDK*`, y unificar versiones con `Directory.Packages.props`.
-  - **Criterio de aceptación:** los dos proyectos de prueba referencian las mismas versiones y algo propone sus actualizaciones.
-
-- [ ] **AUD-058 · El CI no ejercita lo que solo falla al publicar**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Medio
-  - **Ubicación:** `.github/workflows/ci.yml:66-84` · raíz del repo (sin `.editorconfig` ni `.gitattributes`)
-  - **Qué hacer:** un paso de `dotnet publish --self-contained` que compruebe el `.pri` y la longitud de las rutas, y otro con `shell: powershell` que analice los cuatro `.ps1` y verifique el BOM.
-  - **Criterio de aceptación:** un PR que quite el BOM de `release.ps1` o rompa `CopyAppPriToPublish` queda en rojo.
-
 - [ ] **AUD-059 · El script de capturas falla o se degrada cuando lo lanza otro proceso**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
   - **Ubicación:** `tools/capture-screenshots.ps1:56-58`, `:588-591`, `:406`, `:418`, `:595`

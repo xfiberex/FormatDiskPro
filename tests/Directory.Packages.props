@@ -1,0 +1,27 @@
+﻿<Project>
+  <!--
+    Versiones de los paquetes de las PRUEBAS, en un solo sitio (AUD-057). Antes cada proyecto fijaba la
+    suya y ya divergían: Microsoft.NET.Test.Sdk 17.11.1 / 17.14.1, xunit 2.9.2 / 2.9.3 y
+    xunit.runner.visualstudio 2.8.2 / 3.1.4.
+
+    Vive en tests/ y no en la raíz A PROPÓSITO: MSBuild busca este archivo subiendo desde cada proyecto, así
+    que solo lo ven los dos proyectos de prueba. La app sigue fijando el Windows App SDK en su .csproj, con
+    el comentario que explica por qué subirlo es un cambio deliberado (CONTEXT.md §4).
+
+    Lo actualiza Dependabot (.github/dependabot.yml). Ojo con coverlet.collector: es el recolector de la
+    puerta de cobertura de release.ps1 (y de la investigación de T10-02), así que un salto de versión mayor
+    pide un corte de prueba antes de fusionarlo.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="FlaUI.Core" Version="5.0.0" />
+    <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
+  </ItemGroup>
+</Project>

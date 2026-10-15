@@ -1,11 +1,17 @@
-# Dependabot: mantiene al día las acciones de GitHub, que los workflows fijan a un commit.
+# Dependabot: mantiene al día las acciones de GitHub, que los workflows fijan a un commit, y los paquetes
+# NuGet de las PRUEBAS.
 #
-# SOLO las acciones, a propósito: los paquetes NuGet NO. El Windows App SDK va fijado a una versión exacta,
-# y subirlo es un cambio deliberado y probado (CONTEXT.md §4: con un comodín apareció, de un día para otro,
-# el archivo que rompió el instalador por MAX_PATH). Un PR automático por cada versión nueva empujaría justo
-# en la dirección contraria.
+# El Windows App SDK NO, a propósito: va fijado a una versión exacta y subirlo es un cambio deliberado y
+# probado (CONTEXT.md §4: con un comodín apareció, de un día para otro, el archivo que rompió el instalador
+# por MAX_PATH). Un PR automático por cada versión nueva empujaría justo en la dirección contraria.
 #
-# Un solo PR al mes con todas las acciones juntas: son cuatro, y cambian a la vez.
+# Hasta el 2026-10-15 NuGet no estaba aquí en absoluto, y por excluir un paquete se quedaban sin vigilar
+# todos: los de prueba llevaban versiones mayores de retraso y ya divergían entre los dos proyectos
+# (AUD-057). Ahora sus versiones viven en tests/Directory.Packages.props, y es ese archivo el que se
+# actualiza. El `ignore` del SDK es una segunda barrera: hoy ningún proyecto de prueba lo referencia
+# directamente.
+#
+# Un solo PR al mes por ecosistema, con todo junto.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -17,4 +23,19 @@ updates:
         patterns: ['*']
     commit-message:
       prefix: ci
+      include: scope
+
+  - package-ecosystem: nuget
+    directories:
+      - /tests/FormatDiskPro.Tests
+      - /tests/FormatDiskPro.UiTests
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: 'Microsoft.WindowsAppSDK*'
+    groups:
+      paquetes-de-prueba:
+        patterns: ['*']
+    commit-message:
+      prefix: test
       include: scope

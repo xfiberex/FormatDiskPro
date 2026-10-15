@@ -212,13 +212,16 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
     Release con `-warnaserror`, ejecuta las unitarias y **compila, sin ejecutarlas,** las pruebas de UI. La
     objeción de 2026-08-15 se atiende en el propio check: su nombre es el texto de la insignia del README, y
     el resumen de cada ejecución dice lo que **no** ejecutó y qué unitarias se omitieron, con su motivo.
+    Otro job (`AUD-058`) publica como `build-installer.ps1` y exige el `.pri` y rutas dentro de MAX_PATH, y
+    analiza los `.ps1` con `powershell` 5.1 (BOM si no son ASCII); ese paso va sin acentos: lo lee el 5.1.
   - **`.github/workflows/codeql.yml`**: CodeQL sobre la app (no sobre las pruebas), en cada cambio y cada
     semana. La lista de alertas solo la ve quien tiene permiso de escritura, así que no choca con la
     divulgación privada de `SECURITY.md`. Va con `build-mode: manual` porque el código que genera el XAML
     solo existe tras compilar; el aviso «Cannot build an overlay-base database» que deja en cada ejecución
     es la consecuencia esperada (sin análisis incremental en los PR), **no** un motivo para pasar a `none`.
-  - **`.github/dependabot.yml`**: **solo** las acciones, que van fijadas a un commit. NuGet no: el Windows
-    App SDK se sube a mano (ver *Build y publicación*).
+  - **`.github/dependabot.yml`**: las acciones y los NuGet **de las pruebas** (`tests/Directory.Packages.props`,
+    `AUD-057`). El Windows App SDK no: se sube a mano (ver *Build y publicación*). Un salto mayor de
+    `coverlet.collector`, el recolector de la puerta de cobertura, pide un corte de prueba antes de fusionarlo.
   - **Lo que no cambia:** la puerta de calidad sigue siendo **`release.ps1 -UiTests` desde una terminal
     elevada**. El CI no la sustituye ni la acorta.
   - **Dos trampas del CI.** Ninguna prueba lee un `.md` ni nada de `docs/`, y por eso los workflows se saltan

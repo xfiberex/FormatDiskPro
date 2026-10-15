@@ -11,6 +11,9 @@
 #     eso un error de compilación en ellas no aparecía en ningún sitio (CONTEXT.md §4, la trampa del
 #     2026-08-16).
 #   · La puerta de publicación sigue siendo `release.ps1 -UiTests` desde una terminal elevada.
+#
+# Un segundo job (AUD-058) publica la app como lo hace el instalador y analiza los scripts en PowerShell
+# 5.1: es lo que solo fallaba el día del corte. Tampoco sustituye a la puerta: no compila el instalador.
 #   · La objeción de fondo era que «un check verde que solo cubre las unitarias afirma más de lo que
 #     prueba». Por eso el nombre del workflow dice lo que cubre (es el texto de la insignia del README), y el
 #     resumen de cada ejecución dice lo que NO se ejecutó y qué unitarias se omitieron, con su motivo.
@@ -146,3 +149,124 @@ jobs:
           path: artifacts/tests
           if-no-files-found: warn
           retention-days: 14
+
+  # Lo que solo falla al PUBLICAR (AUD-058). Hasta aquí, los tres fallos de publicación que documenta
+  # CONTEXT.md §4 se descubrían el día del corte: el .pri de la app que `dotnet publish` no copia (lo arregla
+  # el target CopyAppPriToPublish del .csproj), una ruta que pasa de MAX_PATH y que Inno Setup no sabe
+  # comprimir, y un script sin BOM que PowerShell 5.1 lee con la página ANSI.
+  #
+  # Job aparte, en paralelo con el de arriba: no comparte nada con él y así no alarga su tiempo.
+  publish-and-scripts:
+    name: Publicación self-contained + scripts en PowerShell 5.1
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Instalar el SDK de .NET 10
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # Los mismos argumentos que build-installer.ps1, y a una carpeta fuera del repo como él.
+      - name: Publicar como el instalador (self-contained)
+        id: publish
+        shell: pwsh
+        run: >-
+          dotnet publish src/FormatDiskPro/FormatDiskPro.csproj -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=false -p:DebugType=none -p:DebugSymbols=false
+          -o "$env:RUNNER_TEMP\FormatDiskPro-publish"
+
+      # La ruta se mide contra la que tendrá en la máquina de quien compile el instalador
+      # (%TEMP%\FormatDiskPro-publish, con un nombre de usuario de 20 caracteres), no contra la del runner:
+      # la del runner es más corta y daría por buena una ruta que allí no cabe.
+      - name: Comprobar lo publicado (.pri y MAX_PATH)
+        id: published
+        if: ${{ !cancelled() && steps.publish.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          $dir    = Join-Path $env:RUNNER_TEMP 'FormatDiskPro-publish'
+          $errors = @()
+
+          foreach ($name in 'FormatDiskPro.exe', 'FormatDiskPro.pri') {
+            if (-not (Test-Path -LiteralPath (Join-Path $dir $name))) {
+              $errors += "Falta $name en la publicación. Sin el .pri, la app instalada se cierra al arrancar: ¿se ha roto el target CopyAppPriToPublish del .csproj?"
+            }
+          }
+
+          $base    = 'C:\Users\' + ('u' * 20) + '\AppData\Local\Temp\FormatDiskPro-publish\'
+          $limit   = 259   # MAX_PATH (260) menos el carácter nulo final
+          $longest = Get-ChildItem -LiteralPath $dir -Recurse -File |
+                     ForEach-Object { $_.FullName.Substring($dir.Length + 1) } |
+                     Sort-Object Length -Descending | Select-Object -First 1
+          $length  = $base.Length + $longest.Length
+          if ($length -gt $limit) {
+            $errors += "La ruta más larga de la publicación ocuparía $length caracteres (límite $limit), e Inno Setup no puede comprimirla: $longest"
+          }
+
+          $md = @(
+            '## Publicación self-contained'
+            ''
+            '| Comprobación | Resultado |'
+            '|---|---|'
+            "| ``FormatDiskPro.pri`` en la publicación | $(if (Test-Path -LiteralPath (Join-Path $dir 'FormatDiskPro.pri')) { '✅' } else { '❌' }) |"
+            "| Ruta más larga, con la base de ``build-installer.ps1`` | $(if ($length -gt $limit) { '❌' } else { '✅' }) $length de $limit caracteres: ``$longest`` |"
+            ''
+          )
+          ($md -join "`n") + "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+          if ($errors) {
+            $errors | ForEach-Object { Write-Output "::error::$_" }
+            exit 1
+          }
+
+      # `powershell` (5.1) y no `pwsh`, a propósito: es el que ejecuta los scripts de verdad, y el que los
+      # lee con la página ANSI si no llevan BOM. Por eso este paso no lleva ni un acento: su propio texto
+      # lo lee también el 5.1. Se lee cada script con Get-Content, igual que al ejecutarlo, para que el
+      # análisis vea lo mismo que verá el intérprete.
+      # docs/ se excluye: son scripts de evidencia de la auditoría, no se ejecutan en ningún flujo.
+      - name: Scripts .ps1 (BOM y analisis en PowerShell 5.1)
+        id: scripts
+        if: ${{ !cancelled() }}
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $scripts = @(git ls-files '*.ps1' | Where-Object { $_ -notlike 'docs/*' })
+          if ($scripts.Count -eq 0) { Write-Output '::error::No se encontro ningun .ps1 que comprobar.'; exit 1 }
+
+          $failed = 0
+          $rows   = @()
+          foreach ($path in $scripts) {
+            $bytes    = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $path))
+            $hasBom   = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+            $nonAscii = @($bytes | Where-Object { $_ -gt 0x7F }).Count -gt 0
+            $problems = @()
+
+            if ($nonAscii -and -not $hasBom) {
+              $problems += 'tiene caracteres no ASCII y no lleva BOM UTF-8: PowerShell 5.1 lo leeria con la pagina ANSI (CONTEXT.md, Trampas de PowerShell 5.1)'
+            }
+
+            $text = Get-Content -LiteralPath $path -Raw
+            $tokens = $null; $parseErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseInput($text, $path, [ref]$tokens, [ref]$parseErrors)
+            foreach ($e in @($parseErrors)) {
+              $problems += "no se analiza en PowerShell 5.1, linea $($e.Extent.StartLineNumber): $($e.Message)"
+            }
+
+            foreach ($p in $problems) { Write-Output ("::error file={0}::{0} {1}" -f $path, $p) }
+            if ($problems.Count -gt 0) { $failed++ }
+            $bom = if ($hasBom) { 'si' } elseif ($nonAscii) { 'NO' } else { 'no (solo ASCII)' }
+            $ok  = if ($problems.Count -eq 0) { 'OK' } else { 'FALLA' }
+            $rows += "| ``$path`` | $bom | $ok |"
+          }
+
+          $md = @('## Scripts .ps1 en PowerShell 5.1', '', '| Script | BOM | Resultado |', '|---|---|---|') + $rows + ''
+          # AppendAllText sin codificacion escribe UTF-8 SIN BOM: Out-File -Encoding utf8 del 5.1 meteria
+          # un BOM en mitad del resumen.
+          [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, ($md -join "`n") + "`n")
+
+          if ($failed -gt 0) { exit 1 }
