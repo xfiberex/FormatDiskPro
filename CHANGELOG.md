@@ -73,6 +73,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   una unidad real, y lo dice también en la simulación (`AUD-056`).
 - Si una corrida de pruebas de UI muere a mitad, la siguiente devuelve los ajustes y el historial del
   usuario a como estaban (`AUD-040`).
+- El corte de versión comprueba antes de la primera prueba, también en la simulación, que la rama no va por
+  detrás de GitHub y que están las herramientas de los últimos pasos. Si falla el instalador, deja el
+  proyecto como estaba (`AUD-020`, `AUD-053`).
+- El corte compila y prueba en Release sin admitir advertencias, y las pruebas de UI usan esa misma
+  compilación (`AUD-052`).
+- El tag de cada versión anota el hash de su instalador, y retomar un corte a medias no publica un
+  instalador distinto del etiquetado (`AUD-021`).
+- Una sección vacía del CHANGELOG detiene el corte, también si van dos encabezados de versión seguidos
+  (`AUD-054`).
 
 ## [1.30.0] — 2026-10-14
 

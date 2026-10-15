@@ -62,6 +62,31 @@
 
 ## Entradas
 
+### 2026-10-15 — `AUD-020`, `AUD-021` y `AUD-052` a `AUD-054`: el corte comprueba antes de empezar
+
+**Lo que tienen en común.** Las cinco eran casos en los que `release.ps1` descubría un problema tarde
+(después de etiquetar, de cambiar el `.csproj` o de subir la rama) o no lo descubría. Ahora todo lo que
+se puede comprobar se comprueba antes de la primera prueba y también en `-DryRun`: que la rama no va por
+detrás de origin, `gh` y su sesión, Inno Setup y el certificado. Lo que solo se sabe al final, que el
+instalador es el bueno, se vuelve a cotejar justo antes de publicarlo.
+
+**`AUD-052` tenía una trampa que la tarea no decía.** Compilar el corte en Release es lo que pedía. Pero
+`build-installer.ps1` publica *self-contained*, y esa publicación compila en `bin\Release\…\win-x64` y deja
+allí `coreclr.dll` y `hostfxr.dll`. Si un build posterior regenera la configuración del runtime, el `.exe`
+pasa a depender del .NET instalado, el lanzador lo busca **solo** en esa carpeta y no arranca. Es lo que
+tumbó 45 de 50 pruebas de UI el 2026-10-14. Hecho sin más, el corte en Release habría fallado en cada
+versión a partir de la segunda. Por eso el corte borra `bin\Release` antes de compilar, y las pruebas de
+UI lanzan por `FORMATDISKPRO_EXE` el `.exe` que se acaba de compilar, no «el más reciente de `bin\`». Al
+reproducirlo apareció un matiz: no pasa siempre, un build que no regenera esa configuración deja un `.exe`
+que arranca. Por eso se borra la carpeta en vez de detectar el caso.
+
+**Cómo se verificó sin tocar GitHub.** `AUD-020` y `AUD-021` necesitan un origin que se pueda manipular:
+se montó un clon desechable con un `origin` local, y los commits se llevaron a él con `git fetch` desde los
+clones, sin push. Para `AUD-053`, `gh` está instalado en una ruta fija que el script mira antes que el
+`PATH`, así que quitarlo del `PATH` no reproducía el criterio. Se probó con una copia del script, en el
+clon, con esas rutas apuntando a carpetas inexistentes. El detalle de cada criterio está en
+`docs/roadmap-historico.md`.
+
 ### 2026-10-15 — Las siete tandas, fusionadas y validadas en local; `AUD-016`, `AUD-033` y `AUD-037` cerradas
 
 **Cómo se fusionó.** Los PRs #3 a #10 se integraron en orden en una rama local y llegaron a `master` con un

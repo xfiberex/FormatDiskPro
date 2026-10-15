@@ -23,6 +23,11 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-15 | `AUD-020` | El corte aborta si la rama va por detrás de origin, antes de probar nada; al retomar, el tag tiene que estar en la rama | sin publicar |
+| 2026-10-15 | `AUD-021` | El hash del instalador va en el tag, y `-ResumeRelease` no publica un instalador distinto del etiquetado | sin publicar |
+| 2026-10-15 | `AUD-052` | El corte compila y prueba en Release con `-warnaserror`, desde una `bin\Release` limpia | sin publicar |
+| 2026-10-15 | `AUD-053` | gh, su sesión, Inno Setup y el certificado se comprueban antes de probar nada, y el `.csproj` se restaura si falla el instalador | sin publicar |
+| 2026-10-15 | `AUD-054` | Una sección del CHANGELOG sin texto aborta el corte, también con dos encabezados seguidos | sin publicar |
 | 2026-10-15 | `AUD-037` | Los ajustes se guardan de forma atómica y no se pisan si no se pudieron leer; la app tiene instancia única | sin publicar |
 | 2026-10-15 | `AUD-033` | Salud, Benchmark e Historial se apagan durante una operación, con los menús que duplican | sin publicar |
 | 2026-10-15 | `AUD-016` | El borrado seguro tiene pruebas (95 % de `SecureWipe.cs`) y una variante de UI destructiva; con 3 o 7 pasadas ya termina | sin publicar |
@@ -280,6 +285,46 @@
   - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
 
 ### DevOps
+
+- [x] **AUD-020 · El corte no comprueba en qué rama está ni si va por detrás de `origin`**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:421-426`, `:745-749`, `:805`
+  - **Qué hacer:** al principio de las validaciones, `git fetch origin $branch`, abortar si `git rev-list --count HEAD..origin/$branch` es mayor que 0 y avisar si la rama no es `master`. En `-ResumeRelease`, comprobar que el tag está contenido en `origin/$branch`.
+  - **Criterio de aceptación:** con un commit de más en `origin/master`, `release.ps1 -DryRun` aborta antes de las pruebas diciendo cuántos commits faltan.
+  - **Hecho (2026-10-15):** Antes de la primera prueba, también en `-DryRun`: aborta con HEAD desacoplado y avisa si la rama no es `master`; si la rama está en origin, hace `git fetch` de ella y aborta si `HEAD..origin/<rama>` tiene commits, diciendo cuántos. Si la rama no está en origin, avisa de que el corte la creará. Con `-ResumeRelease` exige que el tag esté contenido en `origin/<rama>` (`git merge-base --is-ancestor`).
+  - **Verificado (2026-10-15, en local):** en un clon desechable con su `origin` local y un commit añadido a `origin/master`, `release.ps1 -DryRun` abortó antes de compilar con «origin/master tiene 1 commit(s) que este clon no tiene»; al día, sigue adelante. Con `-ResumeRelease` y el tag en un commit que no está en origin, aborta diciendo que el release no estaría en la rama.
+
+- [x] **AUD-021 · `-ResumeRelease` publica el instalador que haya en la carpeta de salida sin comprobar que es el del tag**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:473-474`, `:731-742`, `:771-781`, `:847`
+  - **Qué hacer:** antes de `gh release create`, recalcular `Get-FileHash` y abortar si no coincide con el `.sha256`; anotar el hash en el mensaje del tag y exigir en `-ResumeRelease` que el instalador presente sea ese.
+  - **Criterio de aceptación:** con el `.exe` sustituido tras etiquetar, `-ResumeRelease` aborta nombrando la discrepancia.
+  - **Hecho (2026-10-15):** `Test-InstallerHash` coteja el instalador con su `.sha256` (hash y nombre). El corte lo hace al compilar, anota el hash en el mensaje del tag («SHA-256 del instalador: …») y lo repite justo antes de `gh release create`. `-ResumeRelease` exige, antes del `-DryRun`, que el instalador presente sea el que anota el tag; con un tag anterior a este cambio avisa de que solo puede cotejarlo con el `.sha256`.
+  - **Verificado (2026-10-15, en local):** en el clon desechable, con `-ResumeRelease -DryRun`: el instalador del tag pasa; uno recompilado con su `.sha256` regenerado aborta nombrando los dos hashes («no es el del tag»); uno sustituido con el `.sha256` viejo aborta nombrando la discrepancia.
+
+- [x] **AUD-052 · El corte prueba una compilación de depuración y sin el listón de cero advertencias**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:515`, `:519` · `src/installer/build-installer.ps1:183-190` · `.github/workflows/ci.yml:74-84`
+  - **Qué hacer:** `dotnet build -c Release -warnaserror` y `dotnet test -c Release --no-build` en el corte.
+  - **Criterio de aceptación:** una advertencia introducida a propósito aborta `release.ps1 -DryRun`.
+  - **Hecho (2026-10-15):** El corte compila con `dotnet build -c Release -warnaserror` y prueba con `dotnet test -c Release --no-build`; las pruebas de UI lanzan ese mismo `.exe` (`FORMATDISKPRO_EXE`). Antes de compilar borra `src/FormatDiskPro/bin/Release`: la publicación *self-contained* del instalador deja allí `coreclr.dll` y `hostfxr.dll`, y un build posterior que regenere la configuración del runtime produce un `.exe` que no arranca (lo que tumbó 45 de 50 pruebas de UI el 2026-10-14).
+  - **Verificado (2026-10-15, en local):** con un `#warning` puesto a propósito en `Program.cs`, `-DryRun` abortó en la compilación (CS1030 como error). La simulación completa con `-UiTests` pasó: 925/926 unitarias, cobertura de `Core/` 98,5 %, 51/56 de UI sobre el `.exe` de Release. Tras una publicación *self-contained* que dejó `coreclr.dll` en `bin/Release`, el corte lo limpió y su `.exe` arrancó.
+
+- [x] **AUD-053 · Las herramientas de los últimos pasos se validan después de mutar, y la simulación no las comprueba**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:689-728`, `:753-770`, `:814-844` · `src/installer/build-installer.ps1:129`, `:139`, `:177`
+  - **Qué hacer:** una comprobación previa compartida con `-DryRun` (Inno Setup, `gh` y su sesión, certificado si se firma) y restaurar el `.csproj` si falla el instalador.
+  - **Criterio de aceptación:** sin `gh` en el `PATH`, `release.ps1 -DryRun` aborta nombrándolo.
+  - **Hecho (2026-10-15):** Una comprobación previa, antes de la primera prueba y también en `-DryRun`: `gh` (`Find-GitHubCli`) y su sesión (o la credencial cacheada de git), Inno Setup (`Find-InnoSetup`, que busca como `build-installer.ps1`) y, si se firma, que exista `-CertFile` o que la huella esté en el almacén con clave privada. Si el instalador falla —por código de salida o por `throw`—, el `.csproj` vuelve a su versión.
+  - **Verificado (2026-10-15, en local):** en el clon desechable, con las rutas fijas de `gh` apuntando a carpetas inexistentes y sin `gh` en el `PATH`, `-DryRun` abortó nombrándolo antes de compilar; igual sin Inno Setup. Un corte real con un `-CertFile` falso falló en `dotnet publish` y dejó el `.csproj` idéntico byte a byte, sin commit ni tag.
+
+- [x] **AUD-054 · La guarda de «sección del CHANGELOG vacía» no salta cuando dos encabezados de versión van seguidos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:653-662`
+  - **Qué hacer:** exigir `$end -gt $start` y que el cuerpo contenga alguna línea que no sea encabezado.
+  - **Criterio de aceptación:** con dos encabezados seguidos, el corte aborta.
+  - **Hecho (2026-10-15):** `Get-ChangelogSection` corta la sección con `$end -gt $start`: con dos encabezados seguidos, el rango descendente devolvía el propio encabezado y la sección vacía pasaba por tener contenido. El corte exige además una línea que no sea encabezado, separador ni blanco, y las notas del release salen de esa misma sección.
+  - **Verificado (2026-10-15, en local):** con `## [1.31.0]` justo encima de `## [1.30.0]`, y con una sección que solo tenía `### Corregido` y `---`, `-DryRun` abortó en la comprobación del CHANGELOG.
 
 - [x] **AUD-064 · El comando de cobertura que recomienda la guía deja archivos que hacen abortar el corte siguiente**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
