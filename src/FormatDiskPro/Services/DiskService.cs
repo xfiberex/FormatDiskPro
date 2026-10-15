@@ -52,11 +52,25 @@ public interface IDiskService
 /// para no depender de qué haya conectado.
 /// </param>
 /// <param name="ejectWait">Cuánto se espera a que una unidad expulsada desaparezca. Por omisión, 8 s.</param>
+/// <param name="queryTimeout">
+/// Cuánto se espera a cada PowerShell antes de matarlo y dar el dato por desconocido. Por omisión,
+/// <see cref="DefaultQueryTimeout"/>; las pruebas lo acortan.
+/// </param>
 public sealed class DiskService(
-    IProcessRunner runner, Func<char, bool>? isMounted = null, TimeSpan? ejectWait = null) : IDiskService
+    IProcessRunner runner, Func<char, bool>? isMounted = null, TimeSpan? ejectWait = null,
+    TimeSpan? queryTimeout = null) : IDiskService
 {
+    /// <summary>
+    /// Plazo de cada consulta (`AUD-010`). Antes no había ninguno: una unidad averiada que deja colgado
+    /// <c>Get-Disk</c>, que es justo el tipo de unidad para el que existe esta herramienta, dejaba
+    /// esperando para siempre a «Formatear» y a «Reinicializar». La ventana seguía respondiendo, pero el
+    /// botón pulsado no hacía nada. En una unidad sana estas consultas tardan uno o dos segundos.
+    /// </summary>
+    public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(15);
+
     private readonly Func<char, bool> _isMounted = isMounted ?? IsVolumeMounted;
     private readonly TimeSpan _ejectWait = ejectWait ?? TimeSpan.FromSeconds(8);
+    private readonly TimeSpan _queryTimeout = queryTimeout ?? DefaultQueryTimeout;
 
     private static bool IsVolumeMounted(char letter)
     {
@@ -211,6 +225,11 @@ public sealed class DiskService(
 
     // ── Internos ──────────────────────────────────────────────────
 
+    /// <remarks>
+    /// La salida de error <b>no se redirige</b> (`AUD-010`). Antes se redirigía y nadie la leía: con
+    /// <c>-EncodedCommand</c>, PowerShell escribe cada error como CLIXML (1,7 KB por error), y en cuanto
+    /// llenaba la tubería se quedaba bloqueado escribiendo, sin terminar nunca.
+    /// </remarks>
     private static ProcessSpec BuildSpec(string script, bool capture)
     {
         byte[] bytes = Encoding.Unicode.GetBytes(script);
@@ -220,8 +239,27 @@ public sealed class DiskService(
             FileName               = SystemTools.PowerShell,
             Arguments              = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
             RedirectStandardOutput = capture,
-            RedirectStandardError  = capture,
+            RedirectStandardError  = false,
         };
+    }
+
+    /// <summary>
+    /// Espera a que termine <paramref name="proc"/> como mucho <see cref="_queryTimeout"/>. Si se pasa, lo
+    /// mata y devuelve <c>false</c>: quien llama da el dato por desconocido.
+    /// </summary>
+    private async Task<bool> WaitWithinTimeoutAsync(IProcessHandle proc)
+    {
+        using var cts = new CancellationTokenSource(_queryTimeout);
+        try
+        {
+            await proc.WaitForExitAsync(cts.Token);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            try { proc.Kill(entireProcessTree: true); } catch { /* pudo terminar justo ahora */ }
+            return false;
+        }
     }
 
     private async Task<int> RunAsync(string script)
@@ -229,8 +267,7 @@ public sealed class DiskService(
         try
         {
             using var proc = runner.Start(BuildSpec(script, capture: false));
-            await proc.WaitForExitAsync();
-            return proc.ExitCode;
+            return await WaitWithinTimeoutAsync(proc) ? proc.ExitCode : -1;
         }
         catch { return -1; }
     }
@@ -241,7 +278,7 @@ public sealed class DiskService(
         {
             using var proc = runner.Start(BuildSpec(script, capture: true));
             var outTask = proc.StandardOutput.ReadToEndAsync();
-            await proc.WaitForExitAsync();
+            if (!await WaitWithinTimeoutAsync(proc)) return "";
             return await outTask;
         }
         catch { return ""; }

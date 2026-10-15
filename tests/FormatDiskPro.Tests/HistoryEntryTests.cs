@@ -23,6 +23,11 @@ public sealed class HistoryEntryTests
     [InlineData("EJECT G:",                         HistoryCategory.Eject, HistoryResult.Info)]
     [InlineData("UPDATE DOWNLOADED 1.3.0: C:\\x",  HistoryCategory.Update, HistoryResult.Info)]
     [InlineData("UPDATE CHECK ERROR: timeout",     HistoryCategory.Update, HistoryResult.Error)]
+    // El resultado sale de la cabecera, no del detalle (`AUD-031`): ahí va texto del usuario.
+    [InlineData("FORMAT OK G: fs=NTFS alloc=4096 label='A FAIL B'", HistoryCategory.Format, HistoryResult.Ok)]
+    [InlineData("FORMAT OK G: fs=FAT32 label='ERROR'",             HistoryCategory.Format, HistoryResult.Ok)]
+    [InlineData("FORMAT FAIL G: fs=NTFS code=1 label='OK'",        HistoryCategory.Format, HistoryResult.Fail)]
+    [InlineData("REINIT G: -> H: fs=exFAT label='CANCELLED'",      HistoryCategory.Reinit, HistoryResult.Info)]
     public void Parse_ClassifiesCategoryAndResult(string message, HistoryCategory cat, HistoryResult res)
     {
         var e = HistoryEntry.Parse($"{Ts}\t{message}");

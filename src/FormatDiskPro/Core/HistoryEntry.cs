@@ -301,11 +301,25 @@ public sealed partial record HistoryEntry(
         // (`T13-07`).
         if (Keyword(message) == "CRASH") return HistoryResult.Error;
 
-        if (HasToken(message, "CANCELLED")) return HistoryResult.Cancelled;
-        if (HasToken(message, "ERROR"))     return HistoryResult.Error;
-        if (HasToken(message, "FAIL"))      return HistoryResult.Fail;
-        if (HasToken(message, "OK"))        return HistoryResult.Ok;
+        // Solo la cabecera, antes del primer «:» (`AUD-031`): «FORMAT OK G», «UPDATE CHECK ERROR». Lo que
+        // va detrás es detalle, y en él hay texto del usuario: con la etiqueta «MI FAIL DISK», la línea
+        // de un formato correcto —`FORMAT OK G: … label='MI FAIL DISK'`— salía como fallo.
+        string head = Head(message);
+        if (HasToken(head, "CANCELLED")) return HistoryResult.Cancelled;
+        if (HasToken(head, "ERROR"))     return HistoryResult.Error;
+        if (HasToken(head, "FAIL"))      return HistoryResult.Fail;
+        if (HasToken(head, "OK"))        return HistoryResult.Ok;
         return HistoryResult.Info;
+    }
+
+    /// <summary>
+    /// La operación y las palabras que la siguen, hasta el primer <c>:</c> (el de la letra de unidad, o el
+    /// que abre el detalle). Sin <c>:</c>, el mensaje entero.
+    /// </summary>
+    private static string Head(string message)
+    {
+        int colon = message.IndexOf(':');
+        return colon < 0 ? message : message[..colon];
     }
 
     /// <summary>¿Aparece <paramref name="token"/> como palabra completa? (ignora el ':' final, p. ej. "ERROR:").</summary>
