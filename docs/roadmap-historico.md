@@ -23,6 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-15 | `AUD-031` | El resultado del historial se decide con la cabecera de la línea, no con la etiqueta que escribió el usuario | sin publicar |
+| 2026-10-15 | `AUD-010` | Las consultas a PowerShell de `DiskService` tienen un plazo de 15 s y dejan de redirigir la salida de error | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -133,6 +135,22 @@
   - **Verificado:** prueba de UI nueva, `ReloadingTheDriveList_KeepsTheLabelAndOptionsBeingEdited` (escribe una etiqueta, marca el borrado seguro, recarga, y ambas siguen ahí); por reversión falla con «Expected: A-MEDIAS, Actual: UTILIDADES». Suite de UI con opt-in destructivo, dos pasadas completas seguidas: 44 pasan y 2 de `ALLOW_YANK` se omiten, las dos veces.
   - **De paso, en las pruebas:** `MainWindowActions.Require` insiste tres segundos antes de dar un control por ausente. Con una sola consulta, UIA no encontró `DrivePicker` —que no desaparece nunca— justo después de un formato, con el hilo de la interfaz ocupado.
   - **Lo que no hace:** la huella es del volumen, no del disco. Dos pendrives con el mismo tamaño, formato y etiqueta que se intercambien bajo la misma letra conservarían las opciones escritas. Lo destructivo no depende de esto: lo protege `DriveIdentity` (`AUD-013`).
+
+- [x] **AUD-010 · Las consultas a PowerShell de `DiskService` no tienen límite de tiempo ni cancelación, y redirigen una salida de error que nadie lee**
+  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/DiskService.cs:160-194`
+  - **Qué hacer:** un plazo por consulta (10 a 15 s) con `CancellationTokenSource` que mate el proceso, y leer o no redirigir `stderr`. Que el fallo por plazo llegue a la interfaz como «no se pudo consultar la unidad».
+  - **Criterio de aceptación:** con un `IProcessRunner` falso que no termina, cada método de `DiskService` devuelve su valor de «no se sabe» dentro del plazo.
+  - **Hecho (2026-10-15):** cada PowerShell de `DiskService` se espera como mucho `DefaultQueryTimeout` (15 s), con un `CancellationTokenSource` en `WaitWithinTimeoutAsync`. Si se pasa, se mata el proceso y la consulta devuelve su «no se sabe»: `null`, o `false` en `ClearReadOnlyAsync` y `EjectAsync`. La interfaz ya trataba ese `null`, y las guardas bloquean. La salida de error deja de redirigirse, porque nadie la leía. El plazo es un parámetro del constructor (`queryTimeout`).
+  - **Verificado:** `DiskServiceTimeoutTests`, con un `FakeProcessRunner.Hanging()` cuyo proceso no termina hasta que se cancela la espera. Los ocho métodos devuelven su «no se sabe» con un plazo de 200 ms, y el proceso queda muerto. Un margen de 10 s hace fallar la prueba en vez de colgar la suite, que es lo que pasaba antes. `NoQuery_RedirectsTheErrorOutput` comprueba que ningún proceso pide redirigir `stderr`.
+
+- [x] **AUD-031 · El resultado que muestra el historial se deduce de palabras sueltas del mensaje, incluida la etiqueta del usuario**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Core/HistoryEntry.cs:297-317` · `src/UI/MainWindow.xaml.cs:663`
+  - **Qué hacer:** decidir el resultado solo con el prefijo de la línea (la operación y la palabra que la sigue), no con todo el mensaje.
+  - **Criterio de aceptación:** `FORMAT OK G: … label='A FAIL B'` se clasifica como correcto en una prueba.
+  - **Hecho (2026-10-15):** `ParseResult` busca `CANCELLED`, `ERROR`, `FAIL` y `OK` solo en la cabecera, hasta el primer `:` («FORMAT OK G», «UPDATE CHECK ERROR»). Lo que sigue es detalle, y ahí va texto del usuario.
+  - **Verificado:** cuatro casos nuevos en `HistoryEntryTests.Parse_ClassifiesCategoryAndResult`, entre ellos el del criterio, `FORMAT OK G: … label='A FAIL B'` → `Ok`, y la inversa, `FORMAT FAIL G: … label='OK'` → `Fail`. Los casos anteriores, incluido `CRASH:`, siguen igual.
 
 ### Seguridad
 
