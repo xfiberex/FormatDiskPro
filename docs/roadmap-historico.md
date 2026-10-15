@@ -23,6 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-15 | `AUD-058` | El CI publica como el instalador (exige el `.pri` y rutas dentro de MAX_PATH) y analiza los `.ps1` en PowerShell 5.1 | sin publicar |
+| 2026-10-15 | `AUD-057` | Una sola versión por paquete en las pruebas, y Dependabot las vigila (salvo el Windows App SDK) | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -219,6 +221,25 @@
   - **Lo que apareció por el camino, y también se arregló:** (1) `format.com` rechaza `/A:16384` y mayores —exige `16K`, `64K`, `1M`—, así que **un formato completo con unidad de asignación de 16 KB o más fallaba siempre**, en cualquier sistema de archivos; ahora lo escribe `FormatLogic.ComAllocationSize`. (2) La app se negaba a formatear una unidad «no lista», que es justo como queda tras cancelar: no tenía salida sin ir a *Reinicializar* o a Windows. Ahora solo rechaza si detrás de la letra no hay partición.
   - **Verificado:** `CancellingAFormat_DoesWhatItSays_OnBothRoutes` (UI, opt-in destructivo) sobre la USB de pruebas: cancela un exFAT completo a los 4 s, comprueba que el volumen **sigue sin formato 75 s después** (un formato completo de esa partición tarda unos 50 s) y que durante un formato rápido el botón no estuvo habilitado en ninguna de 43 muestras. Unitarias: 711. Suite de UI con opt-in destructivo: 42 pasan y 2 de `ALLOW_YANK` se omiten.
   - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
+
+### DevOps
+
+- [x] **AUD-058 · El CI no ejercita lo que solo falla al publicar**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `.github/workflows/ci.yml:66-84` · raíz del repo (sin `.editorconfig` ni `.gitattributes`)
+  - **Qué hacer:** un paso de `dotnet publish --self-contained` que compruebe el `.pri` y la longitud de las rutas, y otro con `shell: powershell` que analice los cuatro `.ps1` y verifique el BOM.
+  - **Criterio de aceptación:** un PR que quite el BOM de `release.ps1` o rompa `CopyAppPriToPublish` queda en rojo.
+  - **Hecho (2026-10-15):** `ci.yml` tiene un segundo job, en paralelo con el primero. Publica *self-contained* con los argumentos de `build-installer.ps1` y exige `FormatDiskPro.exe` y `FormatDiskPro.pri`. Mide la ruta más larga contra la base de `%TEMP%\FormatDiskPro-publish\` con un usuario de 20 caracteres, con un límite de 259. También analiza con `powershell` 5.1 los `.ps1` versionados fuera de `docs/`: exige BOM si tienen caracteres no ASCII, los lee con `Get-Content` como el intérprete y comprueba que se analicen sin errores. El resumen de la ejecución lista cada comprobación.
+  - **Verificado por reversión:** en un commit temporal se quitó el BOM de `release.ps1` y se cambió `AfterTargets="Publish"` de `CopyAppPriToPublish` por un target inexistente. El job quedó en rojo, con «Falta FormatDiskPro.pri en la publicación» y con «release.ps1 tiene caracteres no ASCII y no lleva BOM», más trece errores de análisis del 5.1 (`Unexpected token 'lÃ­neas'`…). Sin el commit, en verde. El commit temporal se retiró de la rama antes de abrir el PR.
+
+
+- [x] **AUD-057 · Los paquetes de prueba no los actualiza nadie y ya divergen entre los dos proyectos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/dependabot.yml` · `tests/FormatDiskPro.Tests/FormatDiskPro.Tests.csproj:12-17` · `tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj:12-16`
+  - **Qué hacer:** añadir `nuget` a Dependabot con `ignore` para `Microsoft.WindowsAppSDK*`, y unificar versiones con `Directory.Packages.props`.
+  - **Criterio de aceptación:** los dos proyectos de prueba referencian las mismas versiones y algo propone sus actualizaciones.
+  - **Hecho (2026-10-15):** `tests/Directory.Packages.props` fija una sola versión por paquete para los dos proyectos de prueba: `Microsoft.NET.Test.Sdk` 17.14.1, `xunit` 2.9.3, `xunit.runner.visualstudio` 3.1.4, `coverlet.collector` 6.0.2 y `FlaUI` 5.0.0. Las unitarias suben así a las versiones que ya usaban las de UI. El archivo vive en `tests/` y no en la raíz, así que la app sigue fijando el Windows App SDK en su `.csproj`. `dependabot.yml` añade `nuget` para los dos proyectos de prueba, mensual y agrupado, con `ignore` para `Microsoft.WindowsAppSDK*`.
+  - **Verificado:** en el CI de Windows compilan las unitarias y las de UI sin advertencias, y las unitarias pasan con el runner 3.1.4. Que Dependabot proponga las actualizaciones no se puede ver hasta su primera pasada mensual tras fusionar.
 
 ### Documentación
 

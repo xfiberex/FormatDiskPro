@@ -7,7 +7,12 @@ namespace FormatDiskPro.Tests;
 /// El rechazo de un plan de particiones tiene que decir <b>qué cambiar</b>, no solo que no vale
 /// (`T13-18`). Estas pruebas recorren el enum entero: añadir un <see cref="PlanProblem"/> obliga a
 /// decidir qué se le dice a quien lo provoque, igual que añadir un color obliga a medirlo.
+///
+/// <para>Va en <see cref="LanguageCollection"/> porque cambia el idioma activo, y los tamaños que compara
+/// se formatean con él. Fuera de la colección corría en paralelo con las otras clases que lo cambian, y
+/// salía «54,7 GB» contra «54.7 GB»: así falló una vez en el CI y pasó en la siguiente ejecución.</para>
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public class PlanRejectionTests
 {
     private static PartitionPlan WholeDiskFat32 =>

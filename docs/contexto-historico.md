@@ -62,6 +62,32 @@
 
 ## Entradas
 
+### 2026-10-15 — `AUD-058` y `AUD-057`: lo que solo fallaba al publicar, y los paquetes de prueba
+
+**`AUD-058`.** Los tres fallos de publicación que documenta §4 son el `.pri` que `dotnet publish` no copia,
+la ruta que pasa de MAX_PATH y el script sin BOM. Los tres se descubrían el día del corte. Ahora un segundo
+job del CI publica como `build-installer.ps1` y analiza los `.ps1` con `powershell` 5.1. Tres decisiones:
+
+- **La ruta se mide contra la base que tendrá en la máquina de quien compila el instalador**
+  (`C:\Users\<20 caracteres>\AppData\Local\Temp\FormatDiskPro-publish\`), no contra la del runner, que
+  es más corta.
+- **El script se lee con `Get-Content`, como lo lee el intérprete**, y no con `Parser.ParseFile`. Así el
+  análisis ve el mismo texto mal decodificado que vería el 5.1.
+- **El paso que corre en 5.1 no lleva ni un acento.** Su propio texto lo lee también el 5.1, y escribe el
+  resumen con `AppendAllText`, sin BOM, porque `Out-File -Encoding utf8` del 5.1 metería uno a mitad del
+  archivo.
+
+Se verificó por reversión con un commit temporal, retirado antes del PR: sin BOM, `release.ps1` no solo
+falla la comprobación del BOM, sino que el 5.1 deja de analizarlo (`Unexpected token 'lÃ­neas'`). Es la
+trampa de §4, reproducida.
+
+**`AUD-057`.** Un solo `Directory.Packages.props`, en `tests/` y no en la raíz: MSBuild lo busca subiendo
+desde cada proyecto, así que la app no lo ve y el Windows App SDK sigue fijado en su `.csproj`, donde está
+el porqué. Se unificó a las versiones más altas que ya se usaban, sin subir ninguna. Los saltos que faltan,
+coverlet 6 → 10 entre ellos, los propondrá Dependabot y se decidirán uno a uno. El de coverlet pide un corte
+de prueba porque es el recolector de la puerta de cobertura. El cambio de la decisión de Dependabot («solo
+las acciones») está en `dependabot.yml` y en §4.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre

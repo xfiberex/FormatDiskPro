@@ -29,19 +29,19 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **53 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-15 · **Publicado:** v1.30.0 · **51 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
 | **2** | Medio | 9 |
-| **3** | Bajo | 43 |
+| **3** | Bajo | 41 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **53** |
+| | **Total** | **51** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **52** y se han cerrado **19**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **50** y se han cerrado **21**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-057`, `AUD-058`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
@@ -49,16 +49,16 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **52** y se han cerrado **
 | Código | – | 1 | 3 | 4 |
 | QA | – | 1 | 1 | 2 |
 | Documentación | – | 1 | 2 | 3 |
-| DevOps | – | 4 | 15 | 19 |
+| DevOps | – | 4 | 13 | 17 |
 | Legal | – | 1 | 5 | 6 |
 | Rendimiento | – | – | 1 | 1 |
 | UI/UX | – | – | 3 | 3 |
 | Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **–** | **9** | **43** | **52** |
+| **Total** | **–** | **9** | **41** | **50** |
 
-**Esfuerzo:** 42 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 41 de esfuerzo bajo (hasta 2 horas) y 9 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
 **Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
@@ -316,18 +316,6 @@ del autor.
   - **Ubicación:** `release.ps1:605-607` · `tests/FormatDiskPro.UiTests/TestDriveFacts.cs` · `tests/FormatDiskPro.Tests/CapacityVerifierDriveTests.cs:16-23`
   - **Qué hacer:** rechazar o anunciar las tres antes de la primera ejecución de pruebas.
   - **Criterio de aceptación:** con cualquiera de las tres definida, `release.ps1 -DryRun` aborta o lo declara.
-
-- [ ] **AUD-057 · Los paquetes de prueba no los actualiza nadie y ya divergen entre los dos proyectos**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `.github/dependabot.yml` · `tests/FormatDiskPro.Tests/FormatDiskPro.Tests.csproj:12-17` · `tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj:12-16`
-  - **Qué hacer:** añadir `nuget` a Dependabot con `ignore` para `Microsoft.WindowsAppSDK*`, y unificar versiones con `Directory.Packages.props`.
-  - **Criterio de aceptación:** los dos proyectos de prueba referencian las mismas versiones y algo propone sus actualizaciones.
-
-- [ ] **AUD-058 · El CI no ejercita lo que solo falla al publicar**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Medio
-  - **Ubicación:** `.github/workflows/ci.yml:66-84` · raíz del repo (sin `.editorconfig` ni `.gitattributes`)
-  - **Qué hacer:** un paso de `dotnet publish --self-contained` que compruebe el `.pri` y la longitud de las rutas, y otro con `shell: powershell` que analice los cuatro `.ps1` y verifique el BOM.
-  - **Criterio de aceptación:** un PR que quite el BOM de `release.ps1` o rompa `CopyAppPriToPublish` queda en rojo.
 
 - [ ] **AUD-059 · El script de capturas falla o se degrada cuando lo lanza otro proceso**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo

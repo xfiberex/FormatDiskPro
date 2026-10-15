@@ -16,6 +16,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Interno
+
+- El CI publica la aplicación como lo hace el instalador. Falla si falta el archivo de recursos sin el que
+  la aplicación instalada no arranca, o si alguna ruta no cabría al compilar el instalador. También analiza
+  los scripts con PowerShell 5.1, el que los ejecuta (`AUD-058`).
+- Los dos proyectos de prueba usan las mismas versiones de sus paquetes, y Dependabot propone sus
+  actualizaciones. El Windows App SDK se sigue subiendo a mano (`AUD-057`).
+
 ## [1.30.0] — 2026-10-14
 
 **Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar
