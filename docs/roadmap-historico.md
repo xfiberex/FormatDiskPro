@@ -26,6 +26,9 @@
 | 2026-10-15 | `AUD-064` | `TestResults/` y `*.trx`, ignorados: el comando de cobertura de la guía ya no deja el árbol sucio | sin publicar |
 | 2026-10-15 | `AUD-058` | El CI publica como el instalador (exige el `.pri` y rutas dentro de MAX_PATH) y analiza los `.ps1` en PowerShell 5.1 | sin publicar |
 | 2026-10-15 | `AUD-057` | Una sola versión por paquete en las pruebas, y Dependabot las vigila (salvo el Windows App SDK) | sin publicar |
+| 2026-10-15 | `AUD-056` | El corte rechaza, antes de la primera prueba y también en el dry run, las tres variables que hacen tocar hardware | sin publicar |
+| 2026-10-15 | `AUD-055` | El corte nombra las unitarias omitidas, y un `.trx` ausente o vacío lo aborta | sin publicar |
+| 2026-10-15 | `AUD-040` | El respaldo de ajustes de las pruebas de UI va también a disco, y la corrida siguiente lo restaura si la anterior murió | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -190,6 +193,14 @@
   - **Nombre:** la tarea proponía `OperationGuard`; se llama `DestructiveGuard` porque `OperationGuardTests` ya existe y prueba otra cosa (los servicios ante una unidad que no está).
   - **De paso:** un rechazo de *Reinicializar* por guarda deja ahora una línea `REINIT REJECTED` en el historial, como ya la dejaba un plan no válido.
 
+- [x] **AUD-040 · El respaldo de ajustes de las pruebas de UI no sobrevive a que el proceso de pruebas muera**
+  - **Área:** QA · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `tests/FormatDiskPro.UiTests/SettingsBackup.cs:10-33` · `tests/FormatDiskPro.UiTests/AppFixture.cs:27`, `:47-53`
+  - **Qué hacer:** escribir el respaldo también a disco y, al empezar la corrida siguiente, restaurarlo si existe uno sin consumir.
+  - **Criterio de aceptación:** tras matar el proceso de pruebas a mitad, la corrida siguiente restaura los archivos originales.
+  - **Hecho (2026-10-15):** `SettingsBackup` escribe la copia también en `%LocalAppData%\FormatDiskPro.UiTests\respaldo-ajustes\`, fuera de la carpeta de la app, con un marcador `respaldo-completo` que se escribe el último. Al capturar, si encuentra una copia completa sin consumir, primero la restaura: lo que hay en ese momento en `%AppData%` es lo que dejó la corrida muerta. Si esa restauración falla a medias, la copia se conserva y no se sobrescribe. Una copia sin marcador, de una captura que murió a medias, se descarta sin tocar nada.
+  - **Verificado:** tres pruebas nuevas en `SettingsBackupTests`, sobre carpetas temporales y sin lanzar la app. Matar el proceso equivale a no llamar a `Restore`. La que cubre el criterio, `AfterARunThatDied_TheNextCaptureRestoresTheOriginals`, captura, ensucia los archivos como lo haría una corrida (otro idioma, entradas de prueba y un `history.1.log` nuevo) y vuelve a capturar sin restaurar: obtiene los originales. Las tres pasan en un runner de Windows. No se mató un proceso de pruebas de verdad.
+
 ### Arquitectura y resiliencia
 
 - [x] **AUD-013 · No se revalida la identidad de la unidad entre la confirmación y la operación destructiva**
@@ -249,6 +260,22 @@
   - **Criterio de aceptación:** los dos proyectos de prueba referencian las mismas versiones y algo propone sus actualizaciones.
   - **Hecho (2026-10-15):** `tests/Directory.Packages.props` fija una sola versión por paquete para los dos proyectos de prueba: `Microsoft.NET.Test.Sdk` 17.14.1, `xunit` 2.9.3, `xunit.runner.visualstudio` 3.1.4, `coverlet.collector` 6.0.2 y `FlaUI` 5.0.0. Las unitarias suben así a las versiones que ya usaban las de UI. El archivo vive en `tests/` y no en la raíz, así que la app sigue fijando el Windows App SDK en su `.csproj`. `dependabot.yml` añade `nuget` para los dos proyectos de prueba, mensual y agrupado, con `ignore` para `Microsoft.WindowsAppSDK*`.
   - **Verificado:** en el CI de Windows compilan las unitarias y las de UI sin advertencias, y las unitarias pasan con el runner 3.1.4. Que Dependabot proponga las actualizaciones no se puede ver hasta su primera pasada mensual tras fusionar.
+
+- [x] **AUD-056 · El corte solo rechaza una de las tres variables que hacen tocar hardware**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:605-607` · `tests/FormatDiskPro.UiTests/TestDriveFacts.cs` · `tests/FormatDiskPro.Tests/CapacityVerifierDriveTests.cs:16-23`
+  - **Qué hacer:** rechazar o anunciar las tres antes de la primera ejecución de pruebas.
+  - **Criterio de aceptación:** con cualquiera de las tres definida, `release.ps1 -DryRun` aborta o lo declara.
+  - **Hecho (2026-10-15):** las tres variables se miran justo después de validar los parámetros, antes de git, de compilar y de cualquier prueba, así que también en `-DryRun`. Si el corte va a ejecutar pruebas, aborta nombrando cada una, lo que haría y cómo limpiarla. Con `-SkipTests` o `-ResumeRelease` solo avisa, porque no corre nada. La comprobación anterior, solo de `ALLOW_DESTRUCTIVE` y solo con `-UiTests`, queda absorbida.
+  - **Verificado:** como en `AUD-055`, PowerShell 5.1 analiza el script sin errores. No se ejecutó `release.ps1 -DryRun` con las variables puestas: necesita Windows.
+
+- [x] **AUD-055 · El corte no dice qué pruebas unitarias se omitieron**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:519-521`, `:292-299`, `:324-328`
+  - **Qué hacer:** `--logger trx` también en las unitarias, y tratar como fallo un `.trx` ausente o sin resultados.
+  - **Criterio de aceptación:** una prueba omitida aparece nombrada en el resumen del corte.
+  - **Hecho (2026-10-15):** las unitarias del corte escriben `unitarias-<versión>.trx`, y el corte imprime `Unitarias: N/M` con cada omitida nombrada y su motivo (`Show-UnitTestSummary`), al terminar, en el dry run y en el resumen final. Un `.trx` ausente o sin resultados aborta el corte, en las unitarias y en las de UI: antes, en las de UI, el corte seguía con un aviso que afirmaba que habían pasado.
+  - **Verificado:** PowerShell 5.1 analiza `release.ps1` sin errores, en el paso del CI de `AUD-058`. No se ejecutó un corte: necesita la máquina del mantenedor.
 
 ### Documentación
 

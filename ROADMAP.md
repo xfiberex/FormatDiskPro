@@ -47,7 +47,7 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **51** y se han cerrado **
 |---|---:|---:|---:|---:|
 | Seguridad | – | 1 | – | 1 |
 | Código | – | 1 | 3 | 4 |
-| QA | – | 1 | 1 | 2 |
+| QA | – | 1 | – | 1 |
 | Documentación | – | 1 | 2 | 3 |
 | DevOps | – | 4 | 14 | 18 |
 | Legal | – | 1 | 5 | 6 |
@@ -62,8 +62,8 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **51** y se han cerrado **
 esfuerzo alto.
 
 **Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
-`AUD-066`, dos interruptores en GitHub; `AUD-044` a `AUD-047`, textos) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
-`AUD-056` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
+`AUD-066`, dos interruptores en GitHub; `AUD-044` a `AUD-047`, textos) → antes del próximo corte, `AUD-020`, `AUD-021`, `AUD-052` a
+`AUD-054` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
 del autor.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
@@ -203,14 +203,6 @@ del autor.
   - **Ubicación:** `src/Services/SecureWipe.cs:36`, `:96` · `src/Localization/Localization.cs:142`
   - **Qué hacer:** reducir el margen al mínimo que el sistema de archivos necesite cuando se viene de formatear, o declararlo en la pista de la opción y en el resultado.
   - **Criterio de aceptación:** el margen es coherente con lo que la interfaz promete, y una prueba fija el valor.
-
-### QA
-
-- [ ] **AUD-040 · El respaldo de ajustes de las pruebas de UI no sobrevive a que el proceso de pruebas muera**
-  - **Área:** QA · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `tests/FormatDiskPro.UiTests/SettingsBackup.cs:10-33` · `tests/FormatDiskPro.UiTests/AppFixture.cs:27`, `:47-53`
-  - **Qué hacer:** escribir el respaldo también a disco y, al empezar la corrida siguiente, restaurarlo si existe uno sin consumir.
-  - **Criterio de aceptación:** tras matar el proceso de pruebas a mitad, la corrida siguiente restaura los archivos originales.
 
 ### Refactorización
 
