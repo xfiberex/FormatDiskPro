@@ -94,7 +94,9 @@ public sealed class PresetsTests
                 var texts = problems.Select(p => L.T(Presets.MessageKey(p), Presets.MaxNameLength)).ToList();
 
                 Assert.Equal(problems.Length, texts.Distinct().Count());
-                Assert.All(texts, t => Assert.DoesNotContain("preset.", t));   // la clave existe
+                // Si la clave no existiera, L.T devolvería la propia clave.
+                for (int i = 0; i < problems.Length; i++)
+                    Assert.NotEqual(Presets.MessageKey(problems[i]), texts[i]);
                 Assert.Contains(Presets.MaxNameLength.ToString(L.Culture), texts[1]);
             }
         }
