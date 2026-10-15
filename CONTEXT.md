@@ -179,6 +179,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | | |
 |---|---|
 | **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. Pendiente de publicar: el borrado seguro con varias pasadas, que ya termina, y sus pruebas (`AUD-016`, falta verificarla), y `AUD-064` |
+| **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. `master` sin trabajo pendiente de publicar |
+| **En PR, sin fusionar** (2026-10-15) | Siete tandas, una rama y un PR cada una, todas con el CI en verde: #3 `AUD-016`/`064` · #4 `057`/`058` · #5 `040`/`055`/`056` · #6 `044`–`047` · #7 `010`/`030`/`031` · #8 `017`/`050`/`051` · #9 `033`/`034`/`037`. Las siete chocan en las cifras de *Estado* del `ROADMAP.md`, en `[Sin publicar]` y en esta tabla: al fusionar una, se resuelve en las demás. **Validar en local antes de cerrar:** cobertura de `SecureWipe.cs` y la prueba de UI destructiva del borrado (#3), `release.ps1 -DryRun` con y sin las variables de hardware (#5), y las pruebas de UI nuevas de la barra rápida y de la instancia única (#9). `AUD-016`, `030`, `033` y `037` siguen abiertas en el `ROADMAP.md` hasta entonces |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
