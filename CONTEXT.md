@@ -107,7 +107,8 @@ src/FormatDiskPro/
 ├─ app.manifest     requireAdministrator + PerMonitorV2
 ├─ FormatDiskPro.csproj  Versión (fuente única), Windows App SDK fijado, target CopyAppPriToPublish
 ├─ FormatDiskPro.ico     Icono de la app y del instalador
-└─ Program.cs       Punto de entrada
+├─ Program.cs       Punto de entrada: mutex de la app y, si ya hay otra instancia, le cede el paso
+└─ SingleInstance.cs  Trae al frente la instancia abierta (`AUD-037`)
 
 tests/FormatDiskPro.Tests/    Pruebas xUnit sobre Core y los Services (con IProcessRunner falso); recuento en §3
 tests/FormatDiskPro.UiTests/  Pruebas FlaUI/UIA3 sobre el .exe real — FUERA de la solución (ver abajo)
@@ -176,7 +177,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. `master` sin trabajo pendiente de publicar |
+| **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. Pendiente de publicar: presets, barra rápida, guardado de ajustes e instancia única (`AUD-034`, `AUD-033`, `AUD-037`) |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |

@@ -62,6 +62,32 @@
 
 ## Entradas
 
+### 2026-10-15 — `AUD-034` (y `AUD-033` y `AUD-037`, sin cerrar): rechazos que se explican, botones que no engañan y ajustes que no se pierden
+
+**`AUD-037` era una cadena de tres.** Un bloqueo pasajero al leer `settings.json` (otra instancia
+escribiendo, un antivirus) hacía que `Load` devolviera los valores por defecto. El arranque guardaba
+siempre, y ese guardado pisaba con los valores por defecto un archivo que seguía bien en el disco. Hay un
+arreglo por eslabón:
+
+- **Distinguir.** `ReadFailed` separa «no se pudo leer» de «no se pudo interpretar» (ese ya se apartaba
+  desde `T9-08`).
+- **No guardar encima.** `Save` no hace nada si `ReadFailed`.
+- **Escribir sin truncar.** Se escribe a un temporal y se sustituye con `File.Replace`.
+
+El temporal es un archivo nuevo en una carpeta que controla la cuenta sin elevar, así que entra en la
+comprobación de `AUD-025`, se borra si ya existía y se crea con `CreateNew`. La instancia única no sale
+solo porque el mutex exista: el script de capturas y el instalador cierran la app y la relanzan enseguida,
+y una instancia que se está cerrando todavía lo tiene. Se mira si queda otro proceso vivo, y si tiene
+ventana, se trae al frente.
+
+**`AUD-033`, el espejo también corre a destiempo.** Apagar los botones en `SetControlsEnabled` no bastaba:
+`UpdateToolsMenuAvailability` copia el estado de los ítems del menú a la barra, y se llama también en
+mitad de una operación (cambia la unidad o el idioma). Los ítems siguen habilitados aunque su menú padre
+esté apagado, así que sin el `&& !_isBusy` la barra volvía a encenderse.
+
+**Por qué dos quedan abiertas.** Las dos tienen su prueba escrita, pero son pruebas de UI: lanzan la app,
+y la de la barra necesita la USB. Hasta que corran no se puede decir que cumplen su criterio.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre

@@ -16,6 +16,18 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **Guardar un preset sin nombre respondía «Ya existe un preset con ese nombre».** Ahora cada motivo tiene
+  su mensaje: falta el nombre, es demasiado largo o ya existe.
+- **Durante una operación, los botones Salud, Benchmark e Historial parecían activos y no hacían nada.**
+  Ahora se desactivan con los menús.
+- **Un fallo pasajero al leer la configuración podía borrar los presets del usuario** al guardar los
+  valores por defecto encima. Ahora la configuración no se sobrescribe si no se pudo leer, y se guarda de
+  forma que una interrupción no la deje a medias.
+- **Se podían abrir dos ventanas de la aplicación a la vez.** Al abrirla de nuevo, se trae al frente la que
+  ya estaba abierta.
+
 ## [1.30.0] — 2026-10-14
 
 **Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar

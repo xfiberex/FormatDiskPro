@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-15 | `AUD-034` | Guardar un preset sin nombre, con un nombre demasiado largo o con uno repetido da tres mensajes distintos | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -219,6 +220,16 @@
   - **Lo que apareció por el camino, y también se arregló:** (1) `format.com` rechaza `/A:16384` y mayores —exige `16K`, `64K`, `1M`—, así que **un formato completo con unidad de asignación de 16 KB o más fallaba siempre**, en cualquier sistema de archivos; ahora lo escribe `FormatLogic.ComAllocationSize`. (2) La app se negaba a formatear una unidad «no lista», que es justo como queda tras cancelar: no tenía salida sin ir a *Reinicializar* o a Windows. Ahora solo rechaza si detrás de la letra no hay partición.
   - **Verificado:** `CancellingAFormat_DoesWhatItSays_OnBothRoutes` (UI, opt-in destructivo) sobre la USB de pruebas: cancela un exFAT completo a los 4 s, comprueba que el volumen **sigue sin formato 75 s después** (un formato completo de esa partición tarda unos 50 s) y que durante un formato rápido el botón no estuvo habilitado en ninguna de 43 muestras. Unitarias: 711. Suite de UI con opt-in destructivo: 42 pasan y 2 de `ALLOW_YANK` se omiten.
   - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
+
+### UI/UX
+
+- [x] **AUD-034 · Guardar un preset sin nombre responde «Ya existe un preset con ese nombre»**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/PresetsDialog.xaml.cs:89-93`, `:199-203` · `src/Core/Presets.cs:62-67`
+  - **Qué hacer:** distinguir los tres motivos (vacío, demasiado largo, duplicado) con su texto.
+  - **Criterio de aceptación:** cada motivo de rechazo muestra un texto distinto, en los cinco idiomas.
+  - **Hecho (2026-10-15):** `Presets.CheckName` y `CheckRename` devuelven el motivo (`PresetNameProblem`: vacío, demasiado largo o repetido), y `MessageKey` da su texto: `preset.emptyName`, `preset.longName` (con el límite) y el `preset.dupName` de siempre, en los cinco idiomas. `IsNameAvailable` e `IsRenameAvailable` siguen existiendo, ahora sobre ellos. El diálogo muestra el texto del motivo.
+  - **Verificado:** cuatro pruebas nuevas en `PresetsTests`. Comprueban cada motivo, el renombrado (conservar el propio nombre vale; tomar el de otro, no) y que, en cada idioma, los tres textos son distintos y el de longitud nombra el 40.
 
 ### Documentación
 
