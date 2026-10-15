@@ -683,7 +683,5 @@ public sealed partial class MainWindow
             null, null, L.T("btn.close"));
     }
 
-    /// <summary>Formatea las IOPS de una velocidad de 4 KiB aleatorio como entero con sufijo "IOPS".</summary>
-    private static string FormatIops(double bytesPerSec) =>
-        $"{Math.Round(Benchmark.Iops(bytesPerSec, Benchmark.Random4KBlockBytes)):N0} IOPS";
+    private static string FormatIops(double bytesPerSec) => Benchmark.FormatIops(bytesPerSec);
 }

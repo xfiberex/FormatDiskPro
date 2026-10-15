@@ -29,6 +29,10 @@
 | 2026-10-15 | `AUD-056` | El corte rechaza, antes de la primera prueba y también en el dry run, las tres variables que hacen tocar hardware | sin publicar |
 | 2026-10-15 | `AUD-055` | El corte nombra las unitarias omitidas, y un `.trx` ausente o vacío lo aborta | sin publicar |
 | 2026-10-15 | `AUD-040` | El respaldo de ajustes de las pruebas de UI va también a disco, y la corrida siguiente lo restaura si la anterior murió | sin publicar |
+| 2026-10-15 | `AUD-047` | Las IOPS del benchmark siguen el separador de millares del idioma de la app | sin publicar |
+| 2026-10-15 | `AUD-046` | El rechazo por etiqueta no válida da los límites reales (exFAT admite 11, no 32) | sin publicar |
+| 2026-10-15 | `AUD-045` | El aviso de privacidad nombra el menú como se ve en cada idioma | sin publicar |
+| 2026-10-15 | `AUD-044` | Las pistas de la FAT32 pequeña nombran el botón «Formatear», no el «Iniciar» que ya no existe | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -276,6 +280,41 @@
   - **Criterio de aceptación:** una prueba omitida aparece nombrada en el resumen del corte.
   - **Hecho (2026-10-15):** las unitarias del corte escriben `unitarias-<versión>.trx`, y el corte imprime `Unitarias: N/M` con cada omitida nombrada y su motivo (`Show-UnitTestSummary`), al terminar, en el dry run y en el resumen final. Un `.trx` ausente o sin resultados aborta el corte, en las unitarias y en las de UI: antes, en las de UI, el corte seguía con un aviso que afirmaba que habían pasado.
   - **Verificado:** PowerShell 5.1 analiza `release.ps1` sin errores, en el paso del CI de `AUD-058`. No se ejecutó un corte: necesita la máquina del mantenedor.
+
+### Redacción
+
+- [x] **AUD-044 · Dos pistas de la interfaz mandan no usar «el botón Iniciar», que ya no existe**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:147`, `:151` (cinco idiomas) · `.github/ISSUE_TEMPLATE/bug_report.yml:69`
+  - **Qué hacer:** nombrar el botón como se ve («no el botón Formatear») en los cinco idiomas y en la plantilla.
+  - **Criterio de aceptación:** ninguna cadena ni plantilla menciona un botón «Iniciar».
+  - **Hecho (2026-10-15):** las dos pistas de la FAT32 pequeña dicen «no el botón Formatear» (Format, Formatar, Formater, Formatta), y la plantilla de errores, «Pulsar «Formatear D:»».
+  - **Verificado:** `InterfaceTextTests.TheSmallFat32Hints_NameTheButtonAsItIsShown` exige, en los cinco idiomas, que las dos pistas contengan el texto de `btn.start`. `NoText_MentionsTheOldStartButton` recorre `L.Map` buscando los cinco nombres antiguos.
+
+- [x] **AUD-045 · El aviso de privacidad remite a un menú que no se llama así en inglés, portugués, francés ni italiano**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:477` frente a `:232`
+  - **Qué hacer:** usar en cada idioma el nombre real del menú; mejor aún, componer el texto con la propia clave `menu.config`.
+  - **Criterio de aceptación:** una prueba comprueba que `about.privacy` contiene el valor de `menu.config` en cada idioma.
+  - **Hecho (2026-10-15):** `about.privacy` lleva un `{0}` donde iba el nombre del menú, y `AboutDialog` lo rellena con `L.T("menu.config")`. Es la solución «mejor aún» que proponía la tarea: el nombre ya no se puede desalinear.
+  - **Verificado:** `ThePrivacyNotice_NamesTheSettingsMenuAsItIsShown` comprueba, en los cinco idiomas, que el aviso contiene `<menu.config> →` y ningún `{0}` sin sustituir.
+
+- [x] **AUD-046 · Un mensaje de error dice que exFAT admite etiquetas de 32 caracteres; el código valida 11**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:439` (cinco idiomas) frente a `src/Core/FormatLogic.cs:122-127`
+  - **Qué hacer:** corregir el texto y generarlo a partir de `MaxLabelLength`.
+  - **Criterio de aceptación:** una prueba compara las cifras del texto con `MaxLabelLength` para los cinco sistemas.
+  - **Hecho (2026-10-15):** el texto agrupa «FAT32, FAT y exFAT» y «NTFS y ReFS», y sus dos cifras son `{0}` y `{1}`. `PlanRejection.Describe` las rellena con `MaxLabelLength("FAT32")` y `MaxLabelLength("NTFS")`.
+  - **Verificado:** `TheInvalidLabelText_GivesEachFileSystemItsRealLimit` toma, en cada idioma, la primera cifra que sigue al nombre de cada uno de los cinco sistemas y la compara con `MaxLabelLength`. Si un sistema cambiara de grupo, el texto quedaría mal y la prueba lo vería.
+
+- [x] **AUD-047 · Las IOPS del benchmark se formatean con la cultura de Windows y no con la del idioma de la app**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.Operations.cs:622-623`
+  - **Qué hacer:** `string.Create(L.Culture, $"…")` o `ToString("N0", L.Culture)`.
+  - **Criterio de aceptación:** una prueba fija el separador de miles de las IOPS para cada idioma.
+  - **Antecedente:** ya conocido (`T6-12`), cierre incompleto: «los números pasan a seguir al idioma de la app» no llegó a este punto
+  - **Hecho (2026-10-15):** el formateo sale de `MainWindow` a `Benchmark.FormatIops`, con `L.Culture` por defecto, como `FormatBytes`. La línea del historial `BENCH` usa la misma función, y en ella las velocidades ya seguían al idioma de la app.
+  - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### Documentación
 

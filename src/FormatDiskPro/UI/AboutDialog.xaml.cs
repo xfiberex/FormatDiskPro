@@ -21,7 +21,9 @@ public sealed partial class AboutDialog : ContentDialog
         DisclaimerHeader.Text = L.T("about.disclaimerHeader");
         DisclaimerText.Text   = L.T("about.disclaimer");
         PrivacyHeader.Text    = L.T("about.privacyHeader");
-        PrivacyText.Text      = L.T("about.privacy");
+        // El nombre del menú se toma de su propia clave (`AUD-045`): escrito a mano, cuatro de cinco
+        // idiomas remitían a un menú que no se llama así.
+        PrivacyText.Text      = L.T("about.privacy", L.T("menu.config"));
 
         SecondaryButtonText = L.T("about.github");
         CloseButtonText     = L.T("btn.close");

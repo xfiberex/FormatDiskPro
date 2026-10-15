@@ -154,6 +154,22 @@ captura nueva no la pisa, para no respaldar el estado que dejaron las pruebas.
 lanzan la app. PS 5.1 analizó `release.ps1` sin errores y las tres pruebas pasaron. Falta ejecutar el
 corte de verdad con las variables puestas.
 
+### 2026-10-15 — `AUD-044` a `AUD-047`: textos que contaban algo que ya no era cierto
+
+**Lo que tienen en común.** Los cuatro escribían a mano un dato que vive en otro sitio: el nombre de un
+botón, el de un menú, el límite de una etiqueta y la cultura de un número. Cuando ese otro sitio cambió, el
+texto no se enteró. Por eso el arreglo no es corregir la frase, sino **tomar el dato de su sitio** donde se
+puede (`menu.config`, `MaxLabelLength`, `L.Culture`), y donde no (el botón, que va en mitad de una frase
+traducida), una prueba que compara con la clave `btn.start`.
+
+**`AUD-046` arreglaba también la agrupación.** No bastaba con poner las cifras como marcadores: el texto
+decía «NTFS, exFAT y ReFS, 32», y exFAT estaba en el grupo equivocado. La prueba no comprueba los
+argumentos, sino la cifra que sigue a cada nombre en el texto ya traducido, así que vigila las dos cosas.
+
+**`AUD-047` sale de la ventana a `Core/`.** `FormatIops` era un `private static` de `MainWindow`, sin
+prueba posible. En `Benchmark`, junto a `Iops`, la prueba fija el separador por idioma. Francés no se fija
+por carácter, porque según la versión de ICU el separador es el espacio normal o el estrecho.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre

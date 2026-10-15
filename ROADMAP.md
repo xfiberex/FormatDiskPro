@@ -227,31 +227,6 @@ del autor.
 
 ### Redacción
 
-- [ ] **AUD-044 · Dos pistas de la interfaz mandan no usar «el botón Iniciar», que ya no existe**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Localization/Localization.cs:147`, `:151` (cinco idiomas) · `.github/ISSUE_TEMPLATE/bug_report.yml:69`
-  - **Qué hacer:** nombrar el botón como se ve («no el botón Formatear») en los cinco idiomas y en la plantilla.
-  - **Criterio de aceptación:** ninguna cadena ni plantilla menciona un botón «Iniciar».
-
-- [ ] **AUD-045 · El aviso de privacidad remite a un menú que no se llama así en inglés, portugués, francés ni italiano**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Localization/Localization.cs:477` frente a `:232`
-  - **Qué hacer:** usar en cada idioma el nombre real del menú; mejor aún, componer el texto con la propia clave `menu.config`.
-  - **Criterio de aceptación:** una prueba comprueba que `about.privacy` contiene el valor de `menu.config` en cada idioma.
-
-- [ ] **AUD-046 · Un mensaje de error dice que exFAT admite etiquetas de 32 caracteres; el código valida 11**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Localization/Localization.cs:439` (cinco idiomas) frente a `src/Core/FormatLogic.cs:122-127`
-  - **Qué hacer:** corregir el texto y generarlo a partir de `MaxLabelLength`.
-  - **Criterio de aceptación:** una prueba compara las cifras del texto con `MaxLabelLength` para los cinco sistemas.
-
-- [ ] **AUD-047 · Las IOPS del benchmark se formatean con la cultura de Windows y no con la del idioma de la app**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.Operations.cs:622-623`
-  - **Qué hacer:** `string.Create(L.Culture, $"…")` o `ToString("N0", L.Culture)`.
-  - **Criterio de aceptación:** una prueba fija el separador de miles de las IOPS para cada idioma.
-  - **Antecedente:** ya conocido (`T6-12`), cierre incompleto: «los números pasan a seguir al idioma de la app» no llegó a este punto
-
 - [ ] **AUD-048 · Tratamiento, terminología y tipografía no son uniformes dentro de cada idioma**
   - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio
   - **Ubicación:** tratamiento de usted en `src/Localization/Localization.cs:395`, `:396`, `:406`, `:446`, `:455`, `:457` frente al tuteo del resto · terminología y puntuación: lista completa en `trabajo/hallazgos/10-redaccion.md`
