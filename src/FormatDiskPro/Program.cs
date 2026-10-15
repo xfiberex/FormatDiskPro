@@ -15,8 +15,12 @@ internal class Program
     [STAThread]
     static void Main()
     {
-        try { _instanceMutex = new Mutex(initiallyOwned: false, "Global\\FormatDiskPro.Instance"); }
+        bool createdNew = true;
+        try { _instanceMutex = new Mutex(initiallyOwned: false, "Global\\FormatDiskPro.Instance", out createdNew); }
         catch { /* sin privilegio para el namespace Global: la detección por mutex es opcional */ }
+
+        // Una sola instancia (`AUD-037`): si ya hay una, se trae su ventana al frente y esta sale.
+        if (SingleInstance.HandOffToExisting(mutexAlreadyExisted: !createdNew)) return;
 
         global::WinRT.ComWrappersSupport.InitializeComWrappers();
         Application.Start(p =>

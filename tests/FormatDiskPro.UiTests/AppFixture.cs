@@ -65,7 +65,7 @@ public sealed class AppFixture : IDisposable
         }
     }
 
-    private static string ResolveExePath()
+    internal static string ResolveExePath()
     {
         var overridePath = Environment.GetEnvironmentVariable("FORMATDISKPRO_EXE");
         if (!string.IsNullOrWhiteSpace(overridePath))

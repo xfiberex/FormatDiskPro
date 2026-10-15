@@ -60,10 +60,21 @@ public static class Presets
     /// ya en uso (integrados + propios).
     /// </summary>
     public static bool IsNameAvailable(string? name, IEnumerable<string> existing)
+        => CheckName(name, existing) == PresetNameProblem.None;
+
+    /// <summary>
+    /// Por qué no vale <paramref name="name"/> como nombre de preset, o <see cref="PresetNameProblem.None"/>
+    /// si vale. Es <see cref="IsNameAvailable"/> con el motivo (`AUD-034`): el diálogo tenía un solo
+    /// mensaje, el de nombre repetido, y lo daba también para un nombre vacío. Lógica pura.
+    /// </summary>
+    public static PresetNameProblem CheckName(string? name, IEnumerable<string> existing)
     {
         string n = NormalizeName(name);
-        if (n.Length == 0 || n.Length > MaxNameLength) return false;
-        return !existing.Any(e => string.Equals(NormalizeName(e), n, StringComparison.OrdinalIgnoreCase));
+        if (n.Length == 0)             return PresetNameProblem.Empty;
+        if (n.Length > MaxNameLength) return PresetNameProblem.TooLong;
+        return existing.Any(e => string.Equals(NormalizeName(e), n, StringComparison.OrdinalIgnoreCase))
+            ? PresetNameProblem.Duplicate
+            : PresetNameProblem.None;
     }
 
     /// <summary>
@@ -73,9 +84,24 @@ public static class Presets
     /// mayúsculas/espacios) se considera válido. Lógica pura.
     /// </summary>
     public static bool IsRenameAvailable(string? newName, string currentName, IEnumerable<string> existing)
+        => CheckRename(newName, currentName, existing) == PresetNameProblem.None;
+
+    /// <summary>Como <see cref="CheckName"/>, excluyendo el nombre actual del preset que se edita.</summary>
+    public static PresetNameProblem CheckRename(string? newName, string currentName, IEnumerable<string> existing)
     {
         string cur = NormalizeName(currentName);
         var others = existing.Where(e => !string.Equals(NormalizeName(e), cur, StringComparison.OrdinalIgnoreCase));
-        return IsNameAvailable(newName, others);
+        return CheckName(newName, others);
     }
+
+    /// <summary>Clave del texto que explica cada motivo de rechazo de un nombre.</summary>
+    public static string MessageKey(PresetNameProblem problem) => problem switch
+    {
+        PresetNameProblem.Empty   => "preset.emptyName",
+        PresetNameProblem.TooLong => "preset.longName",
+        _                         => "preset.dupName",
+    };
 }
+
+/// <summary>Motivo por el que un nombre de preset no vale (`AUD-034`).</summary>
+public enum PresetNameProblem { None, Empty, TooLong, Duplicate }

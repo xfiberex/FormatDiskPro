@@ -107,6 +107,47 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
     }
 
     /// <summary>
+    /// Durante una operación, los tres botones de la barra rápida están apagados, como los menús que
+    /// duplican (`AUD-033`). Antes seguían con aspecto de activos y no hacían nada. Se usa el benchmark
+    /// porque dura lo bastante para mirar y se puede cancelar; al terminar, los botones vuelven.
+    /// </summary>
+    [TestDriveFact]
+    public void QuickBar_IsDisabledDuringAnOperation_AndComesBackAfter()
+    {
+        SelectTestDrive();
+        // Antes de abrir ningún diálogo: los ContentDialog tienen un botón con el mismo AutomationId.
+        var footerCancel = MainWindowActions.Button(Window, "CloseButton");
+        MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuBenchmark");
+
+        try
+        {
+            DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Invoke();   // «Sí», arrancar
+            DialogHelper.WaitForNoDialog(fixture);
+
+            var busy = FlaUI.Core.Tools.Retry.WhileTrue(
+                () => MainWindowActions.Require(Window, "DrivePicker").IsEnabled,
+                timeout: TimeSpan.FromSeconds(10), interval: TimeSpan.FromMilliseconds(100), ignoreException: true);
+            Assert.True(busy.Success, "El benchmark no llegó a arrancar.");
+
+            foreach (string id in (string[])["BtnHealth", "BtnBenchmark", "BtnHistory"])
+                Assert.False(MainWindowActions.Require(Window, id).IsEnabled, $"{id} sigue activo durante la operación.");
+
+            footerCancel.Invoke();
+            DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Invoke();   // «¿Cancelar?» → sí
+            DialogHelper.WaitForNoDialog(fixture);
+            MainWindowActions.WaitUntilEnabled(Window, "DrivePicker", TimeSpan.FromSeconds(60));
+
+            DialogHelper.SafeCloseAnyDialog(fixture);
+            foreach (string id in (string[])["BtnHealth", "BtnBenchmark", "BtnHistory"])
+                MainWindowActions.WaitUntilEnabled(Window, id, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
+
+    /// <summary>
     /// CapacityVerifier escribe/relee prácticamente todo el espacio libre reportado (deja solo un
     /// margen de 64 MB) — es justo lo que necesita para detectar una unidad de capacidad falsificada,
     /// pero en una unidad real de decenas de GB puede tardar mucho más de lo razonable para una corrida

@@ -53,6 +53,54 @@ public sealed class PresetsTests
         Assert.True(Presets.IsNameAvailable(new string('x', Presets.MaxNameLength), []));
     }
 
+    /// <summary>
+    /// Cada motivo de rechazo se distingue (`AUD-034`): antes, un nombre vacío respondía «Ya existe un
+    /// preset con ese nombre».
+    /// </summary>
+    [Theory]
+    [InlineData("",     PresetNameProblem.Empty)]
+    [InlineData("   ",  PresetNameProblem.Empty)]
+    [InlineData("usb",  PresetNameProblem.Duplicate)]   // ya existe «USB», sin distinguir mayúsculas
+    [InlineData("Otro", PresetNameProblem.None)]
+    public void CheckName_NamesTheReason(string name, PresetNameProblem expected)
+        => Assert.Equal(expected, Presets.CheckName(name, ["USB"]));
+
+    [Fact]
+    public void CheckName_TooLong_IsItsOwnReason()
+        => Assert.Equal(PresetNameProblem.TooLong, Presets.CheckName(new string('x', Presets.MaxNameLength + 1), []));
+
+    [Fact]
+    public void CheckRename_KeepingTheOwnName_IsFine_ButNotAnother()
+    {
+        Assert.Equal(PresetNameProblem.None,      Presets.CheckRename("Mio", "Mio", ["Mio", "Otro"]));
+        Assert.Equal(PresetNameProblem.Duplicate, Presets.CheckRename("otro", "Mio", ["Mio", "Otro"]));
+        Assert.Equal(PresetNameProblem.Empty,     Presets.CheckRename(" ", "Mio", ["Mio"]));
+    }
+
+    /// <summary>
+    /// El criterio de `AUD-034`: cada motivo muestra un texto distinto, en los cinco idiomas, y el de
+    /// longitud dice el límite.
+    /// </summary>
+    [Fact]
+    public void EveryRejectionReason_HasItsOwnText_InTheFiveLanguages()
+    {
+        PresetNameProblem[] problems = [PresetNameProblem.Empty, PresetNameProblem.TooLong, PresetNameProblem.Duplicate];
+        var prev = L.Current;
+        try
+        {
+            foreach (AppLang lang in Enum.GetValues<AppLang>())
+            {
+                L.Set(lang);
+                var texts = problems.Select(p => L.T(Presets.MessageKey(p), Presets.MaxNameLength)).ToList();
+
+                Assert.Equal(problems.Length, texts.Distinct().Count());
+                Assert.All(texts, t => Assert.DoesNotContain("preset.", t));   // la clave existe
+                Assert.Contains(Presets.MaxNameLength.ToString(L.Culture), texts[1]);
+            }
+        }
+        finally { L.Set(prev); }
+    }
+
     [Fact]
     public void IsNameAvailable_RejectsDuplicates_CaseInsensitiveAndNormalized()
     {

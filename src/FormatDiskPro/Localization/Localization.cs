@@ -518,6 +518,8 @@ public static class L
         ["preset.yourPresets"]= ["Tus presets", "Your presets", "Suas predefinições", "Vos préréglages", "I tuoi preset"],
         ["preset.empty"]     = ["Aún no has guardado presets.", "You haven't saved any presets yet.", "Você ainda não salvou predefinições.", "Vous n'avez pas encore enregistré de préréglages.", "Non hai ancora salvato preset."],
         ["preset.dupName"]   =["Ya existe un preset con ese nombre.", "A preset with that name already exists.", "Já existe uma predefinição com esse nome.", "Un préréglage portant ce nom existe déjà.", "Esiste già un preset con quel nome."],
+        ["preset.emptyName"] = ["Escribe un nombre para el preset.", "Type a name for the preset.", "Digite um nome para a predefinição.", "Saisissez un nom pour le préréglage.", "Scrivi un nome per il preset."],
+        ["preset.longName"]  = ["El nombre no puede tener más de {0} caracteres.", "The name can't be longer than {0} characters.", "O nome não pode ter mais de {0} caracteres.", "Le nom ne peut pas dépasser {0} caractères.", "Il nome non può superare i {0} caratteri."],
         ["preset.editHeader"]= ["Editar preset", "Edit preset", "Editar predefinição", "Modifier le préréglage", "Modifica preset"],
         ["preset.updateBtn"] = ["Actualizar", "Update", "Atualizar", "Mettre à jour", "Aggiorna"],
         ["preset.cancelEdit"]= ["Cancelar", "Cancel", "Cancelar", "Annuler", "Annulla"],
