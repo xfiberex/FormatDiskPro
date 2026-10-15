@@ -324,7 +324,8 @@ function Show-UiTestCoverage {
     if (-not $Summary) {
         if ($SkipTests)   { Warn "UI tests: NO ejecutados (-SkipTests). Este corte no ha ejercido la app real."; return }
         if (-not $UiTests) { Warn "UI tests: NO ejecutados (sin -UiTests). Este corte no ha ejercido la app real."; return }
-        Warn "UI tests: ejecutados y correctos, pero no se pudo leer el informe (.trx): se desconoce cuántos se omitieron."
+        # Con -UiTests y sin informe el corte ya ha muerto (`AUD-055`); aquí solo se llega con -ResumeRelease.
+        Warn "UI tests: no ejecutados en esta pasada (-ResumeRelease)."
         return
     }
 
@@ -346,6 +347,25 @@ function Show-UiTestCoverage {
     }
 }
 
+<#
+.SYNOPSIS
+    Imprime el resultado de las unitarias leído de su .trx, con las OMITIDAS nombradas y su motivo
+    (`AUD-055`). Se muestra al terminar las pruebas, en el dry run y en el resumen final, como el de UI.
+#>
+function Show-UnitTestSummary {
+    param($Summary)
+
+    if (-not $Summary) { return }
+    if ($Summary.Skipped -gt 0) {
+        Warn "Unitarias: $($Summary.Passed)/$($Summary.Total) — $($Summary.Skipped) OMITIDAS:"
+        $Summary.SkippedDetail | ForEach-Object {
+            Write-Host "      - $($_.Name): $($_.Reason)" -ForegroundColor DarkGray
+        }
+    } else {
+        Ok "Unitarias: $($Summary.Passed)/$($Summary.Total) — 0 omitidas."
+    }
+}
+
 # ── Rutas ──────────────────────────────────────────────────────────────────
 $root          = $PSScriptRoot
 $changelog     = Join-Path $root "CHANGELOG.md"
@@ -363,6 +383,30 @@ if ($UiTests -and -not (Test-Path $uiTestProject)) { Die "No se encontró el pro
 # Se rechaza en vez de ignorarse en silencio: quien pasa las dos cosas cree que su corte lleva la app real
 # probada, y saldría sin ninguna prueba en absoluto.
 if ($UiTests -and $SkipTests) { Die "-UiTests y -SkipTests se contradicen: -SkipTests omite TODAS las pruebas. Elige una." }
+
+# Las tres variables que hacen que una prueba TOQUE HARDWARE (`AUD-056`). Antes solo se miraba la primera, y
+# solo con -UiTests: con FORMATDISKPRO_VERIFY_DRIVE viva de una sesión de depuración, las UNITARIAS del corte
+# escribían en una unidad real sin que nada lo dijera. Se miran todas, aquí arriba y no junto a las pruebas,
+# para que también un -DryRun lo diga antes de ejecutar nada. Si el corte va a ejecutar pruebas, aborta; si
+# no (-SkipTests, -ResumeRelease), no tocan nada y basta con avisar.
+$hardwareVars = [ordered]@{
+    'FORMATDISKPRO_ALLOW_DESTRUCTIVE' = 'la suite de UI FORMATEARÍA la USB de pruebas'
+    'FORMATDISKPRO_ALLOW_YANK'        = 'la suite de UI DESMONTARÍA la USB de pruebas a mitad de una operación'
+    'FORMATDISKPRO_VERIFY_DRIVE'      = 'las unitarias ESCRIBIRÍAN ~64 MB en la unidad que nombra'
+}
+$hardwareSet = @($hardwareVars.Keys | Where-Object { -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_)) })
+if ($hardwareSet.Count -gt 0) {
+    $hardwareList = $hardwareSet | ForEach-Object { "      - $_=$([Environment]::GetEnvironmentVariable($_)): $($hardwareVars[$_])" }
+    if ($SkipTests -or $ResumeRelease) {
+        Warn "Hay variables que hacen tocar hardware a las pruebas. Este corte no ejecuta pruebas, así que no tienen efecto:"
+        $hardwareList | ForEach-Object { Write-Host $_ -ForegroundColor DarkGray }
+    } else {
+        Write-Host "[X] Hay variables que hacen tocar hardware a las pruebas, y un corte de release nunca debe hacerlo:" -ForegroundColor Red
+        $hardwareList | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+        $clear = ($hardwareSet | ForEach-Object { "`$env:$_ = `$null" }) -join '; '
+        Die "Límpialas ($clear) y reintenta."
+    }
+}
 
 # ── Versión ────────────────────────────────────────────────────────────────
 # OJO con la codificación: NO usar `Get-Content -Raw`. En PS 5.1 lee con la página de códigos ANSI del
@@ -491,7 +535,8 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
     }
 
     # ── Pruebas ──────────────────────────────────────────────────────────────
-    $uiSummary = $null   # cobertura real de UI de este corte; se repite en el resumen final
+    $uiSummary   = $null   # cobertura real de UI de este corte; se repite en el resumen final
+    $unitSummary = $null   # resultado de las unitarias leído de su .trx (`AUD-055`); también se repite
     $coverage  = $null   # cobertura de línea de Core/ (T2-04)
     if ($ResumeRelease) {
         Warn "Pruebas omitidas (-ResumeRelease): ya se ejecutaron en el corte que dejó este tag."
@@ -515,10 +560,19 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
         & dotnet build $solution --nologo -v q
         if ($LASTEXITCODE -ne 0) { Die "La compilación de la solución falló. Release abortado." }
 
+        # Con .trx (`AUD-055`): el código de salida dice que nada falló, no qué se omitió. Sin el informe, una
+        # prueba que pasara a omitirse no dejaba rastro en el corte. Un .trx ausente o sin resultados es un
+        # fallo: no hay de dónde sacar qué se probó.
+        $unitTrxName = "unitarias-$Version.trx"
         Info "Ejecutando pruebas unitarias (con cobertura)..."
-        & dotnet test $solution --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $covDir
+        & dotnet test $solution --no-build --nologo --collect:"XPlat Code Coverage" --results-directory $covDir `
+            --logger "trx;LogFileName=$unitTrxName"
         if ($LASTEXITCODE -ne 0) { Die "Las pruebas unitarias fallaron. Release abortado." }
-        Ok "Pruebas unitarias correctas."
+        $unitSummary = Get-TestRunSummary -TrxPath (Join-Path $covDir $unitTrxName)
+        if (-not $unitSummary) {
+            Die "Las pruebas unitarias terminaron sin fallos, pero su informe ($unitTrxName en $covDir) no existe o no tiene resultados: no se sabe qué se probó ni qué se omitió. Release abortado."
+        }
+        Show-UnitTestSummary $unitSummary
 
         # `T10-01`: cuatro fallos distintos dejan de salir por el mismo mensaje. Get-CoreCoverage ya no
         # devuelve $null nunca: dice CUAL de ellos es.
@@ -599,12 +653,8 @@ reprodujo en tres intentos. Ver ROADMAP.md, Tier 10.
                 Die "-UiTests requiere una terminal ELEVADA: FormatDiskPro.exe exige administrador y un proceso no elevado no puede automatizar su ventana. Reabre PowerShell como administrador y reintenta."
             }
 
-            # 2. Opt-in destructivo. Con la variable a 1, la suite FORMATEA de verdad la USB de pruebas.
-            #    Un corte de release jamás debe hacer eso, ni aunque quien lo lanza la tuviera activada de
-            #    una sesión anterior de depuración.
-            if ($env:FORMATDISKPRO_ALLOW_DESTRUCTIVE -eq "1") {
-                Die "FORMATDISKPRO_ALLOW_DESTRUCTIVE=1 está activa: la suite formatearía la USB de pruebas. Un corte de release nunca debe hacerlo. Limpia la variable (`$env:FORMATDISKPRO_ALLOW_DESTRUCTIVE = `$null) y reintenta."
-            }
+            # 2. Opt-in destructivo y de desmontaje: ya rechazados arriba, junto con FORMATDISKPRO_VERIFY_DRIVE,
+            #    antes de la primera prueba (`AUD-056`).
 
             # 3. La USB de pruebas es OPCIONAL: los tests que la necesitan se omiten solos si no está
             #    (ver TestDriveFactAttribute). Se avisa para que quede claro qué cobertura llevó el corte.
@@ -631,6 +681,10 @@ reprodujo en tres intentos. Ver ROADMAP.md, Tier 10.
             Ok "UI tests correctos."
 
             $uiSummary = Get-TestRunSummary -TrxPath $trxPath
+            # Antes, un .trx ilegible seguía adelante con un aviso que afirmaba que habían pasado (`AUD-055`).
+            if (-not $uiSummary) {
+                Die "Los UI tests terminaron sin fallos, pero su informe ($trxPath) no existe o no tiene resultados: no se sabe cuántos se omitieron. Release abortado."
+            }
             Show-UiTestCoverage $uiSummary
         } else {
             Warn "UI tests NO ejecutados (sin -UiTests): este release sale sin haber ejercido la app real. Recomendado: .\release.ps1 -Version $Version -UiTests (desde una terminal elevada)."
@@ -721,6 +775,7 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
                 Write-Host "    Cobertura de Core/: $($coverage.Percent)% (mínimo $CoreCoverageThreshold%)" -ForegroundColor DarkGray
             }
         }
+        Show-UnitTestSummary $unitSummary
         Show-UiTestCoverage $uiSummary
         if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
         Ok "Dry run completado."
@@ -854,6 +909,7 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     Ok "Release $tag publicado: https://github.com/xfiberex/FormatDiskPro/releases/tag/$tag"
     # Se repite aquí a propósito: cuando el corte sale bien, este es el único bloque que se lee.
     if ($coverage) { Ok "Cobertura de Core/: $($coverage.Percent)% ($($coverage.Covered)/$($coverage.Total) líneas)." }
+    Show-UnitTestSummary $unitSummary
     Show-UiTestCoverage $uiSummary
 }
 finally {
