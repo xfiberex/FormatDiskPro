@@ -100,6 +100,11 @@ falta ejecutar `dotnet test --collect:"XPlat Code Coverage"` y la prueba de UI c
 
 **`AUD-064`.** `TestResults/` y `*.trx` van a `.gitignore`.
 
+**Una prueba ajena que falló en el CI del PR.** `PlanRejectionTests` cambia el idioma activo con `L.Set`,
+pero no estaba en `LanguageCollection`, la colección que serializa a las clases que lo cambian. En el CI del
+PR corrió en paralelo con otra y comparó «54.7 GB» con «54,7 GB». En la ejecución anterior, sobre el mismo
+commit, había pasado. Entra en la colección, como las otras seis.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre
