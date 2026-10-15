@@ -41,6 +41,13 @@ internal sealed class FakeProcessRunner(Func<ProcessSpec, IProcessHandle> factor
     /// </summary>
     public static FakeProcessRunner Throwing(Exception ex) => new(_ => throw ex);
 
+    /// <summary>
+    /// Un proceso que arranca y <b>no termina nunca</b>: solo sale de la espera si se la cancela. Es el
+    /// PowerShell colgado frente a una unidad averiada (`AUD-010`).
+    /// </summary>
+    public static FakeProcessRunner Hanging()
+        => new(_ => new FakeProcessHandle("", "", 0, hangs: true));
+
     /// <summary>Un runner que falla la prueba si alguien intenta lanzar algo con él.</summary>
     public static FakeProcessRunner Forbidden()
         => new(spec => throw new InvalidOperationException(
@@ -65,7 +72,8 @@ internal sealed class SyncProgress<T>(Action<T> onReport) : IProgress<T>
 }
 
 /// <summary>Proceso simulado: salida fija, código de salida fijo y registro de si se lo mató.</summary>
-internal sealed class FakeProcessHandle(string stdout, string stderr, int exitCode, int chunkSize = int.MaxValue)
+internal sealed class FakeProcessHandle(
+    string stdout, string stderr, int exitCode, int chunkSize = int.MaxValue, bool hangs = false)
     : IProcessHandle
 {
     private readonly ChunkedReader _out = new(stdout, chunkSize);
@@ -97,7 +105,9 @@ internal sealed class FakeProcessHandle(string stdout, string stderr, int exitCo
     /// <summary><c>true</c> si quien lo arrancó lo liberó.</summary>
     public bool WasDisposed { get; private set; }
 
-    public Task WaitForExitAsync(CancellationToken ct = default) => Task.CompletedTask;
+    /// <summary>Con <c>hangs</c>, la espera solo termina al cancelarla, y lo hace lanzando, como la real.</summary>
+    public Task WaitForExitAsync(CancellationToken ct = default)
+        => hangs ? Task.Delay(Timeout.Infinite, ct) : Task.CompletedTask;
     public void Kill(bool entireProcessTree) => WasKilled = true;
     public void Dispose() => WasDisposed = true;
 

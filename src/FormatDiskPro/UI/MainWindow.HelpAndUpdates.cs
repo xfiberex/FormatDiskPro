@@ -251,6 +251,10 @@ public sealed partial class MainWindow
         }
         catch (Exception ex)
         {
+            // Si lo que falló fue lanzar el instalador, el cierre ya se había dado por intencional, y con
+            // eso EndOperation sale antes de rehabilitar nada: la ventana se quedaba con todos los
+            // controles apagados y solo se podía cerrar (`AUD-030`). La app no se va a cerrar.
+            _closingForUpdate = false;
             FormatProgress.Value = 0;
             _lastOperationFailed = true;
             StatusText.Text = "";

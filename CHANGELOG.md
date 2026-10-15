@@ -57,6 +57,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **Las IOPS del benchmark usaban el separador de millares de Windows** y no el del idioma de la
   aplicación, a diferencia del resto de cifras.
 
+- **Con una unidad averiada, «Formatear» o «Reinicializar» podían no hacer nada al pulsarlos.** Esperaban
+  sin límite una consulta a Windows que no respondía. Ahora cada consulta tiene un plazo de 15 segundos, y
+  al vencer la unidad se trata como si no se hubiera podido consultar.
+- **El historial marcaba como fallido un formato correcto** si la etiqueta del volumen contenía una palabra
+  como «FAIL» o «ERROR». El resultado se decide ahora por la operación, no por el texto de la etiqueta.
+- **Si no se podía lanzar el instalador de una actualización, la ventana se quedaba con todos los
+  controles desactivados.** Ahora vuelven a estar disponibles tras el aviso de error.
+
 ## [1.30.0] — 2026-10-14
 
 **Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar

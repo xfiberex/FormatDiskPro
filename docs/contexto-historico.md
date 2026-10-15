@@ -170,6 +170,25 @@ argumentos, sino la cifra que sigue a cada nombre en el texto ya traducido, así
 prueba posible. En `Benchmark`, junto a `Iops`, la prueba fija el separador por idioma. Francés no se fija
 por carácter, porque según la versión de ICU el separador es el espacio normal o el estrecho.
 
+### 2026-10-15 — `AUD-010` y `AUD-031` (y `AUD-030`, sin cerrar): lo que esperaba para siempre y lo que leía de más
+
+**`AUD-010`, dos causas de cuelgue y no una.** Faltaba el plazo, y además se redirigía una salida de error
+que nadie leía. La segunda bastaba sola para colgar: PowerShell con `-EncodedCommand` escribe sus errores
+en CLIXML (1,7 KB por error) y se bloquea al llenar la tubería de 4 KB, aunque la unidad responda. Por eso
+`stderr` deja de redirigirse, en vez de leerse. Su contenido no se enseña en ningún sitio, y donde sí se
+enseña (formatear, reinicializar) ya se lee, desde `AUD-011`. El plazo, 15 s, es diez veces lo que tarda
+`Get-Disk` en una unidad sana. Al vencer se **mata** el proceso, no solo se deja de esperar, para que un
+PowerShell colgado no se quede vivo detrás de la app.
+
+**`AUD-031`, la cabecera es lo que escribe la app.** Todo lo que va antes del primer `:` lo compone el
+código: la operación, el resultado y la letra. Lo de después puede llevar texto del usuario o de Windows.
+Leer el resultado solo de ahí deja fuera la etiqueta y también los mensajes de error que pudieran contener
+«OK».
+
+**`AUD-030` se arregla pero no se cierra.** Bastaba una línea: devolver `_closingForUpdate` a `false` en
+el `catch`. El criterio pide verlo con un `IUpdateService` falso en la app real, y eso aún no se puede
+inyectar desde una prueba de UI. Queda abierta con su avance, como `AUD-016`.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre

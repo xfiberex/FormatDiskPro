@@ -77,12 +77,6 @@ del autor.
   - **Qué hacer:** activar *Private vulnerability reporting* en *Settings → Code security*. De paso, activar las alertas de Dependabot (ver AUD-066).
   - **Criterio de aceptación:** la API devuelve `enabled: true` y el enlace de `SECURITY.md` abre el formulario desde una cuenta sin permisos.
 
-- [ ] **AUD-010 · Las consultas a PowerShell de `DiskService` no tienen límite de tiempo ni cancelación, y redirigen una salida de error que nadie lee**
-  - **Área:** Código · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Services/DiskService.cs:160-194`
-  - **Qué hacer:** un plazo por consulta (10 a 15 s) con `CancellationTokenSource` que mate el proceso, y leer o no redirigir `stderr`. Que el fallo por plazo llegue a la interfaz como «no se pudo consultar la unidad».
-  - **Criterio de aceptación:** con un `IProcessRunner` falso que no termina, cada método de `DiskService` devuelve su valor de «no se sabe» dentro del plazo.
-
 - [ ] **AUD-016 · El borrado seguro no tiene ninguna prueba automatizada**
   - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
   - **Ubicación:** `src/Services/SecureWipe.cs:80-146` · `tests/FormatDiskPro.Tests/SecureWipeTests.cs:9` · `tests/FormatDiskPro.UiTests/DestructiveLifecycleTests.cs:233`
@@ -142,12 +136,7 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.HelpAndUpdates.cs:241-243`, `:250-261` · `src/UI/MainWindow.xaml.cs:861`
   - **Qué hacer:** poner el indicador después de que `LaunchInstaller` haya devuelto, o devolverlo a `false` en el `catch`.
   - **Criterio de aceptación:** con un `IUpdateService` falso cuyo `LaunchInstaller` lanza, los controles vuelven a estar activos.
-
-- [ ] **AUD-031 · El resultado que muestra el historial se deduce de palabras sueltas del mensaje, incluida la etiqueta del usuario**
-  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Core/HistoryEntry.cs:297-317` · `src/UI/MainWindow.xaml.cs:663`
-  - **Qué hacer:** decidir el resultado solo con el prefijo de la línea (la operación y la palabra que la sigue), no con todo el mensaje.
-  - **Criterio de aceptación:** `FORMAT OK G: … label='A FAIL B'` se clasifica como correcto en una prueba.
+  - **Avance (2026-10-15):** el arreglo está hecho: en el `catch` genérico de `DownloadAndRunUpdateAsync`, `_closingForUpdate` vuelve a `false` antes de que `EndOperation` decida si rehabilita los controles. **Para cerrarla falta** la prueba que pide el criterio: un `IUpdateService` falso cuyo `LaunchInstaller` lance, inyectado en la app real. No existe aún la forma de inyectarlo en una prueba de UI, y la sesión que hizo el cambio no podía ejecutar la app.
 
 ### Rendimiento
 
