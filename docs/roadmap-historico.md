@@ -35,6 +35,9 @@
 | 2026-10-15 | `AUD-044` | Las pistas de la FAT32 pequeña nombran el botón «Formatear», no el «Iniciar» que ya no existe | sin publicar |
 | 2026-10-15 | `AUD-031` | El resultado del historial se decide con la cabecera de la línea, no con la etiqueta que escribió el usuario | sin publicar |
 | 2026-10-15 | `AUD-010` | Las consultas a PowerShell de `DiskService` tienen un plazo de 15 s y dejan de redirigir la salida de error | sin publicar |
+| 2026-10-15 | `AUD-051` | El README dice qué muestra cada operación larga, no velocidad y tiempo restante en todas | sin publicar (solo documentación) |
+| 2026-10-15 | `AUD-050` | La plantilla de sugerencias ya no presenta el CI como fuera de alcance | sin publicar (solo documentación) |
+| 2026-10-15 | `AUD-017` | El mínimo de Windows es uno solo, 10 2004 (19041), declarado en el `.csproj` y citado igual en README, guía e instalador | sin publicar |
 | 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
 | 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
 | 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
@@ -352,6 +355,30 @@
   - **Hecho (2026-10-13):** §3 de `CONTEXT.md` deja de repetir recuentos que caducan: da el comando que los produce y una única línea base fechada. El árbol de §2 se regeneró contra `git ls-files src/` (faltaban `PlanRejection.cs`, `HighContrast.cs`, `SaveFileDialog.cs`, `new-selfsigned-cert.ps1`, `App.xaml` y `app.manifest`) y ya no afirma que ninguna parcial pasa de 800 líneas: `MainWindow.xaml.cs` tiene 986, y eso es `AUD-042`.
 
 ---
+
+- [x] **AUD-017 · El requisito de sistema documentado contradice al instalador, y varios archivos siguen citando el Windows App SDK 1.8**
+  - **Área:** Documentación · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `README.md:94`, `:190` · `.github/CONTRIBUTING.md:13` · `src/installer/installer.iss:11`, `:25`, `:66-67` · `src/FormatDiskPro.csproj:5`, `:43`
+  - **Qué hacer:** decidir el mínimo (de hecho, a 2026-10-11, es 19041), declararlo en el `.csproj` (`SupportedOSPlatformVersion`) y alinear README, CONTRIBUTING, `MinVersion` y los tres comentarios.
+  - **Criterio de aceptación:** una búsqueda de «1809», «19041» y «1.8» en el repo devuelve un único valor coherente.
+  - **Hecho (2026-10-15):** el mínimo es **Windows 10 2004 (compilación 19041)**, el que ya regía. El `.csproj` lo declara (`SupportedOSPlatformVersion`); sin declararlo valía igual, porque lo toma por defecto del `TargetFramework`, pero no se veía en ningún sitio. README y CONTRIBUTING dejan de prometer la 1809. `installer.iss` deja de atribuir el mínimo al Windows App SDK 1.8: remite al `.csproj` y avisa de que `MinVersion` debe cambiar con él. La tabla de arquitectura del README cita el SDK 2.5.1.
+  - **Verificado:** una búsqueda de «1809» fuera de `docs/` no devuelve nada, y «19041» solo aparece como el mismo valor: TFM, `SupportedOSPlatformVersion`, `MinVersion` y los textos. «1.8» queda solo en el registro histórico (`CHANGELOG.md` y el comentario del `.csproj` que cuenta que la versión era `1.8.*` hasta la v1.15.0). El CI compila sin advertencias con la propiedad nueva. No se probó el instalador en un Windows por debajo de la 2004.
+
+- [x] **AUD-050 · La plantilla de sugerencias sigue diciendo que el CI está fuera de alcance a propósito**
+  - **Área:** Documentación · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/ISSUE_TEMPLATE/feature_request.yml:8-11`
+  - **Qué hacer:** quitar «CI» de la lista. (La nota del historial que decía lo mismo ya está corregida.)
+  - **Criterio de aceptación:** ninguna plantilla presenta el CI como fuera de alcance.
+  - **Hecho (2026-10-15):** «CI» sale de la lista de cosas fuera de alcance de `feature_request.yml`.
+  - **Verificado:** ninguna plantilla de `.github/ISSUE_TEMPLATE/` presenta ya el CI como descartado.
+
+- [x] **AUD-051 · El README promete velocidad y tiempo restante «en toda operación larga»; solo las dan dos**
+  - **Área:** Documentación · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `README.md:80` frente a `src/UI/MainWindow.xaml.cs:901-916`
+  - **Qué hacer:** ajustar la frase («tiempo y cancelación en toda operación larga; velocidad y tiempo restante en las que escriben el espacio libre»).
+  - **Criterio de aceptación:** el README describe lo que cada operación muestra.
+  - **Hecho (2026-10-15):** el README dice tiempo transcurrido en toda operación larga, cancelación en las que la admiten (todas salvo el formato rápido y el completo en ReFS, que ejecuta Windows: `AUD-001`), y velocidad y tiempo restante solo en las que escriben el espacio libre (verificar capacidad y borrado seguro).
+  - **Verificado:** contra el código. `SetCancelAvailable(useFormatCom)` es la única vía que apaga Cancelar, y `_opTotalBytes` solo lo rellenan la verificación y el borrado.
 
 ## 🏁 Estado al cierre de cada tier (texto del 2026-10-11)
 

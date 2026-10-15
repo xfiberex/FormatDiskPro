@@ -189,6 +189,21 @@ Leer el resultado solo de ahí deja fuera la etiqueta y también los mensajes de
 el `catch`. El criterio pide verlo con un `IUpdateService` falso en la app real, y eso aún no se puede
 inyectar desde una prueba de UI. Queda abierta con su avance, como `AUD-016`.
 
+### 2026-10-15 — `AUD-017`, `AUD-050` y `AUD-051`: lo que los documentos prometían
+
+**`AUD-017`, el mínimo se declara donde se decide.** No se eligió un mínimo nuevo: el que regía es la
+compilación 19041. Lo fijaba, sin decirlo, el `TargetFramework` (`net10.0-windows10.0.19041.0`, del que
+.NET toma `SupportedOSPlatformVersion` si no se declara), y lo exigía el instalador. Lo que estaba mal eran
+los textos: el README y la guía prometían la 1809, y `installer.iss` atribuía el mínimo al Windows App SDK
+1.8, que ya no es la versión del proyecto. Ahora el `.csproj` lo declara a la vista, y el resto remite a
+él. No se ha comprobado qué mínimo exige el Windows App SDK 2.5.1 por su cuenta. Si algún día se quisiera
+bajar, eso habría que mirarlo primero.
+
+**`AUD-051`, contado contra el código.** La frase nueva del README sale de dos sitios:
+`SetCancelAvailable(useFormatCom)`, la única vía que apaga Cancelar, y `_opTotalBytes`, que solo rellenan
+la verificación y el borrado. La propuesta del informe decía «cancelación en toda operación larga», y
+tampoco era cierto desde `AUD-001`.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre

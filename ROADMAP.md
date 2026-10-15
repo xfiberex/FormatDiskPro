@@ -84,12 +84,6 @@ del autor.
   - **Criterio de aceptación:** `SecureWipe.cs` supera el 90 % de cobertura y existe una prueba que falla si la última pasada no es aleatoria.
   - **Avance (2026-10-15):** hecho el código, falta verificarlo. La costura `SecureWipe.RunInAsync` tiene nueve unitarias nuevas en `SecureWipeTests`, entre ellas `RunInAsync_ThreePasses_LeavesZerosThenOnesThenRandom`, que falla si la última pasada no es aleatoria. También está la variante de UI `SecureWipe_AfterFormat_WritesToTheDrive_AndCancelCleansUp`. Por el camino apareció y se corrigió un fallo: con 3 o 7 pasadas, la segunda se quedaba sin espacio (ver `docs/contexto-historico.md`). **Para cerrarla falta:** medir la cobertura de `SecureWipe.cs` con `dotnet test --collect:"XPlat Code Coverage"` y ejecutar la prueba de UI con la USB y `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`. Ninguna de las dos se pudo hacer desde la sesión que escribió el cambio.
 
-- [ ] **AUD-017 · El requisito de sistema documentado contradice al instalador, y varios archivos siguen citando el Windows App SDK 1.8**
-  - **Área:** Documentación · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `README.md:94`, `:190` · `.github/CONTRIBUTING.md:13` · `src/installer/installer.iss:11`, `:25`, `:66-67` · `src/FormatDiskPro.csproj:5`, `:43`
-  - **Qué hacer:** decidir el mínimo (de hecho, a 2026-10-11, es 19041), declararlo en el `.csproj` (`SupportedOSPlatformVersion`) y alinear README, CONTRIBUTING, `MinVersion` y los tres comentarios.
-  - **Criterio de aceptación:** una búsqueda de «1809», «19041» y «1.8» en el repo devuelve un único valor coherente.
-
 - [ ] **AUD-020 · El corte no comprueba en qué rama está ni si va por detrás de `origin`**
   - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
   - **Ubicación:** `release.ps1:421-426`, `:745-749`, `:805`
@@ -227,20 +221,6 @@ del autor.
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:912` («ETA») · `src/Core/FormatLogic.cs:185` (B, KB, MB, GB, TB fijos) · detalle del historial tal como se escribe en el registro · evidencias: `evidencias/galeria-fr-656/main-secure-light.png`, `evidencias/galeria-es/history-dark.png`
   - **Qué hacer:** pasar «ETA» y las unidades por `L.T` (o decidir que las unidades no se traducen y cambiar el texto fijo francés a «4 GB»).
   - **Criterio de aceptación:** en la galería en francés no conviven «Go» y «GB».
-
-### Documentación
-
-- [ ] **AUD-050 · La plantilla de sugerencias sigue diciendo que el CI está fuera de alcance a propósito**
-  - **Área:** Documentación · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `.github/ISSUE_TEMPLATE/feature_request.yml:8-11`
-  - **Qué hacer:** quitar «CI» de la lista. (La nota del historial que decía lo mismo ya está corregida.)
-  - **Criterio de aceptación:** ninguna plantilla presenta el CI como fuera de alcance.
-
-- [ ] **AUD-051 · El README promete velocidad y tiempo restante «en toda operación larga»; solo las dan dos**
-  - **Área:** Documentación · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `README.md:80` frente a `src/UI/MainWindow.xaml.cs:901-916`
-  - **Qué hacer:** ajustar la frase («tiempo y cancelación en toda operación larga; velocidad y tiempo restante en las que escriben el espacio libre»).
-  - **Criterio de aceptación:** el README describe lo que cada operación muestra.
 
 ### DevOps
 

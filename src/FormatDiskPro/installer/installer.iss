@@ -8,7 +8,8 @@
 ;    /DPublishDir=<ruta>      carpeta de publicación de .NET (self-contained)
 ;
 ;  Requisitos mínimos:
-;    Windows 10 v2004 (19041) o superior — requerido por Windows App SDK 1.8.
+;    Windows 10 v2004 (19041) o superior: el mínimo que declara la app (SupportedOSPlatformVersion
+;    del .csproj). Si cambia allí, cambia MinVersion aquí abajo.
 ;    Arquitectura: x64.
 ; ============================================================================
 
@@ -22,7 +23,7 @@
 #endif
 
 ; Carpeta con el resultado de `dotnet publish -r win-x64 --self-contained true`.
-; TFM: net10.0-windows10.0.19041.0 (WinUI 3 / Windows App SDK 1.8).
+; TFM: net10.0-windows10.0.19041.0 (WinUI 3 / Windows App SDK 2.5.1).
 #ifndef PublishDir
   #define PublishDir "..\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish"
 #endif
@@ -63,7 +64,7 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; Windows App SDK 1.8 requiere como mínimo Windows 10 v2004 (build 19041).
+; El mínimo de la app (SupportedOSPlatformVersion del .csproj): Windows 10 v2004, compilación 19041.
 MinVersion=10.0.19041
 ; Cierra la app si está en ejecución (clave para actualizaciones in-place).
 CloseApplications=yes

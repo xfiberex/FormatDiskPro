@@ -10,7 +10,8 @@ Gracias por el interés. Antes de escribir código, dos lecturas que ahorran tie
 
 ## Requisitos
 
-- Windows 10 1809+ / Windows 11, x64.
+- Windows 10 versión 2004 (compilación 19041) o posterior, o Windows 11; x64. Es el mínimo que declara
+  `SupportedOSPlatformVersion` en el `.csproj`, y el instalador lo exige con `MinVersion`.
 - .NET SDK **10**.
 - [Inno Setup 6](https://jrsoftware.org/isinfo.php) solo si vas a generar el instalador.
 

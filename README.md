@@ -77,7 +77,9 @@ máquina: la app usa el tuyo. Ninguna captura está editada: las genera
 - Tema automático, claro u oscuro, con el **color de acento de Windows**. Todo color de texto pasa una
   prueba automática de **contraste WCAG AA**.
 - La lista de unidades se refresca sola al conectar o desconectar; expulsión segura de extraíbles.
-- Tiempo, velocidad, ETA y **cancelación** en toda operación larga, y aviso (sonido + barra de tareas) al
+- Tiempo transcurrido en toda operación larga, y **cancelación** en las que la admiten (todas salvo el
+  formato rápido y el completo en ReFS, que ejecuta Windows); velocidad y tiempo restante en las que
+  escriben el espacio libre (verificar capacidad y borrado seguro). Aviso (sonido + barra de tareas) al
   terminar si estás en otra ventana.
 - **Historial** con búsqueda, filtros y exportación a CSV.
 - **Actualizaciones** desde GitHub Releases con sus notas, y verificación del instalador antes de ejecutarlo.
@@ -91,7 +93,7 @@ y ejecútalo. Incluye .NET: no hay que instalar nada más.
 
 | Requisito | |
 |---|---|
-| Sistema | Windows 10 1809+ u 11, x64 |
+| Sistema | Windows 10 versión 2004 (compilación 19041) o posterior, o Windows 11; x64 |
 | Permisos | Administrador (lo pide el UAC al abrir) |
 
 La app busca versiones nuevas al arrancar (desactivable en *Configuración*) y en
@@ -187,7 +189,7 @@ Las capturas se toman del publish *self-contained* y sobre la USB de pruebas: en
 |---|---|
 | `src/FormatDiskPro/Core/` | Lógica pura y testeable: comandos, parseos, umbrales, paleta de colores medida |
 | `src/FormatDiskPro/Services/` | Efectos: PowerShell (siempre por `-EncodedCommand`), disco, red, ajustes, historial |
-| `src/FormatDiskPro/UI/` | WinUI 3 (Windows App SDK 1.8, unpackaged, Mica) |
+| `src/FormatDiskPro/UI/` | WinUI 3 (Windows App SDK 2.5.1, unpackaged, Mica) |
 | `src/FormatDiskPro/Localization/` | Todo el texto de la interfaz, en los 5 idiomas |
 | `tests/` | Unitarias (`FormatDiskPro.Tests`) y de UI (`FormatDiskPro.UiTests`) |
 

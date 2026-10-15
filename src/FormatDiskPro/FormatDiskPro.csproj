@@ -3,6 +3,11 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- Mínimo de Windows (AUD-017): Windows 10 2004, compilación 19041. Sin declararlo valía lo mismo,
+         porque es el que toma por defecto del TargetFramework, pero no se veía en ningún sitio, y el
+         README y la guía prometían la 1809. installer.iss lo exige con MinVersion=10.0.19041: si cambia
+         aquí, cambia allí. -->
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Nullable>enable</Nullable>
