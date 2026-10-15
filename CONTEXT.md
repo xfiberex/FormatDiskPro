@@ -149,7 +149,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 - **Un `ContentDialog` convive con MÁS DE UN `ControlType.Window`** en el árbol: WinUI deja un proxy de Popup
   vacío junto al diálogo real. `DialogHelper.FindDialog` se queda con el que tiene contenido (más hijos).
 - **`AppFixture` respalda y restaura `settings.json` + `history.log`** de `%AppData%` en cada corrida: la app
-  es unpackaged, así que sin eso las pruebas contaminarían la instalación real del usuario.
+  es unpackaged, así que sin eso las pruebas contaminarían la instalación real del usuario. La copia va también
+  a `%LocalAppData%\FormatDiskPro.UiTests\` y, si una corrida muere, la siguiente la restaura (`AUD-040`).
 - **NUNCA dos corridas en paralelo** contra la misma app/unidad: cada una lanza su instancia elevada del `.exe`
   y compiten por el mismo `DrivePicker` y el mismo `settings.json`. Produce fallos imposibles de diagnosticar.
 - `VerifyCapacity_CompletesForTestDrive` lleva `[Trait("Category","Slow")]`: escribe y relee casi todo el
@@ -176,7 +177,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. `master` sin trabajo pendiente de publicar |
+| **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. Pendiente de publicar: cambios internos del corte y las pruebas (`AUD-040`, `AUD-055`, `AUD-056`) |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
@@ -438,8 +439,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 commit + tag `vX.Y.Z` → push → `gh release create` con el instalador **y su `.sha256`**.
 
 > **Corte recomendado:** `.\release.ps1 -Version X.Y.Z -UiTests` desde una **terminal elevada**. Con el flag,
-> el release **no sale si la app real falla**. `release.ps1` **aborta** si encuentra
-> `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` activa: un corte jamás debe formatear una unidad.
+> el release **no sale si la app real falla**. `release.ps1` **aborta**, también en `-DryRun`, si encuentra
+> `FORMATDISKPRO_ALLOW_DESTRUCTIVE`, `_ALLOW_YANK` o `_VERIFY_DRIVE`: un corte jamás toca hardware (`AUD-056`).
 >
 > Solo hace `git add -u`, así que **los archivos nuevos hay que `git add`earlos antes**.
 >

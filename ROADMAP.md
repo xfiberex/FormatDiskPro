@@ -29,41 +29,41 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **53 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-15 · **Publicado:** v1.30.0 · **50 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
 | **2** | Medio | 9 |
-| **3** | Bajo | 43 |
+| **3** | Bajo | 40 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **53** |
+| | **Total** | **50** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **52** y se han cerrado **19**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **49** y se han cerrado **22**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-040`, `AUD-055`, `AUD-056`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
 | Seguridad | – | 1 | – | 1 |
 | Código | – | 1 | 3 | 4 |
-| QA | – | 1 | 1 | 2 |
+| QA | – | 1 | – | 1 |
 | Documentación | – | 1 | 2 | 3 |
-| DevOps | – | 4 | 15 | 19 |
+| DevOps | – | 4 | 13 | 17 |
 | Legal | – | 1 | 5 | 6 |
 | Rendimiento | – | – | 1 | 1 |
 | UI/UX | – | – | 3 | 3 |
 | Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 6 | 6 |
-| **Total** | **–** | **9** | **43** | **52** |
+| **Total** | **–** | **9** | **40** | **49** |
 
-**Esfuerzo:** 42 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 39 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
 **Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
-`AUD-066`, dos interruptores en GitHub; `AUD-044` a `AUD-047`, textos) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
-`AUD-056` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
+`AUD-066`, dos interruptores en GitHub; `AUD-044` a `AUD-047`, textos) → antes del próximo corte, `AUD-020`, `AUD-021`, `AUD-052` a
+`AUD-054` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
 del autor.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
@@ -203,14 +203,6 @@ del autor.
   - **Qué hacer:** reducir el margen al mínimo que el sistema de archivos necesite cuando se viene de formatear, o declararlo en la pista de la opción y en el resultado.
   - **Criterio de aceptación:** el margen es coherente con lo que la interfaz promete, y una prueba fija el valor.
 
-### QA
-
-- [ ] **AUD-040 · El respaldo de ajustes de las pruebas de UI no sobrevive a que el proceso de pruebas muera**
-  - **Área:** QA · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `tests/FormatDiskPro.UiTests/SettingsBackup.cs:10-33` · `tests/FormatDiskPro.UiTests/AppFixture.cs:27`, `:47-53`
-  - **Qué hacer:** escribir el respaldo también a disco y, al empezar la corrida siguiente, restaurarlo si existe uno sin consumir.
-  - **Criterio de aceptación:** tras matar el proceso de pruebas a mitad, la corrida siguiente restaura los archivos originales.
-
 ### Refactorización
 
 - [ ] **AUD-041 · La misma lógica vive copiada en varios sitios**
@@ -304,18 +296,6 @@ del autor.
   - **Ubicación:** `release.ps1:653-662`
   - **Qué hacer:** exigir `$end -gt $start` y que el cuerpo contenga alguna línea que no sea encabezado.
   - **Criterio de aceptación:** con dos encabezados seguidos, el corte aborta.
-
-- [ ] **AUD-055 · El corte no dice qué pruebas unitarias se omitieron**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:519-521`, `:292-299`, `:324-328`
-  - **Qué hacer:** `--logger trx` también en las unitarias, y tratar como fallo un `.trx` ausente o sin resultados.
-  - **Criterio de aceptación:** una prueba omitida aparece nombrada en el resumen del corte.
-
-- [ ] **AUD-056 · El corte solo rechaza una de las tres variables que hacen tocar hardware**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:605-607` · `tests/FormatDiskPro.UiTests/TestDriveFacts.cs` · `tests/FormatDiskPro.Tests/CapacityVerifierDriveTests.cs:16-23`
-  - **Qué hacer:** rechazar o anunciar las tres antes de la primera ejecución de pruebas.
-  - **Criterio de aceptación:** con cualquiera de las tres definida, `release.ps1 -DryRun` aborta o lo declara.
 
 - [ ] **AUD-057 · Los paquetes de prueba no los actualiza nadie y ya divergen entre los dos proyectos**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo

@@ -62,6 +62,29 @@
 
 ## Entradas
 
+### 2026-10-15 — `AUD-055`, `AUD-056` y `AUD-040`: lo que el corte calla y lo que las pruebas dejan
+
+**`AUD-056`, dónde va la comprobación.** Las tres variables que hacen tocar hardware se miran justo tras
+validar los parámetros, y no junto a las pruebas como la antigua. Así un `-DryRun` las declara antes de
+compilar nada, que es lo que pide el criterio. Abortar en vez de avisar cuando se van a ejecutar pruebas no
+es exceso: con `FORMATDISKPRO_VERIFY_DRIVE` viva, las **unitarias** del corte escriben en una unidad real, y
+`-UiTests` no hace falta para eso. Con `-SkipTests` o `-ResumeRelease` solo se avisa, porque no corre nada.
+
+**`AUD-055`, un `.trx` que falta es un fallo, no un aviso.** El aviso anterior de las de UI («ejecutados y
+correctos, pero no se pudo leer el informe») era la misma clase de afirmación que `T2-12` quiso quitar: dar
+por buena una cobertura que nadie ha visto. El `.trx` de las unitarias va a la carpeta de cobertura, que
+`Get-CoreCoverage` recorre buscando solo `coverage.cobertura.xml`, así que no le estorba.
+
+**`AUD-040`, el marcador de completa.** La copia en disco se escribe con un marcador al final, y sin él no
+se restaura: una captura que murió a medias tiene menos archivos de la cuenta, y restaurarla borraría los
+que no llegó a copiar. Si la restauración de una copia pendiente falla a medias, la copia se conserva y la
+captura nueva no la pisa, para no respaldar el estado que dejaron las pruebas.
+
+**Cómo se validó sin Windows en la sesión.** Un commit temporal, retirado antes del PR, trajo el job de
+`AUD-058`, que todavía no está en `master`, y un paso que ejecutaba solo `SettingsBackupTests`, que no
+lanzan la app. PS 5.1 analizó `release.ps1` sin errores y las tres pruebas pasaron. Falta ejecutar el
+corte de verdad con las variables puestas.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre

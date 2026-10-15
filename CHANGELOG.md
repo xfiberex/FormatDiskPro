@@ -16,6 +16,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Interno
+
+- El corte de versión nombra las pruebas unitarias que se omitieron, y no sale si falta el informe de
+  alguna corrida de pruebas (`AUD-055`).
+- El corte se niega a ejecutar pruebas con cualquiera de las tres variables de entorno que les hacen tocar
+  una unidad real, y lo dice también en la simulación (`AUD-056`).
+- Si una corrida de pruebas de UI muere a mitad, la siguiente devuelve los ajustes y el historial del
+  usuario a como estaban (`AUD-040`).
+
 ## [1.30.0] — 2026-10-14
 
 **Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar
