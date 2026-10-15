@@ -63,6 +63,24 @@
 
 ## Entradas
 
+### 2026-10-15 — Se trabaja directamente en `master`, y el corte real lo lanza el mantenedor
+
+**Qué cambia.** El trabajo va directo a `master`, sin ramas ni PRs. El mantenedor hace los push y lanza
+`release.ps1` en real. Claude prepara el CHANGELOG y los documentos, ejecuta la simulación completa y
+comprueba el release ya publicado.
+
+**Por qué.** En esta sesión, el entorno de Claude no podía hacer push, fusionar PRs ni lanzar el corte
+real: el clasificador del modo automático lo bloquea («crear algo público»), incluso con la autorización
+dada en el chat. Además, no le deja modificar sus propios permisos. Cada paso de rama → PR → merge
+acababa siendo un comando que el mantenedor tenía que ejecutar a mano. Trabajando en `master`, ese
+trabajo se queda en un solo push.
+
+**Lo que se pierde, y cómo se compensa.** Sin PR, el CI ya no filtra un cambio antes de que entre en
+`master`: llega después del push. Por eso, antes de cada commit se exige en local lo mismo que el CI
+(`-warnaserror` y unitarias, y pruebas de UI si el cambio toca la app). `AUD-066` se ajusta: la protección
+de `master` debe impedir forzar y borrar la rama, pero no exigir PR ni check, porque eso bloquearía este
+flujo. Los PRs de colaboradores externos siguen igual (`CONTRIBUTING.md`).
+
 ### 2026-10-15 — Corte de la v1.30.1
 
 **Por qué parche y no *minor*.** Durante la preparación se habló de una «v1.31.0», pero *Sin publicar* solo

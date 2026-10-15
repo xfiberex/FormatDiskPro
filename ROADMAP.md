@@ -227,7 +227,7 @@ del autor.
 - [ ] **AUD-066 · La rama principal no está protegida y las alertas de dependencias están desactivadas**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
   - **Ubicación:** configuración del repositorio `xfiberex/FormatDiskPro`
-  - **Qué hacer:** una regla que impida forzar y borrar `master` y exija el check de CI en los PR; activar las alertas de Dependabot; revisar el PR #2.
+  - **Qué hacer:** una regla que impida forzar y borrar `master`, **sin exigir PR ni check para el push**: el mantenedor trabaja directamente en `master` desde el 2026-10-15 (ver `CONTEXT.md` §4, *Build y publicación*), y exigirlos bloquearía ese push. Activar las alertas de Dependabot. (El PR #2 que citaba esta tarea ya se fusionó.)
   - **Criterio de aceptación:** la API devuelve la protección y las alertas activas.
 
 ### Legal
