@@ -29,19 +29,19 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-13 · **Publicado:** v1.29.0 · **53 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-15 · **Publicado:** v1.30.0 · **49 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
 | **2** | Medio | 9 |
-| **3** | Bajo | 43 |
+| **3** | Bajo | 39 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **53** |
+| | **Total** | **49** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **52** y se han cerrado **19**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **48** y se han cerrado **23**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
@@ -55,14 +55,14 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **52** y se han cerrado **
 | UI/UX | – | – | 3 | 3 |
 | Arquitectura y resiliencia | – | – | 4 | 4 |
 | Refactorización | – | – | 3 | 3 |
-| Redacción | – | – | 6 | 6 |
-| **Total** | **–** | **9** | **43** | **52** |
+| Redacción | – | – | 2 | 2 |
+| **Total** | **–** | **9** | **39** | **48** |
 
-**Esfuerzo:** 42 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 38 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
 **Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
-`AUD-066`, dos interruptores en GitHub; `AUD-044` a `AUD-047`, textos) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
+`AUD-066`, dos interruptores en GitHub) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a
 `AUD-056` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
 del autor.
 
@@ -233,31 +233,6 @@ del autor.
   - **Criterio de aceptación:** la compilación con la documentación activada no da avisos de XML mal formado.
 
 ### Redacción
-
-- [ ] **AUD-044 · Dos pistas de la interfaz mandan no usar «el botón Iniciar», que ya no existe**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Localization/Localization.cs:147`, `:151` (cinco idiomas) · `.github/ISSUE_TEMPLATE/bug_report.yml:69`
-  - **Qué hacer:** nombrar el botón como se ve («no el botón Formatear») en los cinco idiomas y en la plantilla.
-  - **Criterio de aceptación:** ninguna cadena ni plantilla menciona un botón «Iniciar».
-
-- [ ] **AUD-045 · El aviso de privacidad remite a un menú que no se llama así en inglés, portugués, francés ni italiano**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Localization/Localization.cs:477` frente a `:232`
-  - **Qué hacer:** usar en cada idioma el nombre real del menú; mejor aún, componer el texto con la propia clave `menu.config`.
-  - **Criterio de aceptación:** una prueba comprueba que `about.privacy` contiene el valor de `menu.config` en cada idioma.
-
-- [ ] **AUD-046 · Un mensaje de error dice que exFAT admite etiquetas de 32 caracteres; el código valida 11**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/Localization/Localization.cs:439` (cinco idiomas) frente a `src/Core/FormatLogic.cs:122-127`
-  - **Qué hacer:** corregir el texto y generarlo a partir de `MaxLabelLength`.
-  - **Criterio de aceptación:** una prueba compara las cifras del texto con `MaxLabelLength` para los cinco sistemas.
-
-- [ ] **AUD-047 · Las IOPS del benchmark se formatean con la cultura de Windows y no con la del idioma de la app**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.Operations.cs:622-623`
-  - **Qué hacer:** `string.Create(L.Culture, $"…")` o `ToString("N0", L.Culture)`.
-  - **Criterio de aceptación:** una prueba fija el separador de miles de las IOPS para cada idioma.
-  - **Antecedente:** ya conocido (`T6-12`), cierre incompleto: «los números pasan a seguir al idioma de la app» no llegó a este punto
 
 - [ ] **AUD-048 · Tratamiento, terminología y tipografía no son uniformes dentro de cada idioma**
   - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio

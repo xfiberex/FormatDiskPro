@@ -16,6 +16,17 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **Las pistas de *FAT32 pequeña* decían que no se usara «el botón Iniciar»**, que ya no existe. Ahora
+  nombran el botón «Formatear», en los cinco idiomas.
+- **El aviso de privacidad de *Acerca de* remitía a un menú «Configuration»** que en inglés, portugués,
+  francés e italiano se llama de otra forma. Ahora usa el nombre que se ve.
+- **Al rechazar una etiqueta de volumen, *Reinicializar unidad* decía que exFAT admite 32 caracteres.**
+  Admite 11, que es lo que la aplicación comprueba. El mensaje toma ahora las cifras de esa comprobación.
+- **Las IOPS del benchmark usaban el separador de millares de Windows** y no el del idioma de la
+  aplicación, a diferencia del resto de cifras.
+
 ## [1.30.0] — 2026-10-14
 
 **Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar
