@@ -16,6 +16,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **El requisito de sistema documentado es el real: Windows 10 versión 2004 (compilación 19041) o
+  posterior.** El README prometía la 1809, pero el instalador ya exigía la 2004. La aplicación lo declara
+  ahora en su proyecto (`AUD-017`).
+- El README describe lo que muestra cada operación larga. La velocidad y el tiempo restante solo aparecen
+  en las que escriben el espacio libre (`AUD-051`).
+
 ## [1.30.0] — 2026-10-14
 
 **Que la aplicación diga lo que pasó.** Correcciones de una auditoría completa. Lo más importante: cancelar

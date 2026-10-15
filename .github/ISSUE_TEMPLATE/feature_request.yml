@@ -7,7 +7,7 @@ body:
       value: |
         FormatDiskPro sirve para **formatear, diagnosticar y gestionar unidades en Windows**. Hay cosas
         que están fuera **a propósito** (creador de USB booteable desde ISO, gestor de particiones
-        completo, clonado de discos, ventana redimensionable, CI): mira las secciones *Deliberadamente
+        completo, clonado de discos, ventana redimensionable): mira las secciones *Deliberadamente
         fuera de alcance* y *Decisiones cerradas* de
         [ROADMAP.md](https://github.com/xfiberex/FormatDiskPro/blob/master/ROADMAP.md) antes de escribir.
 
