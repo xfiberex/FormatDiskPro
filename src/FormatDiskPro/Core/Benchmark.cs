@@ -68,6 +68,17 @@ public static class Benchmark
         => blockBytes <= 0 ? 0 : bytesPerSec / blockBytes;
 
     /// <summary>
+    /// Las IOPS de una velocidad de 4 KiB aleatorio, como entero con separador de millares y sufijo
+    /// <c>"IOPS"</c>. El separador es el del idioma de la app (<see cref="L.Culture"/>), como en
+    /// <see cref="FormatLogic.FormatBytes"/>: con <c>{0:N0}</c> a secas salía el de Windows, y con la app en
+    /// inglés sobre un Windows en español se leía «12.345 IOPS» junto a «1.5 MB/s» (`AUD-047`).
+    /// </summary>
+    /// <param name="bytesPerSec">Velocidad del 4 KiB aleatorio en bytes por segundo.</param>
+    /// <param name="culture">Cultura de formato; por defecto, la del idioma de la app.</param>
+    public static string FormatIops(double bytesPerSec, IFormatProvider? culture = null)
+        => string.Format(culture ?? L.Culture, "{0:N0} IOPS", Math.Round(Iops(bytesPerSec, Random4KBlockBytes)));
+
+    /// <summary>
     /// Mediana de un conjunto de velocidades; <c>0</c> si está vacío. Para un número par de valores
     /// devuelve la media de los dos centrales. No modifica la entrada. Lógica pura.
     /// </summary>

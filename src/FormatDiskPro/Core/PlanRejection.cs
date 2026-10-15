@@ -58,7 +58,11 @@ public static class PlanRejection
             PlanProblem.MbrCannotAddressDisk => ("reinit.plan.mbrTooBig",
                                                  [FormatLogic.FormatBytes(ReinitPlan.MbrLimitBytes),
                                                   FormatLogic.FormatBytes(diskSizeBytes)]),
-            PlanProblem.InvalidLabel         => ("reinit.plan.invalidLabel", []),
+            // Las cifras salen de MaxLabelLength (`AUD-046`): escritas en el texto, decían que exFAT
+            // admite 32 caracteres mientras el código validaba 11.
+            PlanProblem.InvalidLabel         => ("reinit.plan.invalidLabel",
+                                                 [FormatLogic.MaxLabelLength("FAT32"),
+                                                  FormatLogic.MaxLabelLength("NTFS")]),
             PlanProblem.DoesNotFit           => ("reinit.plan.doesNotFit",
                                                  [FormatLogic.FormatBytes(diskSizeBytes)]),
             PlanProblem.PartitionTooSmall    => ("reinit.plan.tooSmall",

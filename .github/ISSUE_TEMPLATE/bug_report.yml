@@ -66,7 +66,7 @@ body:
       placeholder: |
         1. Seleccionar la unidad D:
         2. Elegir exFAT y desmarcar "Formato rápido"
-        3. Pulsar Iniciar
+        3. Pulsar «Formatear D:»
         4. ...
     validations:
       required: true
