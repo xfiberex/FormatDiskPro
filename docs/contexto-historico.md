@@ -62,6 +62,24 @@
 
 ## Entradas
 
+### 2026-10-15 — Siete tandas en PR, a la espera de validarse en local
+
+**Cómo se trabajó.** Las tareas del `ROADMAP.md` se resolvieron por tandas, una rama y un PR cada una,
+desde `master` (#3 a #9). La sesión no tenía el SDK de .NET, así que cada tanda se validó en el CI de
+Windows, lanzándolo a mano sobre la rama. Cuando hacía falta algo que el CI aún no hace (analizar
+`release.ps1` en PowerShell 5.1, ejecutar unas pruebas de UI que no lanzan la app), se usó un commit
+temporal que se retiraba antes de abrir el PR.
+
+**Lo que se dejó pendiente, a propósito.** Una tarea solo se dio por cerrada si su criterio de aceptación
+estaba comprobado. `AUD-016`, `AUD-030`, `AUD-033` y `AUD-037` tienen el código hecho y una nota de
+**Avance** que dice qué falta, siempre algo que solo se puede ejecutar en la máquina del mantenedor: la
+cobertura de `SecureWipe.cs`, una prueba de UI con la USB de pruebas, o una que lanza la app. La lista
+completa está en §3.
+
+**Un hallazgo de fuera de las tareas.** `PlanRejectionTests` cambiaba el idioma activo sin estar en
+`LanguageCollection` y falló una vez en el CI («54,7 GB» frente a «54.7 GB»). El arreglo va en las siete
+ramas: la primera que se fusione lo trae, y en las demás no cambia nada.
+
 ### 2026-10-14 — Corte de la v1.30.0
 
 **Por qué ahora.** Desde la v1.29.0 se habían cerrado 19 tareas de la auditoría del 2026-10-11 —entre
