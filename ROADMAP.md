@@ -29,41 +29,41 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-15 · **Publicado:** v1.30.0 · **52 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-15 · **Publicado:** v1.30.0 · **34 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 9 |
-| **3** | Bajo | 42 |
+| **2** | Medio | 6 |
+| **3** | Bajo | 27 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **52** |
+| | **Total** | **34** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **51** y se han cerrado **20**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-064`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **33** y se han cerrado **38**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-031`, `AUD-033`, `AUD-034`, `AUD-037`, `AUD-040`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-064`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
 | Seguridad | – | 1 | – | 1 |
-| Código | – | 1 | 3 | 4 |
-| QA | – | 1 | – | 1 |
-| Documentación | – | 1 | 2 | 3 |
-| DevOps | – | 4 | 14 | 18 |
+| Código | – | – | 2 | 2 |
+| QA | – | – | – | 0 |
+| Documentación | – | – | – | 0 |
+| DevOps | – | 4 | 10 | 14 |
 | Legal | – | 1 | 5 | 6 |
 | Rendimiento | – | – | 1 | 1 |
-| UI/UX | – | – | 2 | 2 |
-| Arquitectura y resiliencia | – | – | 4 | 4 |
+| UI/UX | – | – | 1 | 1 |
+| Arquitectura y resiliencia | – | – | 3 | 3 |
 | Refactorización | – | – | 3 | 3 |
-| Redacción | – | – | 6 | 6 |
-| **Total** | **–** | **9** | **42** | **51** |
+| Redacción | – | – | 2 | 2 |
+| **Total** | **–** | **6** | **27** | **33** |
 
-**Esfuerzo:** 41 de esfuerzo bajo (hasta 2 horas) y 10 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 26 de esfuerzo bajo (hasta 2 horas) y 7 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
 **Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
-`AUD-066`, dos interruptores en GitHub; `AUD-044` a `AUD-047`, textos) → antes del próximo corte, `AUD-020`, `AUD-021`, `AUD-052` a
-`AUD-054` → `AUD-017`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
+`AUD-066`, dos interruptores en GitHub) → antes del próximo corte, `AUD-020`, `AUD-021` y `AUD-052` a `AUD-054`.
+Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
 del autor.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
@@ -76,13 +76,6 @@ del autor.
   - **Ubicación:** `.github/SECURITY.md:20-22` · configuración del repositorio
   - **Qué hacer:** activar *Private vulnerability reporting* en *Settings → Code security*. De paso, activar las alertas de Dependabot (ver AUD-066).
   - **Criterio de aceptación:** la API devuelve `enabled: true` y el enlace de `SECURITY.md` abre el formulario desde una cuenta sin permisos.
-
-- [ ] **AUD-016 · El borrado seguro no tiene ninguna prueba automatizada**
-  - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
-  - **Ubicación:** `src/Services/SecureWipe.cs:80-146` · `tests/FormatDiskPro.Tests/SecureWipeTests.cs:9` · `tests/FormatDiskPro.UiTests/DestructiveLifecycleTests.cs:233`
-  - **Qué hacer:** la misma costura que `CapacityVerifier`: un `RunInAsync(dir, bytes, passes, …)` probado sobre una carpeta temporal (contenido de la última pasada, borrado del directorio, cancelación a mitad), y activar el borrado en una variante del ciclo destructivo de UI.
-  - **Criterio de aceptación:** `SecureWipe.cs` supera el 90 % de cobertura y existe una prueba que falla si la última pasada no es aleatoria.
-  - **Avance (2026-10-15):** hecho el código, falta verificarlo. La costura `SecureWipe.RunInAsync` tiene nueve unitarias nuevas en `SecureWipeTests`, entre ellas `RunInAsync_ThreePasses_LeavesZerosThenOnesThenRandom`, que falla si la última pasada no es aleatoria. También está la variante de UI `SecureWipe_AfterFormat_WritesToTheDrive_AndCancelCleansUp`. Por el camino apareció y se corrigió un fallo: con 3 o 7 pasadas, la segunda se quedaba sin espacio (ver `docs/contexto-historico.md`). **Para cerrarla falta:** medir la cobertura de `SecureWipe.cs` con `dotnet test --collect:"XPlat Code Coverage"` y ejecutar la prueba de UI con la USB y `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`. Ninguna de las dos se pudo hacer desde la sesión que escribió el cambio.
 
 - [ ] **AUD-020 · El corte no comprueba en qué rama está ni si va por detrás de `origin`**
   - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
@@ -142,13 +135,6 @@ del autor.
 
 ### UI/UX
 
-- [ ] **AUD-033 · Durante una operación, los tres botones de la barra rápida siguen activos y no hacen nada**
-  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:942-968` · `src/UI/MainWindow.xaml:116-132` · `src/UI/MainWindow.Operations.cs:136`, `:525` · `src/UI/MainWindow.HelpAndUpdates.cs:34`
-  - **Qué hacer:** deshabilitarlos en `SetControlsEnabled`, como los menús que duplican.
-  - **Criterio de aceptación:** durante una operación, los tres botones tienen `IsEnabled = false`.
-  - **Avance (2026-10-15):** hecho el código, falta verificarlo. `SetControlsEnabled` apaga `BtnHealth`, `BtnBenchmark` y `BtnHistory` con los menús, y `UpdateToolsMenuAvailability`, que también corre en mitad de una operación, ya no los vuelve a encender (`&& !_isBusy`). **Para cerrarla falta** ejecutar la prueba de UI nueva, `DriveDiagnosticsTests.QuickBar_IsDisabledDuringAnOperation_AndComesBackAfter`. Necesita la USB de pruebas: arranca un benchmark, comprueba los tres botones y lo cancela. Solo se ha compilado.
-
 - [ ] **AUD-035 · La confirmación de «Reinicializar» no identifica el disco físico ni las otras unidades que se van a perder**
   - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
   - **Ubicación:** `src/Localization/Localization.cs:368` · `src/UI/MainWindow.Operations.cs:432-441` · evidencia: `evidencias/galeria-pt/reinit-light.png`
@@ -163,13 +149,6 @@ del autor.
   - **Qué hacer:** registrar siempre el desenlace (`REINIT CANCELLED`, `FORMAT OK` antes del borrado, `WIPE ERROR`) y llamar a `LoadDrives()` en `EndOperation`.
   - **Criterio de aceptación:** cada desenlace de cada operación deja exactamente una línea que lo nombra, y la lista se recarga al terminar.
   - **Antecedente:** `AUD-001` (hecha) ya recarga la lista y dice cómo queda la unidad al cancelar un **formato**; faltan las demás operaciones y los registros
-
-- [ ] **AUD-037 · Los ajustes se escriben sin atomicidad, se degradan a valores por defecto ante un error de lectura y no hay instancia única**
-  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Medio
-  - **Ubicación:** `src/Services/AppSettings.cs:162-165`, `:217-229` · `src/UI/MainWindow.HelpAndUpdates.cs:93-94` · `src/Program.cs:13-19`
-  - **Qué hacer:** escribir a un temporal y sustituir con `File.Replace`; no guardar en el arranque si la carga falló por E/S; y, si ya hay una instancia, activar su ventana y salir.
-  - **Criterio de aceptación:** una prueba simula un fallo de E/S en la lectura y comprueba que el archivo original no se sobrescribe; lanzar la app dos veces deja una sola ventana.
-  - **Avance (2026-10-15):** hecho el código; verificada la parte de los ajustes y no la de la instancia única. `Save` escribe a un temporal que entra en la comprobación de enlaces de `AUD-025`, se borra si existía y se crea con `CreateNew`, y sustituye el archivo con `File.Replace`. Si el archivo existía y no se pudo leer, `ReadFailed` impide guardar encima y el historial lo registra. `AppSettingsTests.Load_WhenTheFileCannotBeRead_NeverOverwritesIt` lo prueba con el archivo bloqueado por otro proceso. La instancia única está en `SingleInstance.HandOffToExisting`: con otra instancia viva y con ventana, la trae al frente y sale; si el mutex es de una que se está cerrando, sigue. **Para cerrarla falta** ejecutar `SingleInstanceTests.LaunchingASecondInstance_LeavesOnlyTheFirstWindow`, que lanza la app dos veces. Solo se ha compilado.
 
 - [ ] **AUD-038 · Si el proceso muere, los archivos temporales de borrado, verificación y benchmark se quedan en la unidad**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo
@@ -237,18 +216,6 @@ del autor.
   - **Ubicación:** `release.ps1:653-662`
   - **Qué hacer:** exigir `$end -gt $start` y que el cuerpo contenga alguna línea que no sea encabezado.
   - **Criterio de aceptación:** con dos encabezados seguidos, el corte aborta.
-
-- [ ] **AUD-055 · El corte no dice qué pruebas unitarias se omitieron**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:519-521`, `:292-299`, `:324-328`
-  - **Qué hacer:** `--logger trx` también en las unitarias, y tratar como fallo un `.trx` ausente o sin resultados.
-  - **Criterio de aceptación:** una prueba omitida aparece nombrada en el resumen del corte.
-
-- [ ] **AUD-056 · El corte solo rechaza una de las tres variables que hacen tocar hardware**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `release.ps1:605-607` · `tests/FormatDiskPro.UiTests/TestDriveFacts.cs` · `tests/FormatDiskPro.Tests/CapacityVerifierDriveTests.cs:16-23`
-  - **Qué hacer:** rechazar o anunciar las tres antes de la primera ejecución de pruebas.
-  - **Criterio de aceptación:** con cualquiera de las tres definida, `release.ps1 -DryRun` aborta o lo declara.
 
 - [ ] **AUD-059 · El script de capturas falla o se degrada cuando lo lanza otro proceso**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo

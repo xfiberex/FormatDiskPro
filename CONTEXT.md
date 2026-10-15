@@ -149,9 +149,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   eso no se podían meter en el pipeline.
 - **Un `ContentDialog` convive con MÁS DE UN `ControlType.Window`** en el árbol: WinUI deja un proxy de Popup
   vacío junto al diálogo real. `DialogHelper.FindDialog` se queda con el que tiene contenido (más hijos).
-- **`AppFixture` respalda y restaura `settings.json` + `history.log`** de `%AppData%` en cada corrida: la app
-  es unpackaged, así que sin eso las pruebas contaminarían la instalación real del usuario. La copia va también
-  a `%LocalAppData%\FormatDiskPro.UiTests\` y, si una corrida muere, la siguiente la restaura (`AUD-040`).
+- **`AppFixture` respalda y restaura `settings.json` + `history.log`** de `%AppData%` en cada corrida (la app es
+  unpackaged); la copia va también a `%LocalAppData%\FormatDiskPro.UiTests\`, y si una corrida muere, la siguiente la restaura (`AUD-040`).
 - **NUNCA dos corridas en paralelo** contra la misma app/unidad: cada una lanza su instancia elevada del `.exe`
   y compiten por el mismo `DrivePicker` y el mismo `settings.json`. Produce fallos imposibles de diagnosticar.
 - `VerifyCapacity_CompletesForTestDrive` lleva `[Trait("Category","Slow")]`: escribe y relee casi todo el
@@ -178,15 +177,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. Pendiente de publicar: el borrado seguro con varias pasadas, que ya termina, y sus pruebas (`AUD-016`, falta verificarla), y `AUD-064` |
-| **Publicado** | **v1.30.0** (2026-10-14): las correcciones de la auditoría del 2026-10-11 cerradas hasta esa fecha. `master` sin trabajo pendiente de publicar |
-| **En PR, sin fusionar** (2026-10-15) | Siete tandas, una rama y un PR cada una, todas con el CI en verde: #3 `AUD-016`/`064` · #4 `057`/`058` · #5 `040`/`055`/`056` · #6 `044`–`047` · #7 `010`/`030`/`031` · #8 `017`/`050`/`051` · #9 `033`/`034`/`037`. Las siete chocan en las cifras de *Estado* del `ROADMAP.md`, en `[Sin publicar]` y en esta tabla: al fusionar una, se resuelve en las demás. **Validar en local antes de cerrar:** cobertura de `SecureWipe.cs` y la prueba de UI destructiva del borrado (#3), `release.ps1 -DryRun` con y sin las variables de hardware (#5), y las pruebas de UI nuevas de la barra rápida y de la instancia única (#9). `AUD-016`, `030`, `033` y `037` siguen abiertas en el `ROADMAP.md` hasta entonces |
+| **Publicado** | **v1.30.0** (2026-10-14). En `master`, sin publicar: las siete tandas de la auditoría del 2026-10-11 hechas el 2026-10-15 (PRs #3 a #10), fusionadas y validadas en local ese mismo día. Son la sección *Sin publicar* del [`CHANGELOG.md`](CHANGELOG.md) |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-13: **873** (872 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-13, con la USB de pruebas y el opt-in destructivo: **50** (48 pasan · 2 de `ALLOW_YANK` se omiten). Sin la USB se omiten además las que la necesitan |
-| **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 97,7 % el 2026-10-11 |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-15: **926** (925 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-15, con la USB de pruebas y sin opt-in: **56** (51 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
+| **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
 ## 4. Decisiones y convenciones clave
@@ -223,9 +220,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
     divulgación privada de `SECURITY.md`. Va con `build-mode: manual` porque el código que genera el XAML
     solo existe tras compilar; el aviso «Cannot build an overlay-base database» que deja en cada ejecución
     es la consecuencia esperada (sin análisis incremental en los PR), **no** un motivo para pasar a `none`.
-  - **`.github/dependabot.yml`**: las acciones y los NuGet **de las pruebas** (`tests/Directory.Packages.props`,
-    `AUD-057`). El Windows App SDK no: se sube a mano (ver *Build y publicación*). Un salto mayor de
-    `coverlet.collector`, el recolector de la puerta de cobertura, pide un corte de prueba antes de fusionarlo.
+  - **`.github/dependabot.yml`**: las acciones y los NuGet **de las pruebas** (`AUD-057`); el Windows App SDK se sube a
+    mano (ver *Build y publicación*). Un salto mayor de `coverlet.collector`, el de la cobertura, pide antes un corte de prueba.
   - **Lo que no cambia:** la puerta de calidad sigue siendo **`release.ps1 -UiTests` desde una terminal
     elevada**. El CI no la sustituye ni la acorta.
   - **Dos trampas del CI.** Ninguna prueba lee un `.md` ni nada de `docs/`, y por eso los workflows se saltan

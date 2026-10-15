@@ -62,6 +62,34 @@
 
 ## Entradas
 
+### 2026-10-15 — Las siete tandas, fusionadas y validadas en local; `AUD-016`, `AUD-033` y `AUD-037` cerradas
+
+**Cómo se fusionó.** Los PRs #3 a #10 se integraron en orden en una rama local y llegaron a `master` con un
+commit de fusión cada uno, para que GitHub los dé por fusionados. En el código no chocó nada. Los choques
+fueron los que anunciaba el #10, todos en documentos: el `CHANGELOG`, los dos históricos, las cifras de
+*Estado* del `ROADMAP.md` y esta tabla de `CONTEXT.md`. En los documentos que solo acumulan entradas se
+conservaron los dos lados. Las cifras no se resolvieron a mano: se **recontaron** sobre las tareas que
+quedan abiertas (33 de la auditoría + `T10-02`; 33 + 38 cerradas = 71).
+
+**Lo que se perdió por el camino, y cómo se vio.** Al quedarse con un lado en los choques de cifras, se
+perdieron con ellas tres cambios vecinos: el borrado de `AUD-055` y `AUD-056` del `ROADMAP.md`, el *Orden
+recomendado* y la fila *Publicado* de §3. Se encontraron comparando cada línea que cada rama añadió o quitó
+con el resultado. Es lo que conviene repetir tras una fusión así: el recuento de abiertas más cerradas no
+cuadraba (73 frente a 71), y eso fue lo que hizo mirar.
+
+**Validado en local**, lo que las sesiones en la nube no podían ejecutar:
+- `SecureWipe.cs` tiene un **95,1 %** de cobertura. La prueba de UI destructiva del borrado pasó 3 de 4
+  veces con la USB de pruebas. El fallo no se pudo diagnosticar: el `finally` de la prueba lanzaba al
+  desmarcar una casilla deshabilitada (la app seguía ocupada) y tapaba la causa real. Ahora ese paso no
+  puede lanzar; si vuelve a fallar, se verá por qué.
+- Las pruebas de UI de la barra rápida y de la instancia única pasan, dentro de la suite completa: 51
+  pasan, 5 omitidas por opt-in, 0 fallan.
+- `release.ps1 -DryRun` rechaza cada una de las tres variables de hardware y, sin ellas, termina en verde
+  y nombra la unitaria omitida.
+
+`AUD-030` sigue abierta. Su criterio pide inyectar un `IUpdateService` falso en la app real, y esa costura
+no existe; el arreglo está hecho, la prueba no.
+
 ### 2026-10-15 — `AUD-016` (sin cerrar) y `AUD-064`: pruebas del borrado seguro, y un fallo que ninguna veía
 
 **Qué se hizo.** El borrado seguro tiene ahora una costura como la de `CapacityVerifier`.

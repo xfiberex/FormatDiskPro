@@ -22,32 +22,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   los de la anterior, así que la segunda pedía otra vez todo el espacio libre de la unidad, que la primera
   ya había ocupado. Ahora todas las pasadas sobrescriben los mismos archivos, que es además lo que hace
   que cada pasada pise el mismo espacio.
-
-### Interno
-
-- El borrado seguro tiene pruebas: lo que queda escrito tras cada pasada, que la última sea aleatoria,
-  el progreso, y que cancelar lo detenga y lo limpie. También hay una variante del ciclo destructivo de UI
-  con el borrado activado (`AUD-016`).
-- `TestResults/` y `*.trx` se ignoran en git. El comando de cobertura de la guía de contribución ya no deja
-  el árbol sucio para el corte siguiente (`AUD-064`).
-
-### Interno
-
-- El CI publica la aplicación como lo hace el instalador. Falla si falta el archivo de recursos sin el que
-  la aplicación instalada no arranca, o si alguna ruta no cabría al compilar el instalador. También analiza
-  los scripts con PowerShell 5.1, el que los ejecuta (`AUD-058`).
-- Los dos proyectos de prueba usan las mismas versiones de sus paquetes, y Dependabot propone sus
-  actualizaciones. El Windows App SDK se sigue subiendo a mano (`AUD-057`).
-
-### Interno
-
-- El corte de versión nombra las pruebas unitarias que se omitieron, y no sale si falta el informe de
-  alguna corrida de pruebas (`AUD-055`).
-- El corte se niega a ejecutar pruebas con cualquiera de las tres variables de entorno que les hacen tocar
-  una unidad real, y lo dice también en la simulación (`AUD-056`).
-- Si una corrida de pruebas de UI muere a mitad, la siguiente devuelve los ajustes y el historial del
-  usuario a como estaban (`AUD-040`).
-
 - **Las pistas de *FAT32 pequeña* decían que no se usara «el botón Iniciar»**, que ya no existe. Ahora
   nombran el botón «Formatear», en los cinco idiomas.
 - **El aviso de privacidad de *Acerca de* remitía a un menú «Configuration»** que en inglés, portugués,
@@ -56,7 +30,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   Admite 11, que es lo que la aplicación comprueba. El mensaje toma ahora las cifras de esa comprobación.
 - **Las IOPS del benchmark usaban el separador de millares de Windows** y no el del idioma de la
   aplicación, a diferencia del resto de cifras.
-
 - **Con una unidad averiada, «Formatear» o «Reinicializar» podían no hacer nada al pulsarlos.** Esperaban
   sin límite una consulta a Windows que no respondía. Ahora cada consulta tiene un plazo de 15 segundos, y
   al vencer la unidad se trata como si no se hubiera podido consultar.
@@ -64,15 +37,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   como «FAIL» o «ERROR». El resultado se decide ahora por la operación, no por el texto de la etiqueta.
 - **Si no se podía lanzar el instalador de una actualización, la ventana se quedaba con todos los
   controles desactivados.** Ahora vuelven a estar disponibles tras el aviso de error.
-
-### Cambiado
-
-- **El requisito de sistema documentado es el real: Windows 10 versión 2004 (compilación 19041) o
-  posterior.** El README prometía la 1809, pero el instalador ya exigía la 2004. La aplicación lo declara
-  ahora en su proyecto (`AUD-017`).
-- El README describe lo que muestra cada operación larga. La velocidad y el tiempo restante solo aparecen
-  en las que escriben el espacio libre (`AUD-051`).
-
 - **Guardar un preset sin nombre respondía «Ya existe un preset con ese nombre».** Ahora cada motivo tiene
   su mensaje: falta el nombre, es demasiado largo o ya existe.
 - **Durante una operación, los botones Salud, Benchmark e Historial parecían activos y no hacían nada.**
@@ -82,6 +46,33 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   forma que una interrupción no la deje a medias.
 - **Se podían abrir dos ventanas de la aplicación a la vez.** Al abrirla de nuevo, se trae al frente la que
   ya estaba abierta.
+
+### Cambiado
+
+- **El requisito de sistema documentado es el real: Windows 10 versión 2004 (compilación 19041) o
+  posterior.** El README prometía la 1809, pero el instalador ya exigía la 2004. La aplicación lo declara
+  ahora en su proyecto (`AUD-017`).
+- El README describe lo que muestra cada operación larga. La velocidad y el tiempo restante solo aparecen
+  en las que escriben el espacio libre (`AUD-051`).
+
+### Interno
+
+- El borrado seguro tiene pruebas: lo que queda escrito tras cada pasada, que la última sea aleatoria,
+  el progreso, y que cancelar lo detenga y lo limpie. También hay una variante del ciclo destructivo de UI
+  con el borrado activado (`AUD-016`).
+- `TestResults/` y `*.trx` se ignoran en git. El comando de cobertura de la guía de contribución ya no deja
+  el árbol sucio para el corte siguiente (`AUD-064`).
+- El CI publica la aplicación como lo hace el instalador. Falla si falta el archivo de recursos sin el que
+  la aplicación instalada no arranca, o si alguna ruta no cabría al compilar el instalador. También analiza
+  los scripts con PowerShell 5.1, el que los ejecuta (`AUD-058`).
+- Los dos proyectos de prueba usan las mismas versiones de sus paquetes, y Dependabot propone sus
+  actualizaciones. El Windows App SDK se sigue subiendo a mano (`AUD-057`).
+- El corte de versión nombra las pruebas unitarias que se omitieron, y no sale si falta el informe de
+  alguna corrida de pruebas (`AUD-055`).
+- El corte se niega a ejecutar pruebas con cualquiera de las tres variables de entorno que les hacen tocar
+  una unidad real, y lo dice también en la simulación (`AUD-056`).
+- Si una corrida de pruebas de UI muere a mitad, la siguiente devuelve los ajustes y el historial del
+  usuario a como estaban (`AUD-040`).
 
 ## [1.30.0] — 2026-10-14
 

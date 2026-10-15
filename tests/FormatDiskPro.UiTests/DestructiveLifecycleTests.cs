@@ -597,7 +597,8 @@ public sealed class DestructiveLifecycleTests(AppFixture fixture, ITestOutputHel
         finally
         {
             DialogHelper.SafeCloseAnyDialog(fixture);
-            MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+            // Si la app sigue ocupada la casilla está deshabilitada, y lanzar aquí taparía el fallo real.
+            try { MainWindowActions.SetChecked(Window, "SecureWipeCheck", false); } catch { }
 
             // Si la prueba se cayó con la unidad sin formato o con otra etiqueta, las demás no la
             // encontrarían. Se devuelve a FAT32 «utilidades» sin pasar por la UI.

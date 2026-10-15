@@ -23,6 +23,9 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-15 | `AUD-037` | Los ajustes se guardan de forma atómica y no se pisan si no se pudieron leer; la app tiene instancia única | sin publicar |
+| 2026-10-15 | `AUD-033` | Salud, Benchmark e Historial se apagan durante una operación, con los menús que duplican | sin publicar |
+| 2026-10-15 | `AUD-016` | El borrado seguro tiene pruebas (95 % de `SecureWipe.cs`) y una variante de UI destructiva; con 3 o 7 pasadas ya termina | sin publicar |
 | 2026-10-15 | `AUD-064` | `TestResults/` y `*.trx`, ignorados: el comando de cobertura de la guía ya no deja el árbol sucio | sin publicar |
 | 2026-10-15 | `AUD-058` | El CI publica como el instalador (exige el `.pri` y rutas dentro de MAX_PATH) y analiza los `.ps1` en PowerShell 5.1 | sin publicar |
 | 2026-10-15 | `AUD-057` | Una sola versión por paquete en las pruebas, y Dependabot las vigila (salvo el Windows App SDK) | sin publicar |
@@ -39,25 +42,25 @@
 | 2026-10-15 | `AUD-050` | La plantilla de sugerencias ya no presenta el CI como fuera de alcance | sin publicar (solo documentación) |
 | 2026-10-15 | `AUD-017` | El mínimo de Windows es uno solo, 10 2004 (19041), declarado en el `.csproj` y citado igual en README, guía e instalador | sin publicar |
 | 2026-10-15 | `AUD-034` | Guardar un preset sin nombre, con un nombre demasiado largo o con uno repetido da tres mensajes distintos | sin publicar |
-| 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | sin publicar |
-| 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | sin publicar |
-| 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | sin publicar |
-| 2026-10-13 | `AUD-008` | «Expulsar» comprueba que la unidad se expulsó antes de decirlo | sin publicar |
-| 2026-10-13 | `AUD-007` | Un `chkdsk` de solo lectura que encuentra errores lo dice, y el resultado deja leer su salida | sin publicar |
-| 2026-10-13 | `AUD-006` | «Comprobar y reparar» ya no se queda colgado si la unidad está en uso | sin publicar |
-| 2026-10-13 | `AUD-014` | Las regiones activas del historial y de los presets avisan al lector de pantalla, y tres estados se anuncian | sin publicar |
-| 2026-10-13 | `AUD-003` | El selector de unidad tiene nombre accesible y cada unidad se anuncia con el suyo | sin publicar |
-| 2026-10-13 | `AUD-029` | Recargar la lista de unidades ya no restablece la etiqueta ni las opciones que se estaban configurando | sin publicar |
-| 2026-10-13 | `AUD-026` | `powershell.exe`, `chkdsk.exe`, `format.com` y `explorer.exe` se lanzan por ruta absoluta, desde un único punto | sin publicar |
-| 2026-10-13 | `AUD-025` | La app no lee, escribe, mueve ni borra a través de una carpeta de estado que resulte ser un enlace | sin publicar |
-| 2026-10-13 | `AUD-004` | Los enlaces y el historial se abren sin elevación, y solo se abren las direcciones del proyecto | sin publicar |
-| 2026-10-13 | `AUD-002` | El instalador de una actualización se descarga a una carpeta solo de administradores y no se suelta entre verificarlo y ejecutarlo | sin publicar |
-| 2026-10-13 | `AUD-013` | Lo que se formatea o se borra es lo que se confirmó: la identidad del disco se comprueba antes de ejecutar | sin publicar |
-| 2026-10-13 | `AUD-012` | *Reinicializar* ya no sigue si no puede leer el disco de Windows | sin publicar |
-| 2026-10-13 | `AUD-015` | Las guardas de *Formatear* y *Reinicializar* pasan a `Core/DestructiveGuard`, con pruebas de cada rechazo | sin publicar |
-| 2026-10-13 | `AUD-001` | Cancelar un formato completo lo detiene de verdad; donde no se puede, no se ofrece | sin publicar |
-| 2026-10-13 | `AUD-019` | `ROADMAP.md` y `CONTEXT.md` se parten: lo cerrado, a `docs/` | sin publicar (solo documentación) |
-| 2026-10-13 | `AUD-018` | §2 y §3 de `CONTEXT.md`, al día y sin cifras duplicadas | sin publicar (solo documentación) |
+| 2026-10-13 | `AUD-027` | Un `settings.json` con un nulo donde se espera una lista ya no impide arrancar | v1.30.0 |
+| 2026-10-13 | `AUD-011` | El error de un formateo fallido enseña el mensaje de PowerShell, no su XML | v1.30.0 |
+| 2026-10-13 | `AUD-009` | Un borrado seguro que no se ejecuta ya no se registra ni se anuncia como hecho | v1.30.0 |
+| 2026-10-13 | `AUD-008` | «Expulsar» comprueba que la unidad se expulsó antes de decirlo | v1.30.0 |
+| 2026-10-13 | `AUD-007` | Un `chkdsk` de solo lectura que encuentra errores lo dice, y el resultado deja leer su salida | v1.30.0 |
+| 2026-10-13 | `AUD-006` | «Comprobar y reparar» ya no se queda colgado si la unidad está en uso | v1.30.0 |
+| 2026-10-13 | `AUD-014` | Las regiones activas del historial y de los presets avisan al lector de pantalla, y tres estados se anuncian | v1.30.0 |
+| 2026-10-13 | `AUD-003` | El selector de unidad tiene nombre accesible y cada unidad se anuncia con el suyo | v1.30.0 |
+| 2026-10-13 | `AUD-029` | Recargar la lista de unidades ya no restablece la etiqueta ni las opciones que se estaban configurando | v1.30.0 |
+| 2026-10-13 | `AUD-026` | `powershell.exe`, `chkdsk.exe`, `format.com` y `explorer.exe` se lanzan por ruta absoluta, desde un único punto | v1.30.0 |
+| 2026-10-13 | `AUD-025` | La app no lee, escribe, mueve ni borra a través de una carpeta de estado que resulte ser un enlace | v1.30.0 |
+| 2026-10-13 | `AUD-004` | Los enlaces y el historial se abren sin elevación, y solo se abren las direcciones del proyecto | v1.30.0 |
+| 2026-10-13 | `AUD-002` | El instalador de una actualización se descarga a una carpeta solo de administradores y no se suelta entre verificarlo y ejecutarlo | v1.30.0 |
+| 2026-10-13 | `AUD-013` | Lo que se formatea o se borra es lo que se confirmó: la identidad del disco se comprueba antes de ejecutar | v1.30.0 |
+| 2026-10-13 | `AUD-012` | *Reinicializar* ya no sigue si no puede leer el disco de Windows | v1.30.0 |
+| 2026-10-13 | `AUD-015` | Las guardas de *Formatear* y *Reinicializar* pasan a `Core/DestructiveGuard`, con pruebas de cada rechazo | v1.30.0 |
+| 2026-10-13 | `AUD-001` | Cancelar un formato completo lo detiene de verdad; donde no se puede, no se ofrece | v1.30.0 |
+| 2026-10-13 | `AUD-019` | `ROADMAP.md` y `CONTEXT.md` se parten: lo cerrado, a `docs/` | v1.30.0 (solo documentación) |
+| 2026-10-13 | `AUD-018` | §2 y §3 de `CONTEXT.md`, al día y sin cifras duplicadas | v1.30.0 (solo documentación) |
 
 <!-- Al cerrar una tarea: fila nueva ARRIBA en la tabla y su bloque bajo el área que le toque. -->
 
@@ -209,6 +212,14 @@
 
 ### QA
 
+- [x] **AUD-016 · El borrado seguro no tiene ninguna prueba automatizada**
+  - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/SecureWipe.cs:80-146` · `tests/FormatDiskPro.Tests/SecureWipeTests.cs:9` · `tests/FormatDiskPro.UiTests/DestructiveLifecycleTests.cs:233`
+  - **Qué hacer:** la misma costura que `CapacityVerifier`: un `RunInAsync(dir, bytes, passes, …)` probado sobre una carpeta temporal (contenido de la última pasada, borrado del directorio, cancelación a mitad), y activar el borrado en una variante del ciclo destructivo de UI.
+  - **Criterio de aceptación:** `SecureWipe.cs` supera el 90 % de cobertura y existe una prueba que falla si la última pasada no es aleatoria.
+  - **Hecho (2026-10-15):** La costura `SecureWipe.RunInAsync` tiene nueve unitarias nuevas en `SecureWipeTests`, entre ellas `RunInAsync_ThreePasses_LeavesZerosThenOnesThenRandom`, que falla si la última pasada no es aleatoria. También está la variante de UI `SecureWipe_AfterFormat_WritesToTheDrive_AndCancelCleansUp`. Por el camino apareció y se corrigió un fallo: con 3 o 7 pasadas, la segunda se quedaba sin espacio (ver `docs/contexto-historico.md`). **Para cerrarla falta:** medir la cobertura de `SecureWipe.cs` con `dotnet test --collect:"XPlat Code Coverage"` y ejecutar la prueba de UI con la USB y `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`. Ninguna de las dos se pudo hacer desde la sesión que escribió el cambio.
+  - **Verificado (2026-10-15, en local):** cobertura de `SecureWipe.cs` al **95,1 %** (58/61 líneas) con `dotnet test --collect:"XPlat Code Coverage"`; `RunInAsync_ThreePasses_LeavesZerosThenOnesThenRandom` pasa. La prueba de UI `SecureWipe_AfterFormat_WritesToTheDrive_AndCancelCleansUp`, con la USB de pruebas y `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1`, pasó 3 de 4 veces: el primer intento falló y su `finally` tapó la causa al desmarcar una casilla deshabilitada; ese `finally` ya no lanza, y las tres pasadas siguientes fueron verdes.
+
 - [x] **AUD-015 · Las guardas que deciden si una operación destructiva procede no tienen ninguna prueba que ejerza su rechazo**
   - **Área:** QA · **Severidad:** Medio · **Esfuerzo:** Medio
   - **Ubicación:** `src/UI/MainWindow.xaml.cs:448-462`, `:931-935` · `src/UI/MainWindow.Operations.cs:330-354` · `tests/FormatDiskPro.UiTests/MainWindowTests.cs:45`
@@ -228,6 +239,14 @@
   - **Verificado:** tres pruebas nuevas en `SettingsBackupTests`, sobre carpetas temporales y sin lanzar la app. Matar el proceso equivale a no llamar a `Restore`. La que cubre el criterio, `AfterARunThatDied_TheNextCaptureRestoresTheOriginals`, captura, ensucia los archivos como lo haría una corrida (otro idioma, entradas de prueba y un `history.1.log` nuevo) y vuelve a capturar sin restaurar: obtiene los originales. Las tres pasan en un runner de Windows. No se mató un proceso de pruebas de verdad.
 
 ### Arquitectura y resiliencia
+
+- [x] **AUD-037 · Los ajustes se escriben sin atomicidad, se degradan a valores por defecto ante un error de lectura y no hay instancia única**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/Services/AppSettings.cs:162-165`, `:217-229` · `src/UI/MainWindow.HelpAndUpdates.cs:93-94` · `src/Program.cs:13-19`
+  - **Qué hacer:** escribir a un temporal y sustituir con `File.Replace`; no guardar en el arranque si la carga falló por E/S; y, si ya hay una instancia, activar su ventana y salir.
+  - **Criterio de aceptación:** una prueba simula un fallo de E/S en la lectura y comprueba que el archivo original no se sobrescribe; lanzar la app dos veces deja una sola ventana.
+  - **Hecho (2026-10-15):** `Save` escribe a un temporal que entra en la comprobación de enlaces de `AUD-025`, se borra si existía y se crea con `CreateNew`, y sustituye el archivo con `File.Replace`. Si el archivo existía y no se pudo leer, `ReadFailed` impide guardar encima y el historial lo registra. `AppSettingsTests.Load_WhenTheFileCannotBeRead_NeverOverwritesIt` lo prueba con el archivo bloqueado por otro proceso. La instancia única está en `SingleInstance.HandOffToExisting`: con otra instancia viva y con ventana, la trae al frente y sale; si el mutex es de una que se está cerrando, sigue.
+  - **Verificado (2026-10-15, en local):** `SingleInstanceTests.LaunchingASecondInstance_LeavesOnlyTheFirstWindow` pasa en la suite completa de UI, y `AppSettingsTests.Load_WhenTheFileCannotBeRead_NeverOverwritesIt` en las unitarias.
 
 - [x] **AUD-013 · No se revalida la identidad de la unidad entre la confirmación y la operación destructiva**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Medio · **Esfuerzo:** Medio
@@ -339,6 +358,14 @@
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### UI/UX
+
+- [x] **AUD-033 · Durante una operación, los tres botones de la barra rápida siguen activos y no hacen nada**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:942-968` · `src/UI/MainWindow.xaml:116-132` · `src/UI/MainWindow.Operations.cs:136`, `:525` · `src/UI/MainWindow.HelpAndUpdates.cs:34`
+  - **Qué hacer:** deshabilitarlos en `SetControlsEnabled`, como los menús que duplican.
+  - **Criterio de aceptación:** durante una operación, los tres botones tienen `IsEnabled = false`.
+  - **Hecho (2026-10-15):** `SetControlsEnabled` apaga `BtnHealth`, `BtnBenchmark` y `BtnHistory` con los menús, y `UpdateToolsMenuAvailability`, que también corre en mitad de una operación, ya no los vuelve a encender (`&& !_isBusy`).
+  - **Verificado (2026-10-15, en local):** `DriveDiagnosticsTests.QuickBar_IsDisabledDuringAnOperation_AndComesBackAfter` pasa con la USB de pruebas, en la suite completa de UI (51 pasan, 5 omitidas por opt-in, 0 fallan).
 
 - [x] **AUD-034 · Guardar un preset sin nombre responde «Ya existe un preset con ese nombre»**
   - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
