@@ -344,7 +344,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 - **Workaround del PRI:** `dotnet publish` de una app WinUI 3 *unpackaged* **no copia el `.pri` propio** de la
   app; sin él, WinUI no resuelve el XAML y la app **crashea al iniciar** (fue el bug de la 1.2.0). El target
   `CopyAppPriToPublish` del `.csproj` lo copia a mano. No quitarlo.
-- **Flujo del mantenedor (2026-10-15): directo en `master`, sin ramas ni PRs.** Sin PR, el CI llega después del push: antes de cada commit, `-warnaserror` y unitarias en local (y UI si toca la app). El mantenedor hace los push y lanza el corte real; Claude prepara, simula (`-DryRun`) y comprueba después.
+- **Flujo del mantenedor (2026-10-15): directo en `master`, sin ramas ni PRs.** Sin PR, el CI llega después del push: antes de cada commit, `-warnaserror` y unitarias en local (y UI si toca la app). El mantenedor hace los push y lanza el corte real; Claude prepara, simula (`-DryRun`) y comprueba después. Desde el 2026-10-16 un ruleset de GitHub («Proteger master») impide forzar y borrar `master`, sin exigir PR ni check; los ajustes del repo los cambia el mantenedor, porque el modo automático no deja a Claude tocarlos.
 - **`FormatDiskPro.slnx` NO incluye `tests/FormatDiskPro.UiTests`, y eso es deliberado.** `release.ps1`
   hace `dotnet test $solution --collect:"XPlat Code Coverage"`; meter ahí las pruebas de UI las ejecutaría
   dentro del paso de cobertura de cada corte, que es justo lo que no debe pasar (necesitan hardware,

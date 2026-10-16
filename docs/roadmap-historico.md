@@ -23,6 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-16 | `AUD-066` | `master` no se puede forzar ni borrar (ruleset, sin exigir PR ni check) y las alertas de Dependabot están activas | — (ajuste del repo) |
+| 2026-10-16 | `AUD-005` | El reporte privado de vulnerabilidades que anuncia `SECURITY.md` está activado | — (ajuste del repo) |
 | 2026-10-15 | `AUD-020` | El corte aborta si la rama va por detrás de origin, antes de probar nada; al retomar, el tag tiene que estar en la rama | v1.30.1 |
 | 2026-10-15 | `AUD-021` | El hash del instalador va en el tag, y `-ResumeRelease` no publica un instalador distinto del etiquetado | v1.30.1 |
 | 2026-10-15 | `AUD-052` | El corte compila y prueba en Release con `-warnaserror`, desde una `bin\Release` limpia | v1.30.1 |
@@ -176,6 +178,14 @@
 
 ### Seguridad
 
+- [x] **AUD-005 · El canal privado de vulnerabilidades que anuncia `SECURITY.md` está desactivado en GitHub**
+  - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/SECURITY.md:20-22` · configuración del repositorio
+  - **Qué hacer:** activar *Private vulnerability reporting* en *Settings → Code security*. De paso, activar las alertas de Dependabot (ver AUD-066).
+  - **Criterio de aceptación:** la API devuelve `enabled: true` y el enlace de `SECURITY.md` abre el formulario desde una cuenta sin permisos.
+  - **Hecho (2026-10-16):** el mantenedor activó *Private vulnerability reporting* en *Settings → Code security* (el modo automático de Claude bloquea cambiar ajustes del repo). Las alertas de Dependabot, que la tarea pedía de paso, van con `AUD-066`.
+  - **Verificado (2026-10-16):** `GET /repos/xfiberex/FormatDiskPro/private-vulnerability-reporting` devuelve `{"enabled":true}`. Sin sesión, la página pública *Security* muestra «Report a vulnerability», y el enlace directo de `SECURITY.md` (`/security/advisories/new`) lleva al login: cualquier cuenta sin permisos llega al formulario.
+
 - [x] **AUD-026 · `powershell.exe` y `chkdsk.exe` se lanzan por nombre, no por ruta absoluta**
   - **Área:** Seguridad · **Severidad:** Bajo · **Esfuerzo:** Bajo
   - **Ubicación:** `src/Services/DiskService.cs:166` · `src/Services/ReinitDrive.cs:101` · `src/Services/FormatProcess.cs:57` · `src/Services/CheckDisk.cs:54` · contraste: `src/Services/FormatProcess.cs:86`
@@ -285,6 +295,14 @@
   - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
 
 ### DevOps
+
+- [x] **AUD-066 · La rama principal no está protegida y las alertas de dependencias están desactivadas**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** configuración del repositorio `xfiberex/FormatDiskPro`
+  - **Qué hacer:** una regla que impida forzar y borrar `master`, **sin exigir PR ni check para el push**: el mantenedor trabaja directamente en `master` desde el 2026-10-15 (ver `CONTEXT.md` §4, *Build y publicación*), y exigirlos bloquearía ese push. Activar las alertas de Dependabot. (El PR #2 que citaba esta tarea ya se fusionó.)
+  - **Criterio de aceptación:** la API devuelve la protección y las alertas activas.
+  - **Hecho (2026-10-16):** el mantenedor creó el ruleset **«Proteger master»** (activo, sobre la rama por defecto) con solo *Restrict deletions* y *Block force pushes*, sin exigir PR ni checks, y activó *Dependency graph* y *Dependabot alerts*. *Dependabot security updates* se deja apagado: la tarea pide alertas, no PRs automáticos.
+  - **Verificado (2026-10-16):** `GET …/rulesets` devuelve «Proteger master» con `enforcement: active`; `GET …/rules/branches/master` devuelve `["deletion","non_fast_forward"]`; `GET …/vulnerability-alerts` responde `204` (activadas).
 
 - [x] **AUD-020 · El corte no comprueba en qué rama está ni si va por detrás de `origin`**
   - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo

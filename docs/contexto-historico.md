@@ -63,6 +63,18 @@
 
 ## Entradas
 
+### 2026-10-16 — `AUD-005` y `AUD-066`: los ajustes de seguridad del repositorio
+
+**Qué cambia.** En GitHub, sin tocar código: el reporte privado de vulnerabilidades que `SECURITY.md`
+anunciaba ya funciona, las alertas de Dependabot (y el *Dependency graph* que necesitan) están activas, y
+un ruleset, «Proteger master», impide forzar y borrar `master`.
+
+**Por qué así.** El ruleset lleva solo esas dos reglas: exigir PR o un check bloquearía el push directo a
+`master`, que es el flujo desde el 2026-10-15. *Dependabot security updates* se deja apagado porque la
+tarea pedía alertas, no PRs automáticos. Claude intentó aplicar los tres cambios con `gh api` y el
+clasificador del modo automático lo bloqueó (cambiar ajustes del repo cuenta como conceder permisos),
+así que los hizo el mantenedor desde la web y Claude los comprobó después con la API.
+
 ### 2026-10-15 — Se trabaja directamente en `master`, y el corte real lo lanza el mantenedor
 
 **Qué cambia.** El trabajo va directo a `master`, sin ramas ni PRs. El mantenedor hace los push y lanza

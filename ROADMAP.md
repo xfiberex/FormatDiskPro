@@ -29,52 +29,46 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-15 · **Publicado:** v1.30.1 · **29 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-16 · **Publicado:** v1.30.1 · **27 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 4 |
-| **3** | Bajo | 24 |
+| **2** | Medio | 3 |
+| **3** | Bajo | 23 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **29** |
+| | **Total** | **27** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **28** y se han cerrado **43**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-031`, `AUD-033`, `AUD-034`, `AUD-037`, `AUD-040`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-064`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **26** y se han cerrado **45**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-031`, `AUD-033`, `AUD-034`, `AUD-037`, `AUD-040`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-064`, `AUD-066`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
-| Seguridad | – | 1 | – | 1 |
+| Seguridad | – | – | – | 0 |
 | Código | – | – | 2 | 2 |
 | QA | – | – | – | 0 |
 | Documentación | – | – | – | 0 |
-| DevOps | – | 2 | 7 | 9 |
+| DevOps | – | 2 | 6 | 8 |
 | Legal | – | 1 | 5 | 6 |
 | Rendimiento | – | – | 1 | 1 |
 | UI/UX | – | – | 1 | 1 |
 | Arquitectura y resiliencia | – | – | 3 | 3 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 2 | 2 |
-| **Total** | **–** | **4** | **24** | **28** |
+| **Total** | **–** | **3** | **23** | **26** |
 
-**Esfuerzo:** 21 de esfuerzo bajo (hasta 2 horas) y 7 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 19 de esfuerzo bajo (hasta 2 horas) y 7 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): los arreglos de un solo sitio que quedan (`AUD-005` y
-`AUD-066`, dos interruptores en GitHub). Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión
-del autor.
+**Orden recomendado** (el porqué, en la sección 4 del informe): los scripts de corte e instalador
+(`AUD-059` a `AUD-062` y `AUD-065`, todas de esfuerzo bajo y verificables sin ejecutar la app), y después
+`AUD-022` → `AUD-063`. Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`) necesitan antes una decisión del autor.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
 
 ## 🟡 Tier 2 — Medio
-
-- [ ] **AUD-005 · El canal privado de vulnerabilidades que anuncia `SECURITY.md` está desactivado en GitHub**
-  - **Área:** Seguridad · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `.github/SECURITY.md:20-22` · configuración del repositorio
-  - **Qué hacer:** activar *Private vulnerability reporting* en *Settings → Code security*. De paso, activar las alertas de Dependabot (ver AUD-066).
-  - **Criterio de aceptación:** la API devuelve `enabled: true` y el enlace de `SECURITY.md` abre el formulario desde una cuenta sin permisos.
 
 - [ ] **AUD-022 · La compilación solo es reproducible para el Windows App SDK**
   - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Medio
@@ -223,12 +217,6 @@ del autor.
   - **Ubicación:** `src/installer/build-installer.ps1:183-190`, `:204` · `src/installer/installer.iss:20-28`
   - **Qué hacer:** pasar `-p:Version` al publish o abortar si difiere; quitar los valores por defecto y fallar con `#error`.
   - **Criterio de aceptación:** no se puede producir un instalador cuya versión difiera de la de su ejecutable.
-
-- [ ] **AUD-066 · La rama principal no está protegida y las alertas de dependencias están desactivadas**
-  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** configuración del repositorio `xfiberex/FormatDiskPro`
-  - **Qué hacer:** una regla que impida forzar y borrar `master`, **sin exigir PR ni check para el push**: el mantenedor trabaja directamente en `master` desde el 2026-10-15 (ver `CONTEXT.md` §4, *Build y publicación*), y exigirlos bloquearía ese push. Activar las alertas de Dependabot. (El PR #2 que citaba esta tarea ya se fusionó.)
-  - **Criterio de aceptación:** la API devuelve la protección y las alertas activas.
 
 ### Legal
 
