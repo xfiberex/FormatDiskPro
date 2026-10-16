@@ -589,6 +589,12 @@ if ($changelogContent.Count -eq 0) {
 }
 Ok "CHANGELOG.md tiene la sección de la $Version."
 
+# Restauración en modo bloqueado durante todo el corte (`AUD-022`): si un packages.lock.json no corresponde a
+# su proyecto, la compilación falla (NU1004) en vez de restaurar otra cosa y reescribirlo. Directory.Build.props
+# lee esta variable; el finally del final la devuelve a como estaba.
+$prevLockedMode = $env:RestoreLockedMode
+$env:RestoreLockedMode = 'true'
+
 # ── Validaciones de git ──────────────────────────────────────────────────────
 Push-Location $root
 try {
@@ -954,6 +960,7 @@ reprodujo en tres intentos. Ver ROADMAP.md, Tier 10.
     # publicación pueden querer contar lo mismo de otra forma.
     $notesPath = $NotesFile
     $tempNotes = $null
+    $contents  = $null   # qué lleva el instalador (`AUD-022`): lo anota build-installer.ps1 junto a él
     if (-not $notesPath) {
         # La sección que ya se validó arriba (Get-ChangelogSection, `AUD-054`), sin el separador del final.
         $body = ($changelogSection -join "`n").Trim().TrimEnd('-').Trim()
@@ -1012,6 +1019,12 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         }
         $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
         Ok "Instalador reutilizado: $setup ($sizeMB MB)"
+        $contentsFile = "$setup.contenido.txt"
+        if (Test-Path $contentsFile) {
+            $contents = [System.IO.File]::ReadAllText($contentsFile).Trim()
+        } else {
+            Warn "No está $contentsFile (instalador anterior a ``AUD-022``): las notas no dirán qué runtime lleva."
+        }
     }
 
     # ── DRY RUN: mostrar plan y salir ────────────────────────────────────────
@@ -1043,6 +1056,8 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         }
         $notesOrigin = if ($NotesFile) { "-NotesFile $NotesFile" } else { "la sección [$Version] del CHANGELOG" }
         Write-Host "       Notas del release: $notesOrigin" -ForegroundColor DarkGray
+        $contentsNote = if ($contents) { $contents } else { "el SDK, el runtime y el Windows App SDK que anote build-installer.ps1" }
+        Write-Host "       Notas y tag declaran el contenido: $contentsNote" -ForegroundColor DarkGray
         if (-not $SkipTests -and -not $ResumeRelease) {
             $uiNote = if ($UiTests) { "unitarias + UI tests (app real)" } else { "solo unitarias (sin -UiTests)" }
             Write-Host "    Pruebas ya ejecutadas en este dry run: $uiNote" -ForegroundColor DarkGray
@@ -1101,6 +1116,9 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     # se publiquen sin firmar (UpdateService.VerifyInstallerAsync): si no se sube como asset, la
     # auto-actualización no puede verificar nada, borra el instalador y falla.
     if (-not $installerError -and -not (Test-Path $setupHash)) { $installerError = "no se encontró el checksum esperado: $setupHash" }
+    # Qué lleva el instalador (`AUD-022`): sin esto, la release no podría declarar qué runtime empaqueta.
+    $contentsFile = "$setup.contenido.txt"
+    if (-not $installerError -and -not (Test-Path $contentsFile)) { $installerError = "no se encontró la anotación de contenido: $contentsFile" }
     if ($installerError) {
         if ($currentVersion -ne $Version) {
             [System.IO.File]::WriteAllText($csproj, $csprojRaw, (New-Object System.Text.UTF8Encoding($true)))
@@ -1113,6 +1131,8 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     $check = Test-InstallerHash -Setup $setup -HashFile $setupHash
     if ($check.Problem) { Die "El instalador recién compilado no coincide con su .sha256: $($check.Problem)." }
     Ok "Checksum: $setupHash ($($check.Hash))"
+    $contents = [System.IO.File]::ReadAllText($contentsFile).Trim()
+    Ok "Contenido: $contents"
 
     # ── 3. Commit + tag ──────────────────────────────────────────────────────
     # Añade todos los archivos rastreados modificados/eliminados (tracked changes).
@@ -1130,8 +1150,8 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     }
     Info "Creando tag $tag..."
     # El hash del instalador va en el mensaje del tag: es lo que deja a -ResumeRelease comprobar que publica
-    # el binario de ESTE corte y no uno recompilado después (`AUD-021`).
-    if ((Invoke-Git tag -a $tag -m "FormatDiskPro $tag" -m "SHA-256 del instalador: $($check.Hash)") -ne 0) { Die "git tag falló." }
+    # el binario de ESTE corte y no uno recompilado después (`AUD-021`). Y lo que lleva dentro (`AUD-022`).
+    if ((Invoke-Git tag -a $tag -m "FormatDiskPro $tag" -m "SHA-256 del instalador: $($check.Hash)" -m "Contenido: $contents") -ne 0) { Die "git tag falló." }
 
     # ── 4. Push ──────────────────────────────────────────────────────────────
     # Vía Invoke-Git a propósito: git escribe el resumen del push por stderr y, con
@@ -1154,13 +1174,24 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         Die "No se publica: $($check.Problem). La app no podría verificar la descarga y la auto-actualización fallaría para todos. El tag $tag ya existe: recompila el instalador desde ese commit o rehaz el corte."
     }
 
+    # Las notas declaran qué lleva el instalador (`AUD-022`, `AUD-063`): ante un aviso de seguridad del runtime
+    # de .NET, es lo que dice qué versiones de la app lo traen. Se añade a una copia, también con -NotesFile,
+    # que es un archivo del usuario y no se toca.
+    $publishNotes = $notesPath
+    if ($contents) {
+        $publishNotes = Join-Path $env:TEMP "fdp_release_${Version}_publicar.md"
+        $withContents = [System.IO.File]::ReadAllText($notesPath).TrimEnd() + "`n`n**Contenido del instalador:** $contents`n"
+        [System.IO.File]::WriteAllText($publishNotes, $withContents, (New-Object System.Text.UTF8Encoding($false)))
+    }
+
     Info "Creando el GitHub Release..."
-    & $gh release create $tag --title "FormatDiskPro $tag" --notes-file $notesPath $setup $setupHash
+    & $gh release create $tag --title "FormatDiskPro $tag" --notes-file $publishNotes $setup $setupHash
     if ($LASTEXITCODE -ne 0) {
         Die "gh release create falló. El tag y el instalador ya están: cuando lo arregles, retoma SOLO este paso con  .\release.ps1 -Version $Version -ResumeRelease"
     }
 
     if ($tempNotes) { Remove-Item $tempNotes -Force -ErrorAction SilentlyContinue }
+    if ($publishNotes -ne $notesPath) { Remove-Item $publishNotes -Force -ErrorAction SilentlyContinue }
     Write-Host ""
     Ok "Release $tag publicado: https://github.com/xfiberex/FormatDiskPro/releases/tag/$tag"
     # Se repite aquí a propósito: cuando el corte sale bien, este es el único bloque que se lee.
@@ -1174,5 +1205,6 @@ finally {
     # cualquier proceso que se abra después desde ella. Se limpia solo si lo puso este script: si ya
     # venía del entorno del usuario, es suyo y no nos toca borrarlo.
     if ($script:ClearedGhToken) { $env:GH_TOKEN = $null }
+    $env:RestoreLockedMode = $prevLockedMode
     Pop-Location
 }

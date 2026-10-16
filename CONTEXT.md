@@ -327,11 +327,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 ### Build y publicación
 
-- **Publicación self-contained** (`WindowsAppSDKSelfContained=true`): el usuario final no instala .NET.
-- **`Microsoft.WindowsAppSDK` con versión EXACTA (`2.5.1`) — nunca un comodín.** Con comodín, NuGet
-  resuelve el paquete más nuevo y **el conjunto de archivos publicados cambia solo**, sin tocar el repo. Así
-  apareció, de un día para otro, el archivo que rompió el build (ver MAX_PATH). Subir de versión debe ser
-  **deliberado y probado**, no un efecto colateral de la fecha en que se compile.
+- **Publicación self-contained** (`WindowsAppSDKSelfContained=true`): el usuario final no instala .NET. El runtime
+  que va dentro lo decide el SDK, no lo instalado: `build-installer.ps1` lo anota y el corte lo pone en tag y notas.
+- **Compilación reproducible** (`AUD-022`): SDK en `global.json` (`latestPatch`), paquetes en `packages.lock.json`
+  (bloqueado con `CI=true` y en el corte; un paquete cambiado lleva su archivo de bloqueo en el mismo commit), solo
+  nuget.org, y `Microsoft.WindowsAppSDK` **exacto** (`2.5.1`): con comodín, lo publicado cambió solo y rompió el build.
 - **El instalador se publica a `%TEMP%`, no dentro del repo — MAX_PATH.** Inno Setup no usa las APIs de rutas
   largas, y el publish del Windows App SDK trae nombres de hasta 76 caracteres
   (`WindowsAppSdk.AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll`). Sumados a la ruta del repo

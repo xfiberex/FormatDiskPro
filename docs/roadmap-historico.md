@@ -23,6 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-16 | `AUD-063` | Cada release declara en notas y tag el SDK, el runtime de .NET y el Windows App SDK que lleva | sin publicar |
+| 2026-10-16 | `AUD-022` | SDK en `global.json`, paquetes con archivo de bloqueo en modo bloqueado (CI y corte), solo nuget.org | sin publicar |
 | 2026-10-16 | `AUD-065` | `-Version` llega al ejecutable y `installer.iss` falla sin versión ni carpeta de publicación | sin publicar |
 | 2026-10-16 | `AUD-062` | El instalador se niega a instalar en una carpeta ajena no vacía, también con `/DIR=` en silencioso | sin publicar |
 | 2026-10-16 | `AUD-061` | Modo estricto en el corte y el instalador; sin red, el corte aborta con mensaje propio | sin publicar |
@@ -300,6 +302,23 @@
   - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
 
 ### DevOps
+
+- [x] **AUD-063 · No queda registro de lo que cada instalador empaqueta**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `release.ps1:847` · `src/installer/build-installer.ps1:183-227`
+  - **Qué hacer:** adjuntar un SBOM (CycloneDX o SPDX) como tercer asset o, como mínimo, una línea en las notas con SDK, runtime y Windows App SDK.
+  - **Criterio de aceptación:** cada release declara las versiones que contiene.
+  - **Depende de:** AUD-022
+  - **Hecho (2026-10-16):** El mínimo que pide la tarea, sin SBOM: cada release declara en sus notas («**Contenido del instalador:** …») y en el mensaje de su tag («Contenido: …») el SDK, el runtime de .NET y el Windows App SDK que lleva, leídos de lo publicado (ver `AUD-022`). Con `-ResumeRelease` se lee el mismo archivo junto al instalador; si es anterior a esto, avisa.
+  - **Verificado (2026-10-16, en local):** Ver `AUD-022`. La anotación del instalador real (versión 1.30.1 del árbol) dice «SDK de .NET 10.0.400 · runtime de .NET 10.0.11 · Windows App SDK 2.5.1». Un SBOM completo (CycloneDX/SPDX) queda sin hacer: con las tres versiones se responde a la pregunta del impacto (qué versiones de la app traen un runtime afectado).
+
+- [x] **AUD-022 · La compilación solo es reproducible para el Windows App SDK**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** raíz del repo (no existen `global.json`, `nuget.config` ni `packages.lock.json`) · `.github/workflows/ci.yml:49`, `:62-64` · `src/installer/build-installer.ps1:183-190`
+  - **Qué hacer:** `global.json` con `rollForward: latestPatch`; `RestorePackagesWithLockFile` con `--locked-mode` en CI y en el corte; `nuget.config` con solo nuget.org; y que el corte deje escrita la versión del runtime empaquetado.
+  - **Criterio de aceptación:** dos compilaciones del mismo commit usan el mismo SDK y los mismos paquetes, y cada release declara el runtime que contiene.
+  - **Hecho (2026-10-16):** `global.json` fija el SDK 10.0.400 con `rollForward: latestPatch` (parches de la banda 10.0.4xx), y el CI lo instala desde ahí en sus dos jobs en vez de `10.0.x`. `Directory.Build.props` en la raíz activa `RestorePackagesWithLockFile` en los tres proyectos, que versionan su `packages.lock.json`, y `RestoreLockedMode` cuando `CI=true` (GitHub Actions) o cuando lo define `release.ps1`, que lo hace durante todo el corte y lo devuelve en el `finally`. El CI restaura además con `--locked-mode`. `nuget.config` con `<clear/>` y solo nuget.org. Para lo que el archivo de bloqueo no cubre, el runtime empaquetado, `build-installer.ps1` lee el `runtimeconfig.json` publicado (`includedFrameworks`), el SDK (`dotnet --version`) y el Windows App SDK del archivo de bloqueo, y lo deja en `<instalador>.contenido.txt`; `release.ps1` lo exige, lo pone en el mensaje del tag y en las notas. La guía y el README dicen la banda del SDK y qué hacer al cambiar un paquete.
+  - **Verificado (2026-10-16, en local):** Con el SDK 10.0.400, `dotnet restore --locked-mode` de los tres proyectos pasa; en un clon, cambiar xunit de 2.9.3 a 2.9.2 sin regenerar el archivo de bloqueo hace fallar la restauración con `NU1004` solo con `CI=true`, sin pasar ninguna opción. `build-installer.ps1` anota «SDK de .NET 10.0.400 · runtime de .NET 10.0.11 · Windows App SDK 2.5.1»: el runtime es el 10.0.11 aunque la máquina tenga instalado el 10.0.12, porque lo decide el SDK y no lo instalado, que es justo por qué hacía falta anotarlo. El dry run completo pasa en modo bloqueado (925/926, cobertura 98,5 %) y deja `RestoreLockedMode` como estaba. El paso de las notas, ejecutado aparte, añade la línea al final y sin BOM; *Novedades* quita el negrita (`ReleaseNotes.ToPlainText`). No se ha visto aún el primer CI con `global-json-file`, ni un PR de Dependabot con los archivos de bloqueo: queda anotado en `dependabot.yml`.
 
 - [x] **AUD-065 · `build-installer.ps1 -Version` etiqueta el instalador pero no el binario, y los valores por defecto de `installer.iss` están obsoletos**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo

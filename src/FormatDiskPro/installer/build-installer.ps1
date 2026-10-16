@@ -200,6 +200,35 @@ if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
     -o $publishDir
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish falló (código $LASTEXITCODE)" }
 
+# --- Qué lleva dentro (AUD-022) ----------------------------------------------
+# El runtime de .NET que se empaqueta no lo fija ningún archivo del repo: lo decide el SDK (global.json
+# admite sus parches). Sin anotarlo, no había forma de saber qué runtime llevaba una versión publicada sin
+# instalarla, y ante un aviso de seguridad del runtime no se podía decir qué versiones de la app lo traen.
+# Se lee de lo publicado, no de lo que se espera: el runtimeconfig de una app self-contained enumera los
+# frameworks que lleva consigo. El Windows App SDK sale del archivo de bloqueo, que es lo que se restauró.
+Push-Location $projectDir
+try { $sdkVersion = (& dotnet --version).Trim() } finally { Pop-Location }
+$runtimeConfig = Join-Path $publishDir "FormatDiskPro.runtimeconfig.json"
+if (-not (Test-Path $runtimeConfig)) { throw "No se encuentra $runtimeConfig en la publicación: no se puede anotar qué runtime lleva el instalador." }
+$rc = Get-Content $runtimeConfig -Raw | ConvertFrom-Json
+$frameworks = @($rc.runtimeOptions.PSObject.Properties |
+    Where-Object { $_.Name -in 'includedFrameworks', 'framework', 'frameworks' } |
+    ForEach-Object { $_.Value } | ForEach-Object { $_ })
+$netcore = $frameworks | Where-Object { $_.name -eq 'Microsoft.NETCore.App' } | Select-Object -First 1
+if (-not $netcore) { throw "$runtimeConfig no declara Microsoft.NETCore.App: no se puede anotar qué runtime lleva el instalador." }
+$lockFile = Join-Path $projectDir "packages.lock.json"
+$appSdk = $null
+if (Test-Path $lockFile) {
+    $lock = Get-Content $lockFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    foreach ($fw in $lock.dependencies.PSObject.Properties) {
+        $pkg = $fw.Value.PSObject.Properties | Where-Object { $_.Name -eq 'Microsoft.WindowsAppSDK' } | Select-Object -First 1
+        if ($pkg) { $appSdk = $pkg.Value.resolved; break }
+    }
+}
+if (-not $appSdk) { throw "No se encuentra Microsoft.WindowsAppSDK en ${lockFile}: no se puede anotar qué Windows App SDK lleva el instalador." }
+$contents = "SDK de .NET $sdkVersion · runtime de .NET $($netcore.version) · Windows App SDK $appSdk"
+Write-Host "==> Contenido: $contents" -ForegroundColor Cyan
+
 # --- Firmar el ejecutable publicado (antes de empaquetar) ------------------
 if ($signEnabled) {
     Invoke-Sign @(
@@ -229,9 +258,15 @@ if (Test-Path $setup) {
     "$hash *$(Split-Path $setup -Leaf)" | Out-File -FilePath $sha256File -Encoding ascii -NoNewline
     Write-Host "==> SHA-256: $hash" -ForegroundColor Cyan
 
+    # Junto al instalador, con su nombre: release.ps1 lo copia en el tag y en las notas del release.
+    # UTF-8 sin BOM, una sola línea.
+    $contentsFile = "$setup.contenido.txt"
+    [System.IO.File]::WriteAllText($contentsFile, $contents, (New-Object System.Text.UTF8Encoding($false)))
+
     $sizeMB = [math]::Round((Get-Item $setup).Length / 1MB, 1)
     Write-Host "`n[OK] Instalador generado: $setup ($sizeMB MB)" -ForegroundColor Green
     Write-Host "[OK] Checksum generado:   $sha256File" -ForegroundColor Green
+    Write-Host "[OK] Contenido anotado:   $contentsFile" -ForegroundColor Green
 } else {
     Write-Warning "ISCC terminó pero no se encontró el instalador esperado en $setup"
 }

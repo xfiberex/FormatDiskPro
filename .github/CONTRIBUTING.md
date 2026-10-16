@@ -12,7 +12,8 @@ Gracias por el interés. Antes de escribir código, dos lecturas que ahorran tie
 
 - Windows 10 versión 2004 (compilación 19041) o posterior, o Windows 11; x64. Es el mínimo que declara
   `SupportedOSPlatformVersion` en el `.csproj`, y el instalador lo exige con `MinVersion`.
-- .NET SDK **10**.
+- .NET SDK **10.0.400** o un parche posterior de esa banda (10.0.4xx): lo fija [`global.json`](../global.json).
+  El SDK decide qué runtime de .NET va dentro del instalador, y por eso no se deja flotar.
 - [Inno Setup 6](https://jrsoftware.org/isinfo.php) solo si vas a generar el instalador.
 
 ## Compilar y probar
@@ -24,6 +25,10 @@ dotnet test                      # unitarias (Core + helpers de Services)
 # Cobertura de Core/ (el corte de versión la exige ≥ 90 %)
 dotnet test --collect:"XPlat Code Coverage"
 ```
+
+**Si cambias un paquete NuGet**, el `packages.lock.json` de su proyecto cambia con él al restaurar: súbelo en el
+mismo commit. El CI y el corte restauran en modo bloqueado y fallan con `NU1004` si no corresponde. Los paquetes
+solo vienen de nuget.org ([`nuget.config`](../nuget.config)).
 
 **Las pruebas de UI conducen la app real y exigen TERMINAL ELEVADA** — la app es `requireAdministrator` y
 un proceso sin elevar no puede automatizar su ventana:

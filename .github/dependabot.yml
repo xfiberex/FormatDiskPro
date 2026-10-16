@@ -11,6 +11,11 @@
 # actualiza. El `ignore` del SDK es una segunda barrera: hoy ningún proyecto de prueba lo referencia
 # directamente.
 #
+# Desde el 2026-10-16 cada proyecto tiene su packages.lock.json y el CI restaura en modo bloqueado (AUD-022).
+# El PR de Dependabot tiene que traer los archivos de bloqueo actualizados; si no, el CI falla con NU1004.
+# Se espera que los traiga (su actualizador de NuGet los regenera), pero no se ha visto todavía: en el
+# primer PR, comprobarlo. Si no vienen, se regeneran a mano con `dotnet restore --force-evaluate`.
+#
 # Un solo PR al mes por ecosistema, con todo junto.
 version: 2
 updates:

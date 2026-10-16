@@ -24,6 +24,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Interno
 
+- La compilación es reproducible: el SDK de .NET va fijado en `global.json`, los paquetes en un
+  `packages.lock.json` por proyecto (el CI y el corte restauran en modo bloqueado) y solo se usa nuget.org.
+  Cada release declara en sus notas y en su tag qué SDK la compiló, qué runtime de .NET lleva dentro y qué
+  Windows App SDK (`AUD-022`, `AUD-063`).
 - `build-installer.ps1 -Version` estampa esa versión también en el ejecutable, no solo en el nombre del
   instalador, e `installer.iss` deja de tener versión y carpeta por defecto: compilarlo sin ellas falla
   (`AUD-065`).

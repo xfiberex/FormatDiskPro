@@ -63,6 +63,25 @@
 
 ## Entradas
 
+### 2026-10-16 — `AUD-022` y `AUD-063`: la compilación, reproducible, y cada release dice qué lleva
+
+**Qué cambia.** El SDK de .NET se fija en `global.json` (10.0.400, con parches), los paquetes en un
+`packages.lock.json` por proyecto y los orígenes en `nuget.config` (solo nuget.org). El CI y el corte
+restauran en modo bloqueado. Y cada release declara, en sus notas y en su tag, el SDK que la compiló, el
+runtime de .NET que lleva y el Windows App SDK.
+
+**Por qué así.** El proyecto ya había decidido no dejar flotar el Windows App SDK; flotaban en cambio la banda
+del SDK (`10.0.x` en el CI), la decena de subpaquetes que arrastra el metapaquete y el runtime empaquetado.
+El archivo de bloqueo cubre los paquetes, pero no el runtime: ese lo elige el SDK. Se vio al probarlo: el
+instalador lleva el runtime 10.0.11 aunque la máquina tenga instalado el 10.0.12. Por eso, además de fijar el
+SDK, se anota lo que de verdad va dentro, leído del `runtimeconfig.json` publicado y no de lo esperado.
+
+**Decisiones menores.** `latestPatch` y no una versión exacta, para que los parches de seguridad del SDK
+entren sin tocar el repo; queda anotado en cada release. El modo bloqueado solo en el CI y el corte, no en
+local: en local, cambiar un paquete reescribe su archivo de bloqueo y el cambio va en el mismo commit. Para
+`AUD-063`, el mínimo que proponía la auditoría (una línea en las notas), no un SBOM. Falta ver el primer CI
+con `global-json-file` y si Dependabot trae los archivos de bloqueo en su PR; queda anotado en `dependabot.yml`.
+
 ### 2026-10-16 — `AUD-059` a `AUD-062` y `AUD-065`: los scripts del corte, del instalador y de las capturas
 
 **Qué cambia.** El instalador se niega a instalar sobre una carpeta ajena con contenido, también con `/DIR=`

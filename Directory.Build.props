@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    Compilación reproducible (AUD-022): los paquetes que restaura NuGet quedan fijados en un
+    packages.lock.json por proyecto, que se versiona.
+
+    El metapaquete Microsoft.WindowsAppSDK va a una versión exacta en el .csproj, pero arrastra una decena de
+    subpaquetes, cada uno con su versión, y los de prueba arrastran los suyos. Sin archivo de bloqueo, lo que
+    se restauraba dependía del día. Con él, todo lo transitivo queda escrito y se ve en el diff.
+
+    Modo bloqueado (la restauración falla si el archivo de bloqueo no corresponde a los proyectos) en el CI,
+    donde GitHub Actions define CI=true, y en el corte, que define RestoreLockedMode al ejecutarse. En local
+    no se bloquea, para poder cambiar un paquete: la restauración reescribe el archivo y el cambio va en el
+    mismo commit. Si un paquete cambia y el archivo no, el CI lo dice.
+
+    Lo que el archivo de bloqueo NO cubre es el runtime de .NET que se empaqueta en el instalador: lo decide
+    el SDK, y por eso el SDK va fijado en global.json y el corte anota el runtime de cada release.
+  -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(RestoreLockedMode)' == '' and '$(CI)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>

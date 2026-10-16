@@ -61,13 +61,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Instalar el SDK de .NET 10
+      # El SDK sale de global.json (AUD-022), no de '10.0.x': una banda nueva del SDK podía poner en rojo el
+      # CI, con -warnaserror, sin que el repositorio hubiera cambiado.
+      - name: Instalar el SDK de .NET (global.json)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
-      - name: Restaurar
-        run: dotnet restore FormatDiskPro.slnx
+      # --locked-mode: falla (NU1004) si un packages.lock.json no corresponde a su proyecto. Las restauraciones
+      # implícitas de abajo también van bloqueadas: Directory.Build.props lo activa con CI=true.
+      - name: Restaurar (con los archivos de bloqueo)
+        run: dotnet restore FormatDiskPro.slnx --locked-mode
 
       # -warnaserror: el proyecto compila a 0 advertencias y ese es el listón (CONTRIBUTING.md). Se excluyen
       # NU1901–NU1904 (vulnerabilidades publicadas de paquetes NuGet): aparecen y desaparecen por
@@ -167,12 +171,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Instalar el SDK de .NET 10
+      - name: Instalar el SDK de .NET (global.json)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
-      # Los mismos argumentos que build-installer.ps1, y a una carpeta fuera del repo como él.
+      # Los mismos argumentos que build-installer.ps1, y a una carpeta fuera del repo como él. La restauración
+      # que hace el publish va bloqueada (CI=true, ver Directory.Build.props).
       - name: Publicar como el instalador (self-contained)
         id: publish
         shell: pwsh

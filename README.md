@@ -137,7 +137,7 @@ Preferencias e historial se guardan en `%AppData%\FormatDiskPro\`.
 
 ## Desarrollo
 
-Requiere el .NET SDK 10 (e [Inno Setup 6](https://jrsoftware.org/isinfo.php) para el instalador).
+Requiere el .NET SDK 10.0.4xx, que fija [`global.json`](global.json) (e [Inno Setup 6](https://jrsoftware.org/isinfo.php) para el instalador).
 [CONTRIBUTING.md](.github/CONTRIBUTING.md) explica qué se espera de un PR, y [CONTEXT.md](CONTEXT.md) la
 arquitectura y el **porqué** de cada decisión.
 
@@ -160,7 +160,7 @@ desmontan a mitad de operación (`FORMATDISKPRO_ALLOW_YANK=1`) solo corren si se
 |---|---|---|
 | [**Compilación y unitarias**](.github/workflows/ci.yml) | push a `master`, cada PR, manual | Compila en Release sin advertencias, ejecuta las unitarias y **compila** las de UI sin ejecutarlas. El resumen dice qué no ejecutó y qué se omitió. |
 | [**CodeQL**](.github/workflows/codeql.yml) | igual, más cada lunes | Análisis de seguridad del código de la app. |
-| [**Dependabot**](.github/dependabot.yml) | mensual | Actualiza las acciones, fijadas por SHA. NuGet no: el Windows App SDK se sube a mano. |
+| [**Dependabot**](.github/dependabot.yml) | mensual | Actualiza las acciones, fijadas por SHA, y los paquetes de las pruebas. El Windows App SDK se sube a mano. |
 
 Los cambios que solo tocan `*.md` o `docs/` no disparan los workflows. Un runner no tiene la USB de
 pruebas ni puede elevar la app, así que **la puerta de publicación sigue siendo local**:
