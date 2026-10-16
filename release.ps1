@@ -95,6 +95,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# Modo estricto (`AUD-061`): una variable mal escrita, o una propiedad que no existe, abortan en vez de valer
+# $null en silencio. Afecta también a build-installer.ps1, que se ejecuta en un ámbito hijo. OJO al leer XML:
+# con el modo estricto, `$nodo.Hijo` lanza si el elemento no tiene ese hijo —también al enumerar los
+# PropertyGroup de un .csproj—; por eso aquí se lee con SelectNodes/SelectSingleNode.
+Set-StrictMode -Version Latest
 
 # Mínimo de cobertura de LÍNEA exigido a Core/ (la lógica pura). El 2026-08-15, al medirla por primera
 # vez, estaba en 97.1%: el umbral se pone por debajo a propósito, para que sea un suelo que avise de una
@@ -139,6 +144,33 @@ function Invoke-Git {
         return $LASTEXITCODE
     }
     finally { $ErrorActionPreference = $eap }
+}
+
+<#
+.SYNOPSIS
+    Ejecuta una consulta de git (solo lectura) y devuelve su salida, su código de salida y su error, sin
+    abortar el script por lo que git escriba en stderr (`AUD-061`).
+
+.DESCRIPTION
+    Es la trampa de Invoke-Git, pero para las llamadas cuya SALIDA hace falta. `& git ... 2>$null` con la
+    preferencia en "Stop" no silencia nada en PS 5.1: la primera línea de stderr se convierte en error
+    terminante. Sin red, `git ls-remote` moría así, con un NativeCommandError crudo en vez de un mensaje del
+    corte. Aquí stdout y stderr se separan, y quien llama decide por .ExitCode y da su propio mensaje.
+#>
+function Invoke-GitQuery {
+    $eap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $all  = @(& git @args 2>&1)
+        $code = $LASTEXITCODE
+    }
+    finally { $ErrorActionPreference = $eap }
+    $isErr = { $_ -is [System.Management.Automation.ErrorRecord] }
+    [pscustomobject]@{
+        ExitCode = $code
+        Output   = @($all | Where-Object { -not (& $isErr) } | ForEach-Object { "$_" })
+        Error    = ((@($all | Where-Object $isErr | ForEach-Object { "$_".Trim() })) -join ' ').Trim()
+    }
 }
 
 <#
@@ -218,7 +250,8 @@ function Get-CoreCoverage {
     $covered = 0; $total = 0
     $perClass = foreach ($c in $classes) {
         $ct = 0; $cc = 0
-        foreach ($l in $c.lines.line) { $ct++; if ([int]$l.hits -gt 0) { $cc++ } }
+        # SelectNodes y no $c.lines.line: con el modo estricto, una clase sin líneas (<lines />) lanzaría.
+        foreach ($l in $c.SelectNodes('lines/line')) { $ct++; if ([int]$l.hits -gt 0) { $cc++ } }
         $covered += $cc; $total += $ct
         [pscustomobject]@{
             Name    = ($c.name -replace '^FormatDiskPro\.', '')
@@ -297,7 +330,9 @@ function Get-TestRunSummary {
         $xml.Load($TrxPath)
     } catch { return $null }
 
-    $results = @($xml.TestRun.Results.UnitTestResult)
+    # Por XPath con local-name(): el .trx tiene espacio de nombres, y con el modo estricto `$x.Output` lanza
+    # en un resultado que no tiene ese elemento (los que pasan no lo tienen).
+    $results = @($xml.SelectNodes("//*[local-name()='Results']/*[local-name()='UnitTestResult']"))
     if ($results.Count -eq 0) { return $null }
 
     $skipped = @($results | Where-Object { $_.outcome -eq 'NotExecuted' })
@@ -306,7 +341,8 @@ function Get-TestRunSummary {
         Passed  = @($results | Where-Object { $_.outcome -eq 'Passed' }).Count
         Skipped = $skipped.Count
         SkippedDetail = @($skipped | ForEach-Object {
-            $reason = $_.Output.ErrorInfo.Message
+            $msg    = $_.SelectSingleNode("*[local-name()='Output']/*[local-name()='ErrorInfo']/*[local-name()='Message']")
+            $reason = if ($msg) { $msg.InnerText } else { $null }
             [pscustomobject]@{
                 Name   = $_.testName
                 Reason = if ($reason) { ($reason -replace '\s+', ' ').Trim() } else { "sin motivo declarado" }
@@ -556,15 +592,22 @@ Ok "CHANGELOG.md tiene la sección de la $Version."
 # ── Validaciones de git ──────────────────────────────────────────────────────
 Push-Location $root
 try {
-    & git rev-parse --is-inside-work-tree *> $null
-    if ($LASTEXITCODE -ne 0) { Die "Este directorio no es un repositorio git." }
+    # Las consultas van por Invoke-GitQuery (`AUD-061`): un fallo de git —sin red, sin repo— acaba en un
+    # mensaje del corte, no en un NativeCommandError.
+    if ((Invoke-GitQuery rev-parse --is-inside-work-tree).ExitCode -ne 0) { Die "Este directorio no es un repositorio git." }
 
-    $branch = (& git rev-parse --abbrev-ref HEAD).Trim()
+    $branch = ((Invoke-GitQuery rev-parse --abbrev-ref HEAD).Output -join '').Trim()
     Info "Rama: $branch"
 
     # ¿Tag ya existe? (local o remoto)
-    $localTag  = (& git tag --list $tag)
-    $remoteTag = (& git ls-remote --tags origin $tag 2>$null)
+    $localTag  = (Invoke-GitQuery tag --list $tag).Output
+    # Antes, sin red, esta línea abortaba el corte con un error crudo; y si no abortaba, un fallo se leía
+    # como «el tag no está en origin».
+    $remoteQuery = Invoke-GitQuery ls-remote --tags origin $tag
+    if ($remoteQuery.ExitCode -ne 0) {
+        Die "No se pudo consultar origin (git ls-remote terminó con código $($remoteQuery.ExitCode)): sin eso no se sabe si el tag $tag ya existe ni si este clon va por detrás. ¿Hay red? Detalle: $($remoteQuery.Error)"
+    }
+    $remoteTag = $remoteQuery.Output
 
     if ($ResumeRelease) {
         # Retomando: el tag TIENE que existir ya; es lo que se está reaprovechando.
@@ -600,7 +643,11 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
     if ($branch -ne 'master') {
         Warn "El corte se lanza desde '$branch', no desde master: el commit y el tag del release quedarán en esa rama."
     }
-    $onOrigin = (& git ls-remote --heads origin $branch 2>$null)
+    $headsQuery = Invoke-GitQuery ls-remote --heads origin $branch
+    if ($headsQuery.ExitCode -ne 0) {
+        Die "No se pudo consultar origin/$branch (git ls-remote terminó con código $($headsQuery.ExitCode)). ¿Hay red? Detalle: $($headsQuery.Error)"
+    }
+    $onOrigin = $headsQuery.Output
     if (-not $onOrigin) {
         if ($ResumeRelease) { Die "-ResumeRelease necesita que '$branch' esté en origin, para comprobar que el tag $tag está en ella, y no está." }
         Warn "La rama '$branch' no existe en origin: el corte la creará al subirla."
@@ -611,17 +658,21 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
         }
         if ($ResumeRelease) {
             # Se publicaría un release cuyo código no está en la rama: quien la clone no tendría ese commit.
-            & git merge-base --is-ancestor "$tag^{commit}" "origin/$branch" 2>$null
-            if ($LASTEXITCODE -ne 0) {
+            # --is-ancestor: 0 = sí, 1 = no; cualquier otro código es que git no pudo responder.
+            $ancestor = Invoke-GitQuery merge-base --is-ancestor "$tag^{commit}" "origin/$branch"
+            if ($ancestor.ExitCode -gt 1) {
+                Die "No se pudo comprobar si el tag $tag está en origin/$branch (git merge-base terminó con código $($ancestor.ExitCode)): $($ancestor.Error)"
+            }
+            if ($ancestor.ExitCode -ne 0) {
                 Die "El tag $tag no está en origin/${branch}: publicarías un release cuyo código no está en la rama. Sube antes la rama con el commit del release ('git push origin $branch')."
             }
             Ok "El tag $tag está en origin/$branch."
         } else {
-            $behind = [int](& git rev-list --count "HEAD..origin/$branch")
+            $behind = [int](@((Invoke-GitQuery rev-list --count "HEAD..origin/$branch").Output) -join '')
             if ($behind -gt 0) {
                 Die "origin/$branch tiene $behind commit(s) que este clon no tiene: el corte moriría al subir la rama, después de etiquetar. Trae los cambios ('git pull --ff-only'), vuelve a probar y reintenta."
             }
-            $ahead = [int](& git rev-list --count "origin/$branch..HEAD")
+            $ahead = [int](@((Invoke-GitQuery rev-list --count "origin/$branch..HEAD").Output) -join '')
             Ok "Al día con origin/$branch ($ahead commit(s) por subir)."
         }
     }
@@ -640,7 +691,7 @@ Si lo que quieres es rehacer el corte entero, borra el tag primero:
     #     la que se apoya el .sha256, que existe porque se decidió no firmar.
     #
     # -AllowDirty cubre ambos casos, que es lo que su propia ayuda promete.
-    $status    = @(& git status --porcelain)
+    $status    = @((Invoke-GitQuery status --porcelain).Output)
     $untracked = @($status | Where-Object { $_ -match '^\?\?' })
     $modified  = @($status | Where-Object { $_ -notmatch '^\?\?' })
 
@@ -950,7 +1001,7 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
         $check = Test-InstallerHash -Setup $setup -HashFile $setupHash
         if ($check.Problem) { Die "-ResumeRelease no publica: $($check.Problem)." }
 
-        $tagText   = (& git tag -l "--format=%(contents)" $tag) -join "`n"
+        $tagText   = (Invoke-GitQuery tag -l "--format=%(contents)" $tag).Output -join "`n"
         $taggedHash = if ($tagText -match 'SHA-256 del instalador: ([0-9A-Fa-f]{64})') { $Matches[1] } else { $null }
         if (-not $taggedHash) {
             Warn "El tag $tag no anota el hash del instalador (es anterior a ``AUD-021``): solo se ha podido cotejar con su .sha256."
@@ -1068,7 +1119,7 @@ El asset ``FormatDiskPro-$Version-setup.exe.sha256`` es el hash con el que la ap
     # Los archivos nuevos sin rastrear requieren 'git add' manual previo.
     Info "Preparando commit de release..."
     if ((Invoke-Git add -u) -ne 0) { Die "git add -u falló." }
-    $staged = (& git diff --cached --name-only)
+    $staged = (Invoke-GitQuery diff --cached --name-only).Output
     if ($staged) {
         Info "Archivos incluidos en el commit:"
         $staged | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }

@@ -3,8 +3,8 @@
 ;  Compilar con:  iscc installer.iss
 ;  o vía script:  build-installer.ps1  (publica self-contained y compila)
 ;
-;  Parámetros opcionales (vía /D al invocar ISCC):
-;    /DMyAppVersion=X.Y.Z     versión a estampar (por defecto: ver #define abajo)
+;  Parámetros OBLIGATORIOS (vía /D al invocar ISCC; build-installer.ps1 los pasa):
+;    /DMyAppVersion=X.Y.Z     versión a estampar: la misma que lleva el ejecutable publicado
 ;    /DPublishDir=<ruta>      carpeta de publicación de .NET (self-contained)
 ;
 ;  Requisitos mínimos:
@@ -18,14 +18,16 @@
 #define MyAppURL "https://github.com/xfiberex/FormatDiskPro"
 #define MyAppExeName "FormatDiskPro.exe"
 
+; Sin valores por defecto, a propósito (AUD-065). Los que había (versión 1.1.0, publish dentro de bin\)
+; llevaban versiones sin actualizarse: compilar este archivo a mano producía un instalador «1.1.0» con
+; lo que hubiera en bin\, cuya versión no era la del ejecutable, y desde una ruta que pasa de MAX_PATH.
 #ifndef MyAppVersion
-  #define MyAppVersion "1.1.0"
+  #error Falta /DMyAppVersion=X.Y.Z. Compila con build-installer.ps1, que la toma del .csproj.
 #endif
 
 ; Carpeta con el resultado de `dotnet publish -r win-x64 --self-contained true`.
-; TFM: net10.0-windows10.0.19041.0 (WinUI 3 / Windows App SDK 2.5.1).
 #ifndef PublishDir
-  #define PublishDir "..\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish"
+  #error Falta /DPublishDir=<ruta>. Compila con build-installer.ps1, que publica fuera del repo (MAX_PATH).
 #endif
 
 [Setup]
@@ -89,6 +91,10 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; preferencias viven en %AppData%), y desde T9-17 {app} no lo puede elegir quien instala
 ; (DisableDirPage=yes), así que siempre es una carpeta de este producto. Con la página de destino
 ; visible, este borrado alcanzaba a cualquier carpeta que se apuntara.
+;
+; DisableDirPage solo oculta la página: /DIR= por línea de comandos sigue fijando {app}. Por eso
+; PrepareToInstall (en [Code]) se niega a seguir si {app} existe, no está vacía y no contiene
+; FormatDiskPro.exe (AUD-062): este borrado nunca llega a una carpeta ajena.
 Type: filesandordirs; Name: "{app}\*"
 
 [Files]
@@ -110,12 +116,54 @@ Filename: "{app}\{#MyAppExeName}"; Flags: nowait; Check: IsAutoUpdate
 [CustomMessages]
 spanish.ConfirmDeleteUserData=¿Quieres borrar también tus datos de FormatDiskPro (preferencias y el historial de operaciones)?%n%nEstán en:%n%1%n%nSi eliges No, se conservan por si vuelves a instalar la aplicación.
 english.ConfirmDeleteUserData=Do you also want to delete your FormatDiskPro data (preferences and the operations history)?%n%nThey are stored in:%n%1%n%nIf you choose No, they are kept in case you install the application again.
+spanish.ForeignTargetDir=La carpeta de destino ya existe, no está vacía y no contiene FormatDiskPro:%n%1%n%nEl instalador vacía la carpeta antes de copiar, así que no se instala ahí. Elige una carpeta vacía o la de una instalación anterior de FormatDiskPro.
+english.ForeignTargetDir=The destination folder already exists, is not empty and does not contain FormatDiskPro:%n%1%n%nSetup empties the folder before copying, so it will not install there. Choose an empty folder or that of a previous FormatDiskPro installation.
 
 [Code]
 { True cuando la app invoca el instalador para auto-actualizarse (UpdateService.LaunchInstaller silent). }
 function IsAutoUpdate: Boolean;
 begin
   Result := ExpandConstant('{param:AUTOUPDATE|0}') = '1';
+end;
+
+// True si la carpeta tiene al menos una entrada (archivo o subcarpeta).
+function DirHasEntries(const Dir: String): Boolean;
+var
+  FindRec: TFindRec;
+begin
+  Result := False;
+  if FindFirst(AddBackslash(Dir) + '*', FindRec) then
+  try
+    repeat
+      if (FindRec.Name <> '.') and (FindRec.Name <> '..') then
+      begin
+        Result := True;
+        Exit;
+      end;
+    until not FindNext(FindRec);
+  finally
+    FindClose(FindRec);
+  end;
+end;
+
+// Se niega a instalar sobre una carpeta ajena (AUD-062).
+//
+// [InstallDelete] vacía la carpeta de la app entera antes de copiar. La página de destino está oculta,
+// pero /DIR= por línea de comandos sigue fijando el destino, también en modo silencioso, y con él este
+// borrado alcanzaba cualquier carpeta. PrepareToInstall corre antes de [InstallDelete] en los dos modos,
+// y devolver texto aborta la instalación mostrándolo (o escribiéndolo en el log, en silencioso).
+//
+// Una carpeta que no existe, vacía, o con FormatDiskPro.exe (cualquier versión anterior, incluida la
+// 1.1.0 de Windows Forms) es terreno propio.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  AppDir: String;
+begin
+  Result := '';
+  AppDir := ExpandConstant('{app}');
+  if DirExists(AppDir) and DirHasEntries(AppDir)
+     and not FileExists(AddBackslash(AppDir) + '{#MyAppExeName}') then
+    Result := FmtMessage(CustomMessage('ForeignTargetDir'), [AppDir]);
 end;
 
 // Al desinstalar, ofrecer borrar los datos de usuario (T9-20).

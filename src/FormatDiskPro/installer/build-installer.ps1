@@ -8,7 +8,8 @@
     3. Compila installer.iss con ISCC; el .exe queda en installer/Output.
 
 .PARAMETER Version
-    Versión a estampar (por defecto: la del .csproj).
+    Versión a estampar (por defecto: la del .csproj). Va al instalador Y al ejecutable: se pasa al publish
+    como -p:Version, así que no puede salir un instalador cuya versión difiera de la de su .exe (AUD-065).
 
 .PARAMETER CertThumbprint
     Huella (SHA-1) de un certificado de firma instalado en el almacén de Windows. Si se indica
@@ -50,6 +51,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# Modo estricto (`AUD-061`), como release.ps1, que lo hereda al llamarlo. El .csproj se lee por XPath: con el
+# modo estricto, enumerar `PropertyGroup.Version` lanza en cuanto un PropertyGroup no la tiene.
+Set-StrictMode -Version Latest
 
 # Alternativa cómoda a teclearla: variable de entorno. Se convierte a SecureString en cuanto entra, para
 # que el resto del script no maneje la contraseña en claro.
@@ -139,13 +143,15 @@ $csproj       = Join-Path $projectDir "FormatDiskPro.csproj"
 if (-not (Test-Path $csproj)) { throw "No se encontró el proyecto: $csproj" }
 
 # --- Versión y TFM (leídos del .csproj) ------------------------------------
-$csprojXml = [xml](Get-Content $csproj)
-$tfm = ($csprojXml.Project.PropertyGroup.TargetFramework | Where-Object { $_ }) | Select-Object -First 1
-if (-not $tfm) { $tfm = "net10.0-windows10.0.19041.0" }
+$csprojXml = New-Object System.Xml.XmlDocument
+$csprojXml.Load($csproj)
+$tfmNode = $csprojXml.SelectSingleNode('/Project/PropertyGroup/TargetFramework')
+$tfm = if ($tfmNode) { $tfmNode.InnerText } else { "net10.0-windows10.0.19041.0" }
 
 if (-not $Version) {
-    $Version = ($csprojXml.Project.PropertyGroup.Version | Where-Object { $_ }) | Select-Object -First 1
-    if (-not $Version) { $Version = "1.0.0" }
+    $versionNode = $csprojXml.SelectSingleNode('/Project/PropertyGroup/Version')
+    $Version = if ($versionNode) { $versionNode.InnerText.Trim() } else { $null }
+    if (-not $Version) { throw "El .csproj no declara <Version> y no se indicó -Version: no hay versión que estampar." }
 }
 
 # La publicación NO va dentro del repo, sino a una ruta corta y fija bajo %TEMP%.
@@ -180,10 +186,14 @@ if (-not $iscc) { throw "No se encontró ISCC.exe. Instala Inno Setup 6: winget 
 Write-Host "==> Publicando ($Configuration / $Runtime, self-contained)..." -ForegroundColor Cyan
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 
+# -p:Version: el ejecutable lleva la misma versión que el instalador (AUD-065). Sin esto, -Version solo
+# renombraba el instalador y el .exe seguía con la del .csproj: la app se anunciaría con otra versión y
+# el updater compararía contra ella.
 & dotnet publish $csproj `
     -c $Configuration `
     -r $Runtime `
     --self-contained true `
+    -p:Version=$Version `
     -p:PublishSingleFile=false `
     -p:DebugType=none `
     -p:DebugSymbols=false `

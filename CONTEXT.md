@@ -338,7 +338,10 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   pasan de 260 en cuanto el checkout no cuelga de una carpeta corta, e ISCC aborta con «El sistema no puede
   encontrar la ruta especificada» **sin decir cuál**.
 - **Instalador (Inno Setup):** `AppId = {CEC07916-C9B5-4EA8-9102-3273384395AD}` — **no cambiar nunca**
-  (permite la actualización in-place). `PrivilegesRequired=admin`, `CloseApplications=yes`.
+  (actualización in-place). `PrivilegesRequired=admin`, `CloseApplications=yes`. `[InstallDelete]` vacía `{app}`,
+  y `/DIR=` lo fija aunque la página esté oculta: `PrepareToInstall` aborta sobre una carpeta con contenido y
+  sin `FormatDiskPro.exe` (`AUD-062`). Sin versión ni carpeta por defecto: se compila con `build-installer.ps1`,
+  que pasa la versión también al publish (`-p:Version`, `AUD-065`).
 - **Versionado:** fuente única en el `<Version>` del `.csproj`. El updater lo compara con el `tag_name` del
   último release.
 - **Workaround del PRI:** `dotnet publish` de una app WinUI 3 *unpackaged* **no copia el `.pri` propio** de la
@@ -346,31 +349,29 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   `CopyAppPriToPublish` del `.csproj` lo copia a mano. No quitarlo.
 - **Flujo del mantenedor (2026-10-15): directo en `master`, sin ramas ni PRs.** Sin PR, el CI llega después del push: antes de cada commit, `-warnaserror` y unitarias en local (y UI si toca la app). El mantenedor hace los push y lanza el corte real; Claude prepara, simula (`-DryRun`) y comprueba después. Desde el 2026-10-16 un ruleset de GitHub («Proteger master») impide forzar y borrar `master`, sin exigir PR ni check; los ajustes del repo los cambia el mantenedor, porque el modo automático no deja a Claude tocarlos.
 - **`FormatDiskPro.slnx` NO incluye `tests/FormatDiskPro.UiTests`, y eso es deliberado.** `release.ps1`
-  hace `dotnet test $solution --collect:"XPlat Code Coverage"`; meter ahí las pruebas de UI las ejecutaría
-  dentro del paso de cobertura de cada corte, que es justo lo que no debe pasar (necesitan hardware,
-  terminal elevada y opt-in). **Consecuencia, y es una trampa real:** `dotnet build FormatDiskPro.slnx`
-  **no compila las pruebas de UI**, así que un error de compilación en ellas no aparece. Combinado con
-  `dotnet test --no-build`, se ejecuta la **DLL vieja** y el resultado sale en verde sin haber probado lo
-  nuevo — ocurrió el 2026-08-16 con `T5-05`. Al tocar ese proyecto: `dotnet build
-  tests/FormatDiskPro.UiTests/FormatDiskPro.UiTests.csproj` **explícitamente**, o `dotnet test` sobre su
-  `.csproj` **sin** `--no-build`. **Desde el 2026-09-18 el CI compila ese proyecto en cada push y PR**, así
-  que un error de compilación ya aparece ahí; la trampa del `--no-build` en local sigue en pie.
+  hace `dotnet test $solution --collect:"XPlat Code Coverage"`, y meterlas ahí las ejecutaría en cada corte
+  (necesitan hardware, terminal elevada y opt-in). **Trampa:** `dotnet build FormatDiskPro.slnx` **no las
+  compila**, y con `dotnet test --no-build` se ejecuta la **DLL vieja** en verde (`T5-05`, 2026-08-16). Al
+  tocarlas: `dotnet build` de su `.csproj` **explícitamente**, o `dotnet test` sobre él **sin** `--no-build`. El
+  CI las compila en cada push desde el 2026-09-18; la trampa del `--no-build` en local sigue en pie.
 
-### Trampas de PowerShell 5.1 (las tres nacieron de un fallo real)
+### Trampas de PowerShell 5.1 (todas nacieron de un fallo real)
 
 - **Los scripts van con BOM UTF-8.** Sin él, los acentos rompen el parser.
 - **El `.csproj` también va con BOM, y NO se lee con `Get-Content -Raw`.** Sin BOM, PS 5.1 lo lee con la página
   de códigos ANSI: los bytes UTF-8 de `é` se vuelven `Ã©` y, al reescribirlo, la corrupción **queda grabada**.
   Como el bump de versión ocurre en **cada** release, el daño se acumulaba capa sobre capa: tras 14 versiones
   el nombre del autor de `<Authors>`/`<Copyright>` estaba destrozado **en las propiedades del `.exe`
-  publicado**. `release.ps1` usa `[System.IO.File]::ReadAllText` (detecta el BOM) y reescribe
-  **conservándolo**. Cualquier script que toque el `.csproj` debe hacer lo mismo.
+  publicado**. `release.ps1` lo lee con `ReadAllText` (detecta el BOM) y lo reescribe **conservándolo**; igual todo script.
 - **git + salida capturada = trampa.** git escribe por stderr en su operación **normal** (el resumen del
   `push`, los avisos de CRLF), sin que nada falle. Si la salida del script **se captura** (`| Tee-Object`,
   `2>&1 |`, un wrapper), PS 5.1 convierte cada línea de stderr de un exe nativo en `NativeCommandError` y, con
   `$ErrorActionPreference = "Stop"`, **aborta aunque git devuelva 0**. En un `push` eso deja el release **a
   medias**: rama subida, sin tag ni GitHub Release. Por eso los git que mutan estado van por **`Invoke-Git`**,
-  que baja la preferencia mientras corre git y decide por `$LASTEXITCODE`.
+  que baja la preferencia mientras corre git y decide por `$LASTEXITCODE`; las **consultas**, por
+  **`Invoke-GitQuery`** (`AUD-061`): `2>$null` con `Stop` **no silencia nada** y, sin red, `ls-remote` abortaba.
+- **Modo estricto y XML** (`AUD-061`): con `Set-StrictMode -Version Latest` (los tres scripts), `$nodo.Hijo`
+  **lanza** si falta el hijo, también al enumerar (`PropertyGroup.Version`). Se lee con `SelectNodes`/`SelectSingleNode`.
 
 ### Formateo: dos vías, y solo una se puede cancelar
 

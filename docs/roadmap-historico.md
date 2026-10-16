@@ -23,6 +23,11 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-16 | `AUD-065` | `-Version` llega al ejecutable y `installer.iss` falla sin versión ni carpeta de publicación | sin publicar |
+| 2026-10-16 | `AUD-062` | El instalador se niega a instalar en una carpeta ajena no vacía, también con `/DIR=` en silencioso | sin publicar |
+| 2026-10-16 | `AUD-061` | Modo estricto en el corte y el instalador; sin red, el corte aborta con mensaje propio | sin publicar |
+| 2026-10-16 | `AUD-060` | La contraseña del `.pfx` de `new-selfsigned-cert.ps1` es `SecureString`, y se pide sin eco si falta | sin publicar |
+| 2026-10-16 | `AUD-059` | `-Only` se parte por comas y valida cada nombre; la salida capturada conserva los acentos | sin publicar |
 | 2026-10-16 | `AUD-066` | `master` no se puede forzar ni borrar (ruleset, sin exigir PR ni check) y las alertas de Dependabot están activas | — (ajuste del repo) |
 | 2026-10-16 | `AUD-005` | El reporte privado de vulnerabilidades que anuncia `SECURITY.md` está activado | — (ajuste del repo) |
 | 2026-10-15 | `AUD-020` | El corte aborta si la rama va por detrás de origin, antes de probar nada; al retomar, el tag tiene que estar en la rama | v1.30.1 |
@@ -295,6 +300,47 @@
   - **Lo que no se hizo:** ReFS completo sigue por `Format-Volume` (no cancelable, y se dice): no hay con qué probar aquí que `format.com` lo formatee igual. Las demás operaciones canceladas son `AUD-036`.
 
 ### DevOps
+
+- [x] **AUD-065 · `build-installer.ps1 -Version` etiqueta el instalador pero no el binario, y los valores por defecto de `installer.iss` están obsoletos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/installer/build-installer.ps1:183-190`, `:204` · `src/installer/installer.iss:20-28`
+  - **Qué hacer:** pasar `-p:Version` al publish o abortar si difiere; quitar los valores por defecto y fallar con `#error`.
+  - **Criterio de aceptación:** no se puede producir un instalador cuya versión difiera de la de su ejecutable.
+  - **Hecho (2026-10-16):** `build-installer.ps1` pasa `-p:Version=$Version` al publish, así que el ejecutable lleva la versión del instalador. Sin `<Version>` en el `.csproj` ni `-Version`, aborta en vez de inventarse la 1.0.0. `installer.iss` pierde los valores por defecto (`1.1.0` y un `bin\Release` de dentro del repo) y falla con `#error` si falta `/DMyAppVersion` o `/DPublishDir`.
+  - **Verificado (2026-10-16, en local):** `build-installer.ps1 -Version 1.30.99` con el `.csproj` en 1.30.1: el `.exe` publicado tiene `FileVersion 1.30.99.0`, el instalador 1.30.99, y la galería de `AUD-059`, hecha con ese ejecutable, enseña «Versión 1.30.99» en *Acerca de*. ISCC sin `/D` falla con «Falta /DMyAppVersion=X.Y.Z», y con solo la versión, con «Falta /DPublishDir=<ruta>». Los artefactos de prueba se borraron.
+
+- [x] **AUD-062 · El instalador sigue pudiendo vaciar una carpeta ajena si el destino se da por línea de comandos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/installer/installer.iss:54`, `:82-91`
+  - **Qué hacer:** en `[Code]`, negarse si `{app}` existe, no está vacía y no contiene `FormatDiskPro.exe`.
+  - **Criterio de aceptación:** con `/DIR=` a una carpeta ajena no vacía, el instalador se niega.
+  - **Antecedente:** ya conocido (`T9-17`), cierre incompleto
+  - **Hecho (2026-10-16):** `PrepareToInstall` en `[Code]`: si `{app}` existe, tiene alguna entrada y no contiene `FormatDiskPro.exe`, devuelve un mensaje (en español e inglés) y la instalación se aborta antes de `[InstallDelete]`, en modo interactivo y en silencioso. Una carpeta que no existe, vacía o con cualquier versión anterior de la app sigue siendo terreno propio.
+  - **Verificado (2026-10-16, en local):** instalador de prueba con `/VERYSILENT /SUPPRESSMSGBOXES /DIR=<carpeta con documento.txt y sub\otro.txt>`: sale con código 7, el log dice «PrepareToInstall failed: La carpeta de destino ya existe, no está vacía y no contiene FormatDiskPro», y los tres elementos siguen ahí. No se probó la instalación sobre una carpeta válida, para no cambiar el registro de la instalación real (mismo `AppId`).
+
+- [x] **AUD-061 · El corte no activa el modo estricto y deja dos redirecciones de error sin proteger**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `release.ps1:95`, `:418`, `:426` · `src/installer/build-installer.ps1:52`
+  - **Qué hacer:** `Set-StrictMode -Version Latest` y un ayudante para las llamadas de solo lectura que comprueban `$LASTEXITCODE`.
+  - **Criterio de aceptación:** sin red, `release.ps1 -DryRun` aborta con un mensaje propio.
+  - **Hecho (2026-10-16):** `Set-StrictMode -Version Latest` en `release.ps1` y en `build-installer.ps1` (que, llamado desde el corte, lo hereda). El modo estricto lanza al leer un elemento XML que no existe, también al enumerar los `PropertyGroup` del `.csproj`: la cobertura (`lines/line`), el `.trx` (`Output/ErrorInfo/Message`, con `local-name()` por el espacio de nombres) y el `.csproj` se leen ahora con `SelectNodes`/`SelectSingleNode`. Las consultas de git (`rev-parse`, `ls-remote`, `merge-base`, `rev-list`, `status`, `tag`, `diff --cached`) van por el ayudante nuevo `Invoke-GitQuery`, que separa stdout de stderr sin abortar; las dos de `ls-remote` y la de `merge-base`, que redirigían `2>$null` con la preferencia en `Stop`, deciden por el código de salida y dan su mensaje. De paso, un `ls-remote` fallido ya no se lee como «el tag no está en origin».
+  - **Verificado (2026-10-16, en local):** en un clon desechable con `origin` apuntando a un host inexistente, `release.ps1 -Version 1.31.0 -SkipTests -DryRun` aborta con «No se pudo consultar origin (git ls-remote terminó con código 128) ... ¿Hay red?»; el script anterior, en las mismas condiciones, moría con el `NativeCommandError` crudo. Con `origin` local, el dry run completo (Release con `-warnaserror`, 925/926 unitarias con la omitida y su motivo leídos del `.trx`, cobertura de `Core/` 98,5 %) termina en verde con el modo estricto; la cuenta de líneas por XPath da lo mismo que la anterior sobre el mismo informe (645/655). El clon tiene que estar en una ruta corta: desde el scratchpad, el compilador de XAML falla por MAX_PATH (`WMC1006`).
+
+- [x] **AUD-060 · `new-selfsigned-cert.ps1` sigue recibiendo la contraseña como texto en la línea de comandos**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/installer/new-selfsigned-cert.ps1:34`, `:41`, `:66`
+  - **Qué hacer:** `[SecureString]$Password`, pidiéndola con `Read-Host -AsSecureString` si falta.
+  - **Criterio de aceptación:** ningún script del repo declara una contraseña como `[string]`.
+  - **Hecho (2026-10-16):** `-Password` es `[SecureString]` y va directo a `Export-PfxCertificate`. Con `-ExportPfx` y sin contraseña, se pide con `Read-Host -AsSecureString` **antes** de crear el certificado, para no dejar uno huérfano en el almacén; una vacía aborta. El ejemplo de la ayuda deja de enseñar la contraseña en claro.
+  - **Verificado (2026-10-16, en local):** `-Password 'secreta'` lo rechaza el enlace de parámetros (no se puede convertir `String` en `SecureString`) sin crear ningún certificado. Con `ConvertTo-SecureString`, el `.pfx` se exporta y `Get-PfxData` lo abre con esa contraseña; el certificado y el `.pfx` de prueba se borraron después. Ningún `.ps1` del repo declara ya una contraseña como `[string]`.
+
+- [x] **AUD-059 · El script de capturas falla o se degrada cuando lo lanza otro proceso**
+  - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `tools/capture-screenshots.ps1:56-58`, `:588-591`, `:406`, `:418`, `:595`
+  - **Qué hacer:** separar `$Only` por comas al entrar, validar cada nombre contra la lista de tomas y fijar `[Console]::OutputEncoding` a UTF-8.
+  - **Criterio de aceptación:** las dos formas de invocación producen las mismas tomas y un nombre inexistente aborta nombrándolo.
+  - **Hecho (2026-10-16):** Al entrar, `$Only` se parte por comas y se recorta, así que `-File ... -Only a,b` (una sola cadena) y `-Command` (un array) dan la misma lista. Cada nombre se valida contra las tomas de `$shots`: uno que no existe aborta nombrándolo, con las válidas sacadas de la misma lista. La galería imprime las tomas que va a hacer. `[Console]::OutputEncoding` se fija a UTF-8, dentro de un `try` por si no hay consola.
+  - **Verificado (2026-10-16, en local):** con `-Only about,nope`, las dos formas abortan con «-Only nombra tomas que no existen: nope» antes de abrir la app, y con `settings.json` restaurado; la salida capturada conserva «Válidas». Con `-Gallery -Theme dark -Only about,license`, `-File` y `-Command` imprimen «Tomas: license, about», terminan en «Galería COMPLETA» y dejan los mismos dos PNG.
 
 - [x] **AUD-066 · La rama principal no está protegida y las alertas de dependencias están desactivadas**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Bajo

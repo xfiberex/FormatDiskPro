@@ -67,6 +67,17 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+# Lanzado desde otro proceso (`AUD-059`): cmd, Git Bash, una tarea programada o un agente que lee la salida.
+#
+# - La consola usa la página de códigos OEM y la salida capturada perdía los acentos («Galer�a»). Se fija
+#   UTF-8; si no hay consola (salida redirigida en algunos hosts), no es motivo para abortar.
+# - Con `powershell -File ... -Only main,confirm` la lista no se parte: llega «main,confirm» como UNA cadena,
+#   que no coincidía con ninguna toma. Se separa por comas aquí, así que las dos formas dan lo mismo.
+try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
+if ($Only) {
+    $Only = @($Only | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if (-not $OutDir) {
     # La galería va a su propia subcarpeta para NO sobrescribir las 3 capturas del README.
@@ -586,9 +597,17 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
     )
 
     if ($Only) {
-        $shots = $shots | Where-Object { $Only -contains $_.Name }
-        if (-not $shots) { throw "El filtro -Only no coincide con ninguna toma. Válidas: main, main-exfat, main-fat32, main-secure, health, history, checkdisk, reinit, presets, whatsnew, license, thirdparty, about, confirm." }
+        # Cada nombre se valida (`AUD-059`). Antes solo se abortaba si NINGUNO coincidía: uno mal escrito
+        # junto a otros buenos se descartaba sin aviso y la corrida acababa en «Galería COMPLETA», sin la
+        # toma que se pidió. La lista de válidas sale de $shots, así que no se desfasa.
+        $valid   = @($shots | ForEach-Object { $_.Name })
+        $unknown = @($Only | Where-Object { $valid -notcontains $_ })
+        if ($unknown.Count -gt 0) {
+            throw "-Only nombra tomas que no existen: $($unknown -join ', '). Válidas: $($valid -join ', ')."
+        }
+        $shots = @($shots | Where-Object { $Only -contains $_.Name })
     }
+    Write-Host "Tomas: $(($shots | ForEach-Object { $_.Name }) -join ', ')" -ForegroundColor Gray
 
     $themes = if ($Theme -eq 'both') { @('light', 'dark') } else { @($Theme) }
     foreach ($t in $themes) {

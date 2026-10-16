@@ -16,6 +16,24 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **El instalador podía vaciar una carpeta que no era suya** si el destino se le daba por línea de comandos
+  (`/DIR=`), por ejemplo en un despliegue por script. Ahora se niega a instalar en una carpeta que ya existe,
+  tiene contenido y no es de FormatDiskPro, y lo dice (`AUD-062`).
+
+### Interno
+
+- `build-installer.ps1 -Version` estampa esa versión también en el ejecutable, no solo en el nombre del
+  instalador, e `installer.iss` deja de tener versión y carpeta por defecto: compilarlo sin ellas falla
+  (`AUD-065`).
+- `release.ps1` y `build-installer.ps1` usan el modo estricto. Sin red, el corte se detiene con un mensaje
+  propio en vez de un error de git (`AUD-061`).
+- `new-selfsigned-cert.ps1` recibe la contraseña del `.pfx` como `SecureString`, y la pide sin eco si falta
+  (`AUD-060`).
+- `tools/capture-screenshots.ps1 -Only` acepta la lista separada por comas también desde `cmd` o Git Bash,
+  aborta si un nombre no existe y conserva los acentos en la salida capturada (`AUD-059`).
+
 ## [1.30.1] — 2026-10-15
 
 **Correcciones de la auditoría, segunda tanda.** El borrado seguro con 3 o 7 pasadas por fin termina, y la

@@ -63,6 +63,28 @@
 
 ## Entradas
 
+### 2026-10-16 — `AUD-059` a `AUD-062` y `AUD-065`: los scripts del corte, del instalador y de las capturas
+
+**Qué cambia.** El instalador se niega a instalar sobre una carpeta ajena con contenido, también con `/DIR=`
+en silencioso (`AUD-062`). `build-installer.ps1 -Version` estampa la versión en el ejecutable, e
+`installer.iss` falla si no le dan versión ni carpeta de publicación (`AUD-065`). `release.ps1` y
+`build-installer.ps1` pasan a modo estricto, y las consultas de git del corte van por `Invoke-GitQuery`
+(`AUD-061`). La contraseña de `new-selfsigned-cert.ps1` es `SecureString` (`AUD-060`). Y `-Only` del script de
+capturas funciona igual desde `cmd` o Git Bash (`AUD-059`).
+
+**Lo que se encontró por el camino.** El modo estricto no se podía activar sin más. Con él, PowerShell lanza al
+leer un elemento XML que no existe, y el corte leía así el `.trx` (los resultados que pasan no tienen
+`Output`), la cobertura (una clase sin líneas) y el `.csproj` (`PropertyGroup.Version` se enumera sobre todos
+los grupos, y no todos la tienen). Los tres pasan a XPath, y la regla queda en §4, *Trampas de PowerShell 5.1*.
+También salió que un `ls-remote` que fallaba sin abortar se leía como «el tag no está en origin».
+
+**Cómo se probó.** Todo en local y en una terminal elevada: un instalador de prueba (1.30.99) contra una
+carpeta desechable, el dry run completo en un clon con `origin` local y otro sin red, y la galería real por las
+dos vías. El clon tiene que vivir en una ruta corta: desde el scratchpad, el compilador de XAML falla por
+MAX_PATH (`WMC1006`), el mismo límite que ya obliga a publicar en `%TEMP%`. Claude no pudo hacer `git push`
+ni siquiera a un `origin` local desechable (el modo automático lo bloquea); para el dry run no hacía falta,
+porque solo comprueba que el clon no vaya por detrás.
+
 ### 2026-10-16 — `AUD-005` y `AUD-066`: los ajustes de seguridad del repositorio
 
 **Qué cambia.** En GitHub, sin tocar código: el reporte privado de vulnerabilidades que `SECURITY.md`
