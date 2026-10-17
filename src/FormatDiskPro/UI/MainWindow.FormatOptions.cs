@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Composition.SystemBackdrops;
+﻿// SPDX-License-Identifier: GPL-3.0-only
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;

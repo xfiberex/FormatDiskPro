@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿// SPDX-License-Identifier: GPL-3.0-only
+using System.Runtime.InteropServices;
 using System.Text;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Input;

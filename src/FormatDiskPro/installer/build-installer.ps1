@@ -1,4 +1,6 @@
-﻿<#
+﻿# SPDX-License-Identifier: GPL-3.0-only
+
+<#
 .SYNOPSIS
     Publica FormatDiskPro (self-contained, win-x64) y compila el instalador con Inno Setup.
 
@@ -26,8 +28,8 @@
     comandos de este proceso, visible para cualquier proceso local.
 
     AVISO honesto: signtool.exe solo acepta la contraseña por parámetro (/p), así que durante ESA llamada
-    sigue estando en la línea de comandos de signtool. Lo único que elimina esa exposición es importar el
-    .pfx en el almacén de certificados y usar -CertThumbprint, que además es lo recomendado.
+    sigue estando en la línea de comandos de signtool. Lo único que elimina esa exposición es importar
+    el .pfx en el almacén de certificados y usar -CertThumbprint, que además es lo recomendado.
 
 .PARAMETER TimestampUrl
     Servidor de sellado de tiempo RFC3161 (por defecto el de DigiCert).

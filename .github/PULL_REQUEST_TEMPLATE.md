@@ -26,5 +26,7 @@ COMPILA: si tu cambio toca la UI, ejecútalas en tu máquina.
 ## Alcance
 
 - [ ] Si toca `.github/workflows/`, explica por qué (se ejecutan con los permisos del repositorio)
+- [ ] Si toca `.mcp.json`, `.claude/`, `.agents/skills/` o `skills-lock.json`, explica por qué: lo ejecuta u
+      obedece el agente de código del mantenedor
 - [ ] No entra en lo que está deliberadamente fuera de alcance (ver `ROADMAP.md`)
 - [ ] Todo el texto nuevo de cara al usuario está en `Localization`, con sus 5 traducciones

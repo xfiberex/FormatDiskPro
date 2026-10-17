@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 namespace FormatDiskPro;
 
 /// <summary>Por qué una operación destructiva no procede (o <see cref="None"/> si procede).</summary>

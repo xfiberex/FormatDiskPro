@@ -23,6 +23,9 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-16 | `AUD-069` | `GPL-3.0-only` en *Acerca de*, README, avisos, `.csproj` y una cabecera SPDX en cada fuente, con prueba | sin publicar |
+| 2026-10-16 | `AUD-068` | Las nueve skills llevan al lado su licencia MIT (GitHub, Inc.) y figuran en los avisos de terceros | sin publicar |
+| 2026-10-16 | `AUD-023` | Workflow propio que señala los PR que tocan la configuración de agentes y comprueba cada skill contra su hash | sin publicar |
 | 2026-10-16 | `AUD-063` | Cada release declara en notas y tag el SDK, el runtime de .NET y el Windows App SDK que lleva | sin publicar |
 | 2026-10-16 | `AUD-022` | SDK en `global.json`, paquetes con archivo de bloqueo en modo bloqueado (CI y corte), solo nuget.org | sin publicar |
 | 2026-10-16 | `AUD-065` | `-Version` llega al ejecutable y `installer.iss` falla sin versión ni carpeta de publicación | sin publicar |
@@ -303,6 +306,14 @@
 
 ### DevOps
 
+- [x] **AUD-023 · La configuración de agentes de IA está versionada en un repositorio público sin fijar ni vigilar**
+  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
+  - **Ubicación:** `.mcp.json:3-10` · `.claude/settings.json:2-13` · `.claude/CLAUDE.md` · `.agents/skills/*/SKILL.md` · `skills-lock.json` · `.github/CONTRIBUTING.md:47-48` · `.github/PULL_REQUEST_TEMPLATE.md:28`
+  - **Qué hacer:** añadir esas rutas a la lista de «revisar con cuidado» de la guía y de la plantilla; un paso de CI que compare cada `SKILL.md` con su hash bloqueado; documentar qué es `codegraph` y de dónde se instala.
+  - **Criterio de aceptación:** un PR que toque esas rutas queda señalado y el CI detecta un `SKILL.md` que no corresponde a su hash.
+  - **Hecho (2026-10-16):** Workflow nuevo `.github/workflows/agentes.yml`, que se dispara justo con esas rutas: `ci.yml` ignora `**.md`, así que un PR que solo tocara un `SKILL.md` no lo activaba. En un PR, deja un aviso (`::warning::`) y lista en el resumen los archivos de agentes que cambian. En todo caso ejecuta `tools/check-skills.ps1`, que recalcula el hash de cada skill (`sha256("SKILL.md:" + sha256hex(archivo))`, el esquema de la herramienta que las instala, deducido y comprobado contra las nueve) y falla si alguno no coincide, si falta una o si hay un archivo bajo `.agents/skills` que ningún hash cubre. Corre en Linux para que los finales de línea no cambien los bytes. `CONTRIBUTING.md` añade esas rutas a las de revisar con cuidado y explica qué es `codegraph` (el paquete npm `@colbymchenry/codegraph`, MIT, resuelto por el `PATH`); la plantilla de PR pide justificar el cambio.
+  - **Verificado (2026-10-16, en local):** `check-skills.ps1` da las nueve en verde, también lanzado desde otra carpeta. En una copia con una línea añadida a `csharp-xunit/SKILL.md` y un `scripts/run.ps1` dentro de `csharp-async`, falla nombrando los dos. El filtro del paso que señala, con una lista de ejemplo, marca `.agents/…/SKILL.md`, `.mcp.json`, `.claude/settings.json` y `skills-lock.json`, y deja fuera `README.md`, el código y `docs/.claude-notes.md`. El workflow en GitHub no se ha visto aún: saldrá con el push (lo dispara el propio `agentes.yml`).
+
 - [x] **AUD-063 · No queda registro de lo que cada instalador empaqueta**
   - **Área:** DevOps · **Severidad:** Bajo · **Esfuerzo:** Medio
   - **Ubicación:** `release.ps1:847` · `src/installer/build-installer.ps1:183-227`
@@ -449,6 +460,24 @@
   - **Criterio de aceptación:** una prueba omitida aparece nombrada en el resumen del corte.
   - **Hecho (2026-10-15):** las unitarias del corte escriben `unitarias-<versión>.trx`, y el corte imprime `Unitarias: N/M` con cada omitida nombrada y su motivo (`Show-UnitTestSummary`), al terminar, en el dry run y en el resumen final. Un `.trx` ausente o sin resultados aborta el corte, en las unitarias y en las de UI: antes, en las de UI, el corte seguía con un aviso que afirmaba que habían pasado.
   - **Verificado:** PowerShell 5.1 analiza `release.ps1` sin errores, en el paso del CI de `AUD-058`. No se ejecutó un corte: necesita la máquina del mantenedor.
+
+### Legal
+
+- [x] **AUD-069 · La licencia se declara como «GPLv3» sin precisar si es «solo» o «o posterior»**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `README.md:196` · `src/Localization/Localization.cs:473` · `src/FormatDiskPro.csproj:16-18`
+  - **Qué hacer:** declarar `GPL-3.0-only` o `GPL-3.0-or-later` en los tres sitios y una cabecera SPDX de una línea por fuente.
+  - **Criterio de aceptación:** el mismo identificador aparece en README, *Acerca de* y fuentes.
+  - **Hecho (2026-10-16):** El autor decidió `GPL-3.0-only`. Va en *Acerca de* en los cinco idiomas («solo la versión 3 (GPL-3.0-only)»), en el README, en la cabecera de `THIRD-PARTY-NOTICES.txt` y en el `.csproj` (`PackageLicenseExpression`). Las 133 fuentes C# de `src/` y `tests/` y los cinco scripts `.ps1` del proyecto empiezan por `SPDX-License-Identifier: GPL-3.0-only`; los scripts de evidencias de `docs/auditoria/` quedan fuera, porque son material de la auditoría. `LicenseHeaderTests` exige la cabecera en toda fuente nueva y el identificador en los textos. De paso apareció que `Get-Help` de `build-installer.ps1` no mostraba su ayuda desde hacía tiempo: una línea del bloque empezaba por `.pfx`, y PowerShell la tomaba por una palabra clave inválida y descartaba el bloque entero.
+  - **Verificado (2026-10-16, en local):** compilación en Release con `-warnaserror`, también de las pruebas de UI; 930/931 unitarias (las 5 nuevas incluidas). Antes de corregirlo, la prueba nueva cazó `tools/check-skills.ps1`, creado después del barrido, y la de ancho cazó dos líneas de los avisos. La ayuda de los cinco scripts se lee con `Get-Help`. *Acerca de* en francés, el texto más largo, fotografiado con la app publicada: cabe en dos líneas.
+
+- [x] **AUD-068 · El repo redistribuye nueve *skills* de un tercero sin su licencia ni su aviso de copyright**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.agents/skills/*/SKILL.md` · `skills-lock.json` · `THIRD-PARTY-NOTICES.txt`
+  - **Qué hacer:** añadir la licencia y el copyright del origen junto a los archivos y una línea en los avisos; o dejar de versionarlos.
+  - **Criterio de aceptación:** cada archivo de terceros del repo tiene identificada su licencia.
+  - **Hecho (2026-10-16):** Se cotejó la licencia del origen con la API de GitHub: `github/awesome-copilot` es MIT, «Copyright GitHub, Inc.», y las nueve skills existen allí en `skills/<nombre>/SKILL.md`. Su texto exacto va en `.agents/skills/LICENSE`, que `check-skills.ps1` admite como único archivo extra. `THIRD-PARTY-NOTICES.txt` gana la entrada 8 («Skills de github/awesome-copilot», grupo B, que pasa a ser «construcción / pruebas / desarrollo») y deja dicho que no van en el instalador ni están bajo la GPLv3. `CONTRIBUTING.md` lo repite junto a las skills.
+  - **Verificado (2026-10-16, en local):** las 926 unitarias en verde, entre ellas `LegalTexts_FitTheViewerWidth`: el aviso nuevo cabe en las 78 columnas del visor.
 
 ### Redacción
 

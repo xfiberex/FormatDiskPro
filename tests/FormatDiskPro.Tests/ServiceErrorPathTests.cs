@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿// SPDX-License-Identifier: GPL-3.0-only
+using System.ComponentModel;
 using System.Text;
 using Xunit;
 

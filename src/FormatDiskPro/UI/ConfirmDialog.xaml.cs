@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;

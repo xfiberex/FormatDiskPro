@@ -1,4 +1,5 @@
-﻿namespace FormatDiskPro;
+﻿// SPDX-License-Identifier: GPL-3.0-only
+namespace FormatDiskPro;
 
 /// <summary>
 /// Cómo se registra el fallo de una operación en el historial. Vivía dentro de

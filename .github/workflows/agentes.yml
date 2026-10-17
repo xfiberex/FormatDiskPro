@@ -1,0 +1,84 @@
+# Configuración de agentes: señala los cambios y comprueba las skills (AUD-023).
+#
+# El repositorio versiona cosas que un agente de código ejecuta u obedece al abrir el proyecto: el servidor
+# MCP de .mcp.json (arranca `codegraph`), los permisos de .claude/settings.json, las instrucciones de
+# .claude/CLAUDE.md y nueve skills de un tercero en .agents/skills, con su hash en skills-lock.json. Un PR
+# que las cambie modifica lo que el agente del mantenedor hace o cree al revisar esa rama, y eso pasa en la
+# máquina que guarda la credencial con la que se publica el instalador.
+#
+# Workflow aparte, y no un paso de ci.yml, a propósito: ci.yml ignora `**.md`, así que un PR que solo tocara
+# un SKILL.md no lo dispararía. Este se dispara justo con esas rutas.
+#
+# Corre en Linux: el hash se calcula sobre los bytes del archivo, y en Windows el checkout puede convertir
+# los finales de línea.
+
+name: Configuración de agentes
+
+# Las dos listas de rutas son la misma: si cambia una, cambia la otra.
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.agents/**'
+      - 'skills-lock.json'
+      - '.mcp.json'
+      - '.claude/**'
+      - 'tools/check-skills.ps1'
+      - '.github/workflows/agentes.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - '.agents/**'
+      - 'skills-lock.json'
+      - '.mcp.json'
+      - '.claude/**'
+      - 'tools/check-skills.ps1'
+      - '.github/workflows/agentes.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agentes-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agentes:
+    name: Configuración de agentes (señalar + hashes de las skills)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # Un aviso en el PR y en el resumen: estos cambios se revisan con el mismo cuidado que un workflow
+      # (CONTRIBUTING.md). Los nombres de archivo salen de git y se tratan como datos.
+      - name: Señalar qué archivos de agentes cambian
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          $patterns = '^\.agents/', '^skills-lock\.json$', '^\.mcp\.json$', '^\.claude/'
+          $changed = @(git diff --name-only "origin/$env:BASE_REF...HEAD" |
+                       Where-Object { $f = $_; $patterns | Where-Object { $f -match $_ } })
+          $md = @('## Configuración de agentes', '')
+          if ($changed.Count -gt 0) {
+            Write-Output "::warning::Este PR cambia la configuración de agentes ($($changed.Count) archivo(s)). Revísalo con el mismo cuidado que un workflow: lo que diga lo ejecutará u obedecerá el agente del mantenedor."
+            $md += 'Este PR **cambia lo que un agente de código ejecuta u obedece** en este repositorio. Revisar con cuidado:'
+            $md += ''
+            $md += @($changed | ForEach-Object { "- ``$_``" })
+          } else {
+            $md += 'Este PR no cambia la configuración de agentes (solo el script o este workflow).'
+          }
+          ($md -join "`n") + "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Comprobar las skills contra skills-lock.json
+        run: ./tools/check-skills.ps1

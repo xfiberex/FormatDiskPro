@@ -63,6 +63,40 @@
 
 ## Entradas
 
+### 2026-10-16 — `AUD-069`: la licencia es `GPL-3.0-only`
+
+**Qué cambia.** El autor decidió que el proyecto es GPL **solo la versión 3**, no «la 3 o posterior». Hasta
+ahora se decía «GPLv3» sin precisar. El identificador `GPL-3.0-only` va en *Acerca de* (cinco idiomas), en
+el README, en los avisos de terceros, en el `.csproj` y como cabecera SPDX en la primera línea de cada fuente
+C# y de cada script del proyecto. `LicenseHeaderTests` lo exige a partir de ahora.
+
+**Por qué importa la diferencia.** Con «o posterior», cualquiera podría redistribuir el código bajo una GPL 4
+que aún no existe; con «solo», la decisión de cambiar de versión es del autor. Es el dato que faltaba para
+`AUD-071` (bajo qué licencia entran las contribuciones), que sigue esperando a `AUD-024`.
+
+**De paso.** `Get-Help .\build-installer.ps1` no mostraba la ayuda: una línea del bloque empezaba por
+`.pfx`, y PowerShell descarta el bloque entero cuando una línea empieza por punto sin ser una palabra clave.
+
+### 2026-10-16 — `AUD-023` y `AUD-068`: la configuración de agentes, vigilada y con su licencia
+
+**Qué cambia.** Un workflow nuevo, *Configuración de agentes*, se dispara con cualquier cambio en `.mcp.json`,
+`.claude/`, `.agents/skills/` o `skills-lock.json`: en un PR deja un aviso con la lista de esos archivos, y
+siempre comprueba cada skill contra el hash de `skills-lock.json` (`tools/check-skills.ps1`). La guía y la
+plantilla de PR los tratan como a los workflows, y la guía explica qué es `codegraph`. Las nueve skills llevan
+al lado la licencia MIT de su origen y figuran en los avisos de terceros.
+
+**Por qué un workflow aparte.** `ci.yml` ignora `**.md`: un PR que solo cambiara un `SKILL.md`, justo el
+caso que importa, no lo disparaba. Y corre en Linux porque el hash es de los bytes del archivo, y un checkout
+en Windows puede cambiar los finales de línea.
+
+**El hash, deducido.** `skills-lock.json` no dice cómo se calcula, y no era el SHA-256 del archivo. Probando
+variantes salió `sha256("SKILL.md:" + sha256hex(archivo))`, que reproduce las nueve. Es el caso de un solo
+archivo por carpeta; como no se sabe cómo combina varios, cualquier otro archivo bajo `.agents/skills` (salvo
+el `LICENSE`) es un error: no hay hash que lo cubra.
+
+**Lo que no se hizo.** El aviso señala el PR, pero no lo bloquea: los PR de colaboradores siguen igual, y el
+mantenedor decide. Tampoco se fija la versión de `codegraph`: se resuelve por el `PATH`, y la guía lo dice.
+
 ### 2026-10-16 — `AUD-022` y `AUD-063`: la compilación, reproducible, y cada release dice qué lleva
 
 **Qué cambia.** El SDK de .NET se fija en `global.json` (10.0.400, con parches), los paquetes en un

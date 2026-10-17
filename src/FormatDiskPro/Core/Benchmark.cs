@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 namespace FormatDiskPro;
 
 /// <summary>Velocidades de lectura y escritura de una prueba, en bytes por segundo.</summary>

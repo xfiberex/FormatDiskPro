@@ -50,8 +50,24 @@ te importe**.
 > las pruebas de UI en tu máquina y decir en el PR cuáles se omitieron. La puerta de publicación es
 > `release.ps1 -UiTests`, en local.
 >
-> Los cambios en `.github/workflows/` se revisan con especial cuidado: se ejecutan con los permisos del
-> repositorio.
+> Se revisan con especial cuidado los cambios en `.github/workflows/`, que se ejecutan con los permisos del
+> repositorio, y en la **configuración de agentes de código**: `.mcp.json`, `.claude/`, `.agents/skills/` y
+> `skills-lock.json`. Lo que digan esos archivos lo ejecuta u obedece el agente del mantenedor al abrir el
+> proyecto. Un PR que los toque queda señalado por el workflow *Configuración de agentes*, que además
+> comprueba que cada `SKILL.md` es el que fija `skills-lock.json`.
+
+### Herramientas de agentes (opcionales)
+
+Nada de esto hace falta para compilar ni para contribuir; solo lo usa quien trabaja con un agente de código.
+
+- **`codegraph`**: índice del código que el agente consulta por MCP (`.mcp.json` lo arranca con `codegraph
+  serve --mcp`). Es el paquete npm [`@colbymchenry/codegraph`](https://github.com/colbymchenry/codegraph),
+  licencia MIT: `npm install -g @colbymchenry/codegraph`. Se resuelve por el `PATH`, así que es el que tengas
+  instalado; el índice (`.codegraph/`) es local y no se versiona.
+- **Skills** (`.agents/skills/`): nueve guías de buenas prácticas de C#/.NET copiadas de
+  [`github/awesome-copilot`](https://github.com/github/awesome-copilot), bajo su licencia MIT
+  ([`.agents/skills/LICENSE`](../.agents/skills/LICENSE)), no bajo la GPLv3 del proyecto. Su hash está en
+  `skills-lock.json`; `tools/check-skills.ps1` lo comprueba.
 
 ## Cómo está organizado
 

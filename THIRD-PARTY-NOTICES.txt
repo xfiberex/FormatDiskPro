@@ -1,15 +1,15 @@
 FormatDiskPro — Avisos de terceros / Third-party notices
 ========================================================
 
-FormatDiskPro se distribuye bajo la licencia GNU General Public License v3.0
-(ver el archivo LICENSE). Este producto incluye o depende de los siguientes
-componentes de terceros, cada uno bajo su propia licencia. Se reproduce el
-aviso correspondiente a efectos de atribución.
+FormatDiskPro se distribuye bajo la GNU General Public License, solo la
+versión 3 (GPL-3.0-only; ver el archivo LICENSE). Este producto incluye o
+depende de los siguientes componentes de terceros, cada uno bajo su propia
+licencia. Se reproduce el aviso correspondiente a efectos de atribución.
 
-FormatDiskPro is distributed under the GNU General Public License v3.0 (see
-the LICENSE file). This product includes or depends on the following
-third-party components, each under its own license, reproduced here for
-attribution.
+FormatDiskPro is distributed under the GNU General Public License, version 3
+only (GPL-3.0-only; see the LICENSE file). This product includes or depends
+on the following third-party components, each under its own license,
+reproduced here for attribution.
 
 QUÉ SE LISTA AQUÍ / SCOPE OF THIS FILE
 --------------------------------------
@@ -17,14 +17,16 @@ Se listan DOS grupos, y cada entrada dice a cuál pertenece:
 
   (A) REDISTRIBUIDO — viaja dentro del instalador y llega a la máquina de
       quien usa la aplicación. Es lo que obliga a atribuir.
-  (B) SOLO CONSTRUCCIÓN / PRUEBAS — se usa para compilar o probar y NO se
-      redistribuye. Se lista por transparencia, no por obligación.
+  (B) SOLO CONSTRUCCIÓN / PRUEBAS / DESARROLLO — se usa para compilar,
+      probar o desarrollar y NO viaja con la aplicación. Se lista por
+      transparencia.
 
 Todas las licencias de (A) son MIT, compatible con la GPLv3 de este proyecto.
 
 Two groups are listed, and each entry states which one it belongs to:
-(A) REDISTRIBUTED, shipped inside the installer; (B) BUILD/TEST ONLY, not
-redistributed. All (A) licenses are MIT, compatible with this project's GPLv3.
+(A) REDISTRIBUTED, shipped inside the installer; (B) BUILD/TEST/DEVELOPMENT
+ONLY, not shipped with the application. All (A) licenses are MIT, compatible
+with this project's GPLv3.
 
 ------------------------------------------------------------------------------
 1) .NET Runtime and Libraries                       [A) REDISTRIBUIDO]
@@ -76,7 +78,16 @@ redistributed. All (A) licenses are MIT, compatible with this project's GPLv3.
    Mide la cobertura de Core/ en el corte de versión. No se redistribuye.
 
 ------------------------------------------------------------------------------
-Texto de la licencia MIT (componentes 1, 2, 6 y 7)
+8) Skills de github/awesome-copilot                [B) SOLO DESARROLLO]
+   © GitHub, Inc.
+   Licencia: MIT License.
+   https://github.com/github/awesome-copilot/blob/main/LICENSE
+   Nueve guías para agentes de código, en .agents/skills/ del
+   repositorio, con su licencia al lado. No van en el instalador ni
+   están bajo la GPLv3 de este proyecto.
+
+------------------------------------------------------------------------------
+Texto de la licencia MIT (componentes 1, 2, 6, 7 y 8)
 ------------------------------------------------------------------------------
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

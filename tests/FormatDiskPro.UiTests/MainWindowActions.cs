@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using FlaUI.Core.Tools;

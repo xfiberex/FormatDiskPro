@@ -12,7 +12,7 @@
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Estado, versión y pruebas** | **No se repiten aquí, a propósito** — viven en [§3 *Estado actual*](#3-estado-actual), que es su única fuente |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **2.5.1**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 · GitHub Actions (compilación + unitarias, CodeQL) |
-| **Licencia** | GPLv3 · avisos de terceros · donaciones opcionales (PayPal) |
+| **Licencia** | `GPL-3.0-only`, solo la versión 3 (`AUD-069`; cabecera SPDX en cada fuente) · avisos de terceros · donaciones opcionales (PayPal) |
 | **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — **solo lo abierto**, por severidad · [`docs/roadmap-historico.md`](docs/roadmap-historico.md) — lo ya hecho · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
 | **Última auditoría** | [`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md) — foto fija de esa fecha; lo que dejó pendiente, en el [`ROADMAP.md`](ROADMAP.md) |
 | **Última actualización** | **2026-10-13** — el qué y el porqué, en la primera entrada de [`docs/contexto-historico.md`](docs/contexto-historico.md) |
@@ -317,13 +317,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
     `FileShare.None` y debe cerrarse **antes** de verificar. Si se fusiona con la verificación, esta no podrá
     ni abrir el archivo ("lo está usando otro proceso" — el proceso es la propia app) y la actualización
     fallará **siempre**. Hay test que lo caza.
-  - **`HttpCompletionOption.ResponseHeadersRead` no es decorativo:** deja el cuerpo fuera del `Timeout` de 30 s
-    del `HttpClient`. Con `ResponseContentRead`, un instalador de ~60 MB fallaría en toda conexión por debajo
-    de 2 MB/s.
-  - **Alcance honesto:** el `.exe` y su hash salen del mismo release → detecta corrupción y manipulación **en
-    tránsito**, no un compromiso de la cuenta de GitHub.
+  - **`HttpCompletionOption.ResponseHeadersRead` no es decorativo:** deja el cuerpo fuera del `Timeout` de 30 s;
+    con `ResponseContentRead`, un instalador de ~60 MB fallaría por debajo de 2 MB/s.
+  - **Alcance honesto:** hash y `.exe` salen del mismo release: detecta manipulación **en tránsito**, no una cuenta comprometida.
 - **Exportación CSV:** además del escape RFC 4180, se **neutralizan las fórmulas** (`=`/`+`/`-`/`@` → prefijo
   `'`). Escapar comillas protege la *estructura* del CSV, no al programa que lo abre.
+- **La configuración de agentes se revisa como un workflow** (`AUD-023`): `.mcp.json`, `.claude/`, `.agents/skills/` y
+  `skills-lock.json`; `agentes.yml` señala el PR y comprueba las skills (MIT de GitHub, Inc., `AUD-068`) contra su hash.
 
 ### Build y publicación
 

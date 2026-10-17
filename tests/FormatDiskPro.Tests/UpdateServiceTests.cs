@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 using System.Net;
 using System.Net.Sockets;
 using System.Security.AccessControl;

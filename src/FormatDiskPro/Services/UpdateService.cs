@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿// SPDX-License-Identifier: GPL-3.0-only
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;

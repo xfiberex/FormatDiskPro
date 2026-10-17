@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml.Controls;
+﻿// SPDX-License-Identifier: GPL-3.0-only
+using Microsoft.UI.Xaml.Controls;
 
 namespace FormatDiskPro.UI;
 

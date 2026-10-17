@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 <#
 .SYNOPSIS
     Crea un certificado de firma de codigo AUTOFIRMADO (self-signed) y devuelve su huella.

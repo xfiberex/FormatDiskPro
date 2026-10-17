@@ -1,4 +1,6 @@
-﻿<#
+﻿# SPDX-License-Identifier: GPL-3.0-only
+
+<#
 .SYNOPSIS
     Corta una versión de FormatDiskPro de principio a fin.
 

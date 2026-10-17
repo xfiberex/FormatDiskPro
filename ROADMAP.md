@@ -29,19 +29,19 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-16 · **Publicado:** v1.30.1 · **20 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-16 · **Publicado:** v1.30.1 · **17 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 2 |
-| **3** | Bajo | 17 |
+| **2** | Medio | 1 |
+| **3** | Bajo | 15 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **20** |
+| | **Total** | **17** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **19** y se han cerrado **52**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-031`, `AUD-033`, `AUD-034`, `AUD-037`, `AUD-040`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **16** y se han cerrado **55**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-029`, `AUD-031`, `AUD-033`, `AUD-034`, `AUD-037`, `AUD-040`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-068`, `AUD-069`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
@@ -49,32 +49,27 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **19** y se han cerrado **
 | Código | – | – | 2 | 2 |
 | QA | – | – | – | 0 |
 | Documentación | – | – | – | 0 |
-| DevOps | – | 1 | – | 1 |
-| Legal | – | 1 | 5 | 6 |
+| DevOps | – | – | – | 0 |
+| Legal | – | 1 | 3 | 4 |
 | Rendimiento | – | – | 1 | 1 |
 | UI/UX | – | – | 1 | 1 |
 | Arquitectura y resiliencia | – | – | 3 | 3 |
 | Refactorización | – | – | 3 | 3 |
 | Redacción | – | – | 2 | 2 |
-| **Total** | **–** | **2** | **17** | **19** |
+| **Total** | **–** | **1** | **15** | **16** |
 
-**Esfuerzo:** 14 de esfuerzo bajo (hasta 2 horas) y 5 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 11 de esfuerzo bajo (hasta 2 horas) y 5 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): `AUD-023` + `AUD-068` (la configuración de
-agentes y las *skills* de terceros que el repo redistribuye). Las de licencias (`AUD-024`, `AUD-069`, `AUD-071`)
-necesitan antes una decisión del autor.
+**Orden recomendado** (el porqué, en la sección 4 del informe): las de resiliencia de las operaciones
+(`AUD-036`, `AUD-038`, `AUD-039`, con `AUD-035`), que piden pruebas de UI en terminal elevada. Las de licencias
+(`AUD-024`, y después `AUD-071`) y `AUD-067` necesitan antes una decisión del autor; el identificador ya
+está decidido (`GPL-3.0-only`).
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
 
 ## 🟡 Tier 2 — Medio
-
-- [ ] **AUD-023 · La configuración de agentes de IA está versionada en un repositorio público sin fijar ni vigilar**
-  - **Área:** DevOps · **Severidad:** Medio · **Esfuerzo:** Bajo
-  - **Ubicación:** `.mcp.json:3-10` · `.claude/settings.json:2-13` · `.claude/CLAUDE.md` · `.agents/skills/*/SKILL.md` · `skills-lock.json` · `.github/CONTRIBUTING.md:47-48` · `.github/PULL_REQUEST_TEMPLATE.md:28`
-  - **Qué hacer:** añadir esas rutas a la lista de «revisar con cuidado» de la guía y de la plantilla; un paso de CI que compare cada `SKILL.md` con su hash bloqueado; documentar qué es `codegraph` y de dónde se instala.
-  - **Criterio de aceptación:** un PR que toque esas rutas queda señalado y el CI detecta un `SKILL.md` que no corresponde a su hash.
 
 - [ ] **AUD-024 · Los avisos de terceros declaran licencias que no son las de lo que se redistribuye**
   - **Área:** Legal · **Severidad:** Medio · **Esfuerzo:** Medio · *requiere revisión legal*
@@ -181,18 +176,6 @@ necesitan antes una decisión del autor.
   - **Criterio de aceptación:** con la preferencia desactivada y una versión nueva, el arranque no emite ninguna petición.
   - **Antecedente:** ya conocido (`T9-18`), cierre incompleto: su criterio era que, desactivada, «no salga ninguna petición de red en el arranque»
 
-- [ ] **AUD-068 · El repo redistribuye nueve *skills* de un tercero sin su licencia ni su aviso de copyright**
-  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `.agents/skills/*/SKILL.md` · `skills-lock.json` · `THIRD-PARTY-NOTICES.txt`
-  - **Qué hacer:** añadir la licencia y el copyright del origen junto a los archivos y una línea en los avisos; o dejar de versionarlos.
-  - **Criterio de aceptación:** cada archivo de terceros del repo tiene identificada su licencia.
-
-- [ ] **AUD-069 · La licencia se declara como «GPLv3» sin precisar si es «solo» o «o posterior»**
-  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `README.md:196` · `src/Localization/Localization.cs:473` · `src/FormatDiskPro.csproj:16-18`
-  - **Qué hacer:** declarar `GPL-3.0-only` o `GPL-3.0-or-later` en los tres sitios y una cabecera SPDX de una línea por fuente.
-  - **Criterio de aceptación:** el mismo identificador aparece en README, *Acerca de* y fuentes.
-
 - [ ] **AUD-070 · Al pedir el historial se avisa de «letras y etiquetas», pero también contiene rutas con el nombre de usuario**
   - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
   - **Ubicación:** `.github/ISSUE_TEMPLATE/bug_report.yml:76-80` · `.github/SECURITY.md:32-33` · `src/UI/MainWindow.HelpAndUpdates.cs:236` · `src/UI/MainWindow.xaml.cs:278` · `src/App.xaml.cs:47` · evidencia: `evidencias/galeria-es/history-dark.png`
@@ -204,7 +187,7 @@ necesitan antes una decisión del autor.
   - **Ubicación:** `.github/CONTRIBUTING.md` · `.github/PULL_REQUEST_TEMPLATE.md`
   - **Qué hacer:** una sección «Licencia de las contribuciones» y valorar un DCO (`Signed-off-by`).
   - **Criterio de aceptación:** la guía y la plantilla dicen bajo qué términos se acepta una contribución.
-  - **Depende de:** AUD-069 y AUD-024 (decidir antes el identificador de licencia y el permiso adicional)
+  - **Depende de:** AUD-024 (decidir antes el permiso adicional). El identificador ya está decidido: `GPL-3.0-only` (`AUD-069`, 2026-10-16)
 
 ---
 
@@ -251,15 +234,11 @@ aquí, lo justo para no proponerlas otra vez.
 - ***Reinicializar* no es un gestor de particiones** (`T5-04`, 2026-08-16). Crea un layout sobre un disco
   que se borra entero; no redimensiona, fusiona ni mueve datos, y la interfaz se queda en dos particiones.
 
-**Tres tareas abiertas rozan una decisión, y no la tocan:**
+**Una tarea abierta roza una decisión, y no la toca:**
 
 - **`AUD-028`** no discute que haya un solo `ContentDialog` a la vez (`T13-19`): señala que el diálogo
   de **resultado** de una operación no es «una acción que el usuario puede repetir», que era el motivo
   para descartar en vez de encolar.
-- **`AUD-057`** no discute que el Windows App SDK se suba a mano: señala que excluir NuGet entero de
-  Dependabot deja sin vigilar también los paquetes de prueba.
-- **`AUD-058`** no pide ejecutar las pruebas de UI en CI: pide que el CI ejercite el publish y los
-  scripts, que es donde han estado los tres fallos de publicación documentados.
 
 Lo que una auditoría propuso y se descartó tras comprobarlo está en *Falsos positivos verificados* de
 [`CONTEXT.md`](CONTEXT.md#8-falsos-positivos-verificados); las áreas revisadas sin hallazgos, al final del

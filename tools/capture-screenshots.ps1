@@ -1,4 +1,6 @@
-﻿<#
+﻿# SPDX-License-Identifier: GPL-3.0-only
+
+<#
 .SYNOPSIS
     Captura las capturas de pantalla del README conduciendo la app real por UI Automation.
 

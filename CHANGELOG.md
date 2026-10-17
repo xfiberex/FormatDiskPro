@@ -22,8 +22,22 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   (`/DIR=`), por ejemplo en un despliegue por script. Ahora se niega a instalar en una carpeta que ya existe,
   tiene contenido y no es de FormatDiskPro, y lo dice (`AUD-062`).
 
+### Cambiado
+
+- **La licencia dice ahora qué versión de la GPL es: solo la 3** (`GPL-3.0-only`), no «la 3 o posterior».
+  Lo dicen igual *Acerca de* en los cinco idiomas, el README, los avisos de terceros y cada archivo de código
+  fuente (`AUD-069`).
+
 ### Interno
 
+- `Get-Help` de `build-installer.ps1` vuelve a mostrar su ayuda: una línea que empezaba por `.pfx` la
+  invalidaba entera.
+- La configuración de agentes de código que versiona el repositorio (`.mcp.json`, `.claude/`,
+  `.agents/skills/`, `skills-lock.json`) se revisa como un workflow: un PR que la toque queda señalado, y un
+  workflow nuevo comprueba cada *skill* contra su hash. La guía explica qué es `codegraph` y de dónde se
+  instala (`AUD-023`).
+- Las nueve *skills* de `github/awesome-copilot` llevan al lado su licencia MIT y figuran en los avisos de
+  terceros (`AUD-068`).
 - La compilación es reproducible: el SDK de .NET va fijado en `global.json`, los paquetes en un
   `packages.lock.json` por proyecto (el CI y el corte restauran en modo bloqueado) y solo se usa nuget.org.
   Cada release declara en sus notas y en su tag qué SDK la compiló, qué runtime de .NET lleva dentro y qué

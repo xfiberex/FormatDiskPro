@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 namespace FormatDiskPro;
 
 /// <summary>Estilo de tabla de particiones con el que se reinicializa un disco.</summary>

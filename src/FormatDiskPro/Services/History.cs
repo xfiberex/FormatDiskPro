@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿// SPDX-License-Identifier: GPL-3.0-only
+using System.Globalization;
 
 namespace FormatDiskPro;
 
