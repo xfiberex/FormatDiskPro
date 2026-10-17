@@ -29,7 +29,7 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-17 · **Publicado:** v1.30.1 · **7 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-17 · **Publicado:** v1.30.2 · **7 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |

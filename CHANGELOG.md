@@ -16,6 +16,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.30.2] — 2026-10-17
+
+**Correcciones de la auditoría, tercera tanda.** La ventana sigue respondiendo durante un benchmark, una
+verificación de capacidad o un borrado seguro. Si la aplicación se cierra a mitad de una de esas operaciones,
+al volver ofrece borrar los archivos temporales que dejó en la unidad. La confirmación de *Reinicializar*
+nombra el disco y todas las unidades que se van a borrar. Cada operación, también la cancelada, deja su línea
+en el historial, que ya no guarda el nombre de usuario de Windows. El resultado de una operación se ve aunque
+la pregunta «¿Cancelar?» siguiera abierta. La licencia dice que es solo la GPL 3. No hay funciones nuevas.
+
 ### Corregido
 
 - **Si la pregunta «¿Cancelar?» seguía abierta cuando la operación terminaba, su resultado no se llegaba a
@@ -1029,7 +1038,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.1...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.2...HEAD
+[1.30.2]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.2
 [1.30.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.1
 [1.30.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.0
 [1.29.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.29.0

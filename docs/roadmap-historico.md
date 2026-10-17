@@ -23,26 +23,26 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
-| 2026-10-17 | `AUD-043` | Fuera `about.body` y `ReleaseInfo.Version`; resúmenes al día, documentación XML compilada y sin avisos | sin publicar |
-| 2026-10-17 | `AUD-042` | `MainWindow.xaml.cs` en 478 líneas (tres parciales nuevas) y avisos de `using` sin uso en la compilación | sin publicar |
-| 2026-10-17 | `AUD-041` | Un catálogo de sistemas de archivos, un codificador de PowerShell y un búfer alineado, cada uno en un sitio | sin publicar |
-| 2026-10-17 | `AUD-070` | El historial escribe la carpeta del perfil como `%USERPROFILE%`, y los avisos dicen lo que contiene | sin publicar |
-| 2026-10-17 | `AUD-028` | Si «¿Cancelar?» sigue abierta al terminar la operación, se cierra y se muestra el resultado | sin publicar |
-| 2026-10-17 | `AUD-039` | El margen de 64 MB que el borrado seguro no sobrescribe se dice en la opción y en el resultado | sin publicar |
-| 2026-10-17 | `AUD-038` | Las carpetas de trabajo abandonadas se detectan al seleccionar la unidad o al arrancar, y se ofrece borrarlas | sin publicar |
-| 2026-10-17 | `AUD-036` | Cada desenlace de cada operación deja su línea, y la lista se recarga al terminar cualquiera | sin publicar |
-| 2026-10-17 | `AUD-035` | La confirmación de Reinicializar nombra el disco, su tamaño y todas las unidades que desaparecerán | sin publicar |
-| 2026-10-17 | `AUD-032` | Los motores de borrado, verificación y benchmark trabajan en el pool: la ventana responde mientras miden | sin publicar |
-| 2026-10-16 | `AUD-069` | `GPL-3.0-only` en *Acerca de*, README, avisos, `.csproj` y una cabecera SPDX en cada fuente, con prueba | sin publicar |
-| 2026-10-16 | `AUD-068` | Las nueve skills llevan al lado su licencia MIT (GitHub, Inc.) y figuran en los avisos de terceros | sin publicar |
-| 2026-10-16 | `AUD-023` | Workflow propio que señala los PR que tocan la configuración de agentes y comprueba cada skill contra su hash | sin publicar |
-| 2026-10-16 | `AUD-063` | Cada release declara en notas y tag el SDK, el runtime de .NET y el Windows App SDK que lleva | sin publicar |
-| 2026-10-16 | `AUD-022` | SDK en `global.json`, paquetes con archivo de bloqueo en modo bloqueado (CI y corte), solo nuget.org | sin publicar |
-| 2026-10-16 | `AUD-065` | `-Version` llega al ejecutable y `installer.iss` falla sin versión ni carpeta de publicación | sin publicar |
-| 2026-10-16 | `AUD-062` | El instalador se niega a instalar en una carpeta ajena no vacía, también con `/DIR=` en silencioso | sin publicar |
-| 2026-10-16 | `AUD-061` | Modo estricto en el corte y el instalador; sin red, el corte aborta con mensaje propio | sin publicar |
-| 2026-10-16 | `AUD-060` | La contraseña del `.pfx` de `new-selfsigned-cert.ps1` es `SecureString`, y se pide sin eco si falta | sin publicar |
-| 2026-10-16 | `AUD-059` | `-Only` se parte por comas y valida cada nombre; la salida capturada conserva los acentos | sin publicar |
+| 2026-10-17 | `AUD-043` | Fuera `about.body` y `ReleaseInfo.Version`; resúmenes al día, documentación XML compilada y sin avisos | v1.30.2 |
+| 2026-10-17 | `AUD-042` | `MainWindow.xaml.cs` en 478 líneas (tres parciales nuevas) y avisos de `using` sin uso en la compilación | v1.30.2 |
+| 2026-10-17 | `AUD-041` | Un catálogo de sistemas de archivos, un codificador de PowerShell y un búfer alineado, cada uno en un sitio | v1.30.2 |
+| 2026-10-17 | `AUD-070` | El historial escribe la carpeta del perfil como `%USERPROFILE%`, y los avisos dicen lo que contiene | v1.30.2 |
+| 2026-10-17 | `AUD-028` | Si «¿Cancelar?» sigue abierta al terminar la operación, se cierra y se muestra el resultado | v1.30.2 |
+| 2026-10-17 | `AUD-039` | El margen de 64 MB que el borrado seguro no sobrescribe se dice en la opción y en el resultado | v1.30.2 |
+| 2026-10-17 | `AUD-038` | Las carpetas de trabajo abandonadas se detectan al seleccionar la unidad o al arrancar, y se ofrece borrarlas | v1.30.2 |
+| 2026-10-17 | `AUD-036` | Cada desenlace de cada operación deja su línea, y la lista se recarga al terminar cualquiera | v1.30.2 |
+| 2026-10-17 | `AUD-035` | La confirmación de Reinicializar nombra el disco, su tamaño y todas las unidades que desaparecerán | v1.30.2 |
+| 2026-10-17 | `AUD-032` | Los motores de borrado, verificación y benchmark trabajan en el pool: la ventana responde mientras miden | v1.30.2 |
+| 2026-10-16 | `AUD-069` | `GPL-3.0-only` en *Acerca de*, README, avisos, `.csproj` y una cabecera SPDX en cada fuente, con prueba | v1.30.2 |
+| 2026-10-16 | `AUD-068` | Las nueve skills llevan al lado su licencia MIT (GitHub, Inc.) y figuran en los avisos de terceros | v1.30.2 |
+| 2026-10-16 | `AUD-023` | Workflow propio que señala los PR que tocan la configuración de agentes y comprueba cada skill contra su hash | v1.30.2 |
+| 2026-10-16 | `AUD-063` | Cada release declara en notas y tag el SDK, el runtime de .NET y el Windows App SDK que lleva | v1.30.2 |
+| 2026-10-16 | `AUD-022` | SDK en `global.json`, paquetes con archivo de bloqueo en modo bloqueado (CI y corte), solo nuget.org | v1.30.2 |
+| 2026-10-16 | `AUD-065` | `-Version` llega al ejecutable y `installer.iss` falla sin versión ni carpeta de publicación | v1.30.2 |
+| 2026-10-16 | `AUD-062` | El instalador se niega a instalar en una carpeta ajena no vacía, también con `/DIR=` en silencioso | v1.30.2 |
+| 2026-10-16 | `AUD-061` | Modo estricto en el corte y el instalador; sin red, el corte aborta con mensaje propio | v1.30.2 |
+| 2026-10-16 | `AUD-060` | La contraseña del `.pfx` de `new-selfsigned-cert.ps1` es `SecureString`, y se pide sin eco si falta | v1.30.2 |
+| 2026-10-16 | `AUD-059` | `-Only` se parte por comas y valida cada nombre; la salida capturada conserva los acentos | v1.30.2 |
 | 2026-10-16 | `AUD-066` | `master` no se puede forzar ni borrar (ruleset, sin exigir PR ni check) y las alertas de Dependabot están activas | — (ajuste del repo) |
 | 2026-10-16 | `AUD-005` | El reporte privado de vulnerabilidades que anuncia `SECURITY.md` está activado | — (ajuste del repo) |
 | 2026-10-15 | `AUD-020` | El corte aborta si la rama va por detrás de origin, antes de probar nada; al retomar, el tag tiene que estar en la rama | v1.30.1 |
@@ -548,7 +548,7 @@
   - **Qué hacer:** un único catálogo de sistemas de archivos en `Core/`, un único `PowerShellCommand.Encode`, y un ayudante compartido de búfer alineado.
   - **Criterio de aceptación:** cada dato y cada ayudante tiene una sola definición.
   - **Hecho (2026-10-17):** Los tres grupos. **Sistemas de archivos:** `Core/FileSystems.cs` es el catálogo —nombre, tamaños de clúster, el recomendado, longitud de la etiqueta, tamaño máximo de volumen y clave de la descripción—, y de él salen el selector, sus clústeres y su descripción, la validación de la etiqueta y del plan de particiones y los dos tipos de formato; se van `FsDefaults` y `FsDescriptionKey` de la ventana, `PartitionPlan.SupportedFileSystems` y `FatMaxBytes`, `FormatLogic.Fat32MaxBytes` y `MaxLabelLength`, y el `2L * 1024 * 1024 * 1024` suelto del selector. **Codificación:** `Core/PowerShellCommand.cs` (`Encode`, y `Decode` para las pruebas) sustituye a `FormatLogic.EncodeArguments` y a las copias de `DiskService` y `ReinitDrive`. **E/S sin caché:** `Services/UnbufferedIo.cs` lleva `FILE_FLAG_NO_BUFFERING`, la alineación y `AlignedBuffers` (un `IDisposable` que suelta el `GCHandle`), en lugar de los dos `AllocAligned` de `BenchmarkRunner` y `CapacityVerifier`; y `Services/FreeSpaceFill.cs` lleva el bloque de 8 MB, el archivo de 1 GB y el margen de 64 MB que `SecureWipe` y `CapacityVerifier` repetían. El margen del benchmark (`Benchmark.SafetyMarginBytes`) se queda donde está: vale lo mismo, pero es de otra cosa.
-  - **Verificado (2026-10-17, en local):** 966 unitarias (965 pasan); las que ya fijaban cada dato (clústeres en la interfaz, longitud de etiqueta, plan de particiones, Base64 de UTF-16LE, margen de 64 MB) siguen en verde contra la definición nueva. la suite de UI sin opt-in, contra el ejecutable Release: 61, 56 pasan, 5 omitidas por opt-in, ninguna falla.
+  - **Verificado (2026-10-17, en local):** 966 unitarias (965 pasan); las que ya fijaban cada dato (clústeres en la interfaz, longitud de etiqueta, plan de particiones, Base64 de UTF-16LE, margen de 64 MB) siguen en verde contra la definición nueva. la suite de UI entera, sin opt-in y sin el filtro `Category!=Slow` (incluye la prueba lenta de diagnóstico), contra el ejecutable Release: 61, 56 pasan, 5 omitidas por opt-in, ninguna falla.
 
 - [x] **AUD-042 · `MainWindow.xaml.cs` vuelve a superar el tope que el propio proyecto se fijó, y no hay formateador ni analizadores configurados**
   - **Área:** Refactorización · **Severidad:** Bajo · **Esfuerzo:** Medio
@@ -557,7 +557,7 @@
   - **Criterio de aceptación:** ninguna parcial pasa de 800 líneas y la compilación señala los `using` sin uso.
   - **Antecedente:** regresión del objetivo de `T2-08`, que lo dejó en 753 líneas
   - **Hecho (2026-10-17):** `MainWindow.xaml.cs` pasa de 1258 a 478 líneas: los diálogos (la compuerta de `ShowOneAsync`, avisos, confirmaciones y el cierre de la ventana) van a `MainWindow.Dialogs.cs`; el ciclo de vida de la operación (empezar, terminar, cancelar, cronómetro, estado del pie, anuncios y habilitar controles) a `MainWindow.Lifecycle.cs`; y formatear, a `MainWindow.Format.cs`. La parcial más larga es `Operations`, con 699. `.editorconfig` en la raíz con IDE0005 como aviso, y `Directory.Build.props` enciende `EnforceCodeStyleInBuild` y `GenerateDocumentationFile`, que IDE0005 necesita para avisar al compilar. Los `using` sin uso se quitaron con `dotnet format style --diagnostics IDE0005` en los tres proyectos. **Sin `global using` de WinUI, a diferencia de lo que proponía la tarea:** se probó, y llegaba también a `Core/`, donde la regla de oro de `CONTEXT.md` §2 es no depender de WinUI; con él, un archivo de `Core` podía usar un tipo de XAML sin declararlo. El bloque repetido desaparece igual: cada parcial declara solo lo que usa, entre dos y once.
-  - **Verificado (2026-10-17, en local):** compilación en Release con `-warnaserror`, como el CI, de la solución y de las pruebas de UI: 0 avisos. Un archivo de prueba con un `using` sin uso y un `<para>` sin cerrar detiene esa compilación con IDE0005 y CS1570, y se borró. la suite de UI sin opt-in, contra el ejecutable Release: 61, 56 pasan, 5 omitidas por opt-in, ninguna falla.
+  - **Verificado (2026-10-17, en local):** compilación en Release con `-warnaserror`, como el CI, de la solución y de las pruebas de UI: 0 avisos. Un archivo de prueba con un `using` sin uso y un `<para>` sin cerrar detiene esa compilación con IDE0005 y CS1570, y se borró. la suite de UI entera, sin opt-in y sin el filtro `Category!=Slow` (incluye la prueba lenta de diagnóstico), contra el ejecutable Release: 61, 56 pasan, 5 omitidas por opt-in, ninguna falla.
 
 - [x] **AUD-043 · Miembros y textos sin uso, comentarios desfasados y documentación XML que nadie valida**
   - **Área:** Refactorización · **Severidad:** Bajo · **Esfuerzo:** Bajo

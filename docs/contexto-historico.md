@@ -17,6 +17,7 @@
 
 | Versión | Qué trajo |
 |---|---|
+| **1.30.2** | **La tercera tanda de la auditoría, sin funciones nuevas.** La ventana dejaba de responder durante un benchmark, una verificación o un borrado seguro, porque cada bloque se procesaba en el hilo de la interfaz. Las carpetas de trabajo que deja una operación interrumpida se detectan y se ofrece borrarlas. *Reinicializar* nombra el disco y todo lo que se pierde. Cada desenlace deja su línea en el historial, que escribe el perfil como `%USERPROFILE%`. Licencia `GPL-3.0-only`. Por dentro: compilación reproducible, catálogo único de sistemas de archivos y `MainWindow` por debajo de las 800 líneas por parcial |
 | **1.30.1** | **La segunda tanda de la auditoría, sin funciones nuevas.** El borrado seguro con 3 o 7 pasadas no terminaba: la segunda pedía otra vez el espacio que la primera ya había ocupado. Un fallo pasajero al leer la configuración podía borrar los presets. Una unidad averiada dejaba la app esperando sin límite. La app pasa a tener instancia única, y la barra rápida se apaga durante las operaciones. Interno: el corte comprueba antes de empezar (rama, herramientas, CHANGELOG), prueba en Release sin advertencias y anota en el tag el hash del instalador. Es la primera versión cortada así. |
 | **1.30.0** | **Que la app diga lo que pasó.** Las 19 correcciones de la auditoría del 2026-10-11 cerradas hasta el corte. Cancelar un formato lo cancela (o no se ofrece), lo que se formatea o reinicializa es la unidad que se confirmó, y *Comprobar*, *Expulsar* y el borrado seguro dejan de anunciar el caso feliz. Seguridad: el instalador de una actualización se descarga a una carpeta solo de administradores y queda bloqueado hasta ejecutarse, y la cuenta sin elevar deja de decidir qué ejecuta la app. Accesibilidad: el selector de unidad tiene nombre. |
 | **1.29.0** | **La base, al día: Windows App SDK 1.8 → 2.5.1**, el primer salto de versión mayor del componente sobre el que está construida la app. **Sin una línea de código cambiada** y sin diferencia visible: la galería de 28 tomas sale idéntica comparándola con la 1.8 y el mismo código. Las notas de la 2.0 no documentan cambios incompatibles, así que lo que decidió el salto fue la puerta del corte. El instalador crece 2,8 MB (58,9 → 61,7) por componentes de Windows AI y Search que el paquete trae de serie. Cierra el **Tier 13, 20/20**. |
@@ -63,6 +64,19 @@
 
 ## Entradas
 
+### 2026-10-17 — Corte de la v1.30.2
+
+**Por qué parche y no *minor*.** Se propuso una «v1.31.0», pero *Sin publicar* solo trae correcciones, cambios
+y trabajo interno: ninguna sección *Añadido*. El ofrecimiento de borrar las carpetas de trabajo abandonadas
+(`AUD-038`) va en *Corregido* porque lo que arregla es que se quedaran en la unidad sin decir nada, y la
+licencia (`AUD-069`) precisa la que ya había. Es el criterio de la v1.30.1 y la v1.28.1, y lo decidió el
+mantenedor.
+
+**Primer corte sin PRs**, con todo el trabajo hecho directamente en `master` desde el 2026-10-15. Antes del
+corte se ejecutó la suite de UI con `FORMATDISKPRO_ALLOW_DESTRUCTIVE=1` sobre el código ya commiteado, sin filtro (61: 59
+pasan, 2 omitidas por `ALLOW_YANK`), porque la tanda anterior había movido el flujo de formatear a otro
+archivo (`AUD-042`).
+
 ### 2026-10-17 — `AUD-041`, `AUD-042` y `AUD-043`: cada cosa en un sitio, y una compilación que lo vigila
 
 **Qué cambia.** Nada que se vea en la app. Los datos de los sistemas de archivos, la codificación de los
@@ -86,7 +100,7 @@ misma tanda, porque el CI no admite ni uno.
 
 **Cómo se probó.** compilación en Release con `-warnaserror`, como el CI, de la solución y de las pruebas de UI: 0 avisos; un archivo de prueba con un `using` sobrante y un `<para>` sin cerrar detiene esa
 compilación, y se borró. 966 unitarias (965 pasan), con una prueba nueva que exige que toda clave de
-traducción se use: falló con `about.body` y pasa sin ella. La suite de UI sin opt-in, contra el ejecutable Release: 61, 56 pasan, 5 omitidas por opt-in, ninguna falla.
+traducción se use: falló con `about.body` y pasa sin ella. La suite de UI entera, sin opt-in y sin el filtro `Category!=Slow`, contra el ejecutable Release: 61, 56 pasan, 5 omitidas por opt-in, ninguna falla.
 
 ### 2026-10-17 — `AUD-028` y `AUD-070`: el resultado que no se veía y el nombre de usuario en el historial
 

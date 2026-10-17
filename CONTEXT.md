@@ -178,12 +178,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.1** (2026-10-15): las siete tandas de la auditoría del 2026-10-11 (PRs #3 a #10) y los arreglos del corte. `master` sin trabajo pendiente de publicar |
+| **Publicado** | **v1.30.2** (2026-10-17): la tercera tanda de la auditoría del 2026-10-11 (veinte tareas, hechas el 2026-10-16 y el 2026-10-17 directamente en `master`). `master` sin trabajo pendiente de publicar |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR. Desde `AUD-042`/`AUD-043` son avisos, por `.editorconfig`, los `using` sin uso (IDE0005) y la documentación XML mal formada (CS1570), y no hay `global using` de WinUI porque alcanzaría a `Core/` |
 | **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-17: **966** (965 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **61** (56 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **60** (55 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
