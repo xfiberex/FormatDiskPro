@@ -181,8 +181,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-15: **926** (925 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-15, con la USB de pruebas y sin opt-in: **56** (51 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-17: **957** (956 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **59** (54 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
@@ -373,6 +373,11 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 - **Modo estricto y XML** (`AUD-061`): con `Set-StrictMode -Version Latest` (los tres scripts), `$nodo.Hijo`
   **lanza** si falta el hijo, también al enumerar (`PropertyGroup.Version`). Se lee con `SelectNodes`/`SelectSingleNode`.
 
+### Operaciones: dónde trabajan y qué dejan (`AUD-032`, `AUD-036`, `AUD-038`)
+
+- **Los motores de E/S van con `Task.Run`** (borrado, verificación, benchmark); el progreso, por `Progress<T>`. En el hilo de la UI, la ventana no respondía.
+- **Cada desenlace deja una línea; `EndOperation` recarga la lista**, y al seleccionar se buscan las `WorkFolders` que un `finally` no borró.
+
 ### Formateo: dos vías, y solo una se puede cancelar
 
 - **Todo formato COMPLETO va por `format.com`; lo rápido y ReFS, por `Format-Volume`** (`AUD-001`,
@@ -399,12 +404,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   por tema, en un solo sitio. `SeverityPaletteTests` recorre **`SeverityPalette.All()`** —el inventario, no
   una función concreta— y exige a cada color su umbral WCAG (4.5:1 texto, 3:1 objeto gráfico), componiendo
   antes el alfa sobre el fondo. **Añadir un color al inventario es ponerlo bajo test: no hay forma de hacer
-  una cosa sin la otra.** Antes el barrido solo recorría `For(SmartLevel)` mientras los mismos RGB estaban
-  copiados en `HistoryDialog` y `MainWindow`, y por ahí entró un gris de 3.52:1 sin romper el build.
-  **Ya no hay excepción fuera de `Core`:** la que había —los ocho colores de los botones de la barra de
-  título, en `MainWindow.UpdateCaptionButtonColors`— desapareció con `T13-12`, que los sustituyó por
-  `AppWindowTitleBar.PreferredTheme`. Ese cromo de ventana lo pinta ahora Windows con el tema que se le
-  dice, y no hay ningún color propio que medir.
+  una cosa sin la otra.** No queda ningún color fuera de `Core`: el último, el de los botones de la barra de
+  título, lo pinta Windows desde `T13-12` (`AppWindowTitleBar.PreferredTheme`). El porqué, en el historial.
 - **Un color se mide contra lo que hay que distinguirlo, no siempre contra el fondo** (desde 2026-08-16).
   `PaletteColor.Against` permite declarar un color **adyacente** como referencia. Lo usa la pista de la
   barra de ocupación: contra la tarjeta no llega al 3:1 *a propósito* —es un hueco, no una segunda barra—,
@@ -416,9 +417,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   por defecto hereda el acento del sistema; en un equipo con **acento rojo** la barra de ocupación se veía
   roja con el disco medio vacío y leía como *alarma*. Ahora codifica ocupación, no marca: neutro <80 %,
   ámbar ≥80 %, rojo ≥90 % (`MainWindow.CapacityBrush`, con `SeverityPalette.NeutralFill` para el neutro).
-  Desde 2026-08-16 **tampoco es un `ProgressBar`**: su plantilla fija la pista en 1 px, así que usado y
-  libre no podían tener el mismo grosor. Es un `Border` (libre) con un `Border` hijo (usado) y columnas
-  estrella — ver la entrada de esa fecha en [`docs/contexto-historico.md`](docs/contexto-historico.md).
+  **Tampoco es un `ProgressBar`** (2026-08-16; su plantilla fija la pista en 1 px): es un `Border` (libre)
+  con un `Border` hijo (usado) y columnas estrella.
 - **Capturas: fotografía el PUBLISH self-contained, no el `dotnet build`.** En esta máquina el apphost de un
   `dotnet build -c Release` (runtime .NET *framework-dependent*) **no arranca**: muestra "You must install or
   update .NET". `tools/capture-screenshots.ps1` prefiere `bin\Release`, así que tras un build plano capturaba

@@ -18,12 +18,27 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Corregido
 
+- **La confirmación de *Reinicializar* no decía qué disco se iba a borrar ni qué otras unidades se perdían.**
+  Reinicializar borra el disco físico entero, y en un pendrive con dos particiones la otra desaparecía sin
+  que nada la nombrara. Ahora la confirmación dice el modelo y el tamaño del disco y todas las unidades que
+  desaparecerán (`AUD-035`).
+- **Si la aplicación se cerraba a mitad de un borrado seguro, una verificación o un benchmark, sus archivos
+  temporales se quedaban en la unidad**, a veces ocupando todo el espacio libre, sin que nada lo dijera.
+  Ahora la aplicación los detecta al seleccionar la unidad o al arrancar, y ofrece borrarlos (`AUD-038`).
+- **La ventana no respondía durante un benchmark, una verificación de capacidad o un borrado seguro.** El
+  trabajo de cada bloque se hacía en el hilo de la interfaz; ahora va aparte, y la ventana y los lectores de
+  pantalla siguen respondiendo (`AUD-032`).
+- **Una operación cancelada no dejaba rastro en el historial**, y un borrado seguro que fallaba después de un
+  formato correcto se registraba como un formato fallido. Ahora cada desenlace deja su línea, y la lista de
+  unidades se recarga al terminar cualquier operación (`AUD-036`).
 - **El instalador podía vaciar una carpeta que no era suya** si el destino se le daba por línea de comandos
   (`/DIR=`), por ejemplo en un despliegue por script. Ahora se niega a instalar en una carpeta que ya existe,
   tiene contenido y no es de FormatDiskPro, y lo dice (`AUD-062`).
 
 ### Cambiado
 
+- **El borrado seguro dice que deja sin sobrescribir los últimos 64 MB de espacio libre**, que reserva para no
+  llenar la unidad: en la pista de la opción y en el mensaje del resultado (`AUD-039`).
 - **La licencia dice ahora qué versión de la GPL es: solo la 3** (`GPL-3.0-only`), no «la 3 o posterior».
   Lo dicen igual *Acerca de* en los cinco idiomas, el README, los avisos de terceros y cada archivo de código
   fuente (`AUD-069`).

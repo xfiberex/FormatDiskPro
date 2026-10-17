@@ -196,6 +196,11 @@ public sealed partial class MainWindow
         QuickFormatCheck.Content = L.T("opt.quick");
         CompressCheck.Content    = L.T("opt.compress");
         SecureWipeCheck.Content  = L.T("opt.secure");
+        // El margen que se deja sin sobrescribir se dice, no se esconde (`AUD-039`), y llega también al lector
+        // de pantalla. Sale de la constante del servicio: la pista no puede prometer otra cifra.
+        string wipeTip = L.T("opt.secureTip", FormatBytes(SecureWipe.SafetyMarginBytes));
+        ToolTipService.SetToolTip(SecureWipeCheck, wipeTip);
+        AutomationProperties.SetHelpText(SecureWipeCheck, wipeTip);
         WipePassesLbl.Text       = L.T("opt.passes");
         SmallFat32Check.Content     = L.T("opt.smallFat32");
         SmallFat32SizeLbl.Text      = L.T("opt.smallFat32Size");

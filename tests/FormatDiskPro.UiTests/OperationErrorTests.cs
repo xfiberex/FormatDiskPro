@@ -111,7 +111,14 @@ public sealed class OperationErrorTests(AppFixture fixture)
             ReturnToIdle();
 
             if (dismounted)
+            {
                 DriveYank.WaitForRemount(TestDrive.PrimaryLabel, TimeSpan.FromSeconds(60));
+
+                // Desmontar a mitad deja la carpeta de trabajo en la unidad: el `finally` del servicio no
+                // la pudo borrar. Desde `AUD-038` la app lo detecta y pregunta al seleccionar la unidad, y
+                // ese diálogo se cruzaría con la prueba siguiente. Se borra aquí, sin pasar por la app.
+                TestDrive.RemoveWorkFolders();
+            }
         }
     }
 

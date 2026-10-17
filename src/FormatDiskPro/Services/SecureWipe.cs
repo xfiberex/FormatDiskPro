@@ -91,7 +91,7 @@ public sealed class SecureWipe : ISecureWipe
         if (!drive.IsReady) return -1;
 
         long perPass = Math.Max(0, drive.AvailableFreeSpace - SafetyMarginBytes);
-        await RunInAsync($"{letter}:\\__fdp_wipe__", perPass, passes, progress, ct);
+        await RunInAsync(WorkFolders.On(letter, WorkFolders.Wipe), perPass, passes, progress, ct);
         return 0;
     }
 
@@ -121,12 +121,25 @@ public sealed class SecureWipe : ISecureWipe
     /// escribir gigabytes.
     /// </param>
     /// <exception cref="OperationCanceledException">Si se cancela mediante <paramref name="ct"/>.</exception>
-    internal static async Task RunInAsync(
+    /// <remarks>
+    /// Se ejecuta en el pool de hilos (`AUD-032`): llamado desde la ventana, cada <c>await</c> volvía al hilo
+    /// de la interfaz, y ahí se generaban los 8 MB aleatorios de cada bloque. El progreso sigue llegando a la
+    /// interfaz por <see cref="Progress{T}"/>.
+    /// </remarks>
+    internal static Task RunInAsync(
         string dir, long perPass, int passes,
         IProgress<(int percent, long bytesDone, long totalBytes)> progress,
         CancellationToken ct,
         Func<int, Task>? afterPassAsync = null,
         long maxFileSize = MaxFileSize)
+        => Task.Run(() => RunInCoreAsync(dir, perPass, passes, progress, ct, afterPassAsync, maxFileSize));
+
+    private static async Task RunInCoreAsync(
+        string dir, long perPass, int passes,
+        IProgress<(int percent, long bytesDone, long totalBytes)> progress,
+        CancellationToken ct,
+        Func<int, Task>? afterPassAsync,
+        long maxFileSize)
     {
         if (passes < 1) passes = 1;
         perPass = Math.Max(0, perPass);

@@ -23,6 +23,11 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-17 | `AUD-039` | El margen de 64 MB que el borrado seguro no sobrescribe se dice en la opción y en el resultado | sin publicar |
+| 2026-10-17 | `AUD-038` | Las carpetas de trabajo abandonadas se detectan al seleccionar la unidad o al arrancar, y se ofrece borrarlas | sin publicar |
+| 2026-10-17 | `AUD-036` | Cada desenlace de cada operación deja su línea, y la lista se recarga al terminar cualquiera | sin publicar |
+| 2026-10-17 | `AUD-035` | La confirmación de Reinicializar nombra el disco, su tamaño y todas las unidades que desaparecerán | sin publicar |
+| 2026-10-17 | `AUD-032` | Los motores de borrado, verificación y benchmark trabajan en el pool: la ventana responde mientras miden | sin publicar |
 | 2026-10-16 | `AUD-069` | `GPL-3.0-only` en *Acerca de*, README, avisos, `.csproj` y una cabecera SPDX en cada fuente, con prueba | sin publicar |
 | 2026-10-16 | `AUD-068` | Las nueve skills llevan al lado su licencia MIT (GitHub, Inc.) y figuran en los avisos de terceros | sin publicar |
 | 2026-10-16 | `AUD-023` | Workflow propio que señala los PR que tocan la configuración de agentes y comprueba cada skill contra su hash | sin publicar |
@@ -265,6 +270,31 @@
 
 ### Arquitectura y resiliencia
 
+- [x] **AUD-036 · Una operación cancelada o a medias no deja un registro fiel ni actualiza la lista de unidades**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.Operations.cs:67-72`, `:285-290`, `:455-460` · `src/UI/MainWindow.xaml.cs:249`, `:612-618`, `:643-659`, `:676-691`
+  - **Qué hacer:** registrar siempre el desenlace (`REINIT CANCELLED`, `FORMAT OK` antes del borrado, `WIPE ERROR`) y llamar a `LoadDrives()` en `EndOperation`.
+  - **Criterio de aceptación:** cada desenlace de cada operación deja exactamente una línea que lo nombra, y la lista se recarga al terminar.
+  - **Antecedente:** `AUD-001` (hecha) ya recarga la lista y dice cómo queda la unidad al cancelar un **formato**; faltan las demás operaciones y los registros
+  - **Hecho (2026-10-17):** Cada desenlace deja su línea: `VERIFY CANCELLED`, `CHKDSK CANCELLED`, `REINIT CANCELLED` (con las particiones creadas), `BENCH CANCELLED` y `BENCH FAIL` (sin espacio), y `FORMAT CANCELLED` también cuando la cancelación llega como excepción. Un borrado seguro cancelado o que falla tras un formato correcto deja dos líneas, una por desenlace: `FORMAT OK … wipe=False` y `WIPE CANCELLED` o `WIPE ERROR`; antes quedaba solo la del borrado, o un `FORMAT ERROR` de un formato que había salido bien. `EndOperation` recarga la lista al terminar cualquier operación, conservando el texto y el color de la fila de estado, que `ApplyProtection` vaciaba.
+  - **Verificado (2026-10-17, en local, terminal elevada y USB de pruebas):** `OperationAftermathTests` comprueba que el visor clasifica cada línea nueva (categoría y resultado). Con la app real, `CancellingABenchmark_LeavesExactlyOneLine_AndNoWorkFolder` cancela un benchmark en marcha y exige exactamente una línea `BENCH` en el historial, `BENCH CANCELLED D:`, y la unidad sin `__fdp_bench__`; la suite de UI sin opt-in (59: 54 pasan, 5 omitidas por opt-in, ninguna falla). Las variantes con formato y borrado seguro solo se ejercen con `ALLOW_DESTRUCTIVE`, que no se activó.
+
+- [x] **AUD-038 · Si el proceso muere, los archivos temporales de borrado, verificación y benchmark se quedan en la unidad**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/SecureWipe.cs:88`, `:144` · `src/Services/CapacityVerifier.cs:59`, `:184` · `src/Services/BenchmarkRunner.cs:61`, `:147`
+  - **Qué hacer:** al seleccionar una unidad, detectar esas carpetas y ofrecer borrarlas; y avisar si la limpieza del `finally` falla.
+  - **Criterio de aceptación:** con una carpeta `__fdp_verify__` en la unidad, la app lo dice y la borra al aceptarlo.
+  - **Hecho (2026-10-17):** `Services/WorkFolders` reúne los tres nombres (los servicios los usan de ahí), los busca bajo una raíz y los borra informando de los que no pudo. La ventana lo pregunta al seleccionar una unidad (también en la recarga con que acaba cada operación, así que un `finally` que no pudo borrar se descubre en el momento) y al arrancar, cuando ya puede alojar un diálogo. «Ahora no» no vuelve a preguntar por esa unidad en la sesión; si el borrado falla, lo dice y tampoco. Líneas `WORKFOLDERS` en el historial (categoría App). Las pruebas de UI borran esas carpetas de la USB antes de lanzar la app y tras las de desmontaje forzado, para que el aviso no se cruce con otra prueba.
+  - **Verificado (2026-10-17, en local, terminal elevada y USB de pruebas):** `LeftoverWorkFolder_IsOffered_AndDeletedOnAccept` crea `D:\__fdp_verify__` con un archivo dentro, recarga, y la app mostró «La unidad D: tiene carpetas de trabajo… D:\__fdp_verify__ … ¿Quieres borrarlas?»; al aceptar, la carpeta desaparece y queda `WORKFOLDERS DELETED`. Se vio también el caso real: una corrida fallida de la prueba de benchmark dejó `D:\__fdp_bench__`. Pruebas unitarias de búsqueda (no toca carpetas parecidas ni de la persona) y de un borrado que falla con el archivo abierto; la suite de UI sin opt-in (59: 54 pasan, 5 omitidas por opt-in, ninguna falla).
+
+- [x] **AUD-039 · El borrado seguro deja sin sobrescribir los últimos 64 MB y no lo dice**
+  - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/SecureWipe.cs:36`, `:96` · `src/Localization/Localization.cs:142`
+  - **Qué hacer:** reducir el margen al mínimo que el sistema de archivos necesite cuando se viene de formatear, o declararlo en la pista de la opción y en el resultado.
+  - **Criterio de aceptación:** el margen es coherente con lo que la interfaz promete, y una prueba fija el valor.
+  - **Hecho (2026-10-17):** Se declara en vez de reducirse: reducir el margen exige escribir hasta llenar la unidad y tratar el error de disco lleno, algo que solo se prueba sobre una unidad real. La opción lleva una pista (tooltip y `HelpText` para el lector de pantalla) que dice que se dejan sin sobrescribir los últimos 64 MB, y que en SSD y memorias flash el controlador puede conservar copias; el mensaje del resultado lo repite con las pasadas hechas. Los dos textos toman la cifra de `SecureWipe.SafetyMarginBytes`.
+  - **Verificado (2026-10-17, en local, terminal elevada y USB de pruebas):** `SafetyMargin_Is64MB_AndTheInterfaceStatesIt` fija el valor (64 MB) y exige que la pista y la nota lo citen por su marcador en los cinco idiomas, así que no pueden prometer otra cifra.
+
 - [x] **AUD-037 · Los ajustes se escriben sin atomicidad, se degradan a valores por defecto ante un error de lectura y no hay instancia única**
   - **Área:** Arquitectura y resiliencia · **Severidad:** Bajo · **Esfuerzo:** Medio
   - **Ubicación:** `src/Services/AppSettings.cs:162-165`, `:217-229` · `src/UI/MainWindow.HelpAndUpdates.cs:93-94` · `src/Program.cs:13-19`
@@ -479,6 +509,16 @@
   - **Hecho (2026-10-16):** Se cotejó la licencia del origen con la API de GitHub: `github/awesome-copilot` es MIT, «Copyright GitHub, Inc.», y las nueve skills existen allí en `skills/<nombre>/SKILL.md`. Su texto exacto va en `.agents/skills/LICENSE`, que `check-skills.ps1` admite como único archivo extra. `THIRD-PARTY-NOTICES.txt` gana la entrada 8 («Skills de github/awesome-copilot», grupo B, que pasa a ser «construcción / pruebas / desarrollo») y deja dicho que no van en el instalador ni están bajo la GPLv3. `CONTRIBUTING.md` lo repite junto a las skills.
   - **Verificado (2026-10-16, en local):** las 926 unitarias en verde, entre ellas `LegalTexts_FitTheViewerWidth`: el aviso nuevo cabe en las 78 columnas del visor.
 
+### Rendimiento
+
+- [x] **AUD-032 · El trabajo por bloque y las continuaciones de los servicios se ejecutan en el hilo de la interfaz**
+  - **Área:** Rendimiento · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Services/CapacityVerifier.cs:110-122`, `:143-172` · `src/Services/SecureWipe.cs:118-134` · `src/Services/BenchmarkRunner.cs:211-226` · llamadas: `src/UI/MainWindow.Operations.cs:65`, `:557`, `src/UI/MainWindow.xaml.cs:641` · `src/Program.cs:24-25`
+  - **Qué hacer:** `ConfigureAwait(false)` en los `await` de `Services/`, o envolver la llamada en `Task.Run`; `Progress<T>` ya devuelve los informes al hilo de UI.
+  - **Criterio de aceptación:** una prueba que ejecuta `RunAsync` bajo un `SynchronizationContext` contador registra 0 `Post` durante las fases de E/S.
+  - **Hecho (2026-10-17):** `SecureWipe.RunInAsync`, `CapacityVerifier.RunInAsync` y `BenchmarkRunner.RunAsync` se ejecutan con `Task.Run`: su cuerpo y todas sus continuaciones van al pool, y al llamador solo vuelve el resultado. El progreso sigue llegando a la ventana por `Progress<T>`. Se encontró al escribir la prueba de `AUD-036`: con el benchmark en marcha, UI Automation agotaba el tiempo de espera (`COMException 0x80131505`) porque el hilo de la interfaz estaba saturado con las continuaciones de miles de E/S de 4 KiB; por eso ninguna prueba de UI cancelaba un benchmark.
+  - **Verificado (2026-10-17, en local, terminal elevada y USB de pruebas):** `ServiceThreadingTests` lanza el borrado y la verificación bajo un `SynchronizationContext` que cuenta los `Post` y lee la cuenta desde el progreso, en mitad de la E/S: 0 en todos los informes. Quitando el `Task.Run`, las dos pruebas fallan (en la verificación, los 6 informes ven `Post`). Con la app real, la prueba de UI de `AUD-036` cancela un benchmark en marcha, cosa que antes no se podía; la suite de UI sin opt-in (59: 54 pasan, 5 omitidas por opt-in, ninguna falla).
+
 ### Redacción
 
 - [x] **AUD-044 · Dos pistas de la interfaz mandan no usar «el botón Iniciar», que ya no existe**
@@ -515,6 +555,14 @@
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### UI/UX
+
+- [x] **AUD-035 · La confirmación de «Reinicializar» no identifica el disco físico ni las otras unidades que se van a perder**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/Localization/Localization.cs:368` · `src/UI/MainWindow.Operations.cs:432-441` · evidencia: `evidencias/galeria-pt/reinit-light.png`
+  - **Qué hacer:** añadir al resumen el modelo y el tamaño del disco y la lista de unidades que desaparecerán («Disco de 29,3 GB · se perderán G: e I:»).
+  - **Criterio de aceptación:** sobre un disco con dos particiones, la confirmación nombra las dos letras y el tamaño del disco.
+  - **Hecho (2026-10-17):** La confirmación antepone una línea con el disco: «Disco: modelo · tamaño / Unidades que desaparecerán: D:, E:». El tamaño es el de la identidad ya confirmada (`AUD-013`); el modelo y las letras salen de una consulta nueva y solo informativa, `IDiskService.GetDiskContentsAsync`, analizada en `Core/DiskContents`, para no ampliar la identidad que el script vuelve a comprobar. Si la consulta falla, la línea no se omite: dice «modelo desconocido» y «D: y las demás que tenga el disco (no se pudieron leer)». Cinco idiomas.
+  - **Verificado (2026-10-17, en local, terminal elevada y USB de pruebas):** La USB de pruebas es un disco de 29,3 GB con dos particiones (`D:` y `E:`): `ReinitConfirm_NamesEveryDriveOnTheDisk_AndItsSize` lee del sistema las letras y el tamaño y exige que la confirmación los nombre; mostró «Disco: VendorCo ProductCode · 29,3 GB / Unidades que desaparecerán: D:, E:». La confirmación se cancela: no borra nada. Pruebas unitarias del análisis (modelo con `|`, sin letras, basura) y de los textos; la suite de UI sin opt-in (59: 54 pasan, 5 omitidas por opt-in, ninguna falla).
 
 - [x] **AUD-033 · Durante una operación, los tres botones de la barra rápida siguen activos y no hacen nada**
   - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo

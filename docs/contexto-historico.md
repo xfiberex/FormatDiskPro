@@ -63,6 +63,31 @@
 
 ## Entradas
 
+### 2026-10-17 — `AUD-032`, `AUD-035`, `AUD-036`, `AUD-038` y `AUD-039`: lo que dejan las operaciones
+
+**Qué cambia.** La confirmación de *Reinicializar* nombra el disco, su tamaño y todas las unidades que se
+pierden. Las carpetas de trabajo que una operación no llegó a borrar se detectan y se ofrece borrarlas. Cada
+desenlace de cada operación deja su línea en el historial, y la lista se recarga al terminar. El borrado
+seguro dice que deja sin sobrescribir los últimos 64 MB. Y los motores de borrado, verificación y benchmark
+trabajan fuera del hilo de la interfaz.
+
+**Lo que se encontró por el camino.** `AUD-032` no estaba en la tanda: entró porque bloqueaba la prueba de
+`AUD-036`. Con un benchmark en marcha, UI Automation no encontraba ni el selector de unidad: no era un diálogo,
+era el hilo de la interfaz saturado por las continuaciones de miles de E/S de 4 KiB. Por eso ninguna prueba de
+UI cancelaba un benchmark. Con `Task.Run` en los tres motores, la prueba pasa. También apareció el caso real de
+`AUD-038`: la primera corrida fallida de esa prueba cerró la app con el benchmark en marcha y dejó
+`D:\__fdp_bench__` en la USB, justo lo que ahora se detecta. Y la línea `WORKFOLDERS DELETE FAILED` salía como
+«Info»: el visor reconoce `FAIL`, no `FAILED`.
+
+**Decisiones menores.** El margen del borrado (`AUD-039`) se declara en vez de reducirse: reducirlo exige
+escribir hasta llenar la unidad, y eso solo se prueba en una unidad real. El modelo y las letras del disco
+(`AUD-035`) van en una consulta aparte y solo informativa, sin ampliar la identidad que protege de borrar
+otro disco. El aviso de carpetas no insiste: «Ahora no» vale para toda la sesión.
+
+**Cómo se probó.** 957 unitarias (956 pasan) y la suite de UI sin opt-in en terminal elevada con la USB de
+pruebas: 59, 54 pasan y 5 omitidas por opt-in. Las pruebas destructivas (formato con borrado seguro) no se
+ejecutaron.
+
 ### 2026-10-16 — `AUD-069`: la licencia es `GPL-3.0-only`
 
 **Qué cambia.** El autor decidió que el proyecto es GPL **solo la versión 3**, no «la 3 o posterior». Hasta

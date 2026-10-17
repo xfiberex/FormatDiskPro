@@ -69,6 +69,7 @@ public sealed partial class MainWindow
             {
                 FormatProgress.Value = 0;
                 StatusText.Text = L.T("status.cancelled");
+                _services.History.Log($"VERIFY CANCELLED {item.Letter}: written={result.WrittenBytes}");
                 return;
             }
 
@@ -93,6 +94,7 @@ public sealed partial class MainWindow
         {
             FormatProgress.Value = 0;
             StatusText.Text = L.T("status.cancelled");
+            _services.History.Log($"VERIFY CANCELLED {item.Letter}:");
         }
         catch (Exception ex)
         {
@@ -338,6 +340,7 @@ public sealed partial class MainWindow
             {
                 FormatProgress.Value = 0;
                 StatusText.Text = L.T("status.cancelled");
+                _services.History.Log($"CHKDSK CANCELLED {item.Letter}: repair={repair}");
                 return;
             }
 
@@ -359,6 +362,7 @@ public sealed partial class MainWindow
         {
             FormatProgress.Value = 0;
             StatusText.Text = L.T("status.cancelled");
+            _services.History.Log($"CHKDSK CANCELLED {item.Letter}: repair={repair}");
         }
         catch (Exception ex)
         {
@@ -487,6 +491,20 @@ public sealed partial class MainWindow
                       FormatLogic.FormatBytes(partitionSizeBytes!.Value), restFs, restSize)
                 : L.T("reinit.summaryFat32Small", item.Letter, FormatLogic.FormatBytes(partitionSizeBytes!.Value)))
             : L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
+
+        // Qué disco es y qué unidades se van con él (`AUD-035`): Clear-Disk borra el disco físico entero, y
+        // en un pendrive con dos particiones la otra letra desaparecía sin que nada la nombrara. El tamaño
+        // es el de la identidad confirmada; el modelo y las letras, de una consulta solo informativa. Si
+        // esa falla, la línea no se omite: dice que puede haber más unidades.
+        DiskContents? contents = null;
+        try { contents = await _services.Disk.GetDiskContentsAsync(item.Letter); }
+        catch (Exception ex) { _services.History.Log($"DISKSIZE ERROR {item.Letter}: contenido del disco: {ErrorText.Describe(ex)}"); }
+        string model   = string.IsNullOrWhiteSpace(contents?.Model) ? L.T("reinit.diskModelUnknown") : contents.Model;
+        string letters = contents is { Letters.Count: > 0 }
+            ? DiskContents.FormatLetters(contents.Letters)
+            : L.T("reinit.diskLettersUnknown", item.Letter);
+        summary = L.T("reinit.diskLine", model, FormatLogic.FormatBytes(diskSizeBytes), letters) + "\n\n" + summary;
+
         var confirm = new ConfirmDialog(item.Letter, L.T("confirm.titleReinit"),
                                         L.T("btn.reinit.drive", $"{item.Letter}:"), summary)
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
@@ -522,6 +540,8 @@ public sealed partial class MainWindow
             {
                 FormatProgress.Value = 0;
                 StatusText.Text = L.T("status.cancelled");
+                // Cancelar a mitad puede dejar el disco ya borrado: la línea dice cuántas particiones quedaron.
+                _services.History.Log($"REINIT CANCELLED {item.Letter}: creadas={r.PartitionsCreated}/{plan.Partitions.Count}");
                 return;
             }
 
@@ -569,6 +589,7 @@ public sealed partial class MainWindow
         {
             FormatProgress.Value = 0;
             StatusText.Text = L.T("status.cancelled");
+            _services.History.Log($"REINIT CANCELLED {item.Letter}:");
         }
         catch (Exception ex)
         {
@@ -645,6 +666,7 @@ public sealed partial class MainWindow
         {
             FormatProgress.Value = 0;
             StatusText.Text = L.T("status.cancelled");
+            _services.History.Log($"BENCH CANCELLED {item.Letter}:");
             return;
         }
 
@@ -664,6 +686,7 @@ public sealed partial class MainWindow
             FormatProgress.Value = 0;
             FormatProgress.ShowError = true;
             StatusText.Text = L.T("bench.failed", item.Letter);
+            _services.History.Log($"BENCH FAIL {item.Letter}: sin espacio libre para el archivo de prueba");
             await ShowInfoAsync(L.T("bench.resultTitle"), L.T("bench.noSpace", item.Letter));
             return;
         }

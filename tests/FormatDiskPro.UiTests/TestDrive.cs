@@ -42,6 +42,29 @@ public static class TestDrive
         return null;
     }
 
+    /// <summary>
+    /// Carpetas de trabajo de la app (<c>WorkFolders</c>; este proyecto no referencia el ensamblado de la
+    /// app, así que los nombres se repiten aquí).
+    /// </summary>
+    public static readonly string[] WorkFolderNames = ["__fdp_wipe__", "__fdp_verify__", "__fdp_bench__"];
+
+    /// <summary>Borra las carpetas de trabajo de la app en <paramref name="letter"/>:, sin pasar por la app.</summary>
+    public static void RemoveWorkFolders(char letter)
+    {
+        foreach (string name in WorkFolderNames)
+        {
+            string dir = $"{letter}:\\{name}";
+            try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+
+    /// <summary>Borra las carpetas de trabajo de la app en las dos particiones de la USB de pruebas, si están.</summary>
+    public static void RemoveWorkFolders()
+    {
+        foreach (string label in new[] { PrimaryLabel, SecondaryLabel })
+            if (FindLetter(label) is char l) RemoveWorkFolders(l);
+    }
+
     public static char RequireLetter(string label) =>
         FindLetter(label) ?? throw new InvalidOperationException(
             $"No se encontró conectada la unidad USB de pruebas (partición extraíble con etiqueta " +

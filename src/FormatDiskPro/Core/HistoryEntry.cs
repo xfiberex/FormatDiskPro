@@ -283,6 +283,8 @@ public sealed partial record HistoryEntry(
             // Un diálogo que no se llegó a abrir porque ya había otro (`T13-19`). Es la única
             // huella de que algo se descartó, y por eso se escribe en vez de callarlo.
             ["DIALOG"]   = HistoryCategory.App,
+            // Carpetas de trabajo que una operación no llegó a borrar, y su limpieza (`AUD-038`).
+            ["WORKFOLDERS"] = HistoryCategory.App,
         };
 
     /// <summary>Palabra clave con la que empieza el mensaje, sin el <c>:</c> final.</summary>

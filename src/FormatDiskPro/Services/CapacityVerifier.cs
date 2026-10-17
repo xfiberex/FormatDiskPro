@@ -57,7 +57,7 @@ public sealed class CapacityVerifier : ICapacityVerifier
             return new VerifyResult(false, 0, "unit-not-ready");
 
         long target = Math.Max(0, drive.AvailableFreeSpace - SafetyMargin);
-        return await RunInAsync($"{letter}:\\__fdp_verify__", target, progress, ct);
+        return await RunInAsync(WorkFolders.On(letter, WorkFolders.Verify), target, progress, ct);
     }
 
     /// <summary>
@@ -70,12 +70,25 @@ public sealed class CapacityVerifier : ICapacityVerifier
     /// escrito para comprobar que la relectura lo detecta, que es exactamente lo que hace una unidad que
     /// miente sobre su tamaño.
     /// </param>
-    internal static async Task<VerifyResult> RunInAsync(
+    /// <remarks>
+    /// Se ejecuta en el pool de hilos (`AUD-032`): llamado desde la ventana, cada <c>await</c> volvía al hilo
+    /// de la interfaz y el trabajo de cada bloque —generar y comparar 8 MB— se hacía allí, con la ventana sin
+    /// responder. El progreso sigue llegando a la interfaz por <see cref="Progress{T}"/>.
+    /// </remarks>
+    internal static Task<VerifyResult> RunInAsync(
         string dir,
         long target,
         IProgress<(Phase phase, int percent, long bytes)> progress,
         CancellationToken ct,
         Func<Task>? afterWriteAsync = null)
+        => Task.Run(() => RunInCoreAsync(dir, target, progress, ct, afterWriteAsync));
+
+    private static async Task<VerifyResult> RunInCoreAsync(
+        string dir,
+        long target,
+        IProgress<(Phase phase, int percent, long bytes)> progress,
+        CancellationToken ct,
+        Func<Task>? afterWriteAsync)
     {
         // Cada archivo agrupa varios bloques de 8 MB; guardamos el índice de bloque global inicial
         // para regenerar el patrón exacto durante la verificación (la detección de aliasing se preserva).

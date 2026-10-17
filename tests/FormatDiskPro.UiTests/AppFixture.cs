@@ -27,6 +27,12 @@ public sealed class AppFixture : IDisposable
         // filtrados en su app de verdad.
         _settingsBackup = SettingsBackup.Capture();
 
+        // Carpetas de trabajo que una corrida anterior dejara en la USB de pruebas (una prueba que murió con
+        // un benchmark en marcha, un desmontaje forzado). Desde `AUD-038` la app las detecta al arrancar y
+        // pregunta; el descarte de diálogos de arranque de abajo contestaría «Ahora no», y la app ya no
+        // volvería a preguntar por esa unidad en toda la sesión. Se borran antes de lanzarla.
+        TestDrive.RemoveWorkFolders();
+
         var exePath = ResolveExePath();
         App = Application.Launch(exePath);
         Automation = new UIA3Automation();

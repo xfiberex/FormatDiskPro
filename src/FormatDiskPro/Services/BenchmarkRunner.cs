@@ -54,12 +54,22 @@ public sealed class BenchmarkRunner : IBenchmarkRunner
     /// <param name="ct">Token de cancelación.</param>
     /// <returns>Velocidades secuenciales y de 4 KiB aleatorio y tamaño probado, o <c>null</c> si no se pudo medir.</returns>
     /// <exception cref="OperationCanceledException">Si se cancela mediante <paramref name="ct"/>.</exception>
-    public async Task<BenchmarkResult?> RunAsync(
+    /// <remarks>
+    /// Se ejecuta en el pool de hilos (`AUD-032`). Llamado desde la ventana, cada una de las miles de
+    /// lecturas y escrituras de 4 KiB volvía al hilo de la interfaz: la ventana no respondía mientras medía,
+    /// y UI Automation (un lector de pantalla, las pruebas de UI) agotaba el tiempo de espera. El progreso
+    /// sigue llegando a la interfaz por <see cref="Progress{T}"/>.
+    /// </remarks>
+    public Task<BenchmarkResult?> RunAsync(
+        char letter, IProgress<(BenchPhase phase, int percent)> progress, CancellationToken ct)
+        => Task.Run(() => RunCoreAsync(letter, progress, ct));
+
+    private static async Task<BenchmarkResult?> RunCoreAsync(
         char letter, IProgress<(BenchPhase phase, int percent)> progress, CancellationToken ct)
     {
         if (!char.IsLetter(letter)) return null;
 
-        string dir  = $"{letter}:\\__fdp_bench__";
+        string dir  = WorkFolders.On(letter, WorkFolders.Bench);
         string path = Path.Combine(dir, "bench.bin");
 
         try

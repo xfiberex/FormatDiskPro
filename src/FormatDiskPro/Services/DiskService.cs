@@ -31,6 +31,9 @@ public interface IDiskService
     /// </summary>
     Task<DriveIdentity?> GetIdentityAsync(char letter);
 
+    /// <summary>Modelo del disco físico de la unidad y letras de todas sus particiones, o <see langword="null"/> si no se pudo leer.</summary>
+    Task<DiskContents?> GetDiskContentsAsync(char letter);
+
     /// <summary>Quita la protección de escritura del disco físico. <c>true</c> si lo logra.</summary>
     Task<bool> ClearReadOnlyAsync(char letter);
 
@@ -187,6 +190,26 @@ public sealed class DiskService(
             "$($p.PartitionNumber)|$($p.Offset)|$($p.Size)|$($d.SerialNumber)|$($d.UniqueId)\"";
 
         return DriveIdentity.Parse(await RunCapturedAsync(script));
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Solo informativa (`AUD-035`): la confirmación de «Reinicializar» la usa para nombrar el disco y las
+    /// unidades que desaparecerán. Las particiones sin letra no salen, y su <c>DriveLetter</c> es el carácter
+    /// nulo; se quedan las que son letra.
+    /// </remarks>
+    public async Task<DiskContents?> GetDiskContentsAsync(char letter)
+    {
+        if (!char.IsLetter(letter)) return null;
+
+        string script =
+            "$ErrorActionPreference='Stop';" +
+            $"$d = Get-Partition -DriveLetter {letter} | Get-Disk;" +
+            "$l = (Get-Partition -DiskNumber $d.Number | ForEach-Object { $_.DriveLetter } | " +
+            "Where-Object { [char]::IsLetter($_) }) -join '';" +
+            "\"$($d.FriendlyName)|$l\"";
+
+        return DiskContents.Parse(await RunCapturedAsync(script));
     }
 
     public async Task<bool> ClearReadOnlyAsync(char letter)

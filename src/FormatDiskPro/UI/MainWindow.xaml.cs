@@ -330,6 +330,12 @@ public sealed partial class MainWindow : Window
             await ShowInfoAsync(L.T("state.redirectedTitle"), L.T("state.redirected", StateFolder.DefaultDirectory));
         }
 
+        // Carpetas de trabajo que dejó una operación que no terminó (`AUD-038`). Al seleccionar la unidad en
+        // el arranque la ventana aún no podía alojar un diálogo; ahora sí.
+        await WhenContentLoadedAsync();
+        if (DrivePicker.SelectedItem is DriveViewModel startupDrive)
+            await OfferWorkFolderCleanupAsync(startupDrive.Letter);
+
         await MaybeShowWhatsNewAsync();
 
         // La comprobación automática es opcional desde `T9-18`. Es la ÚNICA conexión a Internet de la
@@ -767,6 +773,13 @@ public sealed partial class MainWindow : Window
                         StatusText.Text = L.T("status.wiping.progress", FormatBytes(p.bytesDone));
                     });
 
+                    // Si el borrado no llega a completarse, el formato SÍ se hizo, y el historial tiene que
+                    // decirlo antes que lo del borrado (`AUD-036`): antes solo quedaba «WIPE CANCELLED» o, si
+                    // el borrado lanzaba, un «FORMAT ERROR» de un formato que había salido bien.
+                    void LogFormatWithoutWipe() => _services.History.Log(FormatHistory.Success(
+                        driveLetter, fs, allocBytes, quickFormat, compress,
+                        wipeRequested: false, FormatHistory.WipeCompleted, securePasses, label));
+
                     try
                     {
                         wipeCode = await _services.Wipe.RunAsync(driveLetter, securePasses, wipeProgress, _cts!.Token);
@@ -776,7 +789,15 @@ public sealed partial class MainWindow : Window
                         _opTotalBytes = 0;
                         FormatProgress.Value = 0;
                         StatusText.Text = L.T("status.cancelled");
+                        LogFormatWithoutWipe();
                         _services.History.Log($"WIPE CANCELLED {driveLetter}:");
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _opTotalBytes = 0;
+                        LogFormatWithoutWipe();
+                        await ReportOperationErrorAsync("WIPE", driveLetter, ex);
                         return;
                     }
 
@@ -785,6 +806,7 @@ public sealed partial class MainWindow : Window
                     if (_cancelRequested)
                     {
                         StatusText.Text = L.T("status.cancelled");
+                        LogFormatWithoutWipe();
                         _services.History.Log($"WIPE CANCELLED {driveLetter}:");
                         return;
                     }
@@ -808,7 +830,11 @@ public sealed partial class MainWindow : Window
                 }
 
                 StatusText.Text = L.T("status.success");
-                await ShowInfoAsync(L.T("success.title"), L.T("success.body", driveLetter, fs));
+                string successBody = L.T("success.body", driveLetter, fs);
+                // Con borrado seguro, el resultado dice lo que se sobrescribió y lo que no (`AUD-039`).
+                if (secureWipe)
+                    successBody += " " + L.T("success.wipeNote", securePasses, FormatBytes(SecureWipe.SafetyMarginBytes));
+                await ShowInfoAsync(L.T("success.title"), successBody);
                 LoadDrives();
             }
             else
@@ -825,6 +851,7 @@ public sealed partial class MainWindow : Window
             FormatProgress.IsIndeterminate = false;
             FormatProgress.Value = 0;
             StatusText.Text = L.T("status.cancelled");
+            _services.History.Log($"FORMAT CANCELLED {driveLetter}: {fs}{(IsDriveReady(driveLetter) ? "" : " unformatted")}");
         }
         catch (Exception ex)
         {
@@ -1027,6 +1054,20 @@ public sealed partial class MainWindow : Window
         CloseButton.Content = L.T("btn.close");
         // Barra en rojo (Fluent ShowError) al fallar o cancelar, hasta el próximo BeginOperation.
         FormatProgress.ShowError = _cancelRequested || _lastOperationFailed;
+
+        // La lista se recarga al terminar CUALQUIER operación, y no solo las que cambian el volumen
+        // (`AUD-036`): una cancelada a mitad, un benchmark o un borrado dejan otro espacio libre, y una
+        // reinicialización interrumpida, otras particiones. Va antes del anuncio, que lee StatusText, y no lo
+        // pisa: la unidad sigue siendo la misma, así que la recarga conserva la selección y las opciones.
+        // Recargar vuelve a pasar por OnDriveSelected, que busca las carpetas de trabajo que un `finally`
+        // no pudiera borrar (`AUD-038`).
+        // ApplyProtection vacía la fila de estado y su color al seleccionar: se guardan los dos y se reponen,
+        // porque son el resultado que la operación acaba de dejar.
+        string statusBeforeReload = StatusText.Text;
+        object colorBeforeReload  = StatusText.ReadLocalValue(TextBlock.ForegroundProperty);
+        LoadDrives();
+        StatusText.Text = statusBeforeReload;
+        if (colorBeforeReload is Brush brush) StatusText.Foreground = brush;
 
         // Hito de FIN, en un solo sitio: aquí pasan las cinco operaciones, terminen bien, mal o
         // canceladas. Se anuncia el estado que la operación acaba de dejar en StatusText.

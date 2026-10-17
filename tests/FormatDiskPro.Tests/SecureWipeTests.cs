@@ -19,6 +19,20 @@ public sealed class SecureWipeTests
         Assert.Equal(3000, SecureWipe.PlannedBytes(free, 3));
     }
 
+    /// <summary>
+    /// El margen sin sobrescribir es 64 MB, y la interfaz lo dice (`AUD-039`). Si alguien lo cambia, esta
+    /// prueba obliga a mirar los textos: la pista de la opción y la nota del resultado lo citan por su
+    /// marcador, en los cinco idiomas, así que no pueden prometer otra cifra.
+    /// </summary>
+    [Fact]
+    public void SafetyMargin_Is64MB_AndTheInterfaceStatesIt()
+    {
+        Assert.Equal(64L * 1024 * 1024, SecureWipe.SafetyMarginBytes);
+        Assert.All(L.Map["opt.secureTip"], t => Assert.Contains("{0}", t));
+        Assert.All(L.Map["success.wipeNote"], t => Assert.Contains("{1}", t));
+        Assert.Equal("64 MB", FormatLogic.FormatBytes(SecureWipe.SafetyMarginBytes, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     [Fact]
     public void PlannedBytes_FreeBelowMargin_IsZero()
         => Assert.Equal(0, SecureWipe.PlannedBytes(0, 1));

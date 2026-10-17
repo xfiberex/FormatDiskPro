@@ -91,6 +91,60 @@ public sealed partial class MainWindow
         // Van en paralelo y no encadenadas: son dos consultas independientes y una no debe esperar a la otra.
         _ = LoadHealthAsync(item);
         if (!keepOptions) _ = LoadDiskSizeAsync(item);
+        _ = OfferWorkFolderCleanupAsync(item.Letter);
+    }
+
+    /// <summary>Unidades en las que la persona ya dijo «Ahora no» en esta sesión: no se le vuelve a preguntar.</summary>
+    private readonly HashSet<char> _workFoldersDeclined = [];
+
+    /// <summary>
+    /// Si la unidad tiene carpetas de trabajo de una operación que no terminó de limpiar, lo dice y ofrece
+    /// borrarlas (`AUD-038`).
+    /// </summary>
+    /// <remarks>
+    /// <para>Se llama al seleccionar una unidad —también tras la recarga con que acaba cada operación, así
+    /// que un <c>finally</c> que no pudo borrar su carpeta se descubre en el momento— y al arrancar, que es
+    /// cuando aparece lo que dejó un proceso que murió.</para>
+    /// <para>No pregunta si hay una operación en marcha, si ya hay un diálogo abierto (la regla de uno a la
+    /// vez lo descartaría, y se volverá a ofrecer en la próxima selección) ni antes de que la ventana pueda
+    /// alojar un diálogo: el arranque lo pide por su cuenta cuando ya puede.</para>
+    /// </remarks>
+    private async Task OfferWorkFolderCleanupAsync(char letter)
+    {
+        if (_isBusy || _openDialog is not null || Content?.XamlRoot is null) return;
+        if (_workFoldersDeclined.Contains(letter)) return;
+
+        IReadOnlyList<string> found = WorkFolders.FindLeftovers($"{letter}:\\");
+        if (found.Count == 0) return;
+        _services.History.Log($"WORKFOLDERS FOUND {letter}: {string.Join(", ", found)}");
+
+        var dlg = new ContentDialog
+        {
+            Title = L.T("leftover.title"),
+            Content = L.T("leftover.body", letter, string.Join("\n", found)),
+            PrimaryButtonText = L.T("leftover.delete"),
+            CloseButtonText = L.T("leftover.keep"),
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        if (await ShowOneAsync(dlg) != ContentDialogResult.Primary)
+        {
+            _workFoldersDeclined.Add(letter);
+            return;
+        }
+
+        IReadOnlyList<string> failed = WorkFolders.Delete(found);
+        _services.History.Log(failed.Count == 0
+            ? $"WORKFOLDERS DELETED {letter}: {string.Join(", ", found)}"
+            : $"WORKFOLDERS DELETE FAIL {letter}: {string.Join(", ", failed)}");   // FAIL, no FAILED: es la palabra que el visor lee como fallo
+        if (failed.Count > 0)
+        {
+            // No se vuelve a ofrecer en esta sesión: fallaría igual, y el aviso ya dice cómo seguir.
+            _workFoldersDeclined.Add(letter);
+            await ShowInfoAsync(L.T("msg.warning"), L.T("leftover.failed", string.Join("\n", failed)));
+        }
+        LoadDrives();   // el espacio libre ha cambiado
     }
 
     /// <summary>
