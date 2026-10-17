@@ -85,8 +85,8 @@ escribir hasta llenar la unidad, y eso solo se prueba en una unidad real. El mod
 otro disco. El aviso de carpetas no insiste: «Ahora no» vale para toda la sesión.
 
 **Cómo se probó.** 957 unitarias (956 pasan) y la suite de UI sin opt-in en terminal elevada con la USB de
-pruebas: 59, 54 pasan y 5 omitidas por opt-in. Las pruebas destructivas (formato con borrado seguro) no se
-ejecutaron.
+pruebas: 59, 54 pasan y 5 omitidas por opt-in. Y, a petición del mantenedor, las 9
+destructivas (`ALLOW_DESTRUCTIVE`): formato, borrado seguro cancelado y reinicialización reales, todas en verde.
 
 ### 2026-10-16 — `AUD-069`: la licencia es `GPL-3.0-only`
 
