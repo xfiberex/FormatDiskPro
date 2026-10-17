@@ -181,8 +181,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-17: **957** (956 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **59** (54 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-17: **965** (964 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **60** (55 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
@@ -377,6 +377,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 - **Los motores de E/S van con `Task.Run`** (borrado, verificación, benchmark); el progreso, por `Progress<T>`. En el hilo de la UI, la ventana no respondía.
 - **Cada desenlace deja una línea; `EndOperation` recarga la lista**, y al seleccionar se buscan las `WorkFolders` que un `finally` no borró.
+- **Un diálogo a la vez, salvo uno** (`AUD-028`): el resultado de una operación cierra la pregunta «¿Cancelar?» que siga abierta.
+- **El historial no guarda rutas del perfil** (`AUD-070`): `History` las escribe como `%USERPROFILE%`; se pega en issues públicos.
 
 ### Formateo: dos vías, y solo una se puede cancelar
 
@@ -419,12 +421,9 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   ámbar ≥80 %, rojo ≥90 % (`MainWindow.CapacityBrush`, con `SeverityPalette.NeutralFill` para el neutro).
   **Tampoco es un `ProgressBar`** (2026-08-16; su plantilla fija la pista en 1 px): es un `Border` (libre)
   con un `Border` hijo (usado) y columnas estrella.
-- **Capturas: fotografía el PUBLISH self-contained, no el `dotnet build`.** En esta máquina el apphost de un
-  `dotnet build -c Release` (runtime .NET *framework-dependent*) **no arranca**: muestra "You must install or
-  update .NET". `tools/capture-screenshots.ps1` prefiere `bin\Release`, así que tras un build plano capturaba
-  el **diálogo de error** en vez de la app. Publica primero como `build-installer.ps1`
-  (`dotnet publish -r win-x64 --self-contained true` a `%TEMP%\FormatDiskPro-publish`) y pásalo con
-  `-Exe <publish>\FormatDiskPro.exe`. Es además la foto correcta: el publish es lo que se distribuye.
+- **Capturas: fotografía el PUBLISH self-contained, no el `dotnet build`.** El apphost de un build plano puede
+  no arrancar («You must install or update .NET»), y el script prefiere `bin\Release`: capturaba el diálogo de
+  error. Publica como `build-installer.ps1` y pasa `-Exe <publish>\FormatDiskPro.exe`; es lo que se distribuye.
 
 ## 5. Tareas comunes
 

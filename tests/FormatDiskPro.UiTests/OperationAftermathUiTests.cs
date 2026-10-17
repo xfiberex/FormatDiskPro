@@ -130,6 +130,64 @@ public sealed class OperationAftermathUiTests(AppFixture fixture, ITestOutputHel
     }
 
     /// <summary>
+    /// `AUD-028`: si la pregunta «¿Cancelar?» sigue abierta cuando la operación termina, el resultado no se
+    /// descarta: la pregunta se cierra y el resultado se ve. Antes solo quedaba «DIALOG SKIPPED» en el
+    /// historial y la persona no llegaba a saber cómo había ido.
+    /// </summary>
+    [TestDriveFact]
+    public void ResultOfAnOperation_IsShown_WhenTheCancelQuestionWasLeftOpen()
+    {
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        TestDrive.RemoveWorkFolders(letter);
+        Reselect(letter);
+        DialogHelper.SafeCloseAnyDialog(fixture);
+        string historyBefore = ReadHistory();
+
+        var footerCancel = MainWindowActions.Button(Window, "CloseButton");
+        try
+        {
+            MainWindowActions.ClickMenuPath(Window, "MnuTools", "MnuBenchmark");
+            DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Invoke();
+            DialogHelper.WaitForNoDialog(fixture);
+
+            Thread.Sleep(TimeSpan.FromSeconds(2));
+            footerCancel.Invoke();
+            var question = DialogHelper.WaitForDialog(fixture);
+            Assert.NotNull(DialogHelper.TryFindButton(question, "PrimaryButton"));   // «Sí» / «No»: es la pregunta
+
+            // No se contesta. Se espera a que aparezca un diálogo SIN botón primario: el resultado del
+            // benchmark, que solo tiene «Cerrar».
+            Window? result = null;
+            var deadline = DateTime.UtcNow + TimeSpan.FromMinutes(4);
+            while (result is null && DateTime.UtcNow < deadline)
+            {
+                Thread.Sleep(500);
+                if (DialogHelper.IsDialogOpen(fixture)
+                    && DialogHelper.WaitForDialog(fixture) is { } open
+                    && DialogHelper.TryFindButton(open, "PrimaryButton") is null)
+                    result = open;
+            }
+            Assert.NotNull(result);
+
+            string added = ReadHistory()[historyBefore.Length..];
+            output.WriteLine(added);
+            Assert.Contains($"\tBENCH {letter}: seq", added);
+            Assert.DoesNotContain("DIALOG SKIPPED", added);
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+            if (!MainWindowActions.Require(Window, "DrivePicker").IsEnabled)
+            {
+                footerCancel.Invoke();
+                DialogHelper.PrimaryButton(DialogHelper.WaitForDialog(fixture)).Invoke();
+                DialogHelper.SafeCloseAnyDialog(fixture);
+            }
+            TestDrive.RemoveWorkFolders(letter);
+        }
+    }
+
+    /// <summary>
     /// `AUD-036`: cancelar un benchmark deja exactamente UNA línea que lo nombra, ningún resultado, y la
     /// unidad sin su carpeta de trabajo. Antes no quedaba ninguna línea.
     /// </summary>

@@ -29,8 +29,10 @@ Ayuda mucho incluir:
 - Versión de FormatDiskPro (*Ayuda → Acerca de*) y de Windows.
 - Qué esperabas que pasara y qué pasó.
 - Pasos para reproducirlo, aunque sean aproximados.
-- Si aplica, el `history.log` (`%AppData%\FormatDiskPro\history.log`) — **revísalo antes**: registra
-  letras y etiquetas de unidad.
+- Si aplica, el `history.log` (`%AppData%\FormatDiskPro\history.log`). **Revísalo antes**: registra letras,
+  etiquetas y sistemas de archivos de tus unidades, el resultado de cada operación, las versiones
+  descargadas y mensajes de error que pueden incluir rutas. En las versiones posteriores a la v1.30.1 la
+  carpeta de tu perfil sale como `%USERPROFILE%`; en líneas anteriores puede aparecer con tu nombre de usuario de Windows.
 
 ## Qué esperar
 

@@ -72,6 +72,41 @@ public sealed partial record HistoryEntry(
     /// <summary>Marca que sustituye a un salto de línea aplanado por <see cref="SanitizeDetail"/>.</summary>
     public const string LineBreakMarker = " ⏎ ";
 
+    /// <summary>Lo que sustituye a la carpeta del perfil en el historial (<see cref="HideProfile"/>).</summary>
+    public const string ProfileMarker = "%USERPROFILE%";
+
+    /// <summary>
+    /// Sustituye la carpeta del perfil del usuario por <see cref="ProfileMarker"/> (`AUD-070`).
+    /// </summary>
+    /// <remarks>
+    /// <para>La guía de errores y la política de seguridad invitan a pegar líneas del historial en un issue
+    /// público, y el historial guardaba rutas como <c>C:\Users\&lt;usuario&gt;\AppData\…</c>: la de cada
+    /// actualización descargada, la del <c>settings.json</c> apartado o la de un error de E/S. Quien las pegaba
+    /// publicaba su nombre de cuenta de Windows sin que el aviso se lo hubiera dicho.</para>
+    /// <para>Se hace aquí, en la escritura, y no en cada sitio que registra una ruta: así cubre también los
+    /// mensajes de excepción, que traen rutas que la app no elige. Sin distinguir mayúsculas, y con las dos
+    /// barras. Solo la carpeta entera: con el perfil <c>C:\Users\Ana</c>, <c>C:\Users\Anabel</c> es de otra
+    /// persona y no se toca. Una carpeta de perfil demasiado corta (la raíz de una unidad) tampoco.</para>
+    /// Lógica pura.
+    /// </remarks>
+    /// <param name="text">Texto de la línea.</param>
+    /// <param name="profileDir">Carpeta del perfil (<c>%USERPROFILE%</c>), o <see langword="null"/>.</param>
+    public static string HideProfile(string text, string? profileDir)
+    {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(profileDir)) return text;
+        string profile = profileDir.Trim().TrimEnd('\\', '/');
+        if (profile.Length <= 3) return text;   // «C:» o «C:\»: sustituirlo se llevaría cualquier ruta
+
+        foreach (string variant in new[] { profile, profile.Replace('\\', '/') })
+        {
+            // Detrás no puede seguir nada que alargue el nombre de la carpeta.
+            string pattern = System.Text.RegularExpressions.Regex.Escape(variant) + @"(?![\w.\-])";
+            text = System.Text.RegularExpressions.Regex.Replace(text, pattern, ProfileMarker.Replace("$", "$$"),
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        }
+        return text;
+    }
+
     /// <summary>
     /// Aplana un mensaje para que ocupe <b>una sola línea</b> del historial.
     ///

@@ -101,7 +101,10 @@ public sealed class History(string? path = null) : IHistory
             if (IsRedirected(path)) return;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             RotateIfNeeded(path);
-            string safe = HistoryEntry.SanitizeDetail(line);
+            // Sin rutas del perfil (`AUD-070`): el historial se pega en issues públicos.
+            string safe = HistoryEntry.HideProfile(
+                HistoryEntry.SanitizeDetail(line),
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
             // InvariantCulture explícita, y la MISMA constante con la que HistoryEntry.Parse lo lee
             // (`T9-07`). Sin proveedor, el formato usa el calendario de la cultura del hilo: en un
             // Windows tailandés esta línea se escribía con el año budista (2569 en vez de 2026), y Parse

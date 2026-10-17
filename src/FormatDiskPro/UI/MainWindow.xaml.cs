@@ -391,6 +391,14 @@ public sealed partial class MainWindow : Window
     /// </remarks>
     private async Task<ContentDialogResult> ShowOneAsync(ContentDialog dialog)
     {
+        // La única excepción a «descartar el segundo» (`AUD-028`): la pregunta «¿Cancelar?» abierta cuando la
+        // operación ya ha terminado. Lo que llega entonces es su resultado —éxito, error, «se crearon 1 de 2
+        // particiones»—, que no responde a nada que el usuario pueda repetir, y la pregunta ya no tiene objeto:
+        // cancelar algo que terminó no hace nada (CloseButton_Click lo comprueba al volver). Se cierra la
+        // pregunta y se enseña el resultado, como hace ConfirmDialog cuando cambia la lista de unidades.
+        if (_openDialog is not null && ReferenceEquals(_openDialog, _cancelQuestion))
+            await DismissCancelQuestionAsync(_cancelQuestion);
+
         if (_openDialog is not null)
         {
             _services.History.Log($"DIALOG SKIPPED: '{dialog.Title}' (ya había otro abierto: '{_openDialog.Title}')");
@@ -404,10 +412,43 @@ public sealed partial class MainWindow : Window
         // cerrada, y el historial no se abría. Medido en la suite de UI, donde fallaron tres pruebas por
         // esto. WinUI, por su parte, sí admite abrir el siguiente una vez empezado el cierre — lo que no
         // admite es que haya dos abiertos a la vez, que es lo que esto evita.
-        void ReleaseGate(ContentDialog sender, ContentDialogClosingEventArgs args) => _openDialog = null;
+        //
+        // Solo se libera si el diálogo abierto sigue siendo ESTE: cuando la pregunta «¿Cancelar?» se cierra
+        // para dar paso al resultado, su ShowAsync vuelve con el resultado ya en pantalla, y liberar sin mirar
+        // dejaría la compuerta abierta con un diálogo visible.
+        void ReleaseGate(ContentDialog sender, ContentDialogClosingEventArgs args)
+        {
+            if (ReferenceEquals(_openDialog, dialog)) _openDialog = null;
+        }
         dialog.Closing += ReleaseGate;
         try     { return await dialog.ShowAsync(); }
-        finally { dialog.Closing -= ReleaseGate; _openDialog = null; }
+        finally
+        {
+            dialog.Closing -= ReleaseGate;
+            if (ReferenceEquals(_openDialog, dialog)) _openDialog = null;
+        }
+    }
+
+    /// <summary>La pregunta «¿Cancelar?» de la operación en curso, mientras está abierta (`AUD-028`).</summary>
+    private ContentDialog? _cancelQuestion;
+
+    /// <summary>
+    /// Cierra la pregunta «¿Cancelar?» y espera a que empiece a cerrarse, que es cuando WinUI ya admite
+    /// abrir el siguiente diálogo. Con un tope: si el evento no llega, se sigue igual.
+    /// </summary>
+    private async Task DismissCancelQuestionAsync(ContentDialog question)
+    {
+        var closing = new TaskCompletionSource();
+        void OnClosing(ContentDialog s, ContentDialogClosingEventArgs a) => closing.TrySetResult();
+        question.Closing += OnClosing;
+        try
+        {
+            question.Hide();
+            await Task.WhenAny(closing.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+        }
+        finally { question.Closing -= OnClosing; }
+        if (ReferenceEquals(_openDialog, question)) _openDialog = null;
+        _services.History.Log("DIALOG CLOSED: la pregunta de cancelar, porque la operación terminó antes de contestarla");
     }
 
     private Task ShowInfoAsync(string title, string message) =>
@@ -1086,7 +1127,24 @@ public sealed partial class MainWindow : Window
         if (!_isBusy) { App.MainWindow?.Close(); return; }
         if (!_cancelAvailable) return;
 
-        if (await ShowConfirmAsync(L.T("cancel.title"), L.T("cancel.body"), defaultNo: true))
+        var question = new ContentDialog
+        {
+            Title = L.T("cancel.title"),
+            Content = L.T("cancel.body"),
+            PrimaryButtonText = L.T("confirm.yes"),
+            CloseButtonText = L.T("confirm.no"),
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = CurrentTheme,
+        };
+        // Se recuerda mientras está abierta: si la operación termina antes de contestar, su resultado la
+        // cierra en vez de descartarse (`AUD-028`, ver ShowOneAsync).
+        _cancelQuestion = question;
+        bool cancel;
+        try     { cancel = await ShowOneAsync(question) == ContentDialogResult.Primary; }
+        finally { _cancelQuestion = null; }
+
+        if (cancel)
         {
             // La pregunta se queda abierta lo que el usuario tarde: si entretanto la operación terminó o
             // pasó a un paso que no se cancela, ya no hay nada que cancelar.

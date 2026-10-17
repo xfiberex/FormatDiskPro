@@ -23,6 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-17 | `AUD-070` | El historial escribe la carpeta del perfil como `%USERPROFILE%`, y los avisos dicen lo que contiene | sin publicar |
+| 2026-10-17 | `AUD-028` | Si «¿Cancelar?» sigue abierta al terminar la operación, se cierra y se muestra el resultado | sin publicar |
 | 2026-10-17 | `AUD-039` | El margen de 64 MB que el borrado seguro no sobrescribe se dice en la opción y en el resultado | sin publicar |
 | 2026-10-17 | `AUD-038` | Las carpetas de trabajo abandonadas se detectan al seleccionar la unidad o al arrancar, y se ofrece borrarlas | sin publicar |
 | 2026-10-17 | `AUD-036` | Cada desenlace de cada operación deja su línea, y la lista se recarga al terminar cualquiera | sin publicar |
@@ -107,6 +109,14 @@
   - **Verificado:** dos pruebas de UI nuevas sobre la app real. `DrivePicker_HasANameAndEveryDriveIsAnnouncedByItsOwn` exige nombre en el selector y, en cada opción, que el nombre sea el texto visible, contenga la letra y no se repita. `NoInteractiveControlInTheMainWindow_IsNameless` recorre botones, desplegables, casillas, campos y menús de la ventana principal y exige nombre en todos: es el volcado de UIA de la auditoría convertido en prueba. Por reversión —sin `LabeledBy` y sin `ToString()`— fallan las dos.
 
 ### Código
+
+- [x] **AUD-028 · El diálogo con el resultado de una operación se descarta si hay otro abierto**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:318-337`, `:664`, `:673`, `:879-889` · `src/UI/MainWindow.Operations.cs:475`, `:496-499`
+  - **Qué hacer:** para los diálogos de resultado, esperar a que se cierre el abierto en vez de descartar; o cerrar el de «¿Cancelar?» cuando la operación termina.
+  - **Criterio de aceptación:** una prueba de UI abre «¿Cancelar?» durante un benchmark, espera a que termine y comprueba que el resultado se muestra al cerrar la pregunta.
+  - **Hecho (2026-10-17):** La segunda opción de la tarea: la pregunta «¿Cancelar?» se recuerda mientras está abierta (`_cancelQuestion`), y si llega otro diálogo con ella abierta —el resultado de la operación que terminó—, `ShowOneAsync` la cierra y lo enseña en vez de descartarlo. Es la única excepción a «un diálogo a la vez» de `T13-19`, y su motivo no aplica: el resultado no responde a nada que el usuario pueda repetir, y la pregunta ya no tiene objeto (al volver, `CloseButton_Click` ve que no hay nada que cancelar). Queda `DIALOG CLOSED` en el historial. De paso, la compuerta solo se libera si el diálogo abierto sigue siendo el que se cierra: la pregunta, al volver de `ShowAsync` con el resultado ya en pantalla, la dejaba abierta.
+  - **Verificado (2026-10-17, en local, terminal elevada y USB de pruebas):** `ResultOfAnOperation_IsShown_WhenTheCancelQuestionWasLeftOpen` lanza un benchmark, abre «¿Cancelar?» y no contesta: al terminar el benchmark aparece su resultado (un diálogo sin botón «Sí»), el historial tiene `BENCH D: seq…` y `DIALOG CLOSED`, y ningún `DIALOG SKIPPED`. No se ejecutó con el código anterior para verlo fallar. la suite de UI sin opt-in: 60, 55 pasan, 5 omitidas por opt-in, ninguna falla.
 
 - [x] **AUD-027 · Un `settings.json` válido con un nulo donde se espera una lista impide arrancar la app**
   - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
@@ -492,6 +502,14 @@
   - **Verificado:** PowerShell 5.1 analiza `release.ps1` sin errores, en el paso del CI de `AUD-058`. No se ejecutó un corte: necesita la máquina del mantenedor.
 
 ### Legal
+
+- [x] **AUD-070 · Al pedir el historial se avisa de «letras y etiquetas», pero también contiene rutas con el nombre de usuario**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `.github/ISSUE_TEMPLATE/bug_report.yml:76-80` · `.github/SECURITY.md:32-33` · `src/UI/MainWindow.HelpAndUpdates.cs:236` · `src/UI/MainWindow.xaml.cs:278` · `src/App.xaml.cs:47` · evidencia: `evidencias/galeria-es/history-dark.png`
+  - **Qué hacer:** ampliar el aviso, o registrar solo el nombre del archivo.
+  - **Criterio de aceptación:** el aviso enumera lo que el historial puede contener, o el historial deja de contener rutas del perfil.
+  - **Hecho (2026-10-17):** Las dos cosas que proponía la tarea. `History` escribe cada línea pasando por `HistoryEntry.HideProfile`, que cambia la carpeta del perfil por `%USERPROFILE%`: en un solo punto, así que cubre también los mensajes de excepción, que traen rutas que la app no elige. Sin distinguir mayúsculas, con las dos barras, y solo la carpeta entera (`C:\Users\Anabel` no es `C:\Users\Ana`). Y la plantilla de errores y `SECURITY.md` enumeran lo que el historial contiene, y avisan de que las líneas anteriores al cambio pueden traer el nombre de usuario.
+  - **Verificado (2026-10-17, en local):** `Log_WritesProfilePathsAsUserProfileMarker` escribe una línea con una ruta de `%TEMP%` (bajo el perfil) a través de `History` y el archivo no contiene el perfil; siete casos de `HideProfile` (mayúsculas, barra final, barras al revés, otro usuario con nombre más largo, la carpeta sola, la raíz, nulo). 964/965 unitarias.
 
 - [x] **AUD-069 · La licencia se declara como «GPLv3» sin precisar si es «solo» o «o posterior»**
   - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo

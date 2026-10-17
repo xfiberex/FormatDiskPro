@@ -18,6 +18,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Corregido
 
+- **Si la pregunta «¿Cancelar?» seguía abierta cuando la operación terminaba, su resultado no se llegaba a
+  ver**: el aviso de éxito, el de error o el de «se crearon 1 de 2 particiones» se descartaba. Ahora la
+  pregunta se cierra sola y se muestra el resultado (`AUD-028`).
+- **El historial guardaba rutas con el nombre de usuario de Windows** (la de cada actualización descargada,
+  o la de un archivo en un mensaje de error), y la guía de errores invita a pegarlo en un issue público.
+  Ahora la carpeta del perfil se escribe como `%USERPROFILE%`, y los avisos dicen todo lo que el historial
+  puede contener (`AUD-070`).
 - **La confirmación de *Reinicializar* no decía qué disco se iba a borrar ni qué otras unidades se perdían.**
   Reinicializar borra el disco físico entero, y en un pendrive con dos particiones la otra desaparecía sin
   que nada la nombrara. Ahora la confirmación dice el modelo y el tamaño del disco y todas las unidades que

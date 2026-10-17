@@ -76,8 +76,11 @@ body:
     attributes:
       label: Líneas del historial (opcional)
       description: >
-        De `%AppData%\FormatDiskPro\history.log`. Pega solo las del momento del fallo — y revísalas antes:
-        contienen letras y etiquetas de unidad.
+        De `%AppData%\FormatDiskPro\history.log`. Pega solo las del momento del fallo, y revísalas antes:
+        contienen letras, etiquetas y sistemas de archivos de tus unidades, el resultado de cada operación,
+        las versiones descargadas y mensajes de error, que pueden incluir rutas. En las versiones posteriores a
+        la v1.30.1 la carpeta de tu perfil sale como `%USERPROFILE%`; en líneas anteriores puede aparecer con tu nombre de usuario
+        de Windows (`C:\Users\<nombre>\…`).
       render: text
 
   - type: checkboxes

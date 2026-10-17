@@ -63,6 +63,27 @@
 
 ## Entradas
 
+### 2026-10-17 — `AUD-028` y `AUD-070`: el resultado que no se veía y el nombre de usuario en el historial
+
+**Qué cambia.** Si la pregunta «¿Cancelar?» sigue abierta cuando la operación termina, se cierra sola y se
+enseña el resultado, que antes se descartaba. Y el historial escribe la carpeta del perfil como
+`%USERPROFILE%`, con avisos que dicen todo lo que contiene.
+
+**Por qué así.** Para `AUD-028` había dos caminos: encolar el resultado hasta que se cerrara la pregunta, o
+cerrar la pregunta. Se eligió cerrarla: preguntar si cancelar algo que ya terminó no tiene objeto, y es lo
+mismo que ya hace `ConfirmDialog` cuando cambia la lista de unidades. La regla de un diálogo a la vez
+(`T13-19`) sigue en pie; esta es su única excepción, y su motivo (descartar porque el usuario puede repetir
+la acción) no aplica a un resultado. Al hacerlo apareció un defecto latente: la compuerta se liberaba sin
+mirar qué diálogo se cerraba, así que la pregunta, al volver, la habría dejado abierta con el resultado en
+pantalla.
+
+Para `AUD-070`, sustituir en el punto de escritura y no en cada sitio que registra una ruta: así cubre los
+mensajes de excepción, que traen rutas que la app no elige. Solo la carpeta entera: `C:\Users\Anabel` no se
+toca si el perfil es `C:\Users\Ana`. Los avisos no prometen un número de versión: dicen «posteriores a la
+v1.30.1», porque el número del próximo corte lo decide el mantenedor.
+
+**Cómo se probó.** 965 unitarias (964 pasan) y la suite de UI sin opt-in: 60, 55 pasan, 5 omitidas.
+
 ### 2026-10-17 — `AUD-032`, `AUD-035`, `AUD-036`, `AUD-038` y `AUD-039`: lo que dejan las operaciones
 
 **Qué cambia.** La confirmación de *Reinicializar* nombra el disco, su tamaño y todas las unidades que se

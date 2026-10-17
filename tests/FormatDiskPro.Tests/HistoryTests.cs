@@ -176,4 +176,36 @@ public sealed class HistoryTests : IDisposable
         }
         finally { CultureInfo.CurrentCulture = previous; }
     }
+
+    // ── Sin rutas del perfil (`AUD-070`) ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Una línea con una ruta del perfil —como la de una actualización descargada en <c>%TEMP%</c>— se
+    /// escribe con <c>%USERPROFILE%</c> en su lugar: el historial se pega en issues públicos. La carpeta de
+    /// esta prueba está en <c>%TEMP%</c>, que cuelga del perfil, así que es el caso real.
+    /// </summary>
+    [Fact]
+    public void Log_WritesProfilePathsAsUserProfileMarker()
+    {
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Assert.StartsWith(profile, _dir, StringComparison.OrdinalIgnoreCase);   // si no, la prueba no probaría nada
+
+        string setup = Path.Combine(_dir, "FormatDiskPro-9.9.9-setup.exe");
+        _history.Log($"UPDATE DOWNLOADED v9.9.9: {setup}");
+
+        string written = File.ReadAllText(_log);
+        Assert.DoesNotContain(profile, written, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(HistoryEntry.ProfileMarker + setup[profile.Length..], written);
+    }
+
+    [Theory]
+    [InlineData(@"error en C:\Users\Ana\AppData\x.json",  @"C:\Users\Ana",  @"error en %USERPROFILE%\AppData\x.json")]
+    [InlineData(@"error en c:\users\ANA\AppData\x.json",  @"C:\Users\Ana\", @"error en %USERPROFILE%\AppData\x.json")]   // mayúsculas y barra final
+    [InlineData(@"file:///C:/Users/Ana/Desktop/x.txt",    @"C:\Users\Ana",  @"file:///%USERPROFILE%/Desktop/x.txt")]     // barras al revés
+    [InlineData(@"D:\Ana\datos y C:\Users\Anabel\x",     @"C:\Users\Ana",  @"D:\Ana\datos y C:\Users\Anabel\x")]        // otra persona: no se toca
+    [InlineData(@"en C:\Users\Ana: acceso denegado",      @"C:\Users\Ana",  @"en %USERPROFILE%: acceso denegado")]       // la carpeta sola
+    [InlineData(@"C:\datos\x",                           @"C:\",           @"C:\datos\x")]                                // raíz: no se toca
+    [InlineData(@"sin rutas",                            null,             @"sin rutas")]
+    public void HideProfile_ReplacesTheProfileFolder(string text, string? profile, string expected)
+        => Assert.Equal(expected, HistoryEntry.HideProfile(text, profile));
 }
