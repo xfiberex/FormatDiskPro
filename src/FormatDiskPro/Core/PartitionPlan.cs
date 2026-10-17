@@ -30,7 +30,7 @@ public abstract record PartitionSize
 
 /// <summary>Una partición del plan: cuánto ocupa, con qué se formatea y cómo se llama.</summary>
 /// <param name="Size">Tamaño exacto o «el resto».</param>
-/// <param name="FileSystem">Sistema de archivos destino (uno de <see cref="PartitionPlan.SupportedFileSystems"/>).</param>
+/// <param name="FileSystem">Sistema de archivos destino (uno de <see cref="FileSystems.Names"/>).</param>
 /// <param name="Label">Etiqueta de volumen; la cadena vacía es válida.</param>
 public sealed record PartitionSpec(PartitionSize Size, string FileSystem, string Label);
 
@@ -48,7 +48,7 @@ public enum PlanProblem
     TooManyForMbr,
     /// <summary>MBR no puede direccionar un disco de más de 2 TB.</summary>
     MbrCannotAddressDisk,
-    /// <summary>Sistema de archivos fuera de <see cref="PartitionPlan.SupportedFileSystems"/>.</summary>
+    /// <summary>Sistema de archivos fuera de <see cref="FileSystems.Names"/>.</summary>
     UnknownFileSystem,
     /// <summary>Etiqueta con caracteres prohibidos o más larga de lo que admite su sistema de archivos.</summary>
     InvalidLabel,
@@ -120,16 +120,9 @@ public sealed record PartitionPlan(DiskPartitionStyle Style, IReadOnlyList<Parti
     /// </summary>
     public const long MinPartitionBytes = 64L * 1024 * 1024;
 
-    /// <summary>Límite de un volumen FAT (FAT16) en esta aplicación: 2 GB, el mismo umbral con el que el
-    /// selector de sistema de archivos ofrece FAT.</summary>
-    public const long FatMaxBytes = 2L * 1024 * 1024 * 1024;
-
-    /// <summary>Sistemas de archivos que la aplicación sabe crear. Coincide con el selector de la UI.</summary>
-    public static readonly string[] SupportedFileSystems = ["NTFS", "exFAT", "ReFS", "FAT32", "FAT"];
-
     /// <summary>
     /// Sistemas de archivos que se ofrecen para la <b>segunda</b> partición (el espacio sobrante de una
-    /// FAT32 pequeña). Deliberadamente más corto que <see cref="SupportedFileSystems"/>.
+    /// FAT32 pequeña). Deliberadamente más corto que <see cref="FileSystems.Names"/>.
     /// </summary>
     /// <remarks>
     /// <b>FAT32 queda fuera</b>: el sobrante de un pendrive grande supera los 32 GB que admite Windows, así
@@ -197,7 +190,7 @@ public sealed record PartitionPlan(DiskPartitionStyle Style, IReadOnlyList<Parti
         {
             PartitionSpec p = Partitions[i];
 
-            if (!SupportedFileSystems.Contains(p.FileSystem, StringComparer.Ordinal))
+            if (!FileSystems.IsSupported(p.FileSystem))
                 return new PlanValidation(PlanProblem.UnknownFileSystem, i);
 
             if (FormatLogic.ValidateLabel(p.Label, p.FileSystem) != FormatLogic.LabelValidation.Ok)
@@ -249,9 +242,9 @@ public sealed record PartitionPlan(DiskPartitionStyle Style, IReadOnlyList<Parti
             // a mitad de la operación.
             switch (Partitions[i].FileSystem)
             {
-                case "FAT32" when sizes[i] > FormatLogic.Fat32MaxBytes:
+                case "FAT32" when sizes[i] > FileSystems.Fat32MaxBytes:
                     return new PlanValidation(PlanProblem.Fat32VolumeTooLarge, i);
-                case "FAT" when sizes[i] > FatMaxBytes:
+                case "FAT" when sizes[i] > FileSystems.FatMaxBytes:
                     return new PlanValidation(PlanProblem.FatVolumeTooLarge, i);
             }
         }

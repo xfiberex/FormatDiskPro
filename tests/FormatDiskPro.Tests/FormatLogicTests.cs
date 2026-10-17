@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Globalization;
-using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -97,9 +96,9 @@ public sealed class FormatLogicTests : IDisposable
     // ── Encode / Decode ──────────────────────────────────────────
 
     [Fact]
-    public void EncodeArguments_ProducesNonInteractiveEncodedCommand()
+    public void Encode_ProducesNonInteractiveEncodedCommand()
     {
-        string args = FormatLogic.EncodeArguments("Format-Volume -DriveLetter G");
+        string args = PowerShellCommand.Encode("Format-Volume -DriveLetter G");
         Assert.Contains("-NonInteractive", args);
         Assert.Contains("-NoProfile", args);
         Assert.Contains("-EncodedCommand ", args);
@@ -109,27 +108,27 @@ public sealed class FormatLogicTests : IDisposable
     public void EncodeThenDecode_RoundTripsScript()
     {
         string script = FormatLogic.BuildVolumeScript('G', "NTFS", 4096, "My'Drive", quickFormat: false, compress: true);
-        string decoded = FormatLogic.DecodeArguments(FormatLogic.EncodeArguments(script));
+        string decoded = PowerShellCommand.Decode(PowerShellCommand.Encode(script));
         Assert.Equal(script, decoded);
     }
 
     /// <summary>
-    /// La codificación se ancla al <b>Base64 concreto</b>, no solo a que <c>DecodeArguments</c> la
+    /// La codificación se ancla al <b>Base64 concreto</b>, no solo a que <c>PowerShellCommand.Decode</c> la
     /// deshaga (`T9-13`).
     ///
     /// <para><b>Por qué hace falta las dos cosas.</b> La prueba de ida y vuelta de arriba comprueba que
     /// dos funciones nuestras son inversas — y eso <b>seguiría pasando</b> si ambas compartieran el mismo
     /// error, por ejemplo codificando en UTF-8 en vez de en UTF-16LE. Lo que ejecuta el script no es
-    /// <c>DecodeArguments</c>: es <c>powershell.exe -EncodedCommand</c>, que exige <b>Base64 de
+    /// <c>PowerShellCommand.Decode</c>: es <c>powershell.exe -EncodedCommand</c>, que exige <b>Base64 de
     /// UTF-16LE</b>. Esta prueba compara contra eso, calculado aparte.</para>
     /// </summary>
     [Fact]
-    public void EncodeArguments_ProducesBase64OfUtf16LittleEndian()
+    public void Encode_ProducesBase64OfUtf16LittleEndian()
     {
         const string script = "Format-Volume -DriveLetter G";
         string expected = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
 
-        string args = FormatLogic.EncodeArguments(script);
+        string args = PowerShellCommand.Encode(script);
 
         Assert.EndsWith($"-EncodedCommand {expected}", args, StringComparison.Ordinal);
     }
@@ -272,7 +271,7 @@ public sealed class FormatLogicTests : IDisposable
     [InlineData("FAT32", 11)]
     [InlineData("FAT", 11)]
     public void MaxLabelLength_MatchesFileSystemLimits(string fs, int expected)
-        => Assert.Equal(expected, FormatLogic.MaxLabelLength(fs));
+        => Assert.Equal(expected, FileSystems.MaxLabelLength(fs));
 
     // ── ValidateLabel ────────────────────────────────────────────
 

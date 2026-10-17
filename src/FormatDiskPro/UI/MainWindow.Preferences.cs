@@ -1,20 +1,9 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-only
-using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Graphics;
-using Windows.UI;
 using Windows.UI.ViewManagement;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace FormatDiskPro.UI;
 
@@ -23,7 +12,7 @@ namespace FormatDiskPro.UI;
 ///
 /// <para>Parte de <see cref="MainWindow"/>: es la MISMA clase, repartida en archivos por
 /// asunto (T2-08). No es un rediseño y no cambia comportamiento — el archivo único pasaba de
-/// 2.000 líneas y encontrar algo en él era el problema.
+/// 2.000 líneas y encontrar algo en él era el problema.</para>
 /// </summary>
 public sealed partial class MainWindow
 {
@@ -198,7 +187,7 @@ public sealed partial class MainWindow
         SecureWipeCheck.Content  = L.T("opt.secure");
         // El margen que se deja sin sobrescribir se dice, no se esconde (`AUD-039`), y llega también al lector
         // de pantalla. Sale de la constante del servicio: la pista no puede prometer otra cifra.
-        string wipeTip = L.T("opt.secureTip", FormatBytes(SecureWipe.SafetyMarginBytes));
+        string wipeTip = L.T("opt.secureTip", FormatBytes(FreeSpaceFill.SafetyMarginBytes));
         ToolTipService.SetToolTip(SecureWipeCheck, wipeTip);
         AutomationProperties.SetHelpText(SecureWipeCheck, wipeTip);
         WipePassesLbl.Text       = L.T("opt.passes");

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Globalization;
-using System.Text;
 
 namespace FormatDiskPro;
 
@@ -42,8 +41,9 @@ public interface IDiskService
 }
 
 /// <summary>
-/// Operaciones sobre unidades vía PowerShell: salud S.M.A.R.T., expulsión y borrado seguro.
-/// Todos los comandos se envían como -EncodedCommand (Base64 UTF-16LE) para evitar inyección.
+/// Consultas y operaciones sobre unidades vía PowerShell: salud S.M.A.R.T., protección de escritura,
+/// número, tamaño, identidad y contenido del disco físico, y expulsión. Todos los comandos se envían por
+/// <see cref="PowerShellCommand.Encode"/> para evitar inyección.
 /// </summary>
 /// <remarks>
 /// Recibe el <see cref="IProcessRunner"/> por constructor (`T4-02`): así los caminos de error
@@ -256,12 +256,10 @@ public sealed class DiskService(
     /// </remarks>
     private static ProcessSpec BuildSpec(string script, bool capture)
     {
-        byte[] bytes = Encoding.Unicode.GetBytes(script);
-        string encoded = Convert.ToBase64String(bytes);
         return new ProcessSpec
         {
             FileName               = SystemTools.PowerShell,
-            Arguments              = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
+            Arguments              = PowerShellCommand.Encode(script),
             RedirectStandardOutput = capture,
             RedirectStandardError  = false,
         };

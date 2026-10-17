@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -142,8 +141,8 @@ public sealed class ReinitPlanTests
     public void SmallFat32PartitionBytes_AtMax_HasSafetyMarginBelowFat32MaxBytes()
     {
         long bytes = ReinitPlan.SmallFat32PartitionBytes(32);
-        Assert.True(bytes < FormatLogic.Fat32MaxBytes);
-        Assert.Equal(FormatLogic.Fat32MaxBytes - 4L * 1024 * 1024, bytes);
+        Assert.True(bytes < FileSystems.Fat32MaxBytes);
+        Assert.Equal(FileSystems.Fat32MaxBytes - 4L * 1024 * 1024, bytes);
     }
 
     // ── Tamaños que caben en el disco ─────────────────────────────

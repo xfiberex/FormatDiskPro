@@ -221,7 +221,7 @@ public sealed class UpdateServiceTests
         Path.Combine(Path.GetTempPath(), $"fdp_setup_{Guid.NewGuid():N}.exe");
 
     private static ReleaseInfo Release(LocalHttpServer server, bool withChecksum = true) =>
-        new("v9.9.9", "9.9.9", "", "https://example.invalid",
+        new("v9.9.9", "", "https://example.invalid",
             server.UrlFor("/setup.exe"), "FormatDiskPro-9.9.9-setup.exe", 0,
             withChecksum ? server.UrlFor("/setup.exe.sha256") : "");
 

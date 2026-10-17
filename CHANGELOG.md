@@ -52,6 +52,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Interno
 
+- Cada dato y cada ayudante tienen una sola definición: un catálogo de sistemas de archivos en `Core/`, un
+  único codificador de los scripts de PowerShell y un único búfer alineado para la E/S sin caché
+  (`AUD-041`).
+- `MainWindow.xaml.cs` vuelve por debajo de las 800 líneas, repartido en tres parciales más, y la compilación
+  avisa de los `using` sin uso y de la documentación XML mal formada; el CI, que compila con `-warnaserror`,
+  los rechaza (`AUD-042`, `AUD-043`).
+- Fuera lo que no se usaba: el texto `about.body`, el campo `Version` de `ReleaseInfo` (siempre igual a la
+  etiqueta) y dos resúmenes que describían lo que su clase hacía antes (`AUD-043`).
 - `Get-Help` de `build-installer.ps1` vuelve a mostrar su ayuda: una línea que empezaba por `.pfx` la
   invalidaba entera.
 - La configuración de agentes de código que versiona el repositorio (`.mcp.json`, `.claude/`,

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Globalization;
 using System.Text.RegularExpressions;
-using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -83,7 +82,7 @@ public sealed class InterfaceTextTests
 
     /// <summary>
     /// El rechazo por etiqueta no válida dice cuántos caracteres admite cada sistema de archivos. Decía 32
-    /// para exFAT mientras <see cref="FormatLogic.MaxLabelLength"/> valida 11. Para cada uno de los cinco,
+    /// para exFAT mientras <see cref="FileSystems.MaxLabelLength"/> valida 11. Para cada uno de los cinco,
     /// la primera cifra que sigue a su nombre en el texto tiene que ser su límite real.
     /// </summary>
     [Theory]
@@ -98,7 +97,7 @@ public sealed class InterfaceTextTests
         {
             var match = Regex.Match(text, $@"\b{fs}\b\D*(\d+)");
             Assert.True(match.Success, $"El texto ({lang}) no nombra {fs} seguido de una cifra: «{text}»");
-            Assert.Equal(FormatLogic.MaxLabelLength(fs), int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+            Assert.Equal(FileSystems.MaxLabelLength(fs), int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
         }
     }
 

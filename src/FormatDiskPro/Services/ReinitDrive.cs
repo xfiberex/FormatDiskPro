@@ -13,10 +13,11 @@ public interface IReinitDrive
 }
 
 /// <summary>
-/// Reinicializa una unidad extraíble: limpia el disco físico y recrea una única partición primaria
-/// formateada (para USB con particiones raras, RAW o esquemas corruptos). Usa cmdlets de Storage
+/// Reinicializa una unidad extraíble: limpia el disco físico y crea las particiones de un
+/// <see cref="PartitionPlan"/> —una, o la FAT32 pequeña y el resto—, cada una formateada (para USB con
+/// particiones raras, RAW o esquemas corruptos). Usa cmdlets de Storage
 /// (<c>Clear-Disk</c>/<c>Initialize-Disk</c>/<c>New-Partition</c>/<c>Format-Volume</c>) vía
-/// <c>-EncodedCommand</c> (Base64 UTF-16LE) para evitar inyección, igual que <see cref="DiskService"/>.
+/// <see cref="PowerShellCommand.Encode"/> para evitar inyección, igual que <see cref="DiskService"/>.
 /// </summary>
 /// <remarks>
 /// <b>Destructivo a nivel de disco físico:</b> <c>Clear-Disk</c> borra <i>todas</i> las particiones del
@@ -125,13 +126,10 @@ public sealed class ReinitDrive(IProcessRunner runner) : IReinitDrive
             $"try {{ $d = Initialize-Disk -Number $d.Number -PartitionStyle {styleName} -PassThru -ErrorAction Stop }} catch {{ if ($_.Exception.Message -notmatch 'already been initialized') {{ throw }} }};" +
             body.ToString();
 
-        byte[] bytes   = Encoding.Unicode.GetBytes(script);
-        string encoded = Convert.ToBase64String(bytes);
-
         var spec = new ProcessSpec
         {
             FileName  = SystemTools.PowerShell,
-            Arguments = $"-NonInteractive -NoProfile -EncodedCommand {encoded}",
+            Arguments = PowerShellCommand.Encode(script),
         };
 
         try

@@ -4,6 +4,12 @@ namespace FormatDiskPro;
 /// <summary>
 /// Configuraciones de formato predefinidas aplicables con un clic.
 /// </summary>
+/// <param name="Name">El nombre que se enseña; en los integrados, el de respaldo si falta la traducción.</param>
+/// <param name="FileSystem">El sistema de archivos, uno de <see cref="FileSystems.Names"/>.</param>
+/// <param name="AllocationUnit">El tamaño de unidad de asignación, en bytes.</param>
+/// <param name="QuickFormat"><see langword="true"/> para un formato rápido; en caso contrario, <see langword="false"/>.</param>
+/// <param name="Compress"><see langword="true"/> para activar la compresión NTFS; en caso contrario, <see langword="false"/>.</param>
+/// <param name="SecureWipe"><see langword="true"/> para sobrescribir el espacio libre tras formatear; en caso contrario, <see langword="false"/>.</param>
 /// <param name="NameKey">
 /// Clave de <see cref="L"/> con la que se traduce el nombre en los presets integrados. Los presets del
 /// usuario son <c>null</c> aquí: su nombre lo escribe la persona y no se traduce. Se serializa junto al

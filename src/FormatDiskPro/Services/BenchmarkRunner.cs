@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
 namespace FormatDiskPro;
@@ -21,7 +20,7 @@ public enum BenchPhase { Preparing, SeqWrite, SeqRead, RndWrite, RndRead }
 /// <para>Cada fase se mide por <b>ventanas de tiempo</b> (se adapta a unidades rápidas y lentas) y se toma la
 /// <see cref="Benchmark.Median"/> de <see cref="Benchmark.Passes"/> ventanas para descartar el arranque en
 /// frío y los picos transitorios. La E/S sin caché exige buffers y desplazamientos alineados al sector: los
-/// buffers se fijan con <see cref="GCHandle"/> y se toma un sub-rango alineado.</para>
+/// buffers salen de <see cref="AlignedBuffers"/>.</para>
 /// </remarks>
 public interface IBenchmarkRunner
 {
@@ -36,14 +35,12 @@ public sealed class BenchmarkRunner : IBenchmarkRunner
     private const int SeqBlock      = 1024 * 1024;   // 1 MiB por operación secuencial (estilo SEQ1M)
     private const int RndBlock      = 4096;          // 4 KiB por operación aleatoria (estilo RND4K)
     private const int SeqQueueDepth = 8;             // operaciones secuenciales en vuelo (Q8)
-    private const int Alignment     = 4096;          // alineación de sector exigida por la E/S sin caché
     private const int PrepShare     = 15;            // % del progreso reservado al relleno inicial del archivo
 
     private static readonly TimeSpan WindowDuration = TimeSpan.FromSeconds(1.5);  // duración de cada ventana de medición
 
-    // FILE_FLAG_NO_BUFFERING (no expuesto en FileOptions) + E/S asíncrona real para la cola profunda.
-    private const FileOptions NoBuffering = (FileOptions)0x2000_0000;
-    private const FileOptions IoOptions   = NoBuffering | FileOptions.Asynchronous;
+    // Sin caché del sistema + E/S asíncrona real para la cola profunda.
+    private const FileOptions IoOptions = UnbufferedIo.NoBuffering | FileOptions.Asynchronous;
 
     /// <summary>
     /// Ejecuta el benchmark sobre la unidad <paramref name="letter"/>. Devuelve <c>null</c> si la unidad
@@ -85,13 +82,11 @@ public sealed class BenchmarkRunner : IBenchmarkRunner
 
             Directory.CreateDirectory(dir);
 
-            byte[] seqRaw, rndRaw;
-            var seqPin = default(GCHandle);
-            var rndPin = default(GCHandle);
-            try
+            using (var seqAligned = new AlignedBuffers(seqQd, SeqBlock))
+            using (var rndAligned = new AlignedBuffers(1, RndBlock))
             {
-                Memory<byte>[] seqBuffers = AllocAligned(seqQd, SeqBlock, out seqRaw, out seqPin);
-                Memory<byte>[] rndBuffers = AllocAligned(1, RndBlock, out rndRaw, out rndPin);
+                Memory<byte>[] seqBuffers = seqAligned.Blocks;
+                Memory<byte>[] rndBuffers = rndAligned.Blocks;
                 foreach (var b in seqBuffers) Random.Shared.NextBytes(b.Span);   // datos no triviales (no favorecer compresión/dedup)
                 Random.Shared.NextBytes(rndBuffers[0].Span);
                 Memory<byte> rndBuffer = rndBuffers[0];
@@ -147,32 +142,11 @@ public sealed class BenchmarkRunner : IBenchmarkRunner
                     new BenchmarkScore(rndRead, rndWrite),
                     testBytes);
             }
-            finally
-            {
-                if (seqPin.IsAllocated) seqPin.Free();
-                if (rndPin.IsAllocated) rndPin.Free();
-            }
         }
         finally
         {
             try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { }
         }
-    }
-
-    /// <summary>
-    /// Reserva un array fijado (POH no garantiza alineación) y devuelve <paramref name="count"/> sub-buffers de
-    /// <paramref name="blockSize"/> bytes alineados al sector. El llamador debe liberar <paramref name="pin"/>.
-    /// </summary>
-    private static Memory<byte>[] AllocAligned(int count, int blockSize, out byte[] raw, out GCHandle pin)
-    {
-        raw = new byte[count * blockSize + Alignment];
-        pin = GCHandle.Alloc(raw, GCHandleType.Pinned);
-        long addr = pin.AddrOfPinnedObject().ToInt64();
-        int pad = (int)((Alignment - (addr & (Alignment - 1))) & (Alignment - 1));
-        var buffers = new Memory<byte>[count];
-        for (int i = 0; i < count; i++)
-            buffers[i] = raw.AsMemory(pad + i * blockSize, blockSize);
-        return buffers;
     }
 
     /// <summary>Escribe el archivo completo una vez, en lotes de cola <paramref name="qd"/>, informando del progreso.</summary>

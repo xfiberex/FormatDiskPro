@@ -63,6 +63,31 @@
 
 ## Entradas
 
+### 2026-10-17 — `AUD-041`, `AUD-042` y `AUD-043`: cada cosa en un sitio, y una compilación que lo vigila
+
+**Qué cambia.** Nada que se vea en la app. Los datos de los sistemas de archivos, la codificación de los
+scripts de PowerShell y el búfer de la E/S sin caché tienen una sola definición; `MainWindow.xaml.cs` baja de
+1258 a 478 líneas, repartido en `Dialogs`, `Lifecycle` y `Format`; y la compilación avisa de los `using` sin
+uso y de la documentación XML mal formada, que con el `-warnaserror` del CI es lo mismo que rechazarlos.
+
+**Por qué así.** El catálogo (`FileSystems`) vive en `Core/` porque lo consultan el selector, la validación de
+la etiqueta, la del plan de particiones y los dos constructores de comandos: con cinco copias, añadir un
+sistema de archivos o corregir un tope era encontrar los cinco sitios, y uno de ellos era un número suelto.
+
+La tarea pedía `global using` para el bloque de quince `using` que repetían las parciales, y no se hizo: un
+`global using` alcanza a todo el proyecto, también a `Core/`, cuya regla es no depender de WinUI. Se llegó a
+probar —compilaba sin ambigüedades— y se deshizo por eso. El problema que señalaba la tarea, el bloque
+repetido, desaparece igual: con IDE0005 encendido, cada archivo declara solo lo que usa.
+
+Encender `GenerateDocumentationFile` era la condición para las dos cosas: IDE0005 no avisa al compilar sin él,
+y sin él el compilador no lee la documentación XML. Destapó más de lo que la tarea listaba —los `<para>` sin
+cerrar estaban en las cinco parciales, y había 25 avisos de parámetros y referencias— y todo se corrigió en la
+misma tanda, porque el CI no admite ni uno.
+
+**Cómo se probó.** compilación en Release con `-warnaserror`, como el CI, de la solución y de las pruebas de UI: 0 avisos; un archivo de prueba con un `using` sobrante y un `<para>` sin cerrar detiene esa
+compilación, y se borró. 966 unitarias (965 pasan), con una prueba nueva que exige que toda clave de
+traducción se use: falló con `about.body` y pasa sin ella. La suite de UI sin opt-in, contra el ejecutable Release: 61, 56 pasan, 5 omitidas por opt-in, ninguna falla.
+
 ### 2026-10-17 — `AUD-028` y `AUD-070`: el resultado que no se veía y el nombre de usuario en el historial
 
 **Qué cambia.** Si la pregunta «¿Cancelar?» sigue abierta cuando la operación termina, se cierra sola y se

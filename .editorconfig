@@ -1,0 +1,28 @@
+# Formato y análisis del código (AUD-042). Directory.Build.props enciende el análisis en la compilación, y el
+# CI compila con -warnaserror: lo que aquí sea «warning» rompe el CI.
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,xaml}]
+indent_size = 4
+
+[*.{csproj,props,targets,slnx,xml,yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# using sin uso. Necesita la documentación XML generada (GenerateDocumentationFile) para avisar al compilar.
+dotnet_diagnostic.IDE0005.severity = warning
+
+# Documentación XML mal formada o que apunta a algo que no existe (AUD-043). Ya son avisos por omisión; se
+# dejan escritos para que nadie los rebaje sin verlo.
+dotnet_diagnostic.CS1570.severity = warning
+dotnet_diagnostic.CS1574.severity = warning
+dotnet_diagnostic.CS1584.severity = warning

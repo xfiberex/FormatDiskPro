@@ -15,6 +15,22 @@
     Lo que el archivo de bloqueo NO cubre es el runtime de .NET que se empaqueta en el instalador: lo decide
     el SDK, y por eso el SDK va fijado en global.json y el corte anota el runtime de cada release.
   -->
+  <!--
+    Análisis en la compilación (AUD-042, AUD-043). Lo que se comprueba lo dice el .editorconfig de la raíz;
+    aquí solo se enciende.
+
+    GenerateDocumentationFile hace que el compilador lea la documentación XML: sin él, un <para> sin cerrar
+    o una referencia a algo que ya no existe no avisa nunca. Y es además lo que necesita IDE0005 (using sin
+    uso) para funcionar en la compilación y no solo en el editor. CS1591 (miembro público sin documentar)
+    queda fuera: aquí se documenta lo que necesita explicación, no todo lo público.
+
+    El CI compila con -warnaserror, así que cualquiera de estos avisos lo pone en rojo.
+  -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
   <PropertyGroup>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(RestoreLockedMode)' == '' and '$(CI)' == 'true'">true</RestoreLockedMode>

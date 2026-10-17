@@ -30,11 +30,8 @@ public interface ISecureWipe
 /// <inheritdoc cref="ISecureWipe"/>
 public sealed class SecureWipe : ISecureWipe
 {
-    private const int  BlockSize   = 8 * 1024 * 1024;          // 8 MB por escritura
-    private const long MaxFileSize = 1L * 1024 * 1024 * 1024;  // 1 GB por archivo (seguro incluso en FAT32)
-
-    /// <summary>Margen de seguridad: deja este espacio libre para no llenar la unidad por completo.</summary>
-    public const long SafetyMarginBytes = 64L * 1024 * 1024;
+    private const int  BlockSize   = FreeSpaceFill.BlockSize;
+    private const long MaxFileSize = FreeSpaceFill.MaxFileSize;
 
     /// <summary>
     /// Números de pasadas que se ofrecen en la interfaz. NIST 800-88: <b>1</b> pasada basta en discos
@@ -54,7 +51,7 @@ public sealed class SecureWipe : ISecureWipe
     /// Bytes que se sobrescribirán en total: <c>(espacio libre - margen) * pasadas</c> (nunca negativo).
     /// </summary>
     public static long PlannedBytes(long freeBytes, int passes)
-        => Math.Max(0, freeBytes - SafetyMarginBytes) * Math.Max(1, passes);
+        => Math.Max(0, freeBytes - FreeSpaceFill.SafetyMarginBytes) * Math.Max(1, passes);
 
     /// <summary>
     /// Patrón de una pasada: la <b>última</b> pasada es aleatoria; las anteriores alternan
@@ -90,7 +87,7 @@ public sealed class SecureWipe : ISecureWipe
         var drive = new DriveInfo(letter.ToString());
         if (!drive.IsReady) return -1;
 
-        long perPass = Math.Max(0, drive.AvailableFreeSpace - SafetyMarginBytes);
+        long perPass = Math.Max(0, drive.AvailableFreeSpace - FreeSpaceFill.SafetyMarginBytes);
         await RunInAsync(WorkFolders.On(letter, WorkFolders.Wipe), perPass, passes, progress, ct);
         return 0;
     }

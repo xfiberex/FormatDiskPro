@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using System.Runtime.InteropServices;
 
 namespace FormatDiskPro.UI;
 

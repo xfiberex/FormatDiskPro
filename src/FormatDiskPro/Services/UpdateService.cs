@@ -1,6 +1,5 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-only
 using System.Diagnostics;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -12,6 +11,15 @@ namespace FormatDiskPro;
 /// <summary>
 /// Información de una versión publicada en GitHub Releases.
 /// </summary>
+/// <param name="TagName">
+/// La etiqueta del release (<c>v1.30.1</c>), que es también la versión que se enseña y se registra. Había un
+/// segundo campo <c>Version</c> que se construía siempre con este mismo valor (`AUD-043`).
+/// </param>
+/// <param name="Notes">Las notas del release, en el Markdown con que las publica GitHub.</param>
+/// <param name="HtmlUrl">La página del release, para abrirla en el navegador.</param>
+/// <param name="AssetUrl">La descarga del instalador, o <see langword="null"/> si el release no trae uno.</param>
+/// <param name="AssetName">El nombre de archivo del instalador, o <see langword="null"/>.</param>
+/// <param name="AssetSize">El tamaño del instalador en bytes, según GitHub.</param>
 /// <param name="ChecksumUrl">
 /// URL del asset <c>*.sha256</c> con el que se verifica el instalador antes de ejecutarlo
 /// (ver <c>UpdateService.VerifyInstallerAsync</c>). Vacía si el release no publica el checksum
@@ -20,7 +28,6 @@ namespace FormatDiskPro;
 /// </param>
 public sealed record ReleaseInfo(
     string TagName,
-    string Version,
     string Notes,
     string HtmlUrl,
     string? AssetUrl,
@@ -202,7 +209,7 @@ public sealed class UpdateService : IUpdateService
             }
         }
 
-        return new ReleaseInfo(tag, tag, notes, html, url, name, size, checksumUrl);
+        return new ReleaseInfo(tag, notes, html, url, name, size, checksumUrl);
     }
 
     /// <summary>Devuelve la última versión solo si es más reciente que la instalada; null en caso contrario.</summary>
@@ -218,6 +225,9 @@ public sealed class UpdateService : IUpdateService
     /// el progreso (0-100) y lo <b>verifica</b> antes de devolverlo (ver
     /// <see cref="VerifyInstallerAsync"/>). Si no se puede verificar, lo borra y lanza.
     /// </summary>
+    /// <param name="release">La versión cuyo instalador se descarga.</param>
+    /// <param name="progress">El porcentaje descargado, de 0 a 100; <see langword="null"/> si no interesa.</param>
+    /// <param name="ct">El token para cancelar la descarga.</param>
     /// <param name="destinationPath">Solo para pruebas: si es null se usa la carpeta de descarga habitual.</param>
     /// <returns>
     /// El instalador, <b>con el archivo retenido</b>: quien llama lo libera cuando ya lo ha lanzado.
@@ -269,7 +279,7 @@ public sealed class UpdateService : IUpdateService
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "FormatDiskPro", "update");
 
         DeletePreviousInstallers(dir);
-        return Path.Combine(dir, SafeAssetFileName(release.AssetName, release.Version));
+        return Path.Combine(dir, SafeAssetFileName(release.AssetName, release.TagName));
     }
 
     /// <summary>

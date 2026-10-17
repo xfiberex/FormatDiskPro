@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using System.Runtime.InteropServices;
 
 namespace FormatDiskPro;
 
@@ -14,7 +13,7 @@ namespace FormatDiskPro;
 /// **pequeña** —menor que la RAM libre— podía releerse íntegra desde caché y dar un **falso OK**, que es
 /// el peor resultado posible aquí: decirle a alguien que su unidad es auténtica cuando no lo es.</para>
 /// <para>La E/S sin caché exige que <b>buffer, desplazamiento y longitud</b> estén alineados al sector; de
-/// ahí <see cref="Alignment"/>, el buffer fijado con <see cref="GCHandle"/> y el redondeo del objetivo.</para>
+/// ahí <see cref="UnbufferedIo.Alignment"/>, el búfer de <see cref="AlignedBuffers"/> y el redondeo del objetivo.</para>
 /// </remarks>
 public interface ICapacityVerifier
 {
@@ -28,13 +27,9 @@ public interface ICapacityVerifier
 /// <inheritdoc cref="ICapacityVerifier"/>
 public sealed class CapacityVerifier : ICapacityVerifier
 {
-    private const int  BlockSize    = 8 * 1024 * 1024;          // 8 MB: unidad del patrón anti-aliasing
-    private const long MaxFileSize  = 1L * 1024 * 1024 * 1024;  // 1 GB por archivo (seguro incluso en FAT32)
-    private const long SafetyMargin = 64L * 1024 * 1024;        // dejar 64 MB libres
-    private const int  Alignment    = 4096;                     // alineación de sector exigida por la E/S sin caché
-
-    // FILE_FLAG_NO_BUFFERING no está expuesto en FileOptions; el valor es el de la API Win32.
-    private const FileOptions NoBuffering = (FileOptions)0x2000_0000;
+    private const int  BlockSize   = FreeSpaceFill.BlockSize;    // también la unidad del patrón anti-aliasing
+    private const long MaxFileSize = FreeSpaceFill.MaxFileSize;
+    private const int  Alignment   = UnbufferedIo.Alignment;
 
     public sealed record VerifyResult(bool Ok, long WrittenBytes, string FailureDetail);
 
@@ -56,7 +51,7 @@ public sealed class CapacityVerifier : ICapacityVerifier
         if (!drive.IsReady)
             return new VerifyResult(false, 0, "unit-not-ready");
 
-        long target = Math.Max(0, drive.AvailableFreeSpace - SafetyMargin);
+        long target = Math.Max(0, drive.AvailableFreeSpace - FreeSpaceFill.SafetyMarginBytes);
         return await RunInAsync(WorkFolders.On(letter, WorkFolders.Verify), target, progress, ct);
     }
 
@@ -65,6 +60,10 @@ public sealed class CapacityVerifier : ICapacityVerifier
     /// <paramref name="dir"/> y los relee. Existe como método aparte para poder **probar la detección de
     /// unidades falsificadas sin una unidad falsificada** — que es justo lo que ninguna prueba cubría.
     /// </summary>
+    /// <param name="dir">La carpeta de trabajo donde se escriben los archivos; se borra al terminar.</param>
+    /// <param name="target">Los bytes que se escriben y se releen, múltiplo de la alineación de sector.</param>
+    /// <param name="progress">La fase, el porcentaje y los bytes llevados.</param>
+    /// <param name="ct">El token para cancelar.</param>
     /// <param name="afterWriteAsync">
     /// Solo para pruebas: se ejecuta entre la fase de escritura y la de lectura. Permite corromper lo
     /// escrito para comprobar que la relectura lo detecta, que es exactamente lo que hace una unidad que
@@ -101,7 +100,7 @@ public sealed class CapacityVerifier : ICapacityVerifier
         // seguridad de 64 MB.
         target -= target % Alignment;
 
-        var readPin = default(GCHandle);
+        AlignedBuffers? readAligned = null;
 
         try
         {
@@ -143,7 +142,8 @@ public sealed class CapacityVerifier : ICapacityVerifier
             if (afterWriteAsync is not null) await afterWriteAsync();
 
             // ── Fase de lectura/verificación (SIN caché del sistema) ──
-            Memory<byte> readBuf = AllocAligned(BlockSize, out _, out readPin);
+            readAligned = new AlignedBuffers(1, BlockSize);
+            Memory<byte> readBuf = readAligned.Blocks[0];
             var expected = new byte[BlockSize];
             long verified = 0;
             foreach (var f in files)
@@ -151,7 +151,7 @@ public sealed class CapacityVerifier : ICapacityVerifier
                 ct.ThrowIfCancellationRequested();
 
                 using var handle = File.OpenHandle(f.Path, FileMode.Open, FileAccess.Read,
-                                 FileShare.None, NoBuffering | FileOptions.Asynchronous);
+                                 FileShare.None, UnbufferedIo.NoBuffering | FileOptions.Asynchronous);
                 long fileRead = 0;
                 int blk = f.StartBlock;
                 while (fileRead < f.Length)
@@ -194,23 +194,9 @@ public sealed class CapacityVerifier : ICapacityVerifier
         }
         finally
         {
-            if (readPin.IsAllocated) readPin.Free();
+            readAligned?.Dispose();
             try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { }
         }
-    }
-
-    /// <summary>
-    /// Reserva un buffer alineado al sector, requisito de la E/S sin caché. Se pide de más y se toma el
-    /// sub-rango alineado del array fijado; el <see cref="GCHandle"/> debe liberarlo quien llama (aquí, el
-    /// <c>finally</c>). Mismo patrón que <c>BenchmarkRunner.AllocAligned</c>.
-    /// </summary>
-    private static Memory<byte> AllocAligned(int size, out byte[] raw, out GCHandle pin)
-    {
-        raw = new byte[size + Alignment];
-        pin = GCHandle.Alloc(raw, GCHandleType.Pinned);
-        long addr = pin.AddrOfPinnedObject().ToInt64();
-        int pad = (int)((Alignment - (addr & (Alignment - 1))) & (Alignment - 1));
-        return raw.AsMemory(pad, size);
     }
 
     /// <summary>

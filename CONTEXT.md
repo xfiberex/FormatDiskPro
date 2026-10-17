@@ -39,6 +39,8 @@ firmes, no limitaciones. Ver §4.
 src/FormatDiskPro/
 ├─ Core/            Lógica PURA y testeable (sin UI, sin procesos, sin red)
 │  ├─ FormatLogic.cs      Comandos de formato, parseo de %, formato de bytes, validación de etiqueta
+│  ├─ FileSystems.cs      CATÁLOGO de sistemas de archivos: clústeres, límites, etiqueta, descripción (AUD-041)
+│  ├─ PowerShellCommand.cs Los argumentos -EncodedCommand de powershell.exe: un solo sitio los compone (AUD-041)
 │  ├─ SmartInfo.cs        Modelo + parseo del detalle S.M.A.R.T. + umbrales de severidad (SmartLevel)
 │  ├─ SeverityPalette.cs  INVENTARIO de colores semánticos por tema — contraste WCAG medido sobre All()
 │  ├─ FluentTextPalette.cs Los colores de TEXTO que la app toma de Fluent, con su valor real, para medirlos
@@ -77,6 +79,8 @@ src/FormatDiskPro/
 │  ├─ ReinitDrive.cs       Reinicializar disco extraíble: clean + ejecutar un PartitionPlan ya validado
 │  ├─ BenchmarkRunner.cs   Motor de E/S sin caché (FILE_FLAG_NO_BUFFERING), no destructivo
 │  ├─ CapacityVerifier.cs  Verificación de capacidad real
+│  ├─ UnbufferedIo.cs      E/S sin caché: FILE_FLAG_NO_BUFFERING y AlignedBuffers (benchmark y verificación)
+│  ├─ FreeSpaceFill.cs     Cómo se llena el espacio libre: bloque, archivo y margen (borrado y verificación)
 │  ├─ AppSettings.cs       Preferencias (%AppData%\FormatDiskPro\settings.json)
 │  ├─ Notifier.cs          Aviso al terminar (sonido + parpadeo de barra de tareas, Win32)
 │  ├─ TaskbarProgress.cs   Progreso en el icono de la barra de tareas (ITaskbarList3)
@@ -85,8 +89,8 @@ src/FormatDiskPro/
 │  └─ History.cs           Auditoría (%AppData%\FormatDiskPro\history.log, rotado a history.1.log)
 ├─ UI/              WinUI 3 (Windows App SDK)
 │  ├─ MainWindow          Ventana principal, repartida en partial class por asunto (tope: 800 líneas cada una):
-│  │                      .xaml.cs (ciclo de vida, unidades, formato) · .DriveInfo · .FormatOptions
-│  │                      .Operations (menú Herramientas) · .HelpAndUpdates · .Preferences
+│  │                      .xaml.cs (arranque, unidades) · .Dialogs · .Lifecycle (operación) · .Format
+│  │                      .DriveInfo · .FormatOptions · .Operations (Herramientas) · .HelpAndUpdates · .Preferences
 │  ├─ DeviceChangeWatcher Subclassing Win32 de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ConfirmDialog       Confirmación reforzada (escribir la letra de la unidad)
 │  ├─ HealthDialog        Detalle S.M.A.R.T. (colores por umbral + texto de estado)
@@ -119,9 +123,6 @@ CHANGELOG.md                  Qué cambió en cada versión (Keep a Changelog); 
 release.ps1                   Corte de versión en un paso (tests + instalador + tag + GitHub Release)
 FormatDiskPro.slnx            Solución: app + Tests. UiTests NO está incluido, a propósito.
 ```
-
-> El árbol se comprueba con `git ls-files src/`. **`MainWindow.xaml.cs` tiene hoy 986 líneas**, por encima
-> del tope de 800 que fijó `T2-08`; devolverlo ahí es `AUD-042`.
 
 **Regla de oro:** la lógica testeable vive en `Core`, **sin dependencias de WinUI, `Process` ni `HttpClient`**.
 La UI y los servicios la consumen. Namespace único `FormatDiskPro`.
@@ -180,9 +181,9 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Publicado** | **v1.30.1** (2026-10-15): las siete tandas de la auditoría del 2026-10-11 (PRs #3 a #10) y los arreglos del corte. `master` sin trabajo pendiente de publicar |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
-| **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-17: **965** (964 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **60** (55 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
+| **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR. Desde `AUD-042`/`AUD-043` son avisos, por `.editorconfig`, los `using` sin uso (IDE0005) y la documentación XML mal formada (CS1570), y no hay `global using` de WinUI porque alcanzaría a `Core/` |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-17: **966** (965 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **61** (56 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 

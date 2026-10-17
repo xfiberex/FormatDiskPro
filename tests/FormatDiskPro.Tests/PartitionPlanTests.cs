@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -119,7 +118,7 @@ public sealed class PartitionPlanTests
 
     [Fact]
     public void SupportedFileSystems_AreTheFiveTheUiOffers()
-        => Assert.Equal(["NTFS", "exFAT", "ReFS", "FAT32", "FAT"], PartitionPlan.SupportedFileSystems);
+        => Assert.Equal(["NTFS", "exFAT", "ReFS", "FAT32", "FAT"], FileSystems.Names);
 
     /// <summary>La etiqueta se valida por partición y contra SU sistema de archivos: 20 caracteres valen en
     /// NTFS y no en FAT32, y el plan no puede dar por buena una etiqueta que <c>Format-Volume</c> rechazará.</summary>
@@ -177,16 +176,16 @@ public sealed class PartitionPlanTests
     [Fact]
     public void Fat32PartitionOverTheWindowsLimit_IsRejected()
         => Assert.Equal(PlanProblem.Fat32VolumeTooLarge,
-                        ProblemOf(Plan(Exact(FormatLogic.Fat32MaxBytes + 1, "FAT32")), 256 * Gib));
+                        ProblemOf(Plan(Exact(FileSystems.Fat32MaxBytes + 1, "FAT32")), 256 * Gib));
 
     [Fact]
     public void Fat32PartitionExactlyAtTheLimit_IsAccepted()
-        => Assert.True(Plan(Exact(FormatLogic.Fat32MaxBytes, "FAT32")).Validate(256 * Gib).Ok);
+        => Assert.True(Plan(Exact(FileSystems.Fat32MaxBytes, "FAT32")).Validate(256 * Gib).Ok);
 
     [Fact]
     public void FatPartitionOverTwoGigabytes_IsRejected()
         => Assert.Equal(PlanProblem.FatVolumeTooLarge,
-                        ProblemOf(Plan(Exact(PartitionPlan.FatMaxBytes + 1, "FAT"))));
+                        ProblemOf(Plan(Exact(FileSystems.FatMaxBytes + 1, "FAT"))));
 
     [Fact]
     public void MbrCannotAddressADiskOverTwoTerabytes()

@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -14,7 +13,7 @@ public sealed class SecureWipeTests
     [Fact]
     public void PlannedBytes_SubtractsSafetyMargin_TimesPasses()
     {
-        long free = SecureWipe.SafetyMarginBytes + 1000;
+        long free = FreeSpaceFill.SafetyMarginBytes + 1000;
         Assert.Equal(1000, SecureWipe.PlannedBytes(free, 1));
         Assert.Equal(3000, SecureWipe.PlannedBytes(free, 3));
     }
@@ -27,10 +26,10 @@ public sealed class SecureWipeTests
     [Fact]
     public void SafetyMargin_Is64MB_AndTheInterfaceStatesIt()
     {
-        Assert.Equal(64L * 1024 * 1024, SecureWipe.SafetyMarginBytes);
+        Assert.Equal(64L * 1024 * 1024, FreeSpaceFill.SafetyMarginBytes);
         Assert.All(L.Map["opt.secureTip"], t => Assert.Contains("{0}", t));
         Assert.All(L.Map["success.wipeNote"], t => Assert.Contains("{1}", t));
-        Assert.Equal("64 MB", FormatLogic.FormatBytes(SecureWipe.SafetyMarginBytes, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("64 MB", FormatLogic.FormatBytes(FreeSpaceFill.SafetyMarginBytes, System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -39,7 +38,7 @@ public sealed class SecureWipeTests
 
     [Fact]
     public void PlannedBytes_ZeroPasses_TreatedAsOne()
-        => Assert.Equal(500, SecureWipe.PlannedBytes(SecureWipe.SafetyMarginBytes + 500, 0));
+        => Assert.Equal(500, SecureWipe.PlannedBytes(FreeSpaceFill.SafetyMarginBytes + 500, 0));
 
     [Fact]
     public void PassPattern_SinglePass_IsRandom()

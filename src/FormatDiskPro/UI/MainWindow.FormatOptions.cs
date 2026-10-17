@@ -1,20 +1,7 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-only
-using Microsoft.UI.Composition.SystemBackdrops;
-using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Graphics;
-using Windows.UI;
-using Windows.UI.ViewManagement;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace FormatDiskPro.UI;
 
@@ -23,7 +10,7 @@ namespace FormatDiskPro.UI;
 ///
 /// <para>Parte de <see cref="MainWindow"/>: es la MISMA clase, repartida en archivos por
 /// asunto (T2-08). No es un rediseño y no cambia comportamiento — el archivo único pasaba de
-/// 2.000 líneas y encontrar algo en él era el problema.
+/// 2.000 líneas y encontrar algo en él era el problema.</para>
 /// </summary>
 public sealed partial class MainWindow
 {
@@ -37,11 +24,9 @@ public sealed partial class MainWindow
         long bytes = 0;
         try { bytes = drive.IsReady ? drive.TotalSize : 0; } catch { }
 
-        FileSystemPicker.Items.Add("NTFS");
-        FileSystemPicker.Items.Add("exFAT");
-        FileSystemPicker.Items.Add("ReFS");
-        if (bytes == 0 || bytes < FormatLogic.Fat32MaxBytes) FileSystemPicker.Items.Add("FAT32");
-        if (bytes == 0 || bytes < 2L * 1024 * 1024 * 1024)  FileSystemPicker.Items.Add("FAT");
+        // Los que admiten un volumen de este tamaño: FAT32 y FAT desaparecen en una unidad grande.
+        foreach (var spec in FileSystems.All)
+            if (FileSystems.Fits(spec, bytes)) FileSystemPicker.Items.Add(spec.Name);
 
         int idx = previous is not null ? FileSystemPicker.Items.IndexOf(previous) : -1;
         if (idx >= 0) FileSystemPicker.SelectedIndex = idx;
@@ -53,7 +38,7 @@ public sealed partial class MainWindow
     private void SuggestFileSystem(DriveInfo drive, long totalBytes)
     {
         string suggested = drive.DriveType == DriveType.Removable
-            ? (totalBytes > FormatLogic.Fat32MaxBytes ? "exFAT" : "FAT32")
+            ? (totalBytes > FileSystems.Fat32MaxBytes ? "exFAT" : "FAT32")
             : "NTFS";
         int idx = FileSystemPicker.Items.IndexOf(suggested);
         FileSystemPicker.SelectedIndex = idx >= 0 ? idx : 0;
@@ -74,19 +59,19 @@ public sealed partial class MainWindow
     private void UpdateLabelMaxLength()
     {
         string? fs = FileSystemPicker.SelectedItem?.ToString();
-        VolumeLabelBox.MaxLength = fs is not null ? FormatLogic.MaxLabelLength(fs) : 32;
+        VolumeLabelBox.MaxLength = fs is not null ? FileSystems.MaxLabelLength(fs) : 32;
     }
 
     private void UpdateAllocationUnits()
     {
         string? fs = FileSystemPicker.SelectedItem?.ToString();
-        if (fs is null || !FsDefaults.TryGetValue(fs, out var cfg)) return;
+        if (FileSystems.Find(fs) is not { } spec) return;
 
         AllocUnitPicker.Items.Clear();
         _allocBytes.Clear();
         _allocLabels.Clear();
 
-        foreach (long size in cfg.Sizes)
+        foreach (long size in spec.ClusterSizes)
         {
             string label = size >= 1024 * 1024 ? $"{size / (1024 * 1024)} MB"
                          : size >= 1024 ? $"{size / 1024} KB" : $"{size} bytes";
@@ -94,7 +79,7 @@ public sealed partial class MainWindow
             _allocLabels.Add(label);
         }
 
-        int defIdx = Array.IndexOf(cfg.Sizes, cfg.Default);
+        int defIdx = Array.IndexOf(spec.ClusterSizes, spec.DefaultClusterSize);
         _allocRecommended = defIdx >= 0 ? defIdx : 0;
         RefreshAllocationLabels();
         AllocUnitPicker.SelectedIndex = _allocRecommended;
@@ -139,8 +124,7 @@ public sealed partial class MainWindow
     private void UpdateFsDescription()
     {
         string? fs = FileSystemPicker.SelectedItem?.ToString();
-        string key = fs is not null ? FsDescriptionKey(fs) : "";
-        FsDescText.Text = key.Length > 0 ? L.T(key) : "";
+        FsDescText.Text = FileSystems.Find(fs) is { } spec ? L.T(spec.DescriptionKey) : "";
     }
 
     private void UpdateCompressionOption()
@@ -358,7 +342,7 @@ public sealed partial class MainWindow
         if (!second) return;
 
         RestNoteText.Text     = L.T("opt.restNote");
-        RestLabelBox.MaxLength = FormatLogic.MaxLabelLength(SelectedRestFileSystem());
+        RestLabelBox.MaxLength = FileSystems.MaxLabelLength(SelectedRestFileSystem());
     }
 
     private void SmallFat32SizePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -383,8 +367,8 @@ public sealed partial class MainWindow
 
         // En discos que no llegan a 32 GB, FAT32 ya está en el selector: mencionar el límite de Windows
         // ahí no explica nada. Lo que aporta la opción en esos discos es dejar espacio sin asignar.
-        SmallFat32HintText.Text = _smallFat32Ceiling >= FormatLogic.Fat32MaxBytes
-            ? L.T("opt.smallFat32Hint", FormatLogic.FormatBytes(FormatLogic.Fat32MaxBytes), size)
+        SmallFat32HintText.Text = _smallFat32Ceiling >= FileSystems.Fat32MaxBytes
+            ? L.T("opt.smallFat32Hint", FormatLogic.FormatBytes(FileSystems.Fat32MaxBytes), size)
             : L.T("opt.smallFat32HintSmall", size);
     }
 

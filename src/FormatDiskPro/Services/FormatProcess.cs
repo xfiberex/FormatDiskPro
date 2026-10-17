@@ -26,7 +26,7 @@ public interface IFormatProcess
 /// donde mirarlo. Los <b>comandos</b> siguen construyéndose en <see cref="FormatLogic"/> (lógica pura,
 /// bajo test); aquí solo se ejecutan.</para>
 ///
-/// <para>El proceso en marcha se entrega por <paramref name="started"/> en vez de guardarse aquí: quien
+/// <para>El proceso en marcha se entrega por el parámetro <c>started</c> de cada método en vez de guardarse aquí: quien
 /// llama necesita poder matarlo al cancelar, y un estado estático compartido en un servicio que puede
 /// invocarse desde varios sitios es justo lo que no conviene.</para>
 /// </summary>
@@ -54,7 +54,7 @@ public sealed class FormatProcess(IProcessRunner runner) : IFormatProcess
         bool quickFormat, bool compress, Action<IProcessHandle>? started, CancellationToken ct)
     {
         string script = FormatLogic.BuildVolumeScript(driveLetter, fs, allocBytes, label, quickFormat, compress);
-        string args   = FormatLogic.EncodeArguments(script);
+        string args   = PowerShellCommand.Encode(script);
 
         // Sin `using` a propósito: el proceso se entrega a quien llama, que es quien lo cancela y quien lo
         // libera al cerrar la operación. Liberarlo aquí dejaría su referencia inservible del otro lado.

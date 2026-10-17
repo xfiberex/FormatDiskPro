@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Text.RegularExpressions;
-using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
@@ -156,5 +155,36 @@ public sealed class LocalizationCoverageTests
             }
         }
         finally { L.Set(prev); }
+    }
+
+    // `$"reinit.stage.{s}"`: una clave que se compone al vuelo. Lo que cuenta es el prefijo literal.
+    private static readonly Regex InterpolatedKeyPrefix = new(@"\$""([a-z0-9]+(?:\.[a-z0-9]+)*\.)\{", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Toda clave de <see cref="L.Map"/> se usa en algún sitio (`AUD-043`). Una clave sin uso no se ve en la
+    /// app, pero sí se traduce y se revisa en cinco idiomas: <c>about.body</c> sobrevivió así al diálogo
+    /// <see cref="UI.AboutDialog"/>, que dejó de leerla.
+    /// </summary>
+    /// <remarks>
+    /// Cuenta como uso el literal <c>"clave"</c> en las fuentes de la app, o un prefijo interpolado
+    /// (<c>$"reinit.stage.{…}"</c>) que la compone. No ve una clave pasada por un camino más indirecto: si
+    /// algún día hace falta uno, se añade aquí por su nombre, no se borra la prueba.
+    /// </remarks>
+    [Fact]
+    public void EveryLocalizationKey_IsUsedByTheApp()
+    {
+        string localizationDir = $"{Path.DirectorySeparatorChar}Localization{Path.DirectorySeparatorChar}";
+        string code = string.Concat(AppSourceFiles()
+            .Where(f => !f.Contains(localizationDir, StringComparison.Ordinal))
+            .Select(File.ReadAllText));
+        var prefixes = InterpolatedKeyPrefix.Matches(code).Select(m => m.Groups[1].Value).ToHashSet();
+        Assert.Contains("reinit.stage.", prefixes);   // si el patrón deja de ver el único caso, no probaría nada
+
+        var unused = L.Map.Keys
+            .Where(k => !code.Contains($"\"{k}\"", StringComparison.Ordinal)
+                     && !prefixes.Any(p => k.StartsWith(p, StringComparison.Ordinal)))
+            .ToList();
+
+        Assert.True(unused.Count == 0, "Claves de L.Map que la app no usa:\n  " + string.Join("\n  ", unused));
     }
 }

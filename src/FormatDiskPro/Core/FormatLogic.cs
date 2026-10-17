@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Linq;
 
 namespace FormatDiskPro;
 
@@ -12,11 +11,6 @@ namespace FormatDiskPro;
 /// </summary>
 public static partial class FormatLogic
 {
-    /// <summary>Límite real de Windows para crear un volumen FAT32 (32 GiB): ni <c>Format-Volume</c> ni
-    /// <c>format.com</c> permiten uno mayor. Usado para ocultar FAT32 del selector en discos grandes y
-    /// como umbral de la opción de partición FAT32 pequeña en Reinicializar unidad.</summary>
-    public const long Fat32MaxBytes = 32L * 1024 * 1024 * 1024;
-
     /// <summary>
     /// Construye el script PowerShell <c>Format-Volume</c> (sin codificar).
     /// La etiqueta se escapa para una cadena entre comillas simples de PowerShell.
@@ -38,7 +32,7 @@ public static partial class FormatLogic
     /// </remarks>
     /// <exception cref="ArgumentException">
     /// Si la letra no lo es, o si el sistema de archivos no está en
-    /// <see cref="PartitionPlan.SupportedFileSystems"/>.
+    /// <see cref="FileSystems.Names"/>.
     /// </exception>
     public static string BuildVolumeScript(
         char driveLetter, string fs, long allocBytes,
@@ -47,7 +41,7 @@ public static partial class FormatLogic
         if (!char.IsLetter(driveLetter))
             throw new ArgumentException($"Letra de unidad no válida: '{driveLetter}'.", nameof(driveLetter));
 
-        if (!PartitionPlan.SupportedFileSystems.Contains(fs, StringComparer.Ordinal))
+        if (!FileSystems.IsSupported(fs))
             throw new ArgumentException($"Sistema de archivos no admitido: '{fs}'.", nameof(fs));
 
         var ps = new StringBuilder("Format-Volume");
@@ -59,32 +53,6 @@ public static partial class FormatLogic
         if (compress && fs == "NTFS")     ps.Append(" -Compress");
         ps.Append(" -Confirm:$false -Force");
         return ps.ToString();
-    }
-
-    /// <summary>Codifica un script como argumentos <c>-EncodedCommand</c> (Base64 UTF-16LE) de powershell.exe.</summary>
-    public static string EncodeArguments(string script)
-    {
-        byte[] encoded = Encoding.Unicode.GetBytes(script);
-        return $"-NonInteractive -NoProfile -EncodedCommand {Convert.ToBase64String(encoded)}";
-    }
-
-    /// <summary>
-    /// Decodifica los argumentos producidos por <see cref="EncodeArguments"/> de vuelta al script original.
-    /// </summary>
-    /// <remarks>
-    /// <b><c>internal</c>, no <c>public</c>: no lo usa la app, solo las pruebas</b> (`T9-13`). Se conserva
-    /// porque hace legible lo que se afirma sobre un Base64 —«el script que se ejecuta es este»— en las
-    /// pruebas que comprueban el escapado de la etiqueta. Lo que NO puede hacer es sostener sola la prueba
-    /// de <see cref="EncodeArguments"/>: una ida y vuelta contra un inverso escrito a medida no falla si
-    /// ambos lados comparten el mismo error, así que esa prueba ancla además el Base64 concreto.
-    /// </remarks>
-    internal static string DecodeArguments(string arguments)
-    {
-        const string marker = "-EncodedCommand ";
-        int i = arguments.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return "";
-        string b64 = arguments[(i + marker.Length)..].Trim();
-        return Encoding.Unicode.GetString(Convert.FromBase64String(b64));
     }
 
     /// <summary>
@@ -102,7 +70,7 @@ public static partial class FormatLogic
     /// </summary>
     /// <exception cref="ArgumentException">
     /// Si la letra no lo es, o si el sistema de archivos no está en
-    /// <see cref="PartitionPlan.SupportedFileSystems"/>. Aquí el escape por argumento del runtime ya
+    /// <see cref="FileSystems.Names"/>. Aquí el escape por argumento del runtime ya
     /// impide la inyección; se valida igualmente para que las dos rutas de formateo acepten exactamente
     /// lo mismo y no haya una más permisiva que la otra (`T9-09`).
     /// </exception>
@@ -117,7 +85,7 @@ public static partial class FormatLogic
         if (!char.IsLetter(driveLetter))
             throw new ArgumentException($"Letra de unidad no válida: '{driveLetter}'.", nameof(driveLetter));
 
-        if (!PartitionPlan.SupportedFileSystems.Contains(fs, StringComparer.Ordinal))
+        if (!FileSystems.IsSupported(fs))
             throw new ArgumentException($"Sistema de archivos no admitido: '{fs}'.", nameof(fs));
 
         var args = new List<string> { $"{driveLetter}:", $"/FS:{fs}", $"/A:{ComAllocationSize(allocBytes)}", "/Y" };
@@ -162,14 +130,6 @@ public static partial class FormatLogic
     /// </remarks>
     public static bool UsesFormatCom(string fs, bool quickFormat) => !quickFormat && fs != "ReFS";
 
-    /// <summary>Longitud máxima de etiqueta de volumen permitida por sistema de archivos.</summary>
-    public static int MaxLabelLength(string fs) => fs switch
-    {
-        "NTFS" or "ReFS"            => 32,
-        "FAT32" or "FAT" or "exFAT" => 11,
-        _                           => 32,
-    };
-
     /// <summary>Caracteres no permitidos en una etiqueta de volumen de Windows.</summary>
     public static readonly char[] InvalidLabelChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
 
@@ -178,7 +138,7 @@ public static partial class FormatLogic
 
     /// <summary>
     /// Valida una etiqueta de volumen para el sistema de archivos dado: caracteres permitidos
-    /// (<see cref="InvalidLabelChars"/>) y longitud máxima por FS (<see cref="MaxLabelLength"/>).
+    /// (<see cref="InvalidLabelChars"/>) y longitud máxima por FS (<see cref="FileSystems.MaxLabelLength"/>).
     /// Una etiqueta vacía siempre es válida. Lógica pura, compartida por el hint en vivo del
     /// <c>TextBox</c> y la validación al enviar (formatear / reinicializar).
     /// </summary>
@@ -186,7 +146,7 @@ public static partial class FormatLogic
     {
         if (string.IsNullOrEmpty(label)) return LabelValidation.Ok;
         if (label.Any(c => InvalidLabelChars.Contains(c))) return LabelValidation.InvalidChars;
-        if (label.Length > MaxLabelLength(fs)) return LabelValidation.TooLong;
+        if (label.Length > FileSystems.MaxLabelLength(fs)) return LabelValidation.TooLong;
         return LabelValidation.Ok;
     }
 

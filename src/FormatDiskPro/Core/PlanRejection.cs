@@ -62,17 +62,17 @@ public static class PlanRejection
             // Las cifras salen de MaxLabelLength (`AUD-046`): escritas en el texto, decían que exFAT
             // admite 32 caracteres mientras el código validaba 11.
             PlanProblem.InvalidLabel         => ("reinit.plan.invalidLabel",
-                                                 [FormatLogic.MaxLabelLength("FAT32"),
-                                                  FormatLogic.MaxLabelLength("NTFS")]),
+                                                 [FileSystems.MaxLabelLength("FAT32"),
+                                                  FileSystems.MaxLabelLength("NTFS")]),
             PlanProblem.DoesNotFit           => ("reinit.plan.doesNotFit",
                                                  [FormatLogic.FormatBytes(diskSizeBytes)]),
             PlanProblem.PartitionTooSmall    => ("reinit.plan.tooSmall",
                                                  [FormatLogic.FormatBytes(PartitionPlan.MinPartitionBytes)]),
             PlanProblem.Fat32VolumeTooLarge  => ("reinit.plan.fat32TooLarge",
-                                                 [FormatLogic.FormatBytes(FormatLogic.Fat32MaxBytes),
+                                                 [FormatLogic.FormatBytes(FileSystems.Fat32MaxBytes),
                                                   FormatLogic.FormatBytes(culprit)]),
             PlanProblem.FatVolumeTooLarge    => ("reinit.plan.fatTooLarge",
-                                                 [FormatLogic.FormatBytes(PartitionPlan.FatMaxBytes),
+                                                 [FormatLogic.FormatBytes(FileSystems.FatMaxBytes),
                                                   FormatLogic.FormatBytes(culprit)]),
 
             // Los cinco que el formulario no puede producir, y el caso imposible (`None`).

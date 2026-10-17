@@ -1,21 +1,6 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-only
-using Microsoft.UI.Composition.SystemBackdrops;
-using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Graphics;
-using Windows.UI;
-using Windows.UI.ViewManagement;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Text;
-
 namespace FormatDiskPro.UI;
 
 /// <summary>
@@ -23,7 +8,7 @@ namespace FormatDiskPro.UI;
 ///
 /// <para>Parte de <see cref="MainWindow"/>: es la MISMA clase, repartida en archivos por
 /// asunto (T2-08). No es un rediseño y no cambia comportamiento — el archivo único pasaba de
-/// 2.000 líneas y encontrar algo en él era el problema.
+/// 2.000 líneas y encontrar algo en él era el problema.</para>
 /// </summary>
 public sealed partial class MainWindow
 {
@@ -108,7 +93,7 @@ public sealed partial class MainWindow
         catch (Exception ex) { _services.History.Log($"WHATSNEW ERROR: {ErrorText.Describe(ex)}"); }
 
         var dlg = new WhatsNewDialog(
-            rel?.Version ?? AppInfo.VersionString,
+            rel?.TagName ?? AppInfo.VersionString,
             rel?.Notes ?? "",
             string.IsNullOrEmpty(rel?.HtmlUrl) ? AppInfo.ReleasesPageUrl : rel!.HtmlUrl,
             _services.Updates)
@@ -158,7 +143,7 @@ public sealed partial class MainWindow
 
         if (string.IsNullOrEmpty(rel.AssetUrl))
         {
-            await ShowInfoAsync(L.T("update.availTitle"), L.T("update.noasset", rel.Version));
+            await ShowInfoAsync(L.T("update.availTitle"), L.T("update.noasset", rel.TagName));
             // Si el navegador no abre, se dice la dirección: mandar al usuario a una página que nunca
             // apareció, sin decirle cuál era, es peor que no ofrecerla.
             if (!_services.Updates.OpenUrl(rel.HtmlUrl))
@@ -179,7 +164,7 @@ public sealed partial class MainWindow
         var panel = new StackPanel { MaxWidth = 380, Spacing = 10 };
         panel.Children.Add(new TextBlock
         {
-            Text = L.T("update.availBody", rel.Version, AppInfo.VersionString),
+            Text = L.T("update.availBody", rel.TagName, AppInfo.VersionString),
             TextWrapping = TextWrapping.Wrap,
         });
 
@@ -236,7 +221,7 @@ public sealed partial class MainWindow
             // `using`: el instalador viene con su archivo retenido, y así sigue hasta que se ha lanzado
             // (`AUD-002`). Lo que arranca es lo que se verificó, no lo que haya en esa ruta después.
             using VerifiedInstaller installer = await _services.Updates.DownloadAsync(rel, progress, _cts!.Token);
-            _services.History.Log($"UPDATE DOWNLOADED {rel.Version}: {installer.Path}");
+            _services.History.Log($"UPDATE DOWNLOADED {rel.TagName}: {installer.Path}");
             StatusText.Text = L.T("update.launching");
             // Instalación silenciosa: el instalador cierra esta app, actualiza y la relanza.
             // Marcamos el cierre como intencional ANTES de salir para que AppWindow_Closing no lo
@@ -259,7 +244,7 @@ public sealed partial class MainWindow
             FormatProgress.Value = 0;
             _lastOperationFailed = true;
             StatusText.Text = "";
-            _services.History.Log($"UPDATE DOWNLOAD ERROR {rel.Version}: {ErrorText.Describe(ex)}");
+            _services.History.Log($"UPDATE DOWNLOAD ERROR {rel.TagName}: {ErrorText.Describe(ex)}");
             await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ErrorText.Describe(ex)));
         }
         finally

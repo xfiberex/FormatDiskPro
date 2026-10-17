@@ -27,6 +27,9 @@ internal sealed class FakeProcessRunner(Func<ProcessSpec, IProcessHandle> factor
     }
 
     /// <summary>Un proceso que escribe <paramref name="stdout"/> y termina con <paramref name="exitCode"/>.</summary>
+    /// <param name="stdout">Lo que escribe en la salida estándar.</param>
+    /// <param name="exitCode">El código con que termina.</param>
+    /// <param name="stderr">Lo que escribe en la salida de error.</param>
     /// <param name="chunkSize">
     /// Caracteres por lectura. Por omisión la salida llega entera de una vez; un valor pequeño simula que
     /// el proceso la va escribiendo poco a poco, que es lo que ocurre de verdad y lo que obliga a los

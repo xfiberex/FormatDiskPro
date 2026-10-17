@@ -3,7 +3,7 @@ namespace FormatDiskPro.UiTests;
 
 /// <summary>
 /// El respaldo de ajustes sobrevive a que el proceso de pruebas muera (`AUD-040`). No lanza la app: va
-/// sobre carpetas temporales, y «matar el proceso» es no llamar a <see cref="SettingsBackup.Restore"/>,
+/// sobre carpetas temporales, y «matar el proceso» es no llamar a <see cref="SettingsBackup.Restore()"/>,
 /// que es exactamente lo que deja de ocurrir cuando la corrida muere.
 /// </summary>
 public sealed class SettingsBackupTests : IDisposable

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Text.RegularExpressions;
-using FormatDiskPro;
 using Xunit;
 
 namespace FormatDiskPro.Tests;
