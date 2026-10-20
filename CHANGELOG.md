@@ -16,6 +16,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.30.4] — 2026-10-20
+
+**Privacidad y licencias, y la auditoría del 2026-10-11 cerrada.** *Novedades* ya no se conecta a Internet:
+las notas van dentro del programa, así que con la búsqueda automática de actualizaciones desactivada la
+aplicación no se conecta a nada. Los avisos de terceros dicen la licencia real de cada componente que viaja
+en el instalador, y el instalador deja sus textos completos en la carpeta `licenses`. No hay funciones nuevas.
+
 ### Corregido
 
 - **Con la búsqueda automática de actualizaciones desactivada, la aplicación seguía conectando con GitHub**
@@ -1082,7 +1089,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.3...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.4...HEAD
+[1.30.4]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.4
 [1.30.3]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.3
 [1.30.2]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.2
 [1.30.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.1

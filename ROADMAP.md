@@ -29,7 +29,7 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-20 · **Publicado:** v1.30.3 · **1 tarea abierta**,
+**Última actualización:** 2026-10-20 · **Publicado:** v1.30.4 · **1 tarea abierta**,
 bloqueada a propósito: la auditoría del 2026-10-11 está cerrada.
 
 | Tier | Severidad | Abiertas |

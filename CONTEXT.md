@@ -179,7 +179,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.3** (2026-10-20): los textos de la auditoría del 2026-10-11 (`AUD-048`, `AUD-049`) y la prueba de `AUD-030`. `master` sin trabajo pendiente de publicar |
+| **Publicado** | **v1.30.4** (2026-10-20): *Novedades* sin red (`AUD-067`), licencias de lo redistribuido (`AUD-024`) y licencia de las contribuciones (`AUD-071`). Con ella, la auditoría del 2026-10-11 está publicada entera. `master` sin trabajo pendiente de publicar |
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR. Desde `AUD-042`/`AUD-043` son avisos, por `.editorconfig`, los `using` sin uso (IDE0005) y la documentación XML mal formada (CS1570), y no hay `global using` de WinUI porque alcanzaría a `Core/` |

@@ -17,6 +17,7 @@
 
 | Versión | Qué trajo |
 |---|---|
+| **1.30.4** | **Privacidad y licencias, sin funciones nuevas.** *Novedades* lee las notas del CHANGELOG embebido y no se conecta a nada: la única conexión de la app es buscar actualizaciones. Los avisos de terceros citan la licencia real de cada componente redistribuido, el instalador deja sus textos en `licenses` y el encaje con la GPLv3 queda escrito, sin permiso adicional. La guía dice bajo qué licencia entran las contribuciones. Con ella, las 71 tareas de la auditoría del 2026-10-11 están publicadas |
 | **1.30.3** | **Los textos, sin funciones nuevas.** Tuteo en todo el español y un término por cosa en cada idioma, con un glosario que una prueba hace cumplir. En francés, tamaños en octetos («Go») como Windows; «ETA» y el nombre del CSV, traducidos. El historial se escribe en un formato técnico que no depende del idioma. La prueba que le faltaba al arreglo de `AUD-030` |
 | **1.30.2** | **La tercera tanda de la auditoría, sin funciones nuevas.** La ventana dejaba de responder durante un benchmark, una verificación o un borrado seguro, porque cada bloque se procesaba en el hilo de la interfaz. Las carpetas de trabajo que deja una operación interrumpida se detectan y se ofrece borrarlas. *Reinicializar* nombra el disco y todo lo que se pierde. Cada desenlace deja su línea en el historial, que escribe el perfil como `%USERPROFILE%`. Licencia `GPL-3.0-only`. Por dentro: compilación reproducible, catálogo único de sistemas de archivos y `MainWindow` por debajo de las 800 líneas por parcial |
 | **1.30.1** | **La segunda tanda de la auditoría, sin funciones nuevas.** El borrado seguro con 3 o 7 pasadas no terminaba: la segunda pedía otra vez el espacio que la primera ya había ocupado. Un fallo pasajero al leer la configuración podía borrar los presets. Una unidad averiada dejaba la app esperando sin límite. La app pasa a tener instancia única, y la barra rápida se apaga durante las operaciones. Interno: el corte comprueba antes de empezar (rama, herramientas, CHANGELOG), prueba en Release sin advertencias y anota en el tag el hash del instalador. Es la primera versión cortada así. |
@@ -64,6 +65,17 @@
 ---
 
 ## Entradas
+
+### 2026-10-20 — Corte de la v1.30.4
+
+**Por qué parche.** *Sin publicar* trae *Corregido* (la conexión de *Novedades* y los avisos de terceros) e
+*Interno* (la licencia de las contribuciones), ninguna sección *Añadido*: el criterio de la v1.30.1 a la
+v1.30.3.
+
+**Primer instalador con la carpeta `licenses`.** `build-installer.ps1` copia las licencias y avisos de la
+versión exacta que empaqueta, y no compila si falta alguno; en un corte, eso para el corte antes de etiquetar.
+Con este, la auditoría del 2026-10-11 queda publicada entera, y el ROADMAP solo tiene `T10-02`, bloqueada a
+propósito.
 
 ### 2026-10-20 — `AUD-071`: bajo qué licencia entra una contribución, y la auditoría del 2026-10-11, cerrada
 

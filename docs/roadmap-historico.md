@@ -23,9 +23,9 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
-| 2026-10-20 | `AUD-071` | La guía y la plantilla de PR dicen que se contribuye bajo `GPL-3.0-only`, sin CLA ni DCO | sin publicar |
-| 2026-10-20 | `AUD-067` | *Novedades* lee las notas del CHANGELOG embebido: sin red, esté como esté la preferencia | sin publicar |
-| 2026-10-20 | `AUD-024` | Licencia real de cada componente redistribuido, sus textos en `{app}\licenses` y el encaje con la GPLv3 por escrito, sin permiso adicional | sin publicar |
+| 2026-10-20 | `AUD-071` | La guía y la plantilla de PR dicen que se contribuye bajo `GPL-3.0-only`, sin CLA ni DCO | v1.30.4 |
+| 2026-10-20 | `AUD-067` | *Novedades* lee las notas del CHANGELOG embebido: sin red, esté como esté la preferencia | v1.30.4 |
+| 2026-10-20 | `AUD-024` | Licencia real de cada componente redistribuido, sus textos en `{app}\licenses` y el encaje con la GPLv3 por escrito, sin permiso adicional | v1.30.4 |
 | 2026-10-20 | `AUD-049` | Unidades del idioma («Go» en francés), «ETA» y el nombre del CSV traducidos; el historial, en formato invariable | v1.30.3 |
 | 2026-10-20 | `AUD-048` | Tuteo en español, un término por cosa en cada idioma y glosario en `CONTRIBUTING.md` que una prueba hace cumplir | v1.30.3 |
 | 2026-10-20 | `AUD-030` | El flujo de actualización sale a `UpdateInstallFlow` y se prueba con un `IUpdateService` falso | v1.30.3 |
