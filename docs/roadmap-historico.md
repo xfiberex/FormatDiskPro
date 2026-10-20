@@ -23,9 +23,9 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
-| 2026-10-20 | `AUD-049` | Unidades del idioma («Go» en francés), «ETA» y el nombre del CSV traducidos; el historial, en formato invariable | sin publicar |
-| 2026-10-20 | `AUD-048` | Tuteo en español, un término por cosa en cada idioma y glosario en `CONTRIBUTING.md` que una prueba hace cumplir | sin publicar |
-| 2026-10-20 | `AUD-030` | El flujo de actualización sale a `UpdateInstallFlow` y se prueba con un `IUpdateService` falso | sin publicar |
+| 2026-10-20 | `AUD-049` | Unidades del idioma («Go» en francés), «ETA» y el nombre del CSV traducidos; el historial, en formato invariable | v1.30.3 |
+| 2026-10-20 | `AUD-048` | Tuteo en español, un término por cosa en cada idioma y glosario en `CONTRIBUTING.md` que una prueba hace cumplir | v1.30.3 |
+| 2026-10-20 | `AUD-030` | El flujo de actualización sale a `UpdateInstallFlow` y se prueba con un `IUpdateService` falso | v1.30.3 |
 | 2026-10-17 | `AUD-043` | Fuera `about.body` y `ReleaseInfo.Version`; resúmenes al día, documentación XML compilada y sin avisos | v1.30.2 |
 | 2026-10-17 | `AUD-042` | `MainWindow.xaml.cs` en 478 líneas (tres parciales nuevas) y avisos de `using` sin uso en la compilación | v1.30.2 |
 | 2026-10-17 | `AUD-041` | Un catálogo de sistemas de archivos, un codificador de PowerShell y un búfer alineado, cada uno en un sitio | v1.30.2 |

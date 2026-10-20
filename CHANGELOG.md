@@ -16,6 +16,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.30.3] — 2026-10-20
+
+**Los textos, cada uno en su idioma.** El español trata siempre de tú, y cada idioma usa un único término
+para cada cosa. En francés, los tamaños se escriben en octetos («4 Ko», «32 Go»), como en Windows. El tiempo
+restante de una operación larga y el nombre del CSV del historial salen en el idioma de la app. No hay
+funciones nuevas.
+
 ### Cambiado
 
 - **En francés, los tamaños se escriben en octetos**, como en el Explorador de Windows: «4 Ko», «1020 Mo»,
@@ -1059,7 +1066,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.2...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.3...HEAD
+[1.30.3]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.3
 [1.30.2]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.2
 [1.30.1]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.1
 [1.30.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.0
