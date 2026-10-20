@@ -86,6 +86,7 @@ src/FormatDiskPro/
 │  ├─ TaskbarProgress.cs   Progreso en el icono de la barra de tareas (ITaskbarList3)
 │  ├─ FormatProcess.cs     Lanza Format-Volume (PowerShell) y format.com, con progreso real
 │  ├─ UpdateService.cs     GitHub Releases: consulta, descarga a %ProgramData%, VERIFICACIÓN (SHA-256), instalación
+│  ├─ UpdateInstallFlow.cs Descargar, dar el cierre por intencional y lanzar, fuera de la ventana para probarlo (AUD-030)
 │  └─ History.cs           Auditoría (%AppData%\FormatDiskPro\history.log, rotado a history.1.log)
 ├─ UI/              WinUI 3 (Windows App SDK)
 │  ├─ MainWindow          Ventana principal, repartida en partial class por asunto (tope: 800 líneas cada una):
@@ -182,8 +183,8 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR. Desde `AUD-042`/`AUD-043` son avisos, por `.editorconfig`, los `using` sin uso (IDE0005) y la documentación XML mal formada (CS1570), y no hay `global using` de WinUI porque alcanzaría a `Core/` |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-17: **966** (965 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
-| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-17, con la USB de pruebas y sin opt-in: **60** (55 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-20: **989** (988 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
+| **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-20, con la USB de pruebas y sin opt-in: **60** (55 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
@@ -409,13 +410,12 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
   antes el alfa sobre el fondo. **Añadir un color al inventario es ponerlo bajo test: no hay forma de hacer
   una cosa sin la otra.** No queda ningún color fuera de `Core`: el último, el de los botones de la barra de
   título, lo pinta Windows desde `T13-12` (`AppWindowTitleBar.PreferredTheme`). El porqué, en el historial.
-- **Un color se mide contra lo que hay que distinguirlo, no siempre contra el fondo** (desde 2026-08-16).
-  `PaletteColor.Against` permite declarar un color **adyacente** como referencia. Lo usa la pista de la
-  barra de ocupación: contra la tarjeta no llega al 3:1 *a propósito* —es un hueco, no una segunda barra—,
-  y lo que el usuario tiene que separar ahí es *usado* de *libre*. Entra al inventario con una entrada por
-  cada relleno con el que puede compartir barra. Si alguien le quita el `Against` «para medirla como las
-  demás», el barrido la suspende y la reacción natural sería oscurecerla hasta que compita con el relleno:
-  hay un test que fija que esas entradas declaren su vecino.
+- **Un color se mide contra lo que hay que distinguirlo** (2026-08-16): `PaletteColor.Against` declara un
+  vecino. La pista de la barra de ocupación no llega al 3:1 contra la tarjeta *a propósito*: lo que hay que
+  separar es *usado* de *libre*. Un test exige que esas entradas declaren su vecino; no se oscurece la pista.
+- **Textos** (`AUD-048`, `AUD-049`): tuteo y un término por cosa, según el glosario de `CONTRIBUTING.md`, que
+  `GlossaryTests` hace cumplir. Las unidades de `FormatBytes` son del idioma («Go» en francés); el historial
+  se escribe en formato técnico invariable (`FormatBytesForLog`, `Benchmark.LogLine`).
 - **La barra de capacidad NO usa el color de acento** (desde el pase de UX del 2026-07-20). Un `ProgressBar`
   por defecto hereda el acento del sistema; en un equipo con **acento rojo** la barra de ocupación se veía
   roja con el disco medio vacío y leía como *alarma*. Ahora codifica ocupación, no marca: neutro <80 %,

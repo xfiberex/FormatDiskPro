@@ -29,24 +29,24 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-17 · **Publicado:** v1.30.2 · **7 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-20 · **Publicado:** v1.30.2 · **4 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
 | **2** | Medio | 1 |
-| **3** | Bajo | 5 |
+| **3** | Bajo | 2 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **7** |
+| | **Total** | **4** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **6** y se han cerrado **65**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-068`, `AUD-069`, `AUD-070`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **3** y se han cerrado **68**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-068`, `AUD-069`, `AUD-070`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
 | Seguridad | – | – | – | 0 |
-| Código | – | – | 1 | 1 |
+| Código | – | – | – | 0 |
 | QA | – | – | – | 0 |
 | Documentación | – | – | – | 0 |
 | DevOps | – | – | – | 0 |
@@ -55,15 +55,14 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **6** y se han cerrado **6
 | UI/UX | – | – | – | 0 |
 | Arquitectura y resiliencia | – | – | – | 0 |
 | Refactorización | – | – | – | 0 |
-| Redacción | – | – | 2 | 2 |
-| **Total** | **–** | **1** | **5** | **6** |
+| Redacción | – | – | – | 0 |
+| **Total** | **–** | **1** | **2** | **3** |
 
-**Esfuerzo:** 3 de esfuerzo bajo (hasta 2 horas) y 3 de esfuerzo medio (hasta 1 día); ninguna de
+**Esfuerzo:** 2 de esfuerzo bajo (hasta 2 horas) y 1 de esfuerzo medio (hasta 1 día); ninguna de
 esfuerzo alto.
 
-**Orden recomendado** (el porqué, en la sección 4 del informe): las de redacción (`AUD-048`, `AUD-049`) y
-`AUD-030`, a la que solo le falta su prueba. `AUD-024`, y después `AUD-071`, y `AUD-067` necesitan antes
-una decisión del autor.
+**Orden recomendado:** las tres que quedan necesitan antes una decisión del autor: `AUD-024` (con
+asesoramiento legal), después `AUD-071`, que depende de ella, y `AUD-067`.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
@@ -78,29 +77,6 @@ una decisión del autor.
   - **Antecedente:** ya conocido como «revisado, sin hallazgos» (`T9-19` y *Áreas auditadas sin hallazgos* del historial); se reabre por un hecho nuevo: el salto al SDK 2.x (`T13-20`) y la licencia real del paquete
 
 ## 🟢 Tier 3 — Bajo
-
-### Código
-
-- [ ] **AUD-030 · Si falla el lanzamiento del instalador, la interfaz se queda deshabilitada**
-  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.HelpAndUpdates.cs:241-243`, `:250-261` · `src/UI/MainWindow.xaml.cs:861`
-  - **Qué hacer:** poner el indicador después de que `LaunchInstaller` haya devuelto, o devolverlo a `false` en el `catch`.
-  - **Criterio de aceptación:** con un `IUpdateService` falso cuyo `LaunchInstaller` lanza, los controles vuelven a estar activos.
-  - **Avance (2026-10-15):** el arreglo está hecho: en el `catch` genérico de `DownloadAndRunUpdateAsync`, `_closingForUpdate` vuelve a `false` antes de que `EndOperation` decida si rehabilita los controles. **Para cerrarla falta** la prueba que pide el criterio: un `IUpdateService` falso cuyo `LaunchInstaller` lance, inyectado en la app real. No existe aún la forma de inyectarlo en una prueba de UI, y la sesión que hizo el cambio no podía ejecutar la app.
-
-### Redacción
-
-- [ ] **AUD-048 · Tratamiento, terminología y tipografía no son uniformes dentro de cada idioma**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio
-  - **Ubicación:** tratamiento de usted en `src/Localization/Localization.cs:395`, `:396`, `:406`, `:446`, `:455`, `:457` frente al tuteo del resto · terminología y puntuación: lista completa en `trabajo/hallazgos/10-redaccion.md`
-  - **Qué hacer:** un glosario breve por idioma en `CONTRIBUTING.md` y una pasada de unificación.
-  - **Criterio de aceptación:** el glosario existe y una búsqueda de cada término descartado no devuelve resultados.
-
-- [ ] **AUD-049 · Hay texto visible que no pasa por la localización, y en francés conviven dos sistemas de unidades**
-  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:912` («ETA») · `src/Core/FormatLogic.cs:185` (B, KB, MB, GB, TB fijos) · detalle del historial tal como se escribe en el registro · evidencias: `evidencias/galeria-fr-656/main-secure-light.png`, `evidencias/galeria-es/history-dark.png`
-  - **Qué hacer:** pasar «ETA» y las unidades por `L.T` (o decidir que las unidades no se traducen y cambiar el texto fijo francés a «4 GB»).
-  - **Criterio de aceptación:** en la galería en francés no conviven «Go» y «GB».
 
 ### Legal
 

@@ -16,6 +16,27 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **En francés, los tamaños se escriben en octetos**, como en el Explorador de Windows: «4 Ko», «1020 Mo»,
+  «32 Go». Antes los valores calculados salían como «MB» y «GB» junto a textos que ya decían «4 Go». El tiempo
+  restante de una operación larga se dice en cada idioma («quedan 03:10») y no como «ETA», y el CSV del
+  historial se exporta con un nombre en el idioma de la app (`AUD-049`).
+- **Los textos tratan a la persona siempre de tú en español**, y cada idioma usa un único término para cada
+  cosa: «extraíble» y no «removible», «clúster», «predefinição» en portugués, «nom de volume» en francés. El
+  inglés pasa a la variante de EE. UU., como Windows. *Licencia* y *Avisos de terceros* llevan «…», como los
+  demás ítems del menú Ayuda que abren un diálogo (`AUD-048`).
+
+### Interno
+
+- `.github/CONTRIBUTING.md` tiene un glosario por idioma, y una prueba lo lee y falla si un término
+  descartado vuelve a aparecer (`AUD-048`).
+- El historial se escribe en el mismo formato técnico en cualquier idioma («9.2 MB/s»): con las unidades
+  traducidas, una medición habría quedado escrita distinta según el idioma de la app (`AUD-049`).
+- La descarga y el lanzamiento de una actualización viven en `UpdateInstallFlow`, con las pruebas que le
+  faltaban al arreglo de la v1.30.1: si el instalador no llega a lanzarse, la ventana vuelve a quedar
+  utilizable (`AUD-030`).
+
 ## [1.30.2] — 2026-10-17
 
 **Correcciones de la auditoría, tercera tanda.** La ventana sigue respondiendo durante un benchmark, una

@@ -23,8 +23,14 @@ public static class Throughput
     /// Formatea una velocidad en bytes por segundo de forma legible, p. ej. <c>"45.2 MB/s"</c>.
     /// Devuelve cadena vacía si la velocidad no es positiva.
     /// </summary>
-    public static string FormatSpeed(double bytesPerSec)
-        => bytesPerSec <= 0 ? "" : $"{FormatLogic.FormatBytes((long)bytesPerSec)}/s";
+    /// <param name="bytesPerSec">Velocidad en bytes por segundo.</param>
+    /// <param name="forLog">
+    /// <see langword="true"/> para el formato técnico del historial, igual en cualquier idioma
+    /// (<see cref="FormatLogic.FormatBytesForLog"/>); en caso contrario, <see langword="false"/>.
+    /// </param>
+    public static string FormatSpeed(double bytesPerSec, bool forLog = false)
+        => bytesPerSec <= 0 ? ""
+         : $"{(forLog ? FormatLogic.FormatBytesForLog((long)bytesPerSec) : FormatLogic.FormatBytes((long)bytesPerSec))}/s";
 
     /// <summary>
     /// Formatea un ETA como <c>"mm:ss"</c> (o <c>"h:mm:ss"</c> si supera la hora).

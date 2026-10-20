@@ -261,7 +261,7 @@ public sealed partial class MainWindow
                 string spd = Throughput.FormatSpeed(speed);
                 string etaStr = Throughput.FormatEta(eta);
                 if (spd.Length > 0)    text += $"  ·  {spd}";
-                if (etaStr.Length > 0) text += $"  ·  ETA {etaStr}";
+                if (etaStr.Length > 0) text += $"  ·  {L.T("op.eta", etaStr)}";
             }
             _speedLastBytes = _opBytesDone;
             _speedLastTime  = now;

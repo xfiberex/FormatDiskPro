@@ -64,6 +64,35 @@
 
 ## Entradas
 
+### 2026-10-20 — `AUD-030`, `AUD-048` y `AUD-049`: los textos, cada uno en su idioma, y la prueba que faltaba
+
+**Qué cambia.** El español trata siempre de tú y cada idioma usa un término para cada cosa, con un glosario
+en `CONTRIBUTING.md` que una prueba hace cumplir. En francés los tamaños se escriben en octetos («4 Ko»,
+«1020 Mo»), «ETA» y el nombre del CSV pasan por la localización, y el historial se escribe en un formato
+técnico que no depende del idioma. El flujo de actualización sale de la ventana para poder probarlo.
+
+**Por qué así.** Para las unidades había dos salidas: traducirlas o fijar «GB» en todos los idiomas. Se
+tradujeron, porque el francés de la app ya decía «Go» en todos sus textos fijos y es lo que enseña el Windows
+francés; lo que desentonaba eran los valores calculados. Pero traducirlas tenía un efecto que no estaba en la
+tarea: la línea del benchmark del historial se componía con las mismas funciones, así que habría quedado
+escrita en «Mo/s» o «MB/s» según el idioma que tuviera la app. El historial se pega en issues y lo lee el
+visor; se escribe ahora en un formato invariable, como el resto de sus palabras técnicas.
+
+El glosario vive en la guía y la prueba lo lee de allí, en lugar de tener cada uno su lista: si alguien
+cambia de criterio, cambia un sitio. Una lectura completa del español encontró 13 cadenas en usted, no las 6
+que contó la auditoría.
+
+Para `AUD-030` se descartó la costura que pedía su criterio, inyectar un `IUpdateService` falso en la app
+real: en una app que corre elevada, cualquier mecanismo que cambie de dónde baja y qué ejecuta el instalador
+es una puerta para otro. Se movió el flujo a `UpdateInstallFlow`, donde un servicio falso basta, y se mide el
+indicador que decide si los controles vuelven, no los controles.
+
+**Cómo se probó.** 989 unitarias (988 pasan), con reversiones del glosario, del flujo de actualización y del formato del
+historial. Galería en francés de 28 tomas. La suite de UI sin opt-in (`Category!=Slow`), contra el Release: 60, 55 pasan, 5 omitidas por opt-in, ninguna falla. La primera corrida de la suite de UI dio
+20 fallos por `SendInput: Acceso denegado`: la sesión dejó de aceptar entrada a mitad. Repetida, quedó un
+fallo real de la propia prueba: `LeftoverWorkFolder_IsOffered_AndDeletedOnAccept` leía el historial en
+cuanto la carpeta desaparecía, y la app escribe la línea justo después; ahora la espera.
+
 ### 2026-10-17 — Corte de la v1.30.2
 
 **Por qué parche y no *minor*.** Se propuso una «v1.31.0», pero *Sin publicar* solo trae correcciones, cambios

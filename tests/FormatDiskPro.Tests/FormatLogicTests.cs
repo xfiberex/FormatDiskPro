@@ -360,9 +360,16 @@ public sealed class FormatLogicTests : IDisposable
 
     // ── FormatBytes ──────────────────────────────────────────────
 
-    // La escalera de unidades no depende del idioma, así que se fija la cultura en la llamada: si estas
-    // pruebas no la dijeran, estarían midiendo dos cosas a la vez. La cultura tiene sus propias pruebas
-    // justo debajo.
+    // La escalera de unidades, con la cultura y el idioma fijos: si estas pruebas no los dijeran, estarían
+    // midiendo tres cosas a la vez. Desde `AUD-049` las unidades son del idioma («Ko» en francés), así que
+    // se fija el español; el separador y las unidades tienen sus propias pruebas justo debajo.
+    private static string InSpanish(Func<string> format)
+    {
+        var prev = L.Current;
+        try { L.Set(AppLang.Es); return format(); }
+        finally { L.Set(prev); }
+    }
+
     [Theory]
     [InlineData(0L, "0 B")]
     [InlineData(512L, "512 B")]
@@ -372,13 +379,13 @@ public sealed class FormatLogicTests : IDisposable
     [InlineData(1073741824L, "1 GB")]
     [InlineData(1099511627776L, "1 TB")]
     public void FormatBytes_FormatsAcrossUnits(long bytes, string expected)
-        => Assert.Equal(expected, FormatLogic.FormatBytes(bytes, CultureInfo.InvariantCulture));
+        => Assert.Equal(expected, InSpanish(() => FormatLogic.FormatBytes(bytes, CultureInfo.InvariantCulture)));
 
     [Theory]
     [InlineData(2L * 1024 * 1024 * 1024, "2 GB")]              // entero: sin ".0"
     [InlineData(62060003328L, "57.8 GB")]                       // no entero: un decimal
     public void FormatBytes_OmitsTrailingZeroDecimal(long bytes, string expected)
-        => Assert.Equal(expected, FormatLogic.FormatBytes(bytes, CultureInfo.InvariantCulture));
+        => Assert.Equal(expected, InSpanish(() => FormatLogic.FormatBytes(bytes, CultureInfo.InvariantCulture)));
 
     /// <summary>
     /// `T6-12`: el separador decimal lo pone el idioma elegido en la app, no Windows. Antes de esto,
@@ -389,7 +396,7 @@ public sealed class FormatLogicTests : IDisposable
     [InlineData(AppLang.Es, "1,5 KB")]
     [InlineData(AppLang.En, "1.5 KB")]
     [InlineData(AppLang.Pt, "1,5 KB")]
-    [InlineData(AppLang.Fr, "1,5 KB")]
+    [InlineData(AppLang.Fr, "1,5 Ko")]   // y las unidades, del idioma (`AUD-049`)
     [InlineData(AppLang.It, "1,5 KB")]
     public void FormatBytes_UsesTheDecimalSeparatorOfTheAppLanguage(AppLang lang, string expected)
     {
@@ -401,6 +408,34 @@ public sealed class FormatLogicTests : IDisposable
         }
         finally { L.Set(prev); }
     }
+
+    /// <summary>
+    /// En francés, las unidades calculadas son las mismas que las del texto fijo, «Go» (`AUD-049`). Antes el
+    /// texto decía «Limite de 4 Go par fichier» y, en la misma tarjeta, el valor calculado salía como «4 KB».
+    /// </summary>
+    [Theory]
+    [InlineData(AppLang.Fr, 512L, "512 o")]
+    [InlineData(AppLang.Fr, 4096L, "4 Ko")]
+    [InlineData(AppLang.Fr, 64L * 1024 * 1024, "64 Mo")]
+    [InlineData(AppLang.Fr, 32L * 1024 * 1024 * 1024, "32 Go")]
+    [InlineData(AppLang.Fr, 1099511627776L, "1 To")]
+    [InlineData(AppLang.En, 4096L, "4 KB")]
+    [InlineData(AppLang.It, 32L * 1024 * 1024 * 1024, "32 GB")]
+    public void FormatBytes_UsesTheUnitsOfTheAppLanguage(AppLang lang, long bytes, string expected)
+    {
+        var prev = L.Current;
+        try
+        {
+            L.Set(lang);
+            Assert.Equal(expected, FormatLogic.FormatBytes(bytes));
+        }
+        finally { L.Set(prev); }
+    }
+
+    /// <summary>Cada idioma da las cinco unidades de <c>unit.bytes</c>, en el orden de la escalera.</summary>
+    [Fact]
+    public void UnitTable_HasFiveUnitsInEveryLanguage()
+        => Assert.All(L.Map["unit.bytes"], units => Assert.Equal(5, units.Split('|').Length));
 
     /// <summary>
     /// El «cuidado» de `T6-12`: <see cref="L.Culture"/> es solo para formatear lo que se muestra. Si

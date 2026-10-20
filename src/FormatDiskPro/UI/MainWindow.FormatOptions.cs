@@ -69,15 +69,7 @@ public sealed partial class MainWindow
 
         AllocUnitPicker.Items.Clear();
         _allocBytes.Clear();
-        _allocLabels.Clear();
-
-        foreach (long size in spec.ClusterSizes)
-        {
-            string label = size >= 1024 * 1024 ? $"{size / (1024 * 1024)} MB"
-                         : size >= 1024 ? $"{size / 1024} KB" : $"{size} bytes";
-            _allocBytes.Add(size);
-            _allocLabels.Add(label);
-        }
+        _allocBytes.AddRange(spec.ClusterSizes);
 
         int defIdx = Array.IndexOf(spec.ClusterSizes, spec.DefaultClusterSize);
         _allocRecommended = defIdx >= 0 ? defIdx : 0;
@@ -97,28 +89,28 @@ public sealed partial class MainWindow
     /// <see cref="SelectedAllocLabel"/>, el tamaño a secas: el pie ya va justo de ancho (`T13-05`) y la
     /// confirmación enseña lo que se va a aplicar, no de dónde salió.</para>
     ///
-    /// <para>Se rehace al cambiar de idioma, porque la marca es texto traducido: <c>ApplyLanguage</c> la
-    /// llama.</para>
+    /// <para>Se rehace al cambiar de idioma, porque la marca y las unidades son texto traducido
+    /// (`AUD-049`: en francés, «4 Ko»): <c>ApplyLanguage</c> la llama.</para>
     /// </remarks>
     private void RefreshAllocationLabels()
     {
-        if (_allocLabels.Count == 0) return;
+        if (_allocBytes.Count == 0) return;
 
         int selected = AllocUnitPicker.SelectedIndex;
         AllocUnitPicker.Items.Clear();
-        for (int i = 0; i < _allocLabels.Count; i++)
+        for (int i = 0; i < _allocBytes.Count; i++)
             AllocUnitPicker.Items.Add(i == _allocRecommended
-                ? L.T("alloc.recommended", _allocLabels[i])
-                : _allocLabels[i]);
+                ? L.T("alloc.recommended", FormatLogic.FormatBytes(_allocBytes[i]))
+                : FormatLogic.FormatBytes(_allocBytes[i]));
 
-        if (selected >= 0 && selected < _allocLabels.Count) AllocUnitPicker.SelectedIndex = selected;
+        if (selected >= 0 && selected < _allocBytes.Count) AllocUnitPicker.SelectedIndex = selected;
     }
 
     /// <summary>Tamaño de clúster seleccionado, sin la marca de recomendado.</summary>
     private string SelectedAllocLabel()
     {
         int i = AllocUnitPicker.SelectedIndex;
-        return i >= 0 && i < _allocLabels.Count ? _allocLabels[i] : "";
+        return i >= 0 && i < _allocBytes.Count ? FormatLogic.FormatBytes(_allocBytes[i]) : "";
     }
 
     private void UpdateFsDescription()

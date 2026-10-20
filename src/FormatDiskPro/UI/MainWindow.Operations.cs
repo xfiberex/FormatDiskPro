@@ -687,7 +687,7 @@ public sealed partial class MainWindow
         // IOPS junto a los MB/s del 4 KiB aleatorio (como CrystalDiskMark): bytes/s ÷ 4096, redondeado.
         string rndWIops = FormatIops(res.Random4K.WriteBytesPerSec);
         string rndRIops = FormatIops(res.Random4K.ReadBytesPerSec);
-        _services.History.Log($"BENCH {item.Letter}: seq w={seqW} r={seqR} · rnd4k w={rndW} ({rndWIops}) r={rndR} ({rndRIops}) bytes={res.TestBytes}");
+        _services.History.Log(Benchmark.LogLine(item.Letter, res));
         StatusText.Text = L.T("bench.resultTitle");
         await ShowDialogAsync(
             L.T("bench.resultTitle"),

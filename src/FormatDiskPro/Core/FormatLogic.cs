@@ -181,15 +181,31 @@ public static partial class FormatLogic
     /// <para>`T6-12`: el separador decimal lo pone <see cref="L.Culture"/> —el idioma elegido en la app—,
     /// no la cultura de Windows, que es de donde venía «223.6 GB» junto a texto en español. Es una función
     /// de <b>presentación</b>: nada de lo que se guarda pasa por aquí.</para>
+    ///
+    /// <para>`AUD-049`: las unidades también son del idioma (<c>unit.bytes</c>): en francés, «Ko», «Mo»,
+    /// «Go», como el Explorador de Windows y como el resto del texto francés de la app, que ya decía «4 Go»
+    /// junto a valores calculados en «MB».</para>
     /// </summary>
     /// <param name="bytes">Cantidad de bytes.</param>
     /// <param name="culture">Cultura de formato; por omisión, la del idioma activo de la app.</param>
     public static string FormatBytes(long bytes, IFormatProvider? culture = null)
+        => Scale(bytes, culture ?? L.Culture, L.T("unit.bytes").Split('|'));
+
+    /// <summary>
+    /// Lo mismo que <see cref="FormatBytes"/>, pero igual en cualquier idioma: «1.5 KB», con punto y unidades
+    /// en inglés. Es para el <b>historial</b>, que se escribe en formato técnico —«BENCH», «seq», «rnd4k»— y se
+    /// pega en issues: una línea no puede cambiar de forma según el idioma que tuviera la app al escribirla.
+    /// </summary>
+    /// <param name="bytes">Cantidad de bytes.</param>
+    /// <returns>La cantidad con un decimal como máximo y su unidad.</returns>
+    public static string FormatBytesForLog(long bytes)
+        => Scale(bytes, CultureInfo.InvariantCulture, ["B", "KB", "MB", "GB", "TB"]);
+
+    private static string Scale(long bytes, IFormatProvider culture, string[] units)
     {
-        string[] u = ["B", "KB", "MB", "GB", "TB"];
         double v = bytes; int i = 0;
-        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
-        return string.Format(culture ?? L.Culture, "{0:0.#} {1}", v, u[i]);
+        while (v >= 1024 && i < units.Length - 1) { v /= 1024; i++; }
+        return string.Format(culture, "{0:0.#} {1}", v, units[i]);
     }
 
     /// <summary>

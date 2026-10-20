@@ -64,10 +64,8 @@ public sealed partial class MainWindow : Window
     private DiskService.HealthInfo? _lastHealth;
     private DispatcherTimer _elapsedTimer = null!;
     private readonly ObservableCollection<DriveViewModel> _driveItems = new();
+    /// <summary>Tamaños de clúster que ofrece el selector, en bytes y en su orden.</summary>
     private readonly List<long> _allocBytes = new();
-
-    /// <summary>Tamaños de clúster tal cual («4 KB»), sin la marca de recomendado (`T13-10`).</summary>
-    private readonly List<string> _allocLabels = new();
 
     /// <summary>Índice del tamaño recomendado para el sistema de archivos elegido.</summary>
     private int _allocRecommended;

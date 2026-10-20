@@ -86,6 +86,34 @@ Convenciones que hay tests vigilando —y que fallarán si las saltas—:
 - **PowerShell siempre por `-EncodedCommand`**; letras de unidad validadas antes de interpolar.
 - Documentación XML (`/// <summary>`) en lo público, en español, explicando **por qué** cuando no sea obvio.
 
+## Textos de la interfaz: glosario por idioma
+
+Un término para cada cosa y un mismo tratamiento en todo el idioma (`AUD-048`). La tabla la lee
+`GlossaryTests`: cada término de la columna **Descartado** de un idioma hace fallar esa prueba si aparece en
+sus textos de `Localization.cs` (sin distinguir mayúsculas; las palabras, enteras). Para cambiar
+de criterio se cambia aquí, y la prueba lo sigue.
+
+<!-- glosario:inicio -->
+| Idioma | Se usa | Descartado |
+|---|---|---|
+| ES | Tuteo: «Selecciona», «Revisa», «Espera», «Asegúrate» | `Seleccione` · `Actualice` · `Asegúrese` · `Revise` · `Utilice` · `Espere` · `escriba` · `Vuelva` · `cambie` · `descargue` · `Bórrela` · `Sustitúyala` |
+| ES | «extraíble», «disco del sistema», «clúster», «tamaño de unidad de asignación», «preset» | `removible` · `removibles` · `disco de sistema` · `cluster` |
+| EN | Inglés de EE. UU., como Windows: «canceled», «favors», «license»; comillas “ ” | `cancelled` · `favours` · `licence` · `colour` · `behaviour` |
+| PT | Português do Brasil, «você»: «predefinição» (no «preset»), «unidade» | `preset` · `presets` |
+| FR | «nom de volume», como Windows; unidades en octetos: «Ko», «Mo», «Go», «To» | `étiquette de volume` · `KB` · `MB` · `GB` · `TB` |
+| IT | «Visualizza» | `Vedi` |
+<!-- glosario:fin -->
+
+Además, sin prueba que lo vigile:
+
+- **Signo de porcentaje:** con espacio (`{0} %`) en español, portugués, francés e italiano; pegado (`{0}%`)
+  en inglés.
+- **Puntos suspensivos** (`…`, un solo carácter) en todo ítem de menú que abre un diálogo.
+- **Incisos:** la raya pegada al texto que encierra (`—así—`) es del español y del inglés; en portugués,
+  francés e italiano se usan paréntesis.
+- **Comillas:** angulares («») en español, portugués, francés e italiano; tipográficas (“ ”) en inglés.
+- **Unidades:** las de `FormatBytes` salen de `unit.bytes`; no se escriben a mano en el código.
+
 ## Pull requests
 
 1. Una idea por PR. Si toca varias cosas, sepáralas en commits (o en PRs).

@@ -80,6 +80,22 @@ public static class Benchmark
         => string.Format(culture ?? L.Culture, "{0:N0} IOPS", Math.Round(Iops(bytesPerSec, Random4KBlockBytes)));
 
     /// <summary>
+    /// La línea de historial de un benchmark, en el formato técnico del registro: punto decimal y unidades en
+    /// inglés, sea cual sea el idioma de la app (`AUD-049`).
+    /// </summary>
+    /// <param name="letter">La letra de la unidad medida.</param>
+    /// <param name="result">El resultado.</param>
+    /// <returns>La línea, sin la marca de tiempo.</returns>
+    public static string LogLine(char letter, BenchmarkResult result)
+    {
+        string Speed(double v) => Throughput.FormatSpeed(v, forLog: true);
+        string Ops(double v) => FormatIops(v, System.Globalization.CultureInfo.InvariantCulture);
+        return $"BENCH {letter}: seq w={Speed(result.Sequential.WriteBytesPerSec)} r={Speed(result.Sequential.ReadBytesPerSec)}"
+             + $" · rnd4k w={Speed(result.Random4K.WriteBytesPerSec)} ({Ops(result.Random4K.WriteBytesPerSec)})"
+             + $" r={Speed(result.Random4K.ReadBytesPerSec)} ({Ops(result.Random4K.ReadBytesPerSec)}) bytes={result.TestBytes}";
+    }
+
+    /// <summary>
     /// Mediana de un conjunto de velocidades; <c>0</c> si está vacío. Para un número par de valores
     /// devuelve la media de los dos centrales. No modifica la entrada. Lógica pura.
     /// </summary>

@@ -218,34 +218,29 @@ public sealed partial class MainWindow
 
         try
         {
-            // `using`: el instalador viene con su archivo retenido, y así sigue hasta que se ha lanzado
-            // (`AUD-002`). Lo que arranca es lo que se verificó, no lo que haya en esa ruta después.
-            using VerifiedInstaller installer = await _services.Updates.DownloadAsync(rel, progress, _cts!.Token);
-            _services.History.Log($"UPDATE DOWNLOADED {rel.TagName}: {installer.Path}");
-            StatusText.Text = L.T("update.launching");
-            // Instalación silenciosa: el instalador cierra esta app, actualiza y la relanza.
-            // Marcamos el cierre como intencional ANTES de salir para que AppWindow_Closing no lo
-            // cancele por _isBusy; así la app suelta el AppMutex/los archivos y el instalador procede.
-            _closingForUpdate = true;
-            _services.Updates.LaunchInstaller(installer, silent: true);
-            Application.Current.Exit();
-        }
-        catch (OperationCanceledException)
-        {
-            FormatProgress.Value = 0;
-            StatusText.Text = L.T("status.cancelled");
-        }
-        catch (Exception ex)
-        {
-            // Si lo que falló fue lanzar el instalador, el cierre ya se había dado por intencional, y con
-            // eso EndOperation sale antes de rehabilitar nada: la ventana se quedaba con todos los
-            // controles apagados y solo se podía cerrar (`AUD-030`). La app no se va a cerrar.
-            _closingForUpdate = false;
-            FormatProgress.Value = 0;
-            _lastOperationFailed = true;
-            StatusText.Text = "";
-            _services.History.Log($"UPDATE DOWNLOAD ERROR {rel.TagName}: {ErrorText.Describe(ex)}");
-            await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ErrorText.Describe(ex)));
+            // Descargar, marcar el cierre y lanzar viven en UpdateInstallFlow, donde se prueban (`AUD-030`).
+            var (outcome, error) = await UpdateInstallFlow.RunAsync(
+                _services.Updates, _services.History, rel, progress,
+                launching: () => StatusText.Text = L.T("update.launching"),
+                setClosingForUpdate: closing => _closingForUpdate = closing,
+                _cts!.Token);
+
+            switch (outcome)
+            {
+                case UpdateInstallOutcome.Launched:
+                    Application.Current.Exit();
+                    break;
+                case UpdateInstallOutcome.Cancelled:
+                    FormatProgress.Value = 0;
+                    StatusText.Text = L.T("status.cancelled");
+                    break;
+                default:
+                    FormatProgress.Value = 0;
+                    _lastOperationFailed = true;
+                    StatusText.Text = "";
+                    await ShowInfoAsync(L.T("menu.updates"), L.T("update.error", ErrorText.Describe(error!)));
+                    break;
+            }
         }
         finally
         {

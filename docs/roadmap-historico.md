@@ -23,6 +23,9 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-20 | `AUD-049` | Unidades del idioma («Go» en francés), «ETA» y el nombre del CSV traducidos; el historial, en formato invariable | sin publicar |
+| 2026-10-20 | `AUD-048` | Tuteo en español, un término por cosa en cada idioma y glosario en `CONTRIBUTING.md` que una prueba hace cumplir | sin publicar |
+| 2026-10-20 | `AUD-030` | El flujo de actualización sale a `UpdateInstallFlow` y se prueba con un `IUpdateService` falso | sin publicar |
 | 2026-10-17 | `AUD-043` | Fuera `about.body` y `ReleaseInfo.Version`; resúmenes al día, documentación XML compilada y sin avisos | v1.30.2 |
 | 2026-10-17 | `AUD-042` | `MainWindow.xaml.cs` en 478 líneas (tres parciales nuevas) y avisos de `using` sin uso en la compilación | v1.30.2 |
 | 2026-10-17 | `AUD-041` | Un catálogo de sistemas de archivos, un codificador de PowerShell y un búfer alineado, cada uno en un sitio | v1.30.2 |
@@ -112,6 +115,15 @@
   - **Verificado:** dos pruebas de UI nuevas sobre la app real. `DrivePicker_HasANameAndEveryDriveIsAnnouncedByItsOwn` exige nombre en el selector y, en cada opción, que el nombre sea el texto visible, contenga la letra y no se repita. `NoInteractiveControlInTheMainWindow_IsNameless` recorre botones, desplegables, casillas, campos y menús de la ventana principal y exige nombre en todos: es el volcado de UIA de la auditoría convertido en prueba. Por reversión —sin `LabeledBy` y sin `ToString()`— fallan las dos.
 
 ### Código
+
+- [x] **AUD-030 · Si falla el lanzamiento del instalador, la interfaz se queda deshabilitada**
+  - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.HelpAndUpdates.cs:241-243`, `:250-261` · `src/UI/MainWindow.xaml.cs:861`
+  - **Qué hacer:** poner el indicador después de que `LaunchInstaller` haya devuelto, o devolverlo a `false` en el `catch`.
+  - **Criterio de aceptación:** con un `IUpdateService` falso cuyo `LaunchInstaller` lanza, los controles vuelven a estar activos.
+  - **Avance (2026-10-15):** el arreglo está hecho: en el `catch` genérico de `DownloadAndRunUpdateAsync`, `_closingForUpdate` vuelve a `false` antes de que `EndOperation` decida si rehabilita los controles. **Para cerrarla falta** la prueba que pide el criterio: un `IUpdateService` falso cuyo `LaunchInstaller` lance, inyectado en la app real. No existe aún la forma de inyectarlo en una prueba de UI, y la sesión que hizo el cambio no podía ejecutar la app.
+  - **Hecho (2026-10-20):** La prueba que faltaba, sin abrir una puerta en la app. Una costura que cambiara el `IUpdateService` de la app real —una variable de entorno, un argumento— no se añadió: la app corre elevada, y quien pudiera fijarla haría que descargara y ejecutara como administrador lo que quisiera. En su lugar, el flujo que tenía el fallo —descargar, dar el cierre por intencional, lanzar— sale de `MainWindow` a `Services/UpdateInstallFlow.cs`, que devuelve cómo terminó (`Launched`, `Cancelled`, `Failed`) y comunica el indicador por una devolución de llamada; la ventana conserva lo suyo (salir, el estado del pie, el aviso). El arreglo de la v1.30.1 vive ahí ahora.
+  - **Verificado (2026-10-20, en local):** `UpdateInstallFlowTests` con un `IUpdateService` falso: si `LaunchInstaller` lanza, el indicador pasa a `true` y vuelve a `false`, y queda `UPDATE DOWNLOAD ERROR`; si se lanza, queda en `true`; si falla la descarga o se cancela, nunca se pone. **Por reversión:** sin el `setClosingForUpdate(false)` del fallo, la primera falla. Lo que se mide es el indicador que decide si `EndOperation` rehabilita los controles, no los controles en pantalla: la ventana no se crea en una prueba unitaria. 989 unitarias (988 pasan); la suite de UI sin opt-in (`Category!=Slow`), contra el Release: 60, 55 pasan, 5 omitidas por opt-in, ninguna falla.
 
 - [x] **AUD-028 · El diálogo con el resultado de una operación se descarta si hay otro abierto**
   - **Área:** Código · **Severidad:** Bajo · **Esfuerzo:** Bajo
@@ -568,6 +580,22 @@
   - **Verificado (2026-10-17, en local):** compilación en Release con `-warnaserror`, como el CI, de la solución y de las pruebas de UI: 0 avisos, sin CS1570 ni ningún otro aviso de XML. La prueba nueva falló con la clave todavía puesta, nombrando solo `about.body`, y pasa sin ella. 966 unitarias (965 pasan).
 
 ### Redacción
+
+- [x] **AUD-048 · Tratamiento, terminología y tipografía no son uniformes dentro de cada idioma**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** tratamiento de usted en `src/Localization/Localization.cs:395`, `:396`, `:406`, `:446`, `:455`, `:457` frente al tuteo del resto · terminología y puntuación: lista completa en `trabajo/hallazgos/10-redaccion.md`
+  - **Qué hacer:** un glosario breve por idioma en `CONTRIBUTING.md` y una pasada de unificación.
+  - **Criterio de aceptación:** el glosario existe y una búsqueda de cada término descartado no devuelve resultados.
+  - **Hecho (2026-10-20):** Una lectura entera del texto en español encontró **13** cadenas en usted, no 6 (también `closing.body`, `confirm.prompt`, `startup.failed`, `state.redirected` y las dos de la carpeta de descarga): todas pasan a tú. Un término por cosa: «extraíble», «disco del sistema», «Clúster», «tamaño de unidad de asignación», «Preset … aplicado»; «Predefinições» en portugués; «nom de volume» en francés, el término de Windows, en lugar de «étiquette de volume»; «Visualizza» en italiano. El inglés pasa a la variante de EE. UU. («canceled», «favors»), con comillas tipográficas, y su inciso, a la raya sin espacios; en portugués, francés e italiano el inciso va entre paréntesis en vez de la raya española. El porcentaje lleva espacio salvo en inglés, y *Licencia* y *Avisos de terceros* llevan «…». El glosario está en `.github/CONTRIBUTING.md`, entre dos marcas, y `GlossaryTests` lo lee de ahí: cada término descartado de un idioma no puede aparecer en sus textos.
+  - **Verificado (2026-10-20, en local):** contra el `Localization.cs` anterior, `GlossaryTests` falla con 31 apariciones: las de las 13 cadenas en usted y las de los términos descartados en los cinco idiomas; con el actual pasa. 989 unitarias (988 pasan).
+
+- [x] **AUD-049 · Hay texto visible que no pasa por la localización, y en francés conviven dos sistemas de unidades**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:912` («ETA») · `src/Core/FormatLogic.cs:185` (B, KB, MB, GB, TB fijos) · detalle del historial tal como se escribe en el registro · evidencias: `evidencias/galeria-fr-656/main-secure-light.png`, `evidencias/galeria-es/history-dark.png`
+  - **Qué hacer:** pasar «ETA» y las unidades por `L.T` (o decidir que las unidades no se traducen y cambiar el texto fijo francés a «4 GB»).
+  - **Criterio de aceptación:** en la galería en francés no conviven «Go» y «GB».
+  - **Hecho (2026-10-20):** De las dos salidas que daba la tarea, **traducir las unidades**: el texto fijo francés ya decía «Go», «Mo» y «Kio» en todas partes, y es lo que enseña el Windows francés. `FormatBytes` toma las unidades de `unit.bytes` («o|Ko|Mo|Go|To» en francés), las etiquetas de clúster se calculan al pintarlas —antes eran «4 KB» y «512 bytes» fijos, y no cambiaban con el idioma—, «ETA» pasa a `op.eta` («quedan 03:10») y el nombre del CSV exportado a `history.exportName`. **Lo que no se traduce, a propósito:** el detalle de cada línea del historial, que es el registro técnico («BENCH D: seq w=…») y se pega en issues. Al contrario: con las unidades traducidas, la línea del benchmark habría quedado escrita según el idioma de la app, así que el registro pasa a escribirse en un formato invariable (`FormatLogic.FormatBytesForLog`, `Benchmark.LogLine`: «9.2 MB/s» en cualquier idioma). Las líneas ya escritas siguen como estaban.
+  - **Verificado (2026-10-20, en local):** galería en francés (28 tomas, sobre el Release): la ventana dice «1020 Mo», «16 Ko utilisés · 1020 Mo libres», «4 Ko (recommandé)», «Limite de 4 Go» y, en la pista del borrado seguro, «64 Mo»; ningún «GB» ni «MB» fuera del detalle técnico del historial, donde una línea antigua conserva sus «MB/s». Pruebas nuevas: las unidades por idioma de `FormatBytes`, cinco unidades en cada idioma, y `LogFormatTests`, que fija la línea del benchmark en español, francés e inglés; por reversión, escribirla con el formato traducido la hace fallar. 989 unitarias (988 pasan); la suite de UI sin opt-in (`Category!=Slow`), contra el Release: 60, 55 pasan, 5 omitidas por opt-in, ninguna falla.
 
 - [x] **AUD-044 · Dos pistas de la interfaz mandan no usar «el botón Iniciar», que ya no existe**
   - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo

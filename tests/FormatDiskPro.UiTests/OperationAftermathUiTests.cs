@@ -119,8 +119,18 @@ public sealed class OperationAftermathUiTests(AppFixture fixture, ITestOutputHel
             while (Directory.Exists(dir) && DateTime.UtcNow < deadline) Thread.Sleep(200);
             Assert.False(Directory.Exists(dir), "La carpeta de trabajo sigue en la unidad tras aceptar borrarla.");
 
-            string added = ReadHistory()[historyBefore.Length..];
-            Assert.Contains($"WORKFOLDERS DELETED {letter}:", added);
+            // La app borra y DESPUÉS escribe la línea: ver la carpeta desaparecer no garantiza que ya esté en el
+            // historial. Leerlo en el acto falló una vez de cada varias corridas (2026-10-20).
+            string expected = $"WORKFOLDERS DELETED {letter}:";
+            string added = "";
+            deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            while (DateTime.UtcNow < deadline)
+            {
+                added = ReadHistory()[historyBefore.Length..];
+                if (added.Contains(expected, StringComparison.Ordinal)) break;
+                Thread.Sleep(200);
+            }
+            Assert.Contains(expected, added);
         }
         finally
         {
