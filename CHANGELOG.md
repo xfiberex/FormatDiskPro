@@ -16,6 +16,17 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Corregido
+
+- **Con la búsqueda automática de actualizaciones desactivada, la aplicación seguía conectando con GitHub**
+  la primera vez que se abría tras actualizar, para descargar las notas de *Novedades*. Ahora las notas van
+  dentro del programa y *Novedades* no usa la red nunca: la única conexión de la aplicación es la búsqueda de
+  actualizaciones (`AUD-067`).
+- **Los avisos de terceros decían que el Windows App SDK es MIT, y no lo es**: lo que se redistribuye lleva la
+  licencia de Microsoft para el Windows App SDK. Ahora cada componente que viaja en el instalador figura con
+  su licencia real, Inno Setup incluido, y el instalador deja sus licencias y avisos completos en la carpeta
+  `licenses` del programa. Los avisos dicen también, por escrito, cómo encaja cada uno con la GPLv3 (`AUD-024`).
+
 ## [1.30.3] — 2026-10-20
 
 **Los textos, cada uno en su idioma.** El español trata siempre de tú, y cada idioma usa un único término

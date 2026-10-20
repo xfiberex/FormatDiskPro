@@ -41,9 +41,6 @@ public interface IUpdateService
     /// <inheritdoc cref="UpdateService.GetLatestAsync"/>
     Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default);
 
-    /// <inheritdoc cref="UpdateService.GetReleaseByTagAsync"/>
-    Task<ReleaseInfo?> GetReleaseByTagAsync(string tag, CancellationToken ct = default);
-
     /// <inheritdoc cref="UpdateService.CheckForUpdateAsync"/>
     Task<ReleaseInfo?> CheckForUpdateAsync(CancellationToken ct = default);
 
@@ -121,15 +118,6 @@ public sealed class UpdateService : IUpdateService
     /// <summary>Obtiene la última versión publicada, o null si no se pudo determinar.</summary>
     public Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default)
         => GetFromUrlAsync(AppInfo.LatestReleaseApiUrl, ct);
-
-    /// <summary>
-    /// Obtiene la versión publicada con el tag indicado (p. ej. <c>v1.7.0</c>), o null si no existe.
-    /// Se usa para mostrar las novedades de la versión instalada tras una actualización.
-    /// </summary>
-    public Task<ReleaseInfo?> GetReleaseByTagAsync(string tag, CancellationToken ct = default)
-        => string.IsNullOrWhiteSpace(tag)
-            ? Task.FromResult<ReleaseInfo?>(null)
-            : GetFromUrlAsync(AppInfo.ReleaseByTagApiUrl(tag), ct);
 
     private static async Task<ReleaseInfo?> GetFromUrlAsync(string url, CancellationToken ct)
     {

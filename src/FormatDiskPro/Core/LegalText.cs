@@ -9,23 +9,8 @@ namespace FormatDiskPro;
 public static class LegalText
 {
     /// <summary>Texto completo de la licencia (GNU GPL v3.0).</summary>
-    public static string License() => Read("FormatDiskPro.LICENSE.txt");
+    public static string License() => EmbeddedResources.Read("FormatDiskPro.LICENSE.txt");
 
     /// <summary>Avisos y atribuciones de componentes de terceros.</summary>
-    public static string ThirdParty() => Read("FormatDiskPro.THIRD-PARTY-NOTICES.txt");
-
-    private static string Read(string resource)
-    {
-        try
-        {
-            using var s = typeof(LegalText).Assembly.GetManifestResourceStream(resource);
-            if (s is null) return "";
-            using var r = new StreamReader(s);
-            return r.ReadToEnd();
-        }
-        catch
-        {
-            return "";
-        }
-    }
+    public static string ThirdParty() => EmbeddedResources.Read("FormatDiskPro.THIRD-PARTY-NOTICES.txt");
 }

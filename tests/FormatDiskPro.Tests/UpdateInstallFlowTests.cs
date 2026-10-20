@@ -49,7 +49,6 @@ public sealed class UpdateInstallFlowTests : IDisposable
         }
 
         public Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default) => Task.FromResult<ReleaseInfo?>(null);
-        public Task<ReleaseInfo?> GetReleaseByTagAsync(string tag, CancellationToken ct = default) => Task.FromResult<ReleaseInfo?>(null);
         public Task<ReleaseInfo?> CheckForUpdateAsync(CancellationToken ct = default) => Task.FromResult<ReleaseInfo?>(null);
         public bool OpenUrl(string url) => false;
     }

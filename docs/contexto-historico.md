@@ -65,6 +65,30 @@
 
 ## Entradas
 
+### 2026-10-20 — `AUD-024` y `AUD-067`: lo que dicen las licencias y la conexión que no se pedía
+
+**Qué cambia.** *Novedades* deja de usar la red: las notas salen del `CHANGELOG.md` embebido. Los avisos de
+terceros citan la licencia real de lo que se redistribuye, el instalador lleva esas licencias y avisos a
+`{app}\licenses`, y los avisos dicen por escrito cómo encaja cada componente con la GPLv3.
+
+**Por qué así.** Para `AUD-067` la tarea ofrecía mostrar *Novedades* sin red o no mostrarlo solo cuando la
+preferencia estuviera desactivada. Lo segundo castigaba a quien había pedido privacidad; lo primero, llevado
+al final, quita la conexión para todos: las notas de cada release ya salían de este archivo, así que no había
+nada que descargar. Desde ahora la única conexión de la app es la búsqueda de actualizaciones.
+
+Para `AUD-024` había dos partes de naturaleza distinta. Que el aviso dijera MIT de un binario con licencia de
+Microsoft era un error de hecho, visible en *Ayuda*, y se corrigió sin más. El encaje con la GPLv3 es una
+decisión: la licencia del Windows App SDK pide condiciones que la GPL no permite añadir, así que un tercero
+no podría redistribuir el instalador cumpliendo las dos. Al autor no le afecta —no infringe su propia
+licencia—, y el remedio habitual, un permiso adicional de la sección 7, se preparó con la plantilla de la
+FSF. El autor decidió **no añadirlo**. Lo que cierra la tarea es que el proyecto lo declare por escrito, y
+lo hace: los avisos dicen qué cubre la GPL, que el Windows App SDK va con su propia licencia y que no hay
+permiso adicional. Con eso `AUD-071` queda libre: las contribuciones entran bajo `GPL-3.0-only` a secas.
+
+**Cómo se probó.** Las conexiones TCP del proceso al arrancar tras una actualización: la v1.30.3 instalada
+conecta con GitHub con la preferencia desactivada, la compilación nueva no, y con la preferencia activada sí
+(el control). Un instalador de prueba con los siete archivos de licencia. 996 unitarias (995 pasan). La suite de UI sin opt-in (`Category!=Slow`), contra el Release: 60, 55 pasan, 5 omitidas por opt-in, ninguna falla.
+
 ### 2026-10-20 — Corte de la v1.30.3
 
 **Por qué parche.** *Sin publicar* trae *Cambiado* (los textos) e *Interno* (glosario, formato del historial,

@@ -23,6 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-20 | `AUD-067` | *Novedades* lee las notas del CHANGELOG embebido: sin red, esté como esté la preferencia | sin publicar |
+| 2026-10-20 | `AUD-024` | Licencia real de cada componente redistribuido, sus textos en `{app}\licenses` y el encaje con la GPLv3 por escrito, sin permiso adicional | sin publicar |
 | 2026-10-20 | `AUD-049` | Unidades del idioma («Go» en francés), «ETA» y el nombre del CSV traducidos; el historial, en formato invariable | v1.30.3 |
 | 2026-10-20 | `AUD-048` | Tuteo en español, un término por cosa en cada idioma y glosario en `CONTRIBUTING.md` que una prueba hace cumplir | v1.30.3 |
 | 2026-10-20 | `AUD-030` | El flujo de actualización sale a `UpdateInstallFlow` y se prueba con un `IUpdateService` falso | v1.30.3 |
@@ -517,6 +519,24 @@
   - **Verificado:** PowerShell 5.1 analiza `release.ps1` sin errores, en el paso del CI de `AUD-058`. No se ejecutó un corte: necesita la máquina del mantenedor.
 
 ### Legal
+
+- [x] **AUD-024 · Los avisos de terceros declaran licencias que no son las de lo que se redistribuye**
+  - **Área:** Legal · **Severidad:** Medio · **Esfuerzo:** Medio · *requiere revisión legal*
+  - **Ubicación:** `THIRD-PARTY-NOTICES.txt:23`, `:30-40`, `:50-54` · `src/installer/installer.iss:95`
+  - **Qué hacer:** citar en cada entrada la licencia que acompaña al artefacto redistribuido, mover Inno Setup al grupo de lo redistribuido, incluir o enlazar los avisos del runtime y del SDK, y decidir con asesoramiento si se añade el permiso adicional.
+  - **Criterio de aceptación:** cada binario de terceros del instalador queda cubierto por una entrada con su licencia real, y el proyecto declara por escrito cómo encaja con su GPLv3.
+  - **Antecedente:** ya conocido como «revisado, sin hallazgos» (`T9-19` y *Áreas auditadas sin hallazgos* del historial); se reabre por un hecho nuevo: el salto al SDK 2.x (`T13-20`) y la licencia real del paquete
+  - **Hecho (2026-10-20):** Las cuatro cosas. `THIRD-PARTY-NOTICES.txt` cita para el Windows App SDK la licencia que trae el paquete redistribuido (`Microsoft.WindowsAppSDK` 2.5.1: *Microsoft Software License Terms*, cuya cláusula 3.a.i permite redistribuir los archivos que el paquete coloca junto a la app), y deja dicho que la del repositorio de GitHub (MIT) no es la del binario; el titular del runtime pasa a ser el de su `LICENSE.TXT` (.NET Foundation and Contributors); Inno Setup pasa a lo redistribuido, porque su motor y `unins000.exe` viajan en el instalador; y desaparece «todas las licencias de (A) son MIT». `build-installer.ps1` copia a `{app}\licenses` las licencias y los avisos de la versión exacta que empaqueta —runtime (su `THIRD-PARTY-NOTICES.TXT`, 78 KB), Windows App SDK (`license.txt` y su `NOTICE.txt` de 340 KB), Inno Setup, y los dos textos del propio proyecto— y no compila el instalador si falta alguno. El encaje con la GPLv3 queda escrito al final de los avisos: el runtime e Inno Setup son compatibles; el Windows App SDK se redistribuye bajo su propia licencia, no está bajo la GPL, y **el proyecto no añade el permiso adicional de la sección 7** que proponía la tarea. Lo decidió el autor el 2026-10-20, tras ver el texto preparado (la plantilla de la FSF): se dice así, por escrito, en lugar de dejarlo sin decir.
+  - **Verificado (2026-10-20, en local):** `build-installer.ps1 -Version 9.9.9` compila un instalador con los siete archivos en `licenses\` (unos 60 KB más), y se borró. Las pruebas de los textos legales —ancho de 78 columnas, `GPL-3.0-only` sin «or-later», Windows App SDK y MIT presentes— siguen en verde. 996 unitarias (995 pasan).
+
+- [x] **AUD-067 · La app conecta con GitHub en el primer arranque tras actualizar aunque la comprobación automática esté desactivada**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo · *requiere revisión legal*
+  - **Ubicación:** `src/UI/MainWindow.xaml.cs:280-286` · `src/UI/MainWindow.HelpAndUpdates.cs:84-107` · `src/Localization/Localization.cs:477` · `README.md:198` · `.github/SECURITY.md:53`
+  - **Qué hacer:** con la preferencia desactivada, mostrar *Novedades* sin red o no mostrarlo solo; y precisar el texto (actualizaciones y notas de versión).
+  - **Criterio de aceptación:** con la preferencia desactivada y una versión nueva, el arranque no emite ninguna petición.
+  - **Antecedente:** ya conocido (`T9-18`), cierre incompleto: su criterio era que, desactivada, «no salga ninguna petición de red en el arranque»
+  - **Hecho (2026-10-20):** La primera opción, llevada a su final: *Novedades* no usa la red **nunca**, esté como esté la preferencia. El `CHANGELOG.md` va embebido en el ejecutable, como ya iban la licencia y los avisos, y `Core/Changelog.cs` corta la sección de la versión instalada con la misma regla que `Get-ChangelogSection` de `release.ps1`, de donde salen también las notas de cada release: no hay nada que descargar. «Ver en GitHub» abre la página de la versión solo si se pulsa. `GetReleaseByTagAsync` y su URL se quedaron sin uso y se retiraron; `WHATSNEW` sigue en la tabla de categorías por las líneas antiguas, como excepción declarada en `HistoryPrefixTests`. El texto de privacidad (*Acerca de*, README, `SECURITY.md`) ya decía que la única conexión es la de las actualizaciones y que, desactivada, solo se conecta si se pide: ahora es cierto sin matices, y no hubo que cambiarlo.
+  - **Verificado (2026-10-20, en local, terminal elevada):** el criterio, midiendo las conexiones TCP del proceso cada 100 ms durante 15 s tras arrancar con «última versión vista» antigua: la **v1.30.3 instalada**, con la preferencia desactivada, conecta con GitHub (`140.82.112.6:443`), que es el fallo; **la compilación nueva**, en las mismas condiciones, no conecta con nada; y la compilación nueva con la preferencia **activada** sí conecta, así que el método ve una conexión cuando la hay. `ChangelogTests` (corte de la sección, versión más antigua, versión desconocida o prefijo, finales de línea de Windows, y que el ejecutable lleva las notas de su versión) y `WhatsNewDialog_OpensAndCloses`, que ahora exige notas y no el aviso de que no se pudieron cargar. 996 unitarias (995 pasan); la suite de UI sin opt-in (`Category!=Slow`), contra el Release: 60, 55 pasan, 5 omitidas por opt-in, ninguna falla.
 
 - [x] **AUD-070 · Al pedir el historial se avisa de «letras y etiquetas», pero también contiene rutas con el nombre de usuario**
   - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo

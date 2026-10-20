@@ -83,19 +83,20 @@ public sealed partial class MainWindow
     }
 
     /// <summary>
-    /// Carga las notas de la versión instalada desde GitHub (por tag; si no, la última publicada) y
-    /// las muestra en el diálogo de novedades. Si no hay red, el diálogo cae a un mensaje informativo.
+    /// Muestra las notas de la versión instalada, que salen del CHANGELOG embebido: sin red (`AUD-067`).
     /// </summary>
+    /// <remarks>
+    /// Antes se pedían a la API de GitHub, también en el arranque que sigue a una actualización y aunque la
+    /// comprobación automática estuviera desactivada. Ahora la única conexión de la app es buscar
+    /// actualizaciones; «Ver en GitHub» solo abre el navegador si se pulsa.
+    /// </remarks>
     private async Task ShowWhatsNewAsync()
     {
-        ReleaseInfo? rel = null;
-        try { rel = await _services.Updates.GetReleaseByTagAsync("v" + AppInfo.VersionString) ?? await _services.Updates.GetLatestAsync(); }
-        catch (Exception ex) { _services.History.Log($"WHATSNEW ERROR: {ErrorText.Describe(ex)}"); }
-
+        string version = AppInfo.VersionString;
         var dlg = new WhatsNewDialog(
-            rel?.TagName ?? AppInfo.VersionString,
-            rel?.Notes ?? "",
-            string.IsNullOrEmpty(rel?.HtmlUrl) ? AppInfo.ReleasesPageUrl : rel!.HtmlUrl,
+            version,
+            Changelog.ForVersion(version),
+            AppInfo.ReleasePageUrl(version),
             _services.Updates)
         {
             XamlRoot = Content.XamlRoot,

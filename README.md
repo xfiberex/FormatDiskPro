@@ -196,7 +196,8 @@ Las capturas se toman del publish *self-contained* y sobre la USB de pruebas: en
 ## Licencia, privacidad y contacto
 
 - **[GPLv3](LICENSE), solo la versión 3** (`GPL-3.0-only`): úsalo, modifícalo y redistribúyelo, con los
-  derivados bajo la misma licencia. Sin garantía. Atribuciones en [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), también en *Ayuda*.
+  derivados bajo la misma licencia. Sin garantía. Atribuciones, y la licencia de cada componente que viaja en
+  el instalador, en [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), también en *Ayuda*.
 - **Privacidad**: sin telemetría ni datos personales. La única conexión es a GitHub Releases, por HTTPS.
 - **Errores y sugerencias**: en los [issues](https://github.com/xfiberex/FormatDiskPro/issues).
   **Vulnerabilidades**: en privado, según [SECURITY.md](.github/SECURITY.md).

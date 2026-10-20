@@ -12,7 +12,7 @@
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Estado, versión y pruebas** | **No se repiten aquí, a propósito** — viven en [§3 *Estado actual*](#3-estado-actual), que es su única fuente |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **2.5.1**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 · GitHub Actions (compilación + unitarias, CodeQL) |
-| **Licencia** | `GPL-3.0-only`, solo la versión 3 (`AUD-069`; cabecera SPDX en cada fuente) · avisos de terceros · donaciones opcionales (PayPal) |
+| **Licencia** | `GPL-3.0-only`, solo la versión 3 (`AUD-069`; cabecera SPDX en cada fuente), sin permisos adicionales (decidido en `AUD-024`) · avisos de terceros con la licencia real de cada binario, y sus textos en `{app}\licenses` · donaciones opcionales (PayPal) |
 | **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — **solo lo abierto**, por severidad · [`docs/roadmap-historico.md`](docs/roadmap-historico.md) — lo ya hecho · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
 | **Última auditoría** | [`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md) — foto fija de esa fecha; lo que dejó pendiente, en el [`ROADMAP.md`](ROADMAP.md) |
 | **Última actualización** | **2026-10-13** — el qué y el porqué, en la primera entrada de [`docs/contexto-historico.md`](docs/contexto-historico.md) |
@@ -54,7 +54,7 @@ src/FormatDiskPro/
 │  ├─ Throughput.cs       Velocidad y ETA de operaciones largas
 │  ├─ DeviceChange.cs     Interpretación de WM_DEVICECHANGE (autorefresco de unidades)
 │  ├─ ReleaseNotes.cs     Notas de versión (Markdown) → texto plano
-│  ├─ LegalText.cs        Licencia GPLv3 y avisos de terceros embebidos en el .exe
+│  ├─ LegalText.cs        Licencia y avisos embebidos; Changelog.cs, las notas de Novedades, SIN red (AUD-067)
 │  ├─ UpdateChecker.cs    Comparación de versiones (IsNewer)
 │  ├─ DriveLetter.cs      Comparación de letras de unidad invariante de cultura (guarda del disco de sistema)
 │  ├─ DestructiveGuard.cs ¿SE PUEDE formatear / reinicializar? Motivo tipado de cada rechazo (AUD-015)
@@ -183,7 +183,7 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 | **Trabajo abierto** | El de la auditoría del 2026-10-11, más `T10-02` (bloqueada a propósito). La lista y el recuento viven **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR. Desde `AUD-042`/`AUD-043` son avisos, por `.editorconfig`, los `using` sin uso (IDE0005) y la documentación XML mal formada (CS1570), y no hay `global using` de WinUI porque alcanzaría a `Core/` |
-| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-20: **989** (988 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
+| **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-10-20: **996** (995 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
 | **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-10-20, con la USB de pruebas y sin opt-in: **60** (55 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
 | **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |

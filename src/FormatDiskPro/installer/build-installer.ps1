@@ -231,6 +231,32 @@ if (-not $appSdk) { throw "No se encuentra Microsoft.WindowsAppSDK en ${lockFile
 $contents = "SDK de .NET $sdkVersion · runtime de .NET $($netcore.version) · Windows App SDK $appSdk"
 Write-Host "==> Contenido: $contents" -ForegroundColor Cyan
 
+# --- Licencias y avisos de lo que se redistribuye (AUD-024) -----------------
+# El instalador lleva el runtime de .NET, el Windows App SDK y el motor de Inno Setup, y cada uno trae su
+# licencia y sus avisos de terceros. Se copian los de la versión EXACTA que se acaba de empaquetar (la del
+# runtimeconfig y la del archivo de bloqueo, las mismas que anota el tag), a {app}\licenses: van en el
+# instalador porque [Files] recoge todo lo publicado. THIRD-PARTY-NOTICES.txt del repo dice qué es cada uno.
+$packages = ((& dotnet nuget locals global-packages --list) -replace '^global-packages:\s*', '').Trim()
+$innoDir  = Split-Path $iscc -Parent
+$repoRoot = Split-Path (Split-Path $projectDir -Parent) -Parent   # src\FormatDiskPro -> raíz
+$licenses = [ordered]@{
+    "dotnet-runtime-LICENSE.txt"              = Join-Path $packages "microsoft.netcore.app.runtime.$Runtime\$($netcore.version)\LICENSE.TXT"
+    "dotnet-runtime-THIRD-PARTY-NOTICES.txt"  = Join-Path $packages "microsoft.netcore.app.runtime.$Runtime\$($netcore.version)\THIRD-PARTY-NOTICES.TXT"
+    "WindowsAppSDK-LICENSE.txt"               = Join-Path $packages "microsoft.windowsappsdk\$appSdk\license.txt"
+    "WindowsAppSDK-NOTICE.txt"                = Join-Path $packages "microsoft.windowsappsdk\$appSdk\NOTICE.txt"
+    "InnoSetup-LICENSE.txt"                   = Join-Path $innoDir "license.txt"
+    "FormatDiskPro-LICENSE.txt"               = Join-Path $repoRoot "LICENSE"
+    "FormatDiskPro-THIRD-PARTY-NOTICES.txt"   = Join-Path $repoRoot "THIRD-PARTY-NOTICES.txt"
+}
+$licenseDir = Join-Path $publishDir "licenses"
+New-Item -ItemType Directory -Force -Path $licenseDir | Out-Null
+foreach ($entry in $licenses.GetEnumerator()) {
+    # Sin alguno, el instalador redistribuiría un componente sin su licencia: mejor no compilarlo.
+    if (-not (Test-Path -LiteralPath $entry.Value)) { throw "Falta $($entry.Value): el instalador no puede salir sin la licencia de lo que redistribuye." }
+    Copy-Item -LiteralPath $entry.Value -Destination (Join-Path $licenseDir $entry.Key) -Force
+}
+Write-Host "==> Licencias: $($licenses.Count) archivos en licenses\" -ForegroundColor Cyan
+
 # --- Firmar el ejecutable publicado (antes de empaquetar) ------------------
 if ($signEnabled) {
     Invoke-Sign @(

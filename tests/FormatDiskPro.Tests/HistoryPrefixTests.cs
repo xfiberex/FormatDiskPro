@@ -78,7 +78,18 @@ public sealed class HistoryPrefixTests
     }
 
     /// <summary>
-    /// Y al revés: la tabla no declara palabras clave que ya no se escriben.
+    /// Palabras clave que la app ya no escribe pero que siguen en historiales existentes, y que el visor tiene
+    /// que seguir clasificando. Cada una, con el motivo.
+    /// </summary>
+    private static readonly HashSet<string> Retired = new(StringComparer.Ordinal)
+    {
+        // Novedades ya no usa la red desde `AUD-067` (2026-10-20), así que no puede fallar al descargar las
+        // notas; las líneas «WHATSNEW ERROR» de antes siguen siendo de Actualización.
+        "WHATSNEW",
+    };
+
+    /// <summary>
+    /// Y al revés: la tabla no declara palabras clave que ya no se escriben, salvo las retiradas a propósito.
     /// </summary>
     /// <remarks>
     /// Una entrada de más no rompe nada hoy, pero es una promesa que el código ya no cumple: el filtro
@@ -89,7 +100,9 @@ public sealed class HistoryPrefixTests
     {
         var written = LoggedPrefixes().Select(p => p.Prefix).ToHashSet(StringComparer.Ordinal);
 
-        var stale = HistoryEntry.CategoryByPrefix.Keys.Where(k => !written.Contains(k)).ToList();
+        var stale = HistoryEntry.CategoryByPrefix.Keys
+            .Where(k => !written.Contains(k) && !Retired.Contains(k))
+            .ToList();
 
         Assert.True(stale.Count == 0,
             "HistoryEntry.CategoryByPrefix declara palabras clave que la app ya no escribe:\n  "

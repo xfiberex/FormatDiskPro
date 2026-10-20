@@ -4,56 +4,61 @@ FormatDiskPro — Avisos de terceros / Third-party notices
 FormatDiskPro se distribuye bajo la GNU General Public License, solo la
 versión 3 (GPL-3.0-only; ver el archivo LICENSE). Este producto incluye o
 depende de los siguientes componentes de terceros, cada uno bajo su propia
-licencia. Se reproduce el aviso correspondiente a efectos de atribución.
+licencia.
 
 FormatDiskPro is distributed under the GNU General Public License, version 3
 only (GPL-3.0-only; see the LICENSE file). This product includes or depends
-on the following third-party components, each under its own license,
-reproduced here for attribution.
+on the following third-party components, each under its own license.
 
 QUÉ SE LISTA AQUÍ / SCOPE OF THIS FILE
 --------------------------------------
 Se listan DOS grupos, y cada entrada dice a cuál pertenece:
 
   (A) REDISTRIBUIDO — viaja dentro del instalador y llega a la máquina de
-      quien usa la aplicación. Es lo que obliga a atribuir.
+      quien usa la aplicación. Sus licencias y avisos completos se
+      instalan junto al programa, en la carpeta «licenses».
   (B) SOLO CONSTRUCCIÓN / PRUEBAS / DESARROLLO — se usa para compilar,
       probar o desarrollar y NO viaja con la aplicación. Se lista por
       transparencia.
 
-Todas las licencias de (A) son MIT, compatible con la GPLv3 de este proyecto.
-
 Two groups are listed, and each entry states which one it belongs to:
-(A) REDISTRIBUTED, shipped inside the installer; (B) BUILD/TEST/DEVELOPMENT
-ONLY, not shipped with the application. All (A) licenses are MIT, compatible
-with this project's GPLv3.
+(A) REDISTRIBUTED, shipped inside the installer, whose full licenses and
+notices are installed next to the program in the "licenses" folder;
+(B) BUILD/TEST/DEVELOPMENT ONLY, not shipped with the application.
 
 ------------------------------------------------------------------------------
 1) .NET Runtime and Libraries                       [A) REDISTRIBUIDO]
-   © Microsoft Corporation and the .NET Foundation.
-   Licencia: MIT License.
-   https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
+   © .NET Foundation and Contributors.
+   Licencia: MIT License (texto al final).
    Se publica self-contained, así que el runtime viaja en el instalador.
+   Sus avisos de terceros: licenses\dotnet-runtime-THIRD-PARTY-NOTICES.txt
+   https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT
 
 ------------------------------------------------------------------------------
 2) Windows App SDK / WinUI 3 (Microsoft.WindowsAppSDK)  [A) REDISTRIBUIDO]
    © Microsoft Corporation.
-   Licencia: MIT License.
-   https://github.com/microsoft/WindowsAppSDK/blob/main/LICENSE
+   Licencia: MICROSOFT SOFTWARE LICENSE TERMS — MICROSOFT WINDOWS APP SDK.
+   NO es MIT: es la licencia del paquete NuGet que se redistribuye, que
+   permite redistribuir con la aplicación los archivos que el paquete
+   coloca junto a ella. Texto completo: licenses\WindowsAppSDK-LICENSE.txt
+   Sus avisos de terceros: licenses\WindowsAppSDK-NOTICE.txt
+   (El código fuente del repositorio microsoft/WindowsAppSDK está bajo MIT,
+   pero lo que se redistribuye es el paquete, con la licencia de arriba.)
 
 ------------------------------------------------------------------------------
-3) Segoe Fluent Icons (fuente de iconos)            [NO REDISTRIBUIDO]
+3) Inno Setup                                       [A) REDISTRIBUIDO]
+   © Jordan Russell. Portions © Martijn Laan.
+   Licencia: Inno Setup License (permisiva).
+   https://jrsoftware.org/files/is/license.txt
+   Compila el instalador, y su motor de instalación y su desinstalador
+   (unins000.exe) viajan en él. Texto: licenses\InnoSetup-LICENSE.txt
+
+------------------------------------------------------------------------------
+4) Segoe Fluent Icons (fuente de iconos)            [NO REDISTRIBUIDO]
    © Microsoft Corporation.
    Fuente de iconos incluida con Windows 10/11 y utilizada por la interfaz.
    NO se distribuye con la aplicación: se usa la que da el sistema. Su
    uso se rige por los términos de la fuente provista con Windows.
-
-------------------------------------------------------------------------------
-4) Inno Setup                                        [B) SOLO CONSTRUCCIÓN]
-   © Jordan Russell. Portions © Martijn Laan.
-   Licencia: Inno Setup License (estilo permisivo).
-   https://jrsoftware.org/files/is/license.txt
-   Compila el instalador. No se redistribuye.
 
 ------------------------------------------------------------------------------
 5) xUnit.net                                              [B) SOLO PRUEBAS]
@@ -87,7 +92,30 @@ with this project's GPLv3.
    están bajo la GPLv3 de este proyecto.
 
 ------------------------------------------------------------------------------
-Texto de la licencia MIT (componentes 1, 2, 6, 7 y 8)
+CÓMO ENCAJA CON LA GPLv3 / HOW THIS FITS WITH THE GPLv3
+------------------------------------------------------------------------------
+La licencia GPL-3.0-only cubre el código de FormatDiskPro. Cada componente
+de la lista conserva la suya, y el instalador las lleva todas, completas,
+en la carpeta «licenses» del programa:
+
+  - El runtime de .NET (MIT) e Inno Setup (permisiva) son compatibles con
+    la GPLv3.
+  - El Windows App SDK se redistribuye bajo la licencia de Microsoft que
+    lo acompaña, que lo permite para los archivos que su paquete coloca
+    junto a la aplicación. No es software libre ni está bajo la GPL, y el
+    proyecto no añade ningún permiso adicional de la sección 7 de la GPLv3
+    para él (decisión del autor, 2026-10-20). Quien redistribuya el
+    instalador redistribuye también ese componente, bajo su licencia.
+
+The GPL-3.0-only license covers FormatDiskPro's own code. Each listed
+component keeps its own license, and the installer ships all of them, in
+full, in the program's "licenses" folder. The Windows App SDK is
+redistributed under the Microsoft license that accompanies it; it is not
+under the GPL, and this project adds no additional permission under
+section 7 of the GPLv3 for it.
+
+------------------------------------------------------------------------------
+Texto de la licencia MIT (componentes 1, 6, 7 y 8)
 ------------------------------------------------------------------------------
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

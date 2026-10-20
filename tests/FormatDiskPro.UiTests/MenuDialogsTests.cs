@@ -74,6 +74,12 @@ public sealed class MenuDialogsTests(AppFixture fixture)
         try
         {
             DialogHelper.WaitForChild(dialog, "VersionText");
+
+            // Las notas salen del CHANGELOG embebido, sin red (`AUD-067`): tienen que estar, no el aviso de que
+            // no se pudieron cargar. La sección de una versión siempre empieza por su resumen en negrita.
+            string notes = DialogHelper.ReadText(DialogHelper.WaitForChild(dialog, "NotesText"));
+            Assert.True(notes.Length > 40, $"Novedades no enseña notas: «{notes}»");
+            Assert.DoesNotContain("GitHub", notes.Split('\n')[0], StringComparison.Ordinal);
         }
         finally
         {

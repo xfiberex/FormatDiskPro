@@ -16,9 +16,10 @@ public static class AppInfo
     public static string LatestReleaseApiUrl =>
         $"https://api.github.com/repos/{GitHubOwner}/{GitHubRepo}/releases/latest";
 
-    /// <summary>URL de la API de la versión publicada con un tag concreto (p. ej. <c>v1.7.0</c>).</summary>
-    public static string ReleaseByTagApiUrl(string tag) =>
-        $"https://api.github.com/repos/{GitHubOwner}/{GitHubRepo}/releases/tags/{Uri.EscapeDataString(tag)}";
+    /// <summary>Página de una versión publicada, para el botón «Ver en GitHub» de <i>Novedades</i>.</summary>
+    /// <param name="version">La versión, sin la <c>v</c> (p. ej. <c>1.30.3</c>).</param>
+    public static string ReleasePageUrl(string version) =>
+        $"https://github.com/{GitHubOwner}/{GitHubRepo}/releases/tag/v{Uri.EscapeDataString(version)}";
 
     /// <summary>Página de versiones del proyecto.</summary>
     public static string ReleasesPageUrl =>

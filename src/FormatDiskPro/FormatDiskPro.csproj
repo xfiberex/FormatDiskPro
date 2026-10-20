@@ -29,6 +29,8 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\LICENSE" LogicalName="FormatDiskPro.LICENSE.txt" />
     <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.txt" LogicalName="FormatDiskPro.THIRD-PARTY-NOTICES.txt" />
+    <!-- Las notas de Novedades salen de aquí, sin red (AUD-067). -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="FormatDiskPro.CHANGELOG.md" />
   </ItemGroup>
 
   <!--

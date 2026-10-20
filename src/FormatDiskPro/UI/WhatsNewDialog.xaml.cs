@@ -3,8 +3,8 @@ using Microsoft.UI.Xaml.Controls;
 namespace FormatDiskPro.UI;
 
 /// <summary>
-/// Diálogo de novedades: muestra las notas de la versión instalada (cuerpo del release de GitHub,
-/// convertido a texto plano por <see cref="ReleaseNotes.ToPlainText"/>). Se abre automáticamente una
+/// Diálogo de novedades: muestra las notas de la versión instalada (su sección del CHANGELOG embebido,
+/// convertida a texto plano por <see cref="ReleaseNotes.ToPlainText"/>). Se abre automáticamente una
 /// sola vez tras una actualización y también bajo demanda desde <em>Ayuda → Novedades…</em>.
 /// </summary>
 public sealed partial class WhatsNewDialog : ContentDialog
@@ -13,7 +13,7 @@ public sealed partial class WhatsNewDialog : ContentDialog
 
     /// <summary>Crea el diálogo para una versión, sus notas Markdown y la URL del release.</summary>
     /// <param name="version">Versión legible a mostrar (p. ej. "1.7.0").</param>
-    /// <param name="notesMarkdown">Cuerpo Markdown de las notas (puede venir vacío).</param>
+    /// <param name="notesMarkdown">Notas en Markdown (pueden venir vacías).</param>
     /// <param name="url">URL del release en GitHub (botón "Ver en GitHub").</param>
     /// <param name="updates">Servicio que abre la URL en el navegador.</param>
     public WhatsNewDialog(string version, string notesMarkdown, string url, IUpdateService updates)

@@ -29,19 +29,19 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-20 · **Publicado:** v1.30.3 · **4 tareas abiertas**, ninguna añade
+**Última actualización:** 2026-10-20 · **Publicado:** v1.30.3 · **2 tareas abiertas**, ninguna añade
 funcionalidad.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 1 |
-| **3** | Bajo | 2 |
+| **2** | Medio | 0 |
+| **3** | Bajo | 1 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **4** |
+| | **Total** | **2** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **3** y se han cerrado **68**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-068`, `AUD-069`, `AUD-070`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **1** y se han cerrado **70**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-024`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-067`, `AUD-068`, `AUD-069`, `AUD-070`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
@@ -50,42 +50,25 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **3** y se han cerrado **6
 | QA | – | – | – | 0 |
 | Documentación | – | – | – | 0 |
 | DevOps | – | – | – | 0 |
-| Legal | – | 1 | 2 | 3 |
+| Legal | – | – | 1 | 1 |
 | Rendimiento | – | – | – | 0 |
 | UI/UX | – | – | – | 0 |
 | Arquitectura y resiliencia | – | – | – | 0 |
 | Refactorización | – | – | – | 0 |
 | Redacción | – | – | – | 0 |
-| **Total** | **–** | **1** | **2** | **3** |
+| **Total** | **–** | **–** | **1** | **1** |
 
-**Esfuerzo:** 2 de esfuerzo bajo (hasta 2 horas) y 1 de esfuerzo medio (hasta 1 día); ninguna de
-esfuerzo alto.
+**Esfuerzo:** bajo (hasta 2 horas).
 
-**Orden recomendado:** las tres que quedan necesitan antes una decisión del autor: `AUD-024` (con
-asesoramiento legal), después `AUD-071`, que depende de ella, y `AUD-067`.
+**Orden recomendado:** `AUD-071`, que ya no espera a nada: `AUD-024` se cerró sin permiso adicional, así que
+las contribuciones entran bajo `GPL-3.0-only` a secas.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
 
-## 🟡 Tier 2 — Medio
-
-- [ ] **AUD-024 · Los avisos de terceros declaran licencias que no son las de lo que se redistribuye**
-  - **Área:** Legal · **Severidad:** Medio · **Esfuerzo:** Medio · *requiere revisión legal*
-  - **Ubicación:** `THIRD-PARTY-NOTICES.txt:23`, `:30-40`, `:50-54` · `src/installer/installer.iss:95`
-  - **Qué hacer:** citar en cada entrada la licencia que acompaña al artefacto redistribuido, mover Inno Setup al grupo de lo redistribuido, incluir o enlazar los avisos del runtime y del SDK, y decidir con asesoramiento si se añade el permiso adicional.
-  - **Criterio de aceptación:** cada binario de terceros del instalador queda cubierto por una entrada con su licencia real, y el proyecto declara por escrito cómo encaja con su GPLv3.
-  - **Antecedente:** ya conocido como «revisado, sin hallazgos» (`T9-19` y *Áreas auditadas sin hallazgos* del historial); se reabre por un hecho nuevo: el salto al SDK 2.x (`T13-20`) y la licencia real del paquete
-
 ## 🟢 Tier 3 — Bajo
 
 ### Legal
-
-- [ ] **AUD-067 · La app conecta con GitHub en el primer arranque tras actualizar aunque la comprobación automática esté desactivada**
-  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo · *requiere revisión legal*
-  - **Ubicación:** `src/UI/MainWindow.xaml.cs:280-286` · `src/UI/MainWindow.HelpAndUpdates.cs:84-107` · `src/Localization/Localization.cs:477` · `README.md:198` · `.github/SECURITY.md:53`
-  - **Qué hacer:** con la preferencia desactivada, mostrar *Novedades* sin red o no mostrarlo solo; y precisar el texto (actualizaciones y notas de versión).
-  - **Criterio de aceptación:** con la preferencia desactivada y una versión nueva, el arranque no emite ninguna petición.
-  - **Antecedente:** ya conocido (`T9-18`), cierre incompleto: su criterio era que, desactivada, «no salga ninguna petición de red en el arranque»
 
 - [ ] **AUD-071 · La guía de contribución no dice bajo qué licencia entran las aportaciones**
   - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo · *requiere revisión legal*
