@@ -30,3 +30,8 @@ COMPILA: si tu cambio toca la UI, ejecútalas en tu máquina.
       obedece el agente de código del mantenedor
 - [ ] No entra en lo que está deliberadamente fuera de alcance (ver `ROADMAP.md`)
 - [ ] Todo el texto nuevo de cara al usuario está en `Localization`, con sus 5 traducciones
+
+## Licencia
+
+- [ ] Acepto que esta contribución se publique bajo la licencia del proyecto, `GPL-3.0-only`, y tengo
+      derecho a aportarla en esos términos (ver «Licencia de las contribuciones» en `CONTRIBUTING.md`)

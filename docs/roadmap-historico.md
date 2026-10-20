@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-10-20 | `AUD-071` | La guía y la plantilla de PR dicen que se contribuye bajo `GPL-3.0-only`, sin CLA ni DCO | sin publicar |
 | 2026-10-20 | `AUD-067` | *Novedades* lee las notas del CHANGELOG embebido: sin red, esté como esté la preferencia | sin publicar |
 | 2026-10-20 | `AUD-024` | Licencia real de cada componente redistribuido, sus textos en `{app}\licenses` y el encaje con la GPLv3 por escrito, sin permiso adicional | sin publicar |
 | 2026-10-20 | `AUD-049` | Unidades del idioma («Go» en francés), «ETA» y el nombre del CSV traducidos; el historial, en formato invariable | v1.30.3 |
@@ -519,6 +520,15 @@
   - **Verificado:** PowerShell 5.1 analiza `release.ps1` sin errores, en el paso del CI de `AUD-058`. No se ejecutó un corte: necesita la máquina del mantenedor.
 
 ### Legal
+
+- [x] **AUD-071 · La guía de contribución no dice bajo qué licencia entran las aportaciones**
+  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo · *requiere revisión legal*
+  - **Ubicación:** `.github/CONTRIBUTING.md` · `.github/PULL_REQUEST_TEMPLATE.md`
+  - **Qué hacer:** una sección «Licencia de las contribuciones» y valorar un DCO (`Signed-off-by`).
+  - **Criterio de aceptación:** la guía y la plantilla dicen bajo qué términos se acepta una contribución.
+  - **Depende de:** AUD-024 (decidir antes el permiso adicional). El identificador ya está decidido: `GPL-3.0-only` (`AUD-069`, 2026-10-16)
+  - **Hecho (2026-10-20):** Sección «Licencia de las contribuciones» en `.github/CONTRIBUTING.md`: al enviar un PR se acepta que la contribución se publique bajo `GPL-3.0-only`, sin permisos adicionales (decidido en `AUD-024`), y se declara tener derecho a aportarla; no hay cesión de derechos ni CLA, y **sin DCO**, decidido por el autor: un proyecto de un mantenedor con pocas contribuciones no compensa un `-s` en cada commit y un comprobador en el CI, y lo cubre una casilla. La guía pide además decir de dónde viene el código de terceros y llevar su aviso a `THIRD-PARTY-NOTICES.txt`, y recuerda la cabecera SPDX. La plantilla del PR tiene una sección «Licencia» con esa casilla.
+  - **Verificado (2026-10-20, en local):** la guía y la plantilla dicen bajo qué términos se acepta una contribución, que es el criterio; `LicenseHeaderTests` (sin «or-later») sigue en verde. 996 unitarias (995 pasan).
 
 - [x] **AUD-024 · Los avisos de terceros declaran licencias que no son las de lo que se redistribuye**
   - **Área:** Legal · **Severidad:** Medio · **Esfuerzo:** Medio · *requiere revisión legal*

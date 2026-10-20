@@ -27,6 +27,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   su licencia real, Inno Setup incluido, y el instalador deja sus licencias y avisos completos en la carpeta
   `licenses` del programa. Los avisos dicen también, por escrito, cómo encaja cada uno con la GPLv3 (`AUD-024`).
 
+### Interno
+
+- La guía de contribución y la plantilla de PR dicen bajo qué licencia entra una contribución: la del proyecto,
+  `GPL-3.0-only`, sin cesión de derechos ni DCO (`AUD-071`).
+
 ## [1.30.3] — 2026-10-20
 
 **Los textos, cada uno en su idioma.** El español trata siempre de tú, y cada idioma usa un único término

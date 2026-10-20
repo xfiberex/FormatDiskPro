@@ -128,6 +128,20 @@ Además, sin prueba que lo vigile:
    tarea del `ROADMAP.md`, muévela a [`docs/roadmap-historico.md`](../docs/roadmap-historico.md).
 5. Mensajes de commit: `tipo(ámbito): qué cambia`, en imperativo (`fix(update): …`, `test(ui): …`).
 
+## Licencia de las contribuciones
+
+FormatDiskPro se publica bajo la **GNU GPL, solo la versión 3** (`GPL-3.0-only`, ver [`LICENSE`](../LICENSE)),
+sin permisos adicionales. **Al enviar un pull request aceptas que tu contribución se publique bajo esa misma
+licencia**, y declaras que tienes derecho a aportarla en esos términos: que es tuya o que su licencia lo
+permite.
+
+- **No se pide cesión de derechos ni CLA**: conservas el copyright de lo que aportas.
+- **No se pide DCO** (la línea `Signed-off-by` en cada commit). Lo cubre la casilla de la plantilla del PR.
+- **Código de otros**: si traes código o archivos de un tercero, di de dónde vienen y bajo qué licencia; tiene
+  que ser compatible con la GPLv3, y su aviso va a [`THIRD-PARTY-NOTICES.txt`](../THIRD-PARTY-NOTICES.txt).
+- **Cada fuente nueva** empieza por la cabecera `// SPDX-License-Identifier: GPL-3.0-only` (`# …` en
+  PowerShell). `LicenseHeaderTests` la exige.
+
 ## Qué no se va a aceptar
 
 Está en el roadmap, pero por si acaso: creador de USB booteable desde ISO, gestor de particiones completo,

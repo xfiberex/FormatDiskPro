@@ -65,6 +65,17 @@
 
 ## Entradas
 
+### 2026-10-20 — `AUD-071`: bajo qué licencia entra una contribución, y la auditoría del 2026-10-11, cerrada
+
+**Qué cambia.** La guía de contribución y la plantilla de PR dicen que lo que se aporta se publica bajo
+`GPL-3.0-only`, sin cesión de derechos, sin CLA y sin DCO: basta una casilla en el PR.
+
+**Por qué así.** Esperaba a `AUD-024`, porque si el proyecto hubiera añadido un permiso de la sección 7, las
+contribuciones tendrían que entrar ya con él. Se decidió no añadirlo, así que entran bajo la licencia a
+secas. El DCO se valoró y se descartó: deja constancia en cada commit, pero cuesta un `-s` por commit y un
+comprobador en el CI, y para un proyecto de un mantenedor con pocas contribuciones la casilla del PR cubre lo
+mismo. Con esta tarea no queda ninguna de la auditoría del 2026-10-11: de 71, cerradas 71.
+
 ### 2026-10-20 — `AUD-024` y `AUD-067`: lo que dicen las licencias y la conexión que no se pedía
 
 **Qué cambia.** *Novedades* deja de usar la red: las notas salen del `CHANGELOG.md` embebido. Los avisos de

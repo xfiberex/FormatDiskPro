@@ -12,7 +12,7 @@
 | **Repositorio** | https://github.com/xfiberex/FormatDiskPro |
 | **Estado, versión y pruebas** | **No se repiten aquí, a propósito** — viven en [§3 *Estado actual*](#3-estado-actual), que es su única fuente |
 | **Stack** | C# 13 · .NET 10 · **WinUI 3** (Windows App SDK **2.5.1**, unpackaged, `net10.0-windows10.0.19041.0`) · xUnit · FlaUI/UIA3 · Inno Setup 6 · GitHub Actions (compilación + unitarias, CodeQL) |
-| **Licencia** | `GPL-3.0-only`, solo la versión 3 (`AUD-069`; cabecera SPDX en cada fuente), sin permisos adicionales (decidido en `AUD-024`) · avisos de terceros con la licencia real de cada binario, y sus textos en `{app}\licenses` · donaciones opcionales (PayPal) |
+| **Licencia** | `GPL-3.0-only`, solo la versión 3 (`AUD-069`; cabecera SPDX en cada fuente), sin permisos adicionales (decidido en `AUD-024`); se contribuye bajo esa licencia, sin CLA ni DCO (`AUD-071`) · avisos de terceros con la licencia real de cada binario, y sus textos en `{app}\licenses` · donaciones opcionales (PayPal) |
 | **Qué falta y qué cambió** | [`ROADMAP.md`](ROADMAP.md) — **solo lo abierto**, por severidad · [`docs/roadmap-historico.md`](docs/roadmap-historico.md) — lo ya hecho · [`CHANGELOG.md`](CHANGELOG.md) — qué trajo cada versión |
 | **Última auditoría** | [`docs/auditoria/2026-10-11/INFORME.md`](docs/auditoria/2026-10-11/INFORME.md) — foto fija de esa fecha; lo que dejó pendiente, en el [`ROADMAP.md`](ROADMAP.md) |
 | **Última actualización** | **2026-10-13** — el qué y el porqué, en la primera entrada de [`docs/contexto-historico.md`](docs/contexto-historico.md) |

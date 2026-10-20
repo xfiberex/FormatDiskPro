@@ -29,19 +29,19 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-20 · **Publicado:** v1.30.3 · **2 tareas abiertas**, ninguna añade
-funcionalidad.
+**Última actualización:** 2026-10-20 · **Publicado:** v1.30.3 · **1 tarea abierta**,
+bloqueada a propósito: la auditoría del 2026-10-11 está cerrada.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
 | **2** | Medio | 0 |
-| **3** | Bajo | 1 |
+| **3** | Bajo | 0 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **2** |
+| | **Total** | **1** |
 
-De la auditoría del 2026-10-11 (71 hallazgos) quedan **1** y se han cerrado **70**
-(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-024`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-067`, `AUD-068`, `AUD-069`, `AUD-070`). Por área:
+De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **71**
+(`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-024`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-067`, `AUD-068`, `AUD-069`, `AUD-070`, `AUD-071`). Por área:
 
 | Área | Alto | Medio | Bajo | Total |
 |---|---:|---:|---:|---:|
@@ -50,32 +50,19 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **1** y se han cerrado **7
 | QA | – | – | – | 0 |
 | Documentación | – | – | – | 0 |
 | DevOps | – | – | – | 0 |
-| Legal | – | – | 1 | 1 |
+| Legal | – | – | – | 0 |
 | Rendimiento | – | – | – | 0 |
 | UI/UX | – | – | – | 0 |
 | Arquitectura y resiliencia | – | – | – | 0 |
 | Refactorización | – | – | – | 0 |
 | Redacción | – | – | – | 0 |
-| **Total** | **–** | **–** | **1** | **1** |
+| **Total** | **–** | **–** | **–** | **0** |
 
-**Esfuerzo:** bajo (hasta 2 horas).
-
-**Orden recomendado:** `AUD-071`, que ya no espera a nada: `AUD-024` se cerró sin permiso adicional, así que
-las contribuciones entran bajo `GPL-3.0-only` a secas.
+**Siguiente paso:** ninguno pendiente. Las tareas nuevas entran con el siguiente ID libre (`AUD-072`) o con
+la numeración de una auditoría nueva.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
-
-## 🟢 Tier 3 — Bajo
-
-### Legal
-
-- [ ] **AUD-071 · La guía de contribución no dice bajo qué licencia entran las aportaciones**
-  - **Área:** Legal · **Severidad:** Bajo · **Esfuerzo:** Bajo · *requiere revisión legal*
-  - **Ubicación:** `.github/CONTRIBUTING.md` · `.github/PULL_REQUEST_TEMPLATE.md`
-  - **Qué hacer:** una sección «Licencia de las contribuciones» y valorar un DCO (`Signed-off-by`).
-  - **Criterio de aceptación:** la guía y la plantilla dicen bajo qué términos se acepta una contribución.
-  - **Depende de:** AUD-024 (decidir antes el permiso adicional). El identificador ya está decidido: `GPL-3.0-only` (`AUD-069`, 2026-10-16)
 
 ---
 
