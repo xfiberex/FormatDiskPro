@@ -16,6 +16,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.31.0] — 2026-11-11
+
+**La interfaz, revisada: antes de borrar, qué se pierde; después, qué pasó.** La confirmación de formatear
+enseña el disco y cuántos datos contiene, y el historial se lee en tu idioma. La ventana gana una fila para
+las opciones, y desaparecen los guiones sueltos y la jerga interna. No hay funciones nuevas ni cambia lo que
+la aplicación hace con los discos.
+
 ### Cambiado
 
 - **La confirmación de formatear dice qué se va a perder.** Antes repetía los ajustes elegidos; ahora enseña
@@ -1108,7 +1115,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.30.4...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.31.0...HEAD
+[1.31.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.31.0
 [1.30.4]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.4
 [1.30.3]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.3
 [1.30.2]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.2

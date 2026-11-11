@@ -179,13 +179,13 @@ WinUI, el `x:Name` del XAML se expone como tal sin configuración extra).
 
 | | |
 |---|---|
-| **Publicado** | **v1.30.4** (2026-10-20): *Novedades* sin red (`AUD-067`), licencias de lo redistribuido (`AUD-024`) y licencia de las contribuciones (`AUD-071`). En `master`, sin publicar: lo que va cerrando la crítica de diseño del 2026-11-10 (ver `CHANGELOG.md`, *Sin publicar*) |
-| **Trabajo abierto** | Solo `T10-02` (bloqueada a propósito). La crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`) está cerrada y sin publicar. La lista vive **solo** en [`ROADMAP.md`](ROADMAP.md) |
+| **Publicado** | **v1.31.0** (2026-11-11): la crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`): las confirmaciones dicen qué se pierde, el historial se lee en tu idioma, una fila menos arriba y menos jerga. `master` sin trabajo pendiente de publicar |
+| **Trabajo abierto** | Solo `T10-02` (bloqueada a propósito). La crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`), cerrada y publicada en la v1.31.0. La lista vive **solo** en [`ROADMAP.md`](ROADMAP.md) |
 | **Trabajo cerrado** | Producto (`#1`–`#45`, 2026-07-13), auditoría del 2026-08-13 (`T0`–`T4`, 2026-08-16) y los Tiers 5 a 13 (el último, 2026-09-22): en [`docs/roadmap-historico.md`](docs/roadmap-historico.md) |
 | **Build** | Sin advertencias; el CI lo exige con `-warnaserror` en cada push y PR. Desde `AUD-042`/`AUD-043` son avisos, por `.editorconfig`, los `using` sin uso (IDE0005) y la documentación XML mal formada (CS1570), y no hay `global using` de WinUI porque alcanzaría a `Core/` |
 | **Unitarias** | `dotnet test` da el recuento. Línea base del 2026-11-10: **1030** (1029 pasan · 1 se omite: la de capacidad sobre unidad real, que pide `FORMATDISKPRO_VERIFY_DRIVE`). Cuatro de `AdminOnlyFolderTests` se omiten además si la terminal no está elevada |
 | **Pruebas de UI** | `dotnet test tests\FormatDiskPro.UiTests --filter "Category!=Slow"`, en terminal elevada. Línea base del 2026-11-10, con la USB de pruebas y sin opt-in: **63** (58 pasan · 5 se omiten: 3 de `ALLOW_DESTRUCTIVE` y 2 de `ALLOW_YANK`). Sin la USB se omiten además las que la necesitan |
-| **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 98,6 % el 2026-10-15 |
+| **Cobertura de `Core/`** | La mide y la exige `release.ps1` en cada corte. 99 % el 2026-11-10 (759 de 767 líneas) |
 | **Instalador** | Verificado por SHA-256 (hash emparejado por nombre con su instalador) y probado de punta a punta, en instalación limpia y sobre una anterior |
 
 ## 4. Decisiones y convenciones clave

@@ -23,11 +23,11 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
-| 2026-11-10 | `AUD-076` | Regla escrita del botón de acento: los diálogos informativos no llevan ninguno; el recuento del historial, como rótulo | sin publicar |
-| 2026-11-10 | `AUD-075` | «Salud no disponible» en vez de «● –», sin segmentos vacíos; *Novedades* sin IDs de tarea; pistas del formato completo y del borrado seguro | sin publicar |
-| 2026-11-10 | `AUD-074` | Fuera la fila de la barra rápida: la salud de la tarjeta abre el detalle y Benchmark e Historial suben a su cabecera | sin publicar |
-| 2026-11-10 | `AUD-073` | El historial, un diario: titular traducido por fila, icono por categoría, detalle técnico aparte y «Vaciar» separado | sin publicar |
-| 2026-11-10 | `AUD-072` | Las dos confirmaciones destructivas: aviso de error, el disco con su modelo y lo que contiene, y lo que se aplica | sin publicar |
+| 2026-11-10 | `AUD-076` | Regla escrita del botón de acento: los diálogos informativos no llevan ninguno; el recuento del historial, como rótulo | v1.31.0 |
+| 2026-11-10 | `AUD-075` | «Salud no disponible» en vez de «● –», sin segmentos vacíos; *Novedades* sin IDs de tarea; pistas del formato completo y del borrado seguro | v1.31.0 |
+| 2026-11-10 | `AUD-074` | Fuera la fila de la barra rápida: la salud de la tarjeta abre el detalle y Benchmark e Historial suben a su cabecera | v1.31.0 |
+| 2026-11-10 | `AUD-073` | El historial, un diario: titular traducido por fila, icono por categoría, detalle técnico aparte y «Vaciar» separado | v1.31.0 |
+| 2026-11-10 | `AUD-072` | Las dos confirmaciones destructivas: aviso de error, el disco con su modelo y lo que contiene, y lo que se aplica | v1.31.0 |
 | 2026-10-20 | `AUD-071` | La guía y la plantilla de PR dicen que se contribuye bajo `GPL-3.0-only`, sin CLA ni DCO | v1.30.4 |
 | 2026-10-20 | `AUD-067` | *Novedades* lee las notas del CHANGELOG embebido: sin red, esté como esté la preferencia | v1.30.4 |
 | 2026-10-20 | `AUD-024` | Licencia real de cada componente redistribuido, sus textos en `{app}\licenses` y el encaje con la GPLv3 por escrito, sin permiso adicional | v1.30.4 |

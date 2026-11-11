@@ -17,6 +17,7 @@
 
 | Versión | Qué trajo |
 |---|---|
+| **1.31.0** | **La interfaz, revisada, sin funciones nuevas.** Sale de una crítica de diseño (30/40, 31 tras los cambios). Las dos confirmaciones destructivas enseñan el disco —modelo, tamaño, conexión— y lo que contiene, con el aviso en un recuadro de error. El historial lleva un titular traducido por fila y el log queda como detalle. La barra rápida se reparte en la tarjeta de unidad y la ventana gana una fila. «Salud no disponible» en vez de un guion, *Novedades* sin IDs de tarea, y el acento solo en la acción que cada diálogo existe para hacer. |
 | **1.30.4** | **Privacidad y licencias, sin funciones nuevas.** *Novedades* lee las notas del CHANGELOG embebido y no se conecta a nada: la única conexión de la app es buscar actualizaciones. Los avisos de terceros citan la licencia real de cada componente redistribuido, el instalador deja sus textos en `licenses` y el encaje con la GPLv3 queda escrito, sin permiso adicional. La guía dice bajo qué licencia entran las contribuciones. Con ella, las 71 tareas de la auditoría del 2026-10-11 están publicadas |
 | **1.30.3** | **Los textos, sin funciones nuevas.** Tuteo en todo el español y un término por cosa en cada idioma, con un glosario que una prueba hace cumplir. En francés, tamaños en octetos («Go») como Windows; «ETA» y el nombre del CSV, traducidos. El historial se escribe en un formato técnico que no depende del idioma. La prueba que le faltaba al arreglo de `AUD-030` |
 | **1.30.2** | **La tercera tanda de la auditoría, sin funciones nuevas.** La ventana dejaba de responder durante un benchmark, una verificación o un borrado seguro, porque cada bloque se procesaba en el hilo de la interfaz. Las carpetas de trabajo que deja una operación interrumpida se detectan y se ofrece borrarlas. *Reinicializar* nombra el disco y todo lo que se pierde. Cada desenlace deja su línea en el historial, que escribe el perfil como `%USERPROFILE%`. Licencia `GPL-3.0-only`. Por dentro: compilación reproducible, catálogo único de sistemas de archivos y `MainWindow` por debajo de las 800 líneas por parcial |
@@ -65,6 +66,23 @@
 ---
 
 ## Entradas
+
+### 2026-11-11 — Corte de la v1.31.0
+
+**Por qué menor.** *Sin publicar* trae solo *Cambiado*: nada se arregla porque estuviera roto, pero la interfaz
+cambia de forma visible —una fila menos, la confirmación y el historial nuevos—. Es el criterio de la v1.27.0 y
+la v1.28.0, que tampoco tenían *Añadido*.
+
+**El primer intento se paró en las pruebas de UI.** `HealthOnTheDriveCard_SaysTheState_AndOpensTheDetail` exigía
+un «:» en el nombre del botón de salud («Salud: Normal»), y con la USB de pruebas —que no informa S.M.A.R.T.— el
+nombre es «Salud no disponible. …» desde `AUD-075`. En las corridas anteriores pasó por carrera: la consulta
+seguía en «Salud: consultando…». La app estaba bien; la prueba ahora exige el estado delante de la acción sin
+anclar su texto. `release.ps1` abortó antes de tocar la versión, así que no quedó nada a medias.
+
+**La crítica, medida.** Antes del corte se volvió a pasar la crítica de diseño sobre la galería completa: 31/40
+(30 antes), sin regresiones y sin problemas P0 ni P1. Quedan dos P2 conocidos y aceptados: no hay ayuda dentro de
+la app y, a 656 DIP, la etiqueta del volumen sigue bajo el pliegue (`AUD-074`). Las capturas del README se
+regeneraron con la interfaz nueva; la confirmación y *Reinicializar*, sobre la USB de pruebas.
 
 ### 2026-11-10 — `AUD-076`: qué botón lleva el acento, por escrito; la crítica de diseño, cerrada
 

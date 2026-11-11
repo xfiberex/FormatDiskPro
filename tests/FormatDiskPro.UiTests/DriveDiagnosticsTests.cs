@@ -57,7 +57,13 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
         var health = MainWindowActions.Button(Window, "BtnHealth");
         string name = health.Name;
         Assert.Contains("Ctrl+I", name);
-        Assert.Contains(":", name);   // «Salud: …», con el estado delante de la acción
+        // El estado delante de la acción: «Salud: Normal. …», «Salud no disponible. …» o, si la consulta sigue
+        // en curso, «Salud: consultando…. …». No se ancla el texto del estado: la USB de pruebas no informa
+        // S.M.A.R.T. y la consulta puede o no haber terminado. Anclar el «:» de «Salud: X» falló en el corte de
+        // la v1.31.0 justo por eso: «Salud no disponible» no lo lleva (`AUD-075`).
+        int split = name.IndexOf(". ", StringComparison.Ordinal);
+        Assert.True(split > 0, $"El nombre no empieza por el estado: «{name}».");
+        Assert.DoesNotContain("Ctrl+I", name[..split]);
         Assert.Null(Window.FindFirstDescendant(cf => cf.ByAutomationId("QuickBar")));
 
         health.Invoke();
