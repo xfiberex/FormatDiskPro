@@ -1,0 +1,77 @@
+﻿<ContentDialog
+    x:Class="FormatDiskPro.UI.GuideDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    CornerRadius="8">
+
+    <!-- Informativo: ningún botón con acento (regla de `AUD-076`, en AppTheme.xaml). -->
+    <ContentDialog.SecondaryButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </ContentDialog.SecondaryButtonStyle>
+    <ContentDialog.CloseButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </ContentDialog.CloseButtonStyle>
+
+    <ContentDialog.Resources>
+        <Style x:Key="GuideHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,10,0,2" />
+        </Style>
+        <Style x:Key="GuideBodyStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="19" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+        <Style x:Key="GuideKeyStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="GuideKeyLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </ContentDialog.Resources>
+
+    <!-- ── Guía rápida (`AUD-077`) ──────────────────────────────────────────────────────────────
+
+         La crítica de diseño del 2026-11-10 puntuó «Ayuda y documentación» con un 2: el menú Ayuda tenía
+         actualizaciones, novedades, licencia y Acerca de, y ninguna ayuda. Esto es lo mínimo que lleva a
+         formatear con confianza: tres pasos, qué sistema elegir, qué herramientas no tocan los datos y qué
+         hacer si algo falla. No se abre sola nunca (quien ya sabe no tiene que cerrarla); está en Ayuda y
+         en F1, que es donde Windows la busca. Lo que no cabe aquí, en el README. -->
+    <ScrollViewer MaxHeight="460" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="SectionsPanel" Padding="{StaticResource DialogContentPadding}"
+                    MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
+            <InfoBar x:Name="LinkBar" Severity="Warning" IsClosable="True" IsOpen="False" IsTabStop="True" />
+            <TextBlock x:Name="IntroText" Style="{StaticResource GuideBodyStyle}" Margin="0,0,0,2" />
+
+            <!-- Cada cuerpo se parte en líneas al pintarlo: las de viñeta o paso numerado llevan sangría
+                 francesa (el marcador en su columna), para que el segundo renglón no vuelva al margen. -->
+            <TextBlock x:Name="FormatHeading" Style="{StaticResource GuideHeadingStyle}" />
+            <StackPanel x:Name="FormatBody" Spacing="3" />
+
+            <TextBlock x:Name="FsHeading" Style="{StaticResource GuideHeadingStyle}" />
+            <StackPanel x:Name="FsBody" Spacing="3" />
+
+            <TextBlock x:Name="SafeHeading" Style="{StaticResource GuideHeadingStyle}" />
+            <StackPanel x:Name="SafeBody" Spacing="3" />
+
+            <TextBlock x:Name="TroubleHeading" Style="{StaticResource GuideHeadingStyle}" />
+            <StackPanel x:Name="TroubleBody" Spacing="3" />
+
+            <TextBlock x:Name="KeysHeading" Style="{StaticResource GuideHeadingStyle}" />
+            <!-- Dos columnas y no espacios: la longitud de las etiquetas cambia con el idioma (`T13-04`). -->
+            <Grid x:Name="KeysGrid" ColumnDefinitions="Auto,*" ColumnSpacing="14" RowSpacing="3" Margin="0,2,0,0" />
+            <TextBlock x:Name="KeysNote" Style="{StaticResource GuideBodyStyle}" FontSize="12" Margin="0,6,0,0" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

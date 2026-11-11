@@ -12,7 +12,7 @@
 >
 > | Qué | IDs | Estado |
 > |---|---|---|
-> | **Auditoría del 2026-10-11** y crítica de diseño del 2026-11-10 | `AUD-001`–`AUD-071` y `AUD-072`–`AUD-076` | abierta; aquí solo las completadas |
+> | **Auditoría del 2026-10-11** y revisiones de diseño del 2026-11-10 y 2026-11-11 | `AUD-001`–`AUD-071`, `AUD-072`–`AUD-076` y `AUD-077`–`AUD-078` | abierta; aquí solo las completadas |
 > | **Parte 1** — historial de producto | `#1`–`#45` | cerrada (2026-07-13) |
 > | **Parte 2** — auditoría del 2026-08-13 (`T0`–`T4`) y los tiers que la siguieron (`T5`–`T13`) | `T0-01`–`T13-20` | cerrada, salvo `T10-02` (bloqueada, en `ROADMAP.md`) |
 >
@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-11-11 | `AUD-077` | Guía rápida en *Ayuda* y en F1: formatear en tres pasos, qué sistema elegir, lo que no borra nada, qué hacer si falla y los atajos | sin publicar |
 | 2026-11-10 | `AUD-076` | Regla escrita del botón de acento: los diálogos informativos no llevan ninguno; el recuento del historial, como rótulo | v1.31.0 |
 | 2026-11-10 | `AUD-075` | «Salud no disponible» en vez de «● –», sin segmentos vacíos; *Novedades* sin IDs de tarea; pistas del formato completo y del borrado seguro | v1.31.0 |
 | 2026-11-10 | `AUD-074` | Fuera la fila de la barra rápida: la salud de la tarjeta abre el detalle y Benchmark e Historial suben a su cabecera | v1.31.0 |
@@ -675,6 +676,15 @@
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### UI/UX
+
+- [x] **AUD-077 · El menú «Ayuda» no tiene ayuda**
+  - **Área:** UI/UX · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml` (menú Ayuda) · nuevo `src/UI/GuideDialog.xaml(.cs)` · `src/Localization/Localization.cs`
+  - **Qué pasa:** *Ayuda* tiene actualizaciones, novedades, licencia y Acerca de. Quien formatea por primera vez tiene las pistas de cada campo, pero nada que le diga qué sistema elegir, qué herramientas no tocan los datos o qué hacer si algo falla. La crítica puntuó «Ayuda y documentación» con un 2.
+  - **Qué hacer:** una guía rápida en *Ayuda* y en F1, breve y por tareas: formatear en tres pasos, qué sistema de archivos, lo que no borra nada, si algo sale mal y los atajos. Sin abrirse sola: quien ya sabe no tiene que cerrarla. Lo demás, en el README.
+  - **Criterio de aceptación:** F1 abre la guía sin abrir el menú; los nombres de menús y botones que cita salen de sus claves; cinco idiomas; diálogo informativo (sin acento).
+  - **Hecho (2026-11-10):** *Ayuda → Guía rápida…* (`GuideDialog`), también con F1, que es donde Windows busca la ayuda y, como no escribe nada, puede llevar atajo. Cinco bloques breves: formatear en tres pasos (con «revisa en la confirmación qué contiene la unidad», que es lo que trajo `AUD-072`), qué sistema de archivos (exFAT, FAT32 con su límite de 4 GB por archivo, NTFS), lo que no borra nada (salud, chkdsk solo comprobar, benchmark, verificar capacidad), si algo sale mal (protección de escritura, *Reinicializar*, el historial) y los atajos en dos columnas, con la nota de que lo que borra no tiene atajo a propósito. Los nombres de menús y botones que cita salen de sus propias claves (`AUD-045`). Las líneas de viñeta y de paso llevan sangría francesa. «Guía completa en GitHub» abre la sección *Uso* del README (`AppInfo.GuideUrl`, dentro de `LinkPolicy`). No se abre sola. Diálogo informativo, sin acento (`AUD-076`). El script de capturas gana la toma `guide`. 18 claves nuevas, cinco idiomas.
+  - **Verificado (2026-11-10, en local, terminal elevada y USB de pruebas):** `GuideDialog_OpensWithF1_WithItsSectionsAndShortcuts` (nueva) pulsa F1 sin abrir el menú y comprueba las cinco secciones y la tabla de atajos. `InformativeDialogs_HaveNoAccentButton` suma `GuideDialog`. El glosario y la cobertura de traducciones pasan con las claves nuevas. Galería de la guía en claro, oscuro y francés revisada. Unitarias: 1030 pasan, 1 omitida.
 
 - [x] **AUD-076 · Pulido: el botón por defecto de los diálogos y detalles sueltos**
   - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo

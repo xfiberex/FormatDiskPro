@@ -81,6 +81,13 @@
                 <ToggleMenuFlyoutItem x:Name="MnuCheckUpdatesOnStartup" Text="Buscar actualizaciones al iniciar" Click="MnuCheckUpdatesOnStartup_Click" />
             </MenuBarItem>
             <MenuBarItem x:Name="MnuHelp" Title="Ayuda">
+                <!-- F1, donde Windows busca la ayuda (`AUD-077`). No escribe nada: puede llevar atajo. -->
+                <MenuFlyoutItem x:Name="MnuGuide" Text="Guía rápida…" Click="MnuGuide_Click">
+                    <MenuFlyoutItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="F1" />
+                    </MenuFlyoutItem.KeyboardAccelerators>
+                </MenuFlyoutItem>
+                <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="MnuUpdates" Text="Buscar actualizaciones…" Click="MnuUpdates_Click" />
                 <MenuFlyoutItem x:Name="MnuWhatsNew" Text="Novedades…" Click="MnuWhatsNew_Click" />
                 <MenuFlyoutSeparator />

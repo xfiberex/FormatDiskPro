@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+﻿// SPDX-License-Identifier: GPL-3.0-only
 using System.Reflection;
 
 namespace FormatDiskPro;
@@ -28,6 +28,9 @@ public static class AppInfo
     /// <summary>Página principal del repositorio.</summary>
     public static string RepoUrl =>
         $"https://github.com/{GitHubOwner}/{GitHubRepo}";
+
+    /// <summary>La sección «Uso» del README: lo que la guía rápida no cabe a contar (`AUD-077`).</summary>
+    public static string GuideUrl => $"{RepoUrl}#uso";
 
     /// <summary>
     /// Enlace de donación (PayPal). Si está vacío, el botón "Apoyar el proyecto" no se muestra.

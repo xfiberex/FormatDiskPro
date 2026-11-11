@@ -124,7 +124,7 @@ la salud de la unidad (*● Normal*) abre su detalle S.M.A.R.T. al pulsarla. Lo 
 |---|---|
 | **Herramientas** | Verificar capacidad real · Salud del disco (S.M.A.R.T.) · Comprobar errores (chkdsk) · Benchmark rápido · Quitar protección de escritura · Reinicializar unidad · Expulsar unidad · Ver historial |
 | **Configuración** | Idioma · Tema · Presets (y *Gestionar presets…*) · Avisar al terminar · Buscar actualizaciones al iniciar |
-| **Ayuda** | Buscar actualizaciones · Novedades · Licencia · Avisos de terceros · Acerca de |
+| **Ayuda** | Guía rápida (F1) · Buscar actualizaciones · Novedades · Licencia · Avisos de terceros · Acerca de |
 
 Lo que la unidad seleccionada no admite aparece **apagado y con el motivo en el propio menú**, p. ej.
 «Expulsar unidad *(solo extraíbles)*».

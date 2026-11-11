@@ -88,6 +88,7 @@ public sealed class DialogLayoutTests
     [InlineData("HealthDialog")]
     [InlineData("HistoryDialog")]
     [InlineData("LegalTextDialog")]
+    [InlineData("GuideDialog")]
     public void InformativeDialogs_HaveNoAccentButton(string dialog)
     {
         string ui = Path.Combine(RepoRoot(), "src", "FormatDiskPro", "UI");

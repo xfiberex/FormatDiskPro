@@ -125,6 +125,30 @@ public sealed class MenuDialogsTests(AppFixture fixture)
         }
     }
 
+    /// <summary>
+    /// `AUD-077`: F1 abre la guía rápida sin abrir el menú, como el atajo del historial, y la guía trae sus
+    /// secciones y la tabla de atajos (que se construye por código).
+    /// </summary>
+    [Fact]
+    public void GuideDialog_OpensWithF1_WithItsSectionsAndShortcuts()
+    {
+        Window.Focus();
+        Keyboard.Type(VirtualKeyShort.F1);
+
+        var dialog = DialogHelper.WaitForDialog(fixture);
+        try
+        {
+            foreach (string id in (string[])["FormatHeading", "FsHeading", "SafeHeading", "TroubleHeading", "KeysHeading"])
+                Assert.False(string.IsNullOrWhiteSpace(DialogHelper.ReadText(DialogHelper.WaitForChild(dialog, id))),
+                    $"La sección {id} de la guía está vacía.");
+            Assert.NotNull(dialog.FindFirstDescendant(cf => cf.ByName("Ctrl+H")));
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
+
     [Fact]
     public void PresetsDialog_OpensAndCloses()
     {

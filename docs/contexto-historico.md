@@ -67,6 +67,20 @@
 
 ## Entradas
 
+### 2026-11-11 — `AUD-077`: una ayuda en el menú Ayuda
+
+**Qué cambia.** *Ayuda → Guía rápida…*, también con F1: cómo formatear en tres pasos, qué sistema de archivos
+elegir, qué herramientas no tocan los datos, qué hacer si algo falla y los atajos.
+
+**Por qué así.** La crítica del 2026-11-10 dio un 2 a «Ayuda y documentación»: el menú Ayuda no tenía ninguna.
+`/impeccable onboard` descartó un recorrido guiado al arrancar: es una utilidad que se abre para hacer una cosa,
+y quien ya sabe no tiene que cerrar nada. La guía está donde Windows la busca —Ayuda y F1— y cuenta solo lo que
+lleva a formatear con confianza; lo demás, en el README, a un botón. F1 puede llevar atajo porque no escribe
+nada, el mismo criterio de `T7-04`.
+
+**La auditoría.** La acompañó `/impeccable audit` (17/20) sobre lo que la crítica no había mirado: francés y
+portugués, el tema de contraste de Windows y el texto al 150 %. Todo cabe; quedaron dos detalles en `AUD-078`.
+
 ### 2026-11-11 — Corte de la v1.31.0
 
 **Por qué menor.** *Sin publicar* trae solo *Cambiado*: nada se arregla porque estuviera roto, pero la interfaz

@@ -27,6 +27,13 @@ public sealed partial class MainWindow
         await ShowOneAsync(dlg);
     }
 
+    // La guía rápida (`AUD-077`), desde Ayuda o con F1.
+    private async void MnuGuide_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new GuideDialog(_services.Updates) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
+        await ShowOneAsync(dlg);
+    }
+
     private async void MnuAbout_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new AboutDialog(_services.Updates) { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };

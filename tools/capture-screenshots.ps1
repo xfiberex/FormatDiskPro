@@ -588,6 +588,10 @@ function Invoke-Gallery([string]$exePath, [string]$driveLetter) {
                 Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
                 Invoke-Element (Find-ByAutomationId $w 'MnuThirdParty')
                 [void](Find-ByAutomationId $w 'BodyText' 15); Start-Sleep -Milliseconds 800 } }
+        @{ Name = 'guide';     Setup = { param($w,$h)
+                Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
+                Invoke-Element (Find-ByAutomationId $w 'MnuGuide')
+                [void](Find-ByAutomationId $w 'FormatHeading' 15); Start-Sleep -Milliseconds 800 } }
         @{ Name = 'about';     Setup = { param($w,$h)
                 Expand-Element (Find-ByAutomationId $w 'MnuHelp'); Start-Sleep -Milliseconds 500
                 Invoke-Element (Find-ByAutomationId $w 'MnuAbout')

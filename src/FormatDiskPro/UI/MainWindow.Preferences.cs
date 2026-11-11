@@ -169,6 +169,7 @@ public sealed partial class MainWindow
         MnuCheckUpdatesOnStartup.Text = L.T("menu.checkUpdatesOnStartup");
         MnuHelp.Title    = L.T("menu.help");
         MnuUpdates.Text  = L.T("menu.updates");
+        MnuGuide.Text    = L.T("menu.guide");
         MnuWhatsNew.Text = L.T("menu.whatsnew");
         MnuLicense.Text  = L.T("menu.license");
         MnuThirdParty.Text = L.T("menu.thirdParty");

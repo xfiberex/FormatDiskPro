@@ -16,6 +16,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Añadido
+
+- **Guía rápida** en *Ayuda* y con **F1**: cómo formatear en tres pasos, qué sistema de archivos elegir, qué
+  herramientas no tocan tus datos, qué hacer si algo falla y los atajos de teclado.
+
 ## [1.31.0] — 2026-11-11
 
 **La interfaz, revisada: antes de borrar, qué se pierde; después, qué pasó.** La confirmación de formatear
