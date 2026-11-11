@@ -15,7 +15,8 @@ public sealed partial class AboutDialog : ContentDialog
         InitializeComponent();
 
         Title                 = L.T("about.title");
-        VersionText.Text      = L.T("about.version", AppInfo.VersionString);
+        // La pila técnica, en la línea atenuada de la versión y no en la presentación (`AUD-075`).
+        VersionText.Text      = InfoLine.Join(L.T("about.version", AppInfo.VersionString), ".NET 10", "WinUI 3");
         DescText.Text         = L.T("about.desc");
         CopyrightText.Text    = L.T("about.copyright");
         DisclaimerHeader.Text = L.T("about.disclaimerHeader");

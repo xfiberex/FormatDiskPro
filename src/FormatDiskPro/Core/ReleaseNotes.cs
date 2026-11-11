@@ -89,4 +89,39 @@ public static partial class ReleaseNotes
         // Colapsar 3+ saltos consecutivos a un máximo de dos (una línea en blanco) y recortar extremos.
         return BlankLinesRegex().Replace(sb.ToString(), "\n\n").Trim();
     }
+
+    // Un identificador de tarea del proyecto: `AUD-067`, `T13-05` o `#38`, con o sin comillas de código.
+    private const string TaskId = @"`?(?:AUD-\d{3}|T\d{1,2}-\d{2}|\#\d{1,3})`?";
+
+    // «(`T6-10`)», «(`AUD-020`, `AUD-053`)»: un paréntesis que solo lleva identificadores, con su espacio.
+    [GeneratedRegex(@"\s*\(\s*" + TaskId + @"(?:\s*(?:,|;|\by\b|\band\b)\s*" + TaskId + @")*\s*\)")]
+    private static partial Regex IdOnlyParensRegex();
+
+    // «(`T5-01`, prerrequisito de…)»: los identificadores con los que abre un paréntesis que sigue.
+    [GeneratedRegex(@"\(\s*(?:" + TaskId + @"\s*[,;:]\s*)+")]
+    private static partial Regex LeadingIdsRegex();
+
+    // Lo que quede suelto entre comillas de código: «la decisión `#13`».
+    [GeneratedRegex(@"\s?`(?:AUD-\d{3}|T\d{1,2}-\d{2}|\#\d{1,3})`")]
+    private static partial Regex QuotedIdRegex();
+
+    /// <summary>
+    /// Quita de unas notas de versión los identificadores de tarea del proyecto (`AUD-075`): «(`AUD-067`)»,
+    /// «(`T6-10`)», «`#13`». Lógica pura.
+    /// </summary>
+    /// <remarks>
+    /// <para>El <c>CHANGELOG.md</c> lo escribe el mantenedor y los cita para enlazar cada cambio con su tarea;
+    /// <i>Novedades</i> lo lee quien acaba de actualizar, para quien «(AUD-067)» es ruido. Se quitan al
+    /// enseñarlos y no en el archivo, que es también el registro del proyecto.</para>
+    /// <para>Solo los que van entre paréntesis o entre comillas de código: es como los escribe el proyecto, y
+    /// un patrón más suelto se llevaría por delante un «#1» o un «T1-01» que formaran parte de la frase.</para>
+    /// </remarks>
+    /// <param name="markdown">Notas en Markdown.</param>
+    public static string WithoutTaskIds(string? markdown)
+    {
+        if (string.IsNullOrEmpty(markdown)) return "";
+        string s = IdOnlyParensRegex().Replace(markdown, "");
+        s = LeadingIdsRegex().Replace(s, "(");
+        return QuotedIdRegex().Replace(s, "");
+    }
 }

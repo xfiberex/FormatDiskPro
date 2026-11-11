@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-11-10 | `AUD-075` | «Salud no disponible» en vez de «● –», sin segmentos vacíos; *Novedades* sin IDs de tarea; pistas del formato completo y del borrado seguro | sin publicar |
 | 2026-11-10 | `AUD-074` | Fuera la fila de la barra rápida: la salud de la tarjeta abre el detalle y Benchmark e Historial suben a su cabecera | sin publicar |
 | 2026-11-10 | `AUD-073` | El historial, un diario: titular traducido por fila, icono por categoría, detalle técnico aparte y «Vaciar» separado | sin publicar |
 | 2026-11-10 | `AUD-072` | Las dos confirmaciones destructivas: aviso de error, el disco con su modelo y lo que contiene, y lo que se aplica | sin publicar |
@@ -613,6 +614,15 @@
   - **Verificado (2026-10-17, en local):** compilación en Release con `-warnaserror`, como el CI, de la solución y de las pruebas de UI: 0 avisos, sin CS1570 ni ningún otro aviso de XML. La prueba nueva falló con la clave todavía puesta, nombrando solo `about.body`, y pasa sin ella. 966 unitarias (965 pasan).
 
 ### Redacción
+
+- [x] **AUD-075 · Valores desconocidos como guiones y lenguaje interno en textos para el usuario**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.DriveInfo.cs` · `src/UI/WhatsNewDialog.xaml(.cs)` · `src/Core/Changelog.cs` · `src/UI/AboutDialog.xaml` · `src/Localization/Localization.cs`
+  - **Qué pasa:** un USB enseña «● –» como salud y «FAT32 · USB / Extraíble · –»; un punto gris con un guion parece un fallo de carga. *Novedades* lleva «(AUD-067)» y la jerga de las auditorías; *Acerca de*, «.NET 10 · WinUI 3» en el texto de presentación y «SIN NINGUNA GARANTÍA» en mayúsculas. El borrado seguro solo se explica en un tooltip y nada dice que desmarcar el formato rápido puede tardar horas.
+  - **Qué hacer:** «Salud no disponible» con tooltip que diga por qué; fuera el segmento vacío de la línea de contexto. *Novedades* sin identificadores de tarea. *Acerca de* con la pila técnica en una línea atenuada y el aviso en minúscula. Pista visible bajo el borrado seguro y bajo un formato completo.
+  - **Criterio de aceptación:** en la galería, ninguna toma enseña un «–» suelto como valor; *Novedades* no muestra ningún `AUD-`/`T`*n*`-`*nn*; pruebas unitarias del filtro. Cinco idiomas.
+  - **Hecho (2026-11-10):** Sin dato de salud, la tarjeta dice «Salud no disponible» y el tooltip explica que es habitual en memorias USB y lectores de tarjetas; la conexión sin dato se va con su separador (`SetBus`, con `InfoLine.HasValue`), así que un USB enseña «FAT32 · USB / Extraíble». El texto se repinta al cambiar de idioma. *Novedades* pasa las notas por `ReleaseNotes.WithoutTaskIds`, que quita los paréntesis de identificadores («(`T6-10`)», «(`AUD-020`, `AUD-053`)»), los que abren un paréntesis con más texto y los sueltos entre comillas de código; el `CHANGELOG.md` no cambia. *Acerca de* lleva la pila técnica en la línea de la versión («Versión 1.30.4 · .NET 10 · WinUI 3») y el aviso en minúscula en los cinco idiomas. Bajo «Formato rápido» aparece, al desmarcarlo, que un formato completo puede tardar horas; bajo el borrado seguro, al marcarlo, el texto que antes solo estaba en su tooltip. Las dos pistas están ocultas en reposo y no le quitan alto a la ventana. Tres claves nuevas, cinco idiomas.
+  - **Verificado (2026-11-10, en local, terminal elevada y USB de pruebas):** `ReleaseNotesTests` suma 9: los cinco formatos de referencia, que el texto normal («hasta 32 GB», «el paso #1») no se toca y que las notas de la versión instalada, ya filtradas, no citan ninguna tarea. `OptionHints_ShowOnlyWhenTheOptionMatters` (nueva) comprueba que las pistas no están en reposo y aparecen con texto al tocar cada opción. `FormatOptionsUiTests` y `SettingsTests` (cambio de idioma) pasan. Galería de la ventana con el USB, *Novedades* y *Acerca de* revisada. Unitarias: 1024 pasan, 1 omitida.
 
 - [x] **AUD-048 · Tratamiento, terminología y tipografía no son uniformes dentro de cada idioma**
   - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Medio

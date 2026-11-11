@@ -227,7 +227,9 @@
                             <TextBlock Style="{StaticResource DriveMetaStyle}" Text="·"
                                        AutomationProperties.AccessibilityView="Raw" />
                             <TextBlock x:Name="InfoTypeText" Style="{StaticResource DriveMetaStyle}" Text="–" />
-                            <TextBlock Style="{StaticResource DriveMetaStyle}" Text="·"
+                            <!-- Con nombre (`AUD-075`): si no hay conexión que decir, se van el dato y su
+                                 separador, en vez de dejar «USB / Extraíble · –». -->
+                            <TextBlock x:Name="InfoBusSep" Style="{StaticResource DriveMetaStyle}" Text="·"
                                        AutomationProperties.AccessibilityView="Raw" />
                             <TextBlock x:Name="InfoBusText" Style="{StaticResource DriveMetaStyle}" Text="–" />
                         </StackPanel>
@@ -330,6 +332,12 @@
                         </StackPanel>
                         <CheckBox x:Name="QuickFormatCheck" Content="Formato rápido" IsChecked="True"
                                   Checked="FormatOption_Changed" Unchecked="FormatOption_Changed" />
+                        <!-- Pistas que aparecen cuando la opción importa (`AUD-075`): desmarcar el formato
+                             rápido puede costar horas, y el borrado seguro tiene letra pequeña (el margen y
+                             los SSD). Antes lo segundo solo estaba en un tooltip y lo primero en ningún sitio.
+                             Ocultas en reposo: no le quitan alto a la ventana. -->
+                        <TextBlock x:Name="FullFormatHintText" Style="{StaticResource HintTextStyle}"
+                                   Margin="30,-4,0,0" Visibility="Collapsed" />
                         <CheckBox x:Name="CompressCheck"    Content="Habilitar compresión (solo NTFS)" IsEnabled="False"
                                   Checked="FormatOption_Changed" Unchecked="FormatOption_Changed" />
                         <CheckBox x:Name="SecureWipeCheck"  Content="Borrado seguro (sobrescribir espacio libre)"
@@ -345,6 +353,8 @@
                                 <ComboBoxItem Content="7" />
                             </ComboBox>
                         </StackPanel>
+                        <TextBlock x:Name="SecureWipeHintText" Style="{StaticResource HintTextStyle}"
+                                   Margin="30,-2,0,0" Visibility="Collapsed" />
                         <CheckBox x:Name="SmallFat32Check"
                                   Visibility="Collapsed"
                                   Checked="SmallFat32Check_Toggled" Unchecked="SmallFat32Check_Toggled" />

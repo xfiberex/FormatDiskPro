@@ -187,7 +187,7 @@ public sealed partial class MainWindow
         _healthLetter = letter;
         _lastHealth = null;
         SetHealth(L.T("info.loading"));
-        SetInfo(InfoBusText,    L.T("info.loading"), "info.bus");
+        SetBus(L.T("info.loading"));
 
         DiskService.HealthInfo? info;
         try
@@ -214,8 +214,8 @@ public sealed partial class MainWindow
     {
         if (h is null)
         {
-            SetHealth(L.T("info.dash"));
-            SetInfo(InfoBusText,    L.T("info.dash"), "info.bus");
+            SetHealth(null);
+            SetBus(null);
             ClearHealthColor();
             return;
         }
@@ -230,12 +230,12 @@ public sealed partial class MainWindow
         // para elegir el color; ahora da también el texto. Con Unknown se conserva lo que reporte el
         // disco (no hay nada que traducir) o el guion si no reporta nada.
         var level = SmartInfo.HealthLevel(h.Health);
-        string healthText = level != SmartLevel.Unknown
+        string? healthText = level != SmartLevel.Unknown
             ? HealthDialog.LevelLabel(level)
-            : string.IsNullOrWhiteSpace(h.Health) ? dash : h.Health;
+            : string.IsNullOrWhiteSpace(h.Health) ? null : h.Health;
 
         SetHealth(healthText);
-        SetInfo(InfoBusText,    conn,        "info.bus");
+        SetBus(conn);
 
         // Umbrales de #16: el color refuerza lo que el texto ya dice. Desde `T11-03` lo llevan los dos
         // —texto y punto—, siempre el mismo pincel: dos fuentes para el mismo color acabarían separadas.
@@ -279,16 +279,43 @@ public sealed partial class MainWindow
     /// (`AUD-074`).
     /// </summary>
     /// <remarks>
-    /// El botón envuelve al texto, así que es el botón lo que anuncia un lector de pantalla: sin esto diría
-    /// solo «Salud del disco…» y se perdería el estado, o solo «Normal» y se perdería que se puede pulsar.
+    /// <para>El botón envuelve al texto, así que es el botón lo que anuncia un lector de pantalla: sin esto diría
+    /// solo «Salud del disco…» y se perdería el estado, o solo «Normal» y se perdería que se puede pulsar.</para>
+    /// <para>Sin dato, dice «Salud no disponible» y el tooltip explica por qué (`AUD-075`). Era un punto gris con
+    /// un guion, que se leía como algo que no terminó de cargar y no como un USB que no informa.</para>
     /// </remarks>
-    /// <param name="value">Estado ya traducido, o el marcador de «sin dato».</param>
-    private void SetHealth(string value)
+    /// <param name="value">Estado ya traducido, o <see langword="null"/> si el disco no lo da.</param>
+    private void SetHealth(string? value)
     {
-        SetInfo(InfoHealthText, value, "info.health");
-        string full = $"{L.T("info.health", value)}. {L.T("bar.tip", L.T("menu.health"), "Ctrl+I")}";
-        ToolTipService.SetToolTip(BtnHealth, L.T("bar.tip", L.T("menu.health"), "Ctrl+I"));
-        AutomationProperties.SetName(BtnHealth, full);
+        string action = L.T("bar.tip", L.T("menu.health"), "Ctrl+I");
+        _healthUnavailable = !InfoLine.HasValue(value);
+        if (!_healthUnavailable)
+        {
+            SetInfo(InfoHealthText, value!, "info.health");
+            ToolTipService.SetToolTip(BtnHealth, action);
+            AutomationProperties.SetName(BtnHealth, $"{L.T("info.health", value!)}. {action}");
+            return;
+        }
+        string na = L.T("info.healthNa");
+        InfoHealthText.Text = na;
+        AutomationProperties.SetName(InfoHealthText, na);
+        ToolTipService.SetToolTip(BtnHealth, $"{L.T("info.healthNaTip")}\n{action}");
+        AutomationProperties.SetName(BtnHealth, $"{na}. {action}");
+    }
+
+    /// <summary>Si la salud enseña «no disponible»: para repintarla en otro idioma (`AUD-075`).</summary>
+    private bool _healthUnavailable;
+
+    /// <summary>
+    /// Pinta la conexión de la línea de contexto, o la quita con su separador si no hay dato (`AUD-075`).
+    /// </summary>
+    /// <param name="value">Conexión y medio ya unidos, «consultando…», o <see langword="null"/>.</param>
+    private void SetBus(string? value)
+    {
+        bool has = InfoLine.HasValue(value);
+        SetInfo(InfoBusText, has ? value! : L.T("info.dash"), "info.bus");
+        InfoBusText.Visibility = has ? Visibility.Visible : Visibility.Collapsed;
+        InfoBusSep.Visibility  = InfoBusText.Visibility;
     }
 
     /// <summary>
@@ -380,7 +407,10 @@ public sealed partial class MainWindow
     {
         Label(BtnBenchmark, BtnBenchmarkLbl, "bar.benchmark", "menu.benchmark", "Ctrl+B");
         Label(BtnHistory,   BtnHistoryLbl,   "bar.history",   "menu.history",   "Ctrl+H");
-        SetHealth(InfoHealthText.Text);   // la salud no tiene rótulo propio: su nombre lleva el estado (`AUD-074`)
+        // La salud no tiene rótulo propio: su nombre lleva el estado (`AUD-074`). Se repinta desde el dato,
+        // no desde el texto, que está en el idioma anterior; sin dato, según lo que se estuviera enseñando.
+        if (_lastHealth is not null) RenderHealth(_lastHealth);
+        else SetHealth(_healthUnavailable ? null : InfoHealthText.Text);
 
         static void Label(Button button, TextBlock text, string shortKey, string longKey, string accelerator)
         {
@@ -556,8 +586,8 @@ public sealed partial class MainWindow
         SetInfo(InfoTotalText,  dash, "info.total");
         SetInfo(InfoFsText,     dash, "info.fs");
         SetInfo(InfoTypeText,   dash, "info.type");
-        SetHealth(dash);
-        SetInfo(InfoBusText,    dash, "info.bus");
+        SetHealth(null);
+        SetBus(null);
         InfoFreeText.Text = L.T("info.usedFree", dash, dash);
         ClearHealthColor();
         CapacityPanel.Visibility = Visibility.Collapsed;

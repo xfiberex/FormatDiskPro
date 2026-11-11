@@ -28,6 +28,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   historial y el CSV exportado no cambian.
 - **Una fila menos arriba.** La salud de la unidad se puede pulsar y abre el detalle S.M.A.R.T., y Benchmark
   e Historial están en la cabecera de la tarjeta de unidad. Queda más sitio para las opciones de formato.
+- **Menos guiones y menos jerga.** Una memoria USB que no informa de su salud dice «Salud no disponible» y
+  explica por qué, en vez de enseñar un guion. *Novedades* ya no cita los códigos internos de cada cambio, y
+  *Acerca de* presenta la aplicación sin la tecnología con la que está hecha. Desmarcar «Formato rápido» avisa
+  de que un formato completo puede tardar horas, y marcar el borrado seguro explica lo que hace y lo que no.
 
 ## [1.30.4] — 2026-10-20
 

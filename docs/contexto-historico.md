@@ -66,6 +66,20 @@
 
 ## Entradas
 
+### 2026-11-10 — `AUD-075`: decir «no lo sé» con palabras, y hablarle al usuario
+
+**Qué cambia.** Un USB ya no enseña «● –» como salud ni «· –» al final de la línea de contexto: dice «Salud no
+disponible», con el porqué en el tooltip, y el dato que falta desaparece con su separador. *Novedades* deja de
+citar tareas («(AUD-067)»), *Acerca de* baja «.NET 10 · WinUI 3» a la línea de la versión, y dos opciones con
+letra pequeña —desmarcar el formato rápido y marcar el borrado seguro— la enseñan al tocarlas.
+
+**Por qué así.** Un guion suelto se lee como un dato que no terminó de cargar, y en la tarjeta de unidad, en el
+caso más común de la app (formatear un USB), ocupaba justo el sitio de «¿está sano?». Los identificadores se
+quitan al enseñar las notas y no en el `CHANGELOG.md`, que es también el registro del proyecto; solo los que van
+entre paréntesis o comillas de código, que es como los escribe el proyecto, para no llevarse un «#1» de una
+frase. Las pistas de las opciones aparecen solo cuando cuentan: en reposo no le quitan alto a una ventana que
+ya no llega a enseñar sus opciones (`AUD-074`).
+
 ### 2026-11-10 — `AUD-074`: la barra rápida se reparte y la ventana gana una fila
 
 **Qué cambia.** La fila de botones bajo el menú desaparece. La salud de la tarjeta de unidad se puede pulsar y

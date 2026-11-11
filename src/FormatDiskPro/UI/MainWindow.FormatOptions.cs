@@ -500,7 +500,19 @@ public sealed partial class MainWindow
     /// </remarks>
     private void FormatOption_Changed(object sender, RoutedEventArgs e)
     {
-        if (_uiBuilt) UpdateFooterSummary();
+        if (!_uiBuilt) return;
+        UpdateFooterSummary();
+        UpdateOptionHints();
+    }
+
+    /// <summary>
+    /// Enseña la pista de una opción solo cuando cuenta (`AUD-075`): la del formato completo al desmarcar el
+    /// rápido, y la del borrado seguro al marcarlo. Su texto lo escribe <c>ApplyLanguage</c>.
+    /// </summary>
+    private void UpdateOptionHints()
+    {
+        FullFormatHintText.Visibility = QuickFormatCheck.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
+        SecureWipeHintText.Visibility = SecureWipeCheck.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <inheritdoc cref="FormatOption_Changed(object, RoutedEventArgs)"/>

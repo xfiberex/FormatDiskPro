@@ -123,4 +123,32 @@ public sealed class ReleaseNotesTests
     [Fact]
     public void ToPlainText_OnlyAByteOrderMark_IsEmpty()
         => Assert.Equal("", ReleaseNotes.ToPlainText("\uFEFF"));
+
+    // ── `AUD-075`: Novedades sin los identificadores de tarea del proyecto ──
+
+    [Theory]
+    [InlineData("**Dos opciones** (`T6-10`). Antes", "**Dos opciones**. Antes")]
+    [InlineData("como estaba (`AUD-020`, `AUD-053`).", "como estaba.")]
+    [InlineData("el plan (`T5-01`, prerrequisito de lo demás)", "el plan (prerrequisito de lo demás)")]
+    [InlineData("contradecía la decisión `#13` y", "contradecía la decisión y")]
+    [InlineData("sin red (AUD-067).", "sin red.")]
+    public void WithoutTaskIds_RemovesTheProjectsReferences(string input, string expected)
+        => Assert.Equal(expected, ReleaseNotes.WithoutTaskIds(input));
+
+    [Theory]
+    [InlineData("Formatea en FAT32 (hasta 32 GB).")]
+    [InlineData("El paso #1 es elegir la unidad.")]
+    [InlineData("")]
+    public void WithoutTaskIds_LeavesOrdinaryTextAlone(string input)
+        => Assert.Equal(input, ReleaseNotes.WithoutTaskIds(input));
+
+    /// <summary>
+    /// Lo que ve quien abre Novedades: la sección de la versión instalada, ya filtrada, no cita ninguna tarea.
+    /// </summary>
+    [Fact]
+    public void TheInstalledVersionsNotes_ShowNoTaskIds()
+    {
+        string shown = ReleaseNotes.ToPlainText(ReleaseNotes.WithoutTaskIds(Changelog.ForVersion(AppInfo.VersionString)));
+        Assert.DoesNotMatch(@"AUD-\d{3}|\bT\d{1,2}-\d{2}\b", shown);
+    }
 }

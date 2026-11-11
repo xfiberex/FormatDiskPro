@@ -27,7 +27,9 @@ public sealed partial class WhatsNewDialog : ContentDialog
         CloseButtonText   = L.T("btn.close");
         DefaultButton     = ContentDialogButton.Close;
 
-        string plain = ReleaseNotes.ToPlainText(notesMarkdown);
+        // Sin los identificadores de tarea (`AUD-075`): el CHANGELOG los cita para el proyecto, no para quien
+        // acaba de actualizar.
+        string plain = ReleaseNotes.ToPlainText(ReleaseNotes.WithoutTaskIds(notesMarkdown));
         NotesText.Text = string.IsNullOrWhiteSpace(plain) ? L.T("whatsnew.empty") : plain;
 
         // Si el navegador abre, el diálogo se cierra —que es lo que se espera de «Ver en GitHub»—. Solo

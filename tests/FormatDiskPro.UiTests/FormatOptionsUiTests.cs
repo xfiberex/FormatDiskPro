@@ -114,6 +114,33 @@ public sealed class FormatOptionsUiTests
         }
     }
 
+    /// <summary>
+    /// `AUD-075`: las pistas del formato completo y del borrado seguro aparecen cuando la opción cuenta —al
+    /// desmarcar el rápido, al marcar el borrado— y en reposo no ocupan sitio. Un elemento Collapsed no está
+    /// en el árbol de automatización, así que «no está» es «no se ve».
+    /// </summary>
+    [NonSystemDriveFact]
+    public void OptionHints_ShowOnlyWhenTheOptionMatters()
+    {
+        MainWindowActions.SetChecked(Window, "QuickFormatCheck", true);
+        MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+        try
+        {
+            Assert.Null(Window.FindFirstDescendant(cf => cf.ByAutomationId("FullFormatHintText")));
+            Assert.Null(Window.FindFirstDescendant(cf => cf.ByAutomationId("SecureWipeHintText")));
+
+            MainWindowActions.SetChecked(Window, "QuickFormatCheck", false);
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", true);
+            Assert.False(string.IsNullOrWhiteSpace(MainWindowActions.Require(Window, "FullFormatHintText").Name));
+            Assert.False(string.IsNullOrWhiteSpace(MainWindowActions.Require(Window, "SecureWipeHintText").Name));
+        }
+        finally
+        {
+            MainWindowActions.SetChecked(Window, "QuickFormatCheck", true);
+            MainWindowActions.SetChecked(Window, "SecureWipeCheck", false);
+        }
+    }
+
     [NonSystemDriveFact]
     public void CompressCheck_OnlyEnabledForNtfs()
     {

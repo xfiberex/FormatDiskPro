@@ -190,6 +190,8 @@ public sealed partial class MainWindow
         string wipeTip = L.T("opt.secureTip", FormatBytes(FreeSpaceFill.SafetyMarginBytes));
         ToolTipService.SetToolTip(SecureWipeCheck, wipeTip);
         AutomationProperties.SetHelpText(SecureWipeCheck, wipeTip);
+        SecureWipeHintText.Text  = wipeTip;
+        FullFormatHintText.Text  = L.T("opt.fullHint");
         WipePassesLbl.Text       = L.T("opt.passes");
         SmallFat32Check.Content     = L.T("opt.smallFat32");
         SmallFat32SizeLbl.Text      = L.T("opt.smallFat32Size");
