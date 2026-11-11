@@ -203,6 +203,21 @@
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
     </Style>
 
+    <!--
+        Botón de acento de la app (`AUD-078`): el de Fluent sin el ajuste automático de alto contraste.
+
+        En un tema de contraste WinUI pone una placa detrás del texto cuyo color no contrasta con el fondo
+        de la VENTANA, no con el del botón. El de acento pinta su texto con el color de «texto resaltado»
+        del tema (negro en *Acuático*) sobre el de resaltado (cian): bien contrastado sobre su botón, pero
+        oscuro contra la ventana negra, así que «Formatear X:» salía sobre un rectángulo negro dentro del
+        botón cian, como texto seleccionado. Los colores del botón ya son los del sistema en contraste, así
+        que el ajuste no tiene nada que corregir aquí. Cualquier botón de acento de la app usa este estilo;
+        `AccentButtons_UseTheAppStyle` lo vigila.
+    -->
+    <Style x:Key="AppAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <Setter Property="HighContrastAdjustment" Value="None" />
+    </Style>
+
     <!-- Separador fino dentro de una tarjeta -->
     <Style x:Key="CardDividerStyle" TargetType="Border">
         <Setter Property="Height" Value="1" />

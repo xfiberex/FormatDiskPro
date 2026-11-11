@@ -21,6 +21,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **Guía rápida** en *Ayuda* y con **F1**: cómo formatear en tres pasos, qué sistema de archivos elegir, qué
   herramientas no tocan tus datos, qué hacer si algo falla y los atajos de teclado.
 
+### Corregido
+
+- **Con un tema de contraste de Windows, el texto de «Formatear» salía sobre un rectángulo negro** dentro del
+  botón, como si estuviera seleccionado. Ahora se ve con los colores del tema. El indicador de salud de la
+  unidad es además más fácil de pulsar.
+
 ## [1.31.0] — 2026-11-11
 
 **La interfaz, revisada: antes de borrar, qué se pierde; después, qué pasó.** La confirmación de formatear

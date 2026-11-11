@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-11-11 | `AUD-078` | Botones de acento sin la placa de alto contraste (`AppAccentButtonStyle`) y el de salud con 30 DIP de alto | sin publicar |
 | 2026-11-11 | `AUD-077` | Guía rápida en *Ayuda* y en F1: formatear en tres pasos, qué sistema elegir, lo que no borra nada, qué hacer si falla y los atajos | sin publicar |
 | 2026-11-10 | `AUD-076` | Regla escrita del botón de acento: los diálogos informativos no llevan ninguno; el recuento del historial, como rótulo | v1.31.0 |
 | 2026-11-10 | `AUD-075` | «Salud no disponible» en vez de «● –», sin segmentos vacíos; *Novedades* sin IDs de tarea; pistas del formato completo y del borrado seguro | v1.31.0 |
@@ -104,6 +105,15 @@
 <!-- Al cerrar una tarea: fila nueva ARRIBA en la tabla y su bloque bajo el área que le toque. -->
 
 ### Accesibilidad
+
+- [x] **AUD-078 · Dos detalles del alto contraste y del tamaño de los controles**
+  - **Área:** Accesibilidad · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.xaml` (`StartButton`, `BtnHealth`) · `src/UI/ConfirmDialog.xaml` (botón principal) · `src/UI/HighContrast.cs`
+  - **Qué pasa:** con el tema de contraste de Windows, el texto de «Formatear X:» sale sobre una placa negra dentro del botón: WinUI la pone porque el color del texto del botón de acento no es de la paleta del sistema. Se lee (blanco sobre negro), pero parece texto seleccionado. Y el botón de salud mide unos 24 DIP de alto, justo el mínimo de WCAG 2.5.8.
+  - **Qué hacer:** en contraste, el texto de los botones de acento con el color de texto resaltado del sistema, como hace `HighContrast` con el resto; `Padding="6,4"` en `BtnHealth`.
+  - **Criterio de aceptación:** captura en contraste sin placa en «Formatear X:»; `BtnHealth` de al menos 28 DIP de alto.
+  - **Hecho (2026-11-10):** Nuevo `AppAccentButtonStyle` en `AppTheme.xaml`: el de acento de Fluent con `HighContrastAdjustment="None"`. El ajuste automático de WinUI mide el contraste del texto contra el fondo de la *ventana*, no contra el del botón: el texto oscuro del botón cian, contra la ventana negra, recibía una placa negra. Los colores del botón ya son los del sistema en contraste, así que no había nada que ajustar. Lo usan `StartButton`, el botón principal de `ConfirmDialog` y la opción de acento de chkdsk. `BtnHealth` pasa a `Padding="6,5"` con margen vertical negativo: unos 30 DIP de alto sin mover la tarjeta. **Sin cubrir:** los diálogos genéricos (`ShowConfirmAsync`, la oferta de carpetas de trabajo, la actualización) reciben el estilo de acento del propio `ContentDialog` por su `DefaultButton`; no se tocaron.
+  - **Verificado (2026-11-10, en local, terminal elevada y USB de pruebas):** `AccentButtons_UseTheAppStyle` (nueva) recorre el XAML y el código de `UI/` y falla con el código de antes. Captura con el tema de contraste de Windows activo (activado solo durante la captura y restaurado): «Formatear G:» y la opción «Solo comprobar» de chkdsk, con texto oscuro sobre el resaltado y sin placa. Unitarias: 1031 pasan, 1 omitida.
 
 - [x] **AUD-014 · Dos regiones activas declaradas nunca avisan al lector de pantalla, y un error no se anuncia**
   - **Área:** Accesibilidad · **Severidad:** Medio · **Esfuerzo:** Bajo

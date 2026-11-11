@@ -99,4 +99,27 @@ public sealed class DialogLayoutTests
         // El DefaultButton de un ContentDialog se pinta con el acento.
         Assert.DoesNotMatch(@"DefaultButton\s*=\s*ContentDialogButton\.(Primary|Secondary|Close)", code);
     }
+
+    /// <summary>
+    /// `AUD-078`: todo botón de acento de la app usa <c>AppAccentButtonStyle</c>, el de Fluent sin el ajuste
+    /// automático de alto contraste. Con el de Fluent a secas, en un tema de contraste «Formatear X:» salía
+    /// sobre una placa negra dentro del botón. Solo <c>AppTheme.xaml</c>, que lo define, puede nombrar el
+    /// original.
+    /// </summary>
+    [Fact]
+    public void AccentButtons_UseTheAppStyle()
+    {
+        string ui = Path.Combine(RepoRoot(), "src", "FormatDiskPro", "UI");
+        var files = Directory.EnumerateFiles(ui, "*.*", SearchOption.AllDirectories)
+            .Where(f => (f.EndsWith(".xaml", StringComparison.Ordinal) || f.EndsWith(".cs", StringComparison.Ordinal))
+                        && Path.GetFileName(f) != "AppTheme.xaml")
+            .ToList();
+        Assert.True(files.Count >= 10, $"Solo se encontraron {files.Count} archivos de UI: el barrido no mira donde debe.");
+
+        var offenders = files.Where(f => Regex.IsMatch(File.ReadAllText(f), @"(?<!App)AccentButtonStyle"))
+                             .Select(Path.GetFileName)
+                             .ToList();
+        Assert.True(offenders.Count == 0,
+            "Usan AccentButtonStyle en vez de AppAccentButtonStyle: " + string.Join(", ", offenders));
+    }
 }

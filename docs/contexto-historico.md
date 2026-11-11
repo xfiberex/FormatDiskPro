@@ -67,6 +67,18 @@
 
 ## Entradas
 
+### 2026-11-11 — `AUD-078`: la placa de alto contraste en los botones de acento
+
+**Qué cambia.** Con un tema de contraste de Windows, «Formatear X:» ya no sale sobre un rectángulo negro dentro
+del botón. El botón de salud gana alto para el puntero sin mover la tarjeta.
+
+**Por qué pasaba.** WinUI aplica a todo texto un ajuste de alto contraste que pone una placa detrás cuando el
+color del texto no contrasta con el fondo de la ventana. El botón de acento pinta su texto con el «texto
+resaltado» del tema, oscuro, sobre el «resaltado», claro: correcto sobre su botón, pero oscuro contra la ventana
+negra. El ajuste no ve el botón, ve la ventana. Se desactiva solo en los botones de acento, con un estilo
+propio; quitarlo en toda la app habría dejado sin corregir los colores propios del historial y de la tarjeta,
+que es justo lo que ese ajuste hace bien (`T13-09`).
+
 ### 2026-11-11 — `AUD-077`: una ayuda en el menú Ayuda
 
 **Qué cambia.** *Ayuda → Guía rápida…*, también con F1: cómo formatear en tres pasos, qué sistema de archivos

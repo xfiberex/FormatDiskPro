@@ -269,7 +269,7 @@ public sealed partial class MainWindow
                 HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding                    = new Thickness(12, 8, 12, 8),
             };
-            if (accent) button.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
+            if (accent) button.Style = (Style)Application.Current.Resources["AppAccentButtonStyle"];   // `AUD-078`
 
             // El contenido pasa a ser un panel con dos textos: sin un nombre explícito, el que deduzca la
             // automatización depende de cómo recorra ese panel. Se fija, y de paso el lector de pantalla

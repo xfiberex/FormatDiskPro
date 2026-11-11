@@ -29,17 +29,17 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-11-11 · **Publicado:** v1.31.0 · **2 tareas abiertas**: `AUD-078` y una bloqueada a propósito.
-La auditoría del 2026-10-11 y la crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`, publicadas las cinco
-en la v1.31.0) están cerradas.
+**Última actualización:** 2026-11-11 · **Publicado:** v1.31.0 · **1 tarea abierta**, bloqueada a propósito.
+La auditoría del 2026-10-11, la crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`, publicadas en la
+v1.31.0) y la auditoría y el onboarding del 2026-11-11 (`AUD-077`–`AUD-078`, sin publicar) están cerradas.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
 | **2** | Medio | 0 |
-| **3** | Bajo | 1 |
+| **3** | Bajo | 0 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **2** |
+| | **Total** | **1** |
 
 De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **71**
 (`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-024`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-067`, `AUD-068`, `AUD-069`, `AUD-070`, `AUD-071`). Por área:
@@ -59,28 +59,11 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **7
 | Redacción | – | – | – | 0 |
 | **Total** | **–** | **–** | **–** | **0** |
 
-**Siguiente paso:** `AUD-078` (alto contraste y tamaño de controles). Las tareas nuevas entran con el siguiente
-ID libre (`AUD-077`) o con la numeración de una auditoría nueva.
+**Siguiente paso:** ninguno pendiente. Las tareas nuevas entran con el siguiente ID libre (`AUD-079`) o
+con la numeración de una auditoría nueva.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior.
-
----
-
-## 🎨 Auditoría y onboarding del 2026-11-11 (`AUD-077`–`AUD-078`)
-
-Salen de `/impeccable audit` (17/20: Buena, sobre la app en francés y portugués, en alto contraste y con el
-texto al 150 %) y de `/impeccable onboard`, que atiende el P2 de la crítica del 2026-11-10: no había ayuda
-dentro de la app.
-
-### Tier 3 — Bajo
-
-- [ ] **AUD-078 · Dos detalles del alto contraste y del tamaño de los controles**
-  - **Área:** Accesibilidad · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/MainWindow.xaml` (`StartButton`, `BtnHealth`) · `src/UI/ConfirmDialog.xaml` (botón principal) · `src/UI/HighContrast.cs`
-  - **Qué pasa:** con el tema de contraste de Windows, el texto de «Formatear X:» sale sobre una placa negra dentro del botón: WinUI la pone porque el color del texto del botón de acento no es de la paleta del sistema. Se lee (blanco sobre negro), pero parece texto seleccionado. Y el botón de salud mide unos 24 DIP de alto, justo el mínimo de WCAG 2.5.8.
-  - **Qué hacer:** en contraste, el texto de los botones de acento con el color de texto resaltado del sistema, como hace `HighContrast` con el resto; `Padding="6,4"` en `BtnHealth`.
-  - **Criterio de aceptación:** captura en contraste sin placa en «Formatear X:»; `BtnHealth` de al menos 28 DIP de alto.
 
 ---
 

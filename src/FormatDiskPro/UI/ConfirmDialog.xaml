@@ -5,7 +5,7 @@
     CornerRadius="8">
 
     <ContentDialog.PrimaryButtonStyle>
-        <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <Style TargetType="Button" BasedOn="{StaticResource AppAccentButtonStyle}">
             <Setter Property="CornerRadius" Value="4"/>
         </Style>
     </ContentDialog.PrimaryButtonStyle>
