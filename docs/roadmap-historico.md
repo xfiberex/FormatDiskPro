@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-11-10 | `AUD-074` | Fuera la fila de la barra rápida: la salud de la tarjeta abre el detalle y Benchmark e Historial suben a su cabecera | sin publicar |
 | 2026-11-10 | `AUD-073` | El historial, un diario: titular traducido por fila, icono por categoría, detalle técnico aparte y «Vaciar» separado | sin publicar |
 | 2026-11-10 | `AUD-072` | Las dos confirmaciones destructivas: aviso de error, el disco con su modelo y lo que contiene, y lo que se aplica | sin publicar |
 | 2026-10-20 | `AUD-071` | La guía y la plantilla de PR dicen que se contribuye bajo `GPL-3.0-only`, sin CLA ni DCO | v1.30.4 |
@@ -663,6 +664,16 @@
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### UI/UX
+
+- [x] **AUD-074 · Arriba sobra una fila: la salud sale tres veces y en una pantalla baja se pierden las opciones**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml:94-140`, `:216-230`, `:410-413`
+  - **Qué pasa:** menú y barra rápida ocupan ~80 DIP; a 656 DIP la etiqueta del volumen y toda la tarjeta de opciones quedan bajo el pliegue. La salud está en el menú, en la barra rápida y en «● Normal», que es la única que no se puede pulsar. El galón de «hay más abajo» mide 10 px.
+  - **Qué hacer:** la salud de la tarjeta abre el detalle S.M.A.R.T.; Benchmark e Historial pasan a la cabecera de la tarjeta de unidad como botones compactos con icono y texto, y la fila de la barra rápida desaparece. Se mantiene el criterio de `T11-02`: solo suben las tres herramientas que no escriben. Galón más visible.
+  - **Criterio de aceptación:** a 656 DIP, la etiqueta del volumen se ve sin desplazar; los tres accesos siguen existiendo, con sus atajos en el tooltip, y se apagan durante una operación (`AUD-033`).
+  - **Antecedente:** `T11-02` (la barra rápida) y `AUD-033`
+  - **Hecho (2026-11-10):** Desaparece la fila de la barra rápida. «● Normal» pasa a ser un botón con estilo de texto y un galón (`BtnHealth`) que abre el detalle S.M.A.R.T.; su nombre accesible lleva el estado y la acción («Salud: Normal. Salud del disco (S.M.A.R.T.)… (Ctrl+I)»), y lo escribe `SetHealth` en cada cambio de estado. Benchmark e Historial suben a la cabecera de la tarjeta de unidad como botones compactos con icono y texto, como el «Presets» de la tarjeta de formato. Se conservan los nombres `BtnHealth`, `BtnBenchmark` y `BtnHistory`, así que `SetControlsEnabled` y `UpdateToolsMenuAvailability` siguen apagándolos durante una operación (`AUD-033`) sin cambios. El galón de «hay más abajo» pasa a 12 px y al gris secundario. Fuera `bar.health`. **Criterio, en parte:** la fila recupera unos 38 DIP y a 900 DIP la etiqueta del volumen y el arranque de «Opciones de formato» se ven sin desplazar; a 656 DIP la etiqueta sigue bajo el pliegue, a unos 90 DIP. Subirla obligaría a quitar las pistas de sistema de archivos y de tamaño de clúster, y la segunda es además la descripción accesible del selector (`T7-03`): no compensa, y el resumen del pie ya dice qué se aplica.
+  - **Verificado (2026-11-10, en local, terminal elevada y USB de pruebas):** `HealthOnTheDriveCard_SaysTheState_AndOpensTheDetail` (nueva) comprueba el nombre del botón y que abre el diálogo, y que la barra ya no existe. `QuickBar_IsDisabledDuringAnOperation_AndComesBackAfter` sigue pasando con los tres botones en su sitio nuevo. 30 pruebas de interfaz de la ventana, los diálogos, el teclado y la accesibilidad pasan. Galería de la ventana a 900 y a 656 DIP revisada.
 
 - [x] **AUD-073 · El historial enseña el log en crudo**
   - **Área:** UI/UX · **Severidad:** Medio · **Esfuerzo:** Medio

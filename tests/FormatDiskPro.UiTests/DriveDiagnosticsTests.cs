@@ -46,6 +46,32 @@ public sealed class DriveDiagnosticsTests(AppFixture fixture)
         }
     }
 
+    /// <summary>
+    /// `AUD-074`: la salud de la tarjeta de unidad es el acceso al detalle —la fila de la barra rápida ya no
+    /// existe—. Su nombre accesible dice el estado Y lo que hace al pulsarlo, y pulsarla abre el diálogo.
+    /// </summary>
+    [TestDriveFact]
+    public void HealthOnTheDriveCard_SaysTheState_AndOpensTheDetail()
+    {
+        SelectTestDrive();
+        var health = MainWindowActions.Button(Window, "BtnHealth");
+        string name = health.Name;
+        Assert.Contains("Ctrl+I", name);
+        Assert.Contains(":", name);   // «Salud: …», con el estado delante de la acción
+        Assert.Null(Window.FindFirstDescendant(cf => cf.ByAutomationId("QuickBar")));
+
+        health.Invoke();
+        var dialog = DialogHelper.WaitForDialog(fixture);
+        try
+        {
+            DialogHelper.WaitForChild(dialog, "NoteText");
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);
+        }
+    }
+
     [TestDriveFact]
     public void CheckDisk_ScanOnly_CompletesForTestDrive()
     {

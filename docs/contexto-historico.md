@@ -66,6 +66,22 @@
 
 ## Entradas
 
+### 2026-11-10 — `AUD-074`: la barra rápida se reparte y la ventana gana una fila
+
+**Qué cambia.** La fila de botones bajo el menú desaparece. La salud de la tarjeta de unidad se puede pulsar y
+abre el detalle S.M.A.R.T.; Benchmark e Historial pasan a la cabecera de esa tarjeta.
+
+**Por qué así.** La barra de `T11-02` acertó en lo que buscaba: que salud, benchmark e historial existieran
+para quien no abría «Herramientas». Pero costaba una fila entera en una ventana de alto fijo, y la salud salía
+tres veces, una de ellas en la tarjeta, donde se mira y donde no se podía pulsar. Los tres accesos siguen a la
+vista y con el mismo criterio: solo los que no escriben nada, sin atajo propio y con el del menú en el
+tooltip.
+
+**Lo que no se consiguió.** El objetivo era que a 656 DIP —una 1080p al 150 %— se viera la etiqueta del
+volumen sin desplazar. Se recuperan unos 38 DIP y no llega: faltan unos 90. Lo que queda por quitar son las
+pistas de sistema de archivos y de tamaño de clúster, y la segunda es la descripción accesible del selector.
+Se dejan: el pie ya dice qué se va a aplicar, y una pista menos se paga en comprensión.
+
 ### 2026-11-10 — `AUD-073`: el historial deja de enseñar el log
 
 **Qué cambia.** Cada fila dice de qué trata, qué pasó y sobre qué («Actualización · Descarga completada ·

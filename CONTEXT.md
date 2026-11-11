@@ -44,7 +44,7 @@ src/FormatDiskPro/
 │  ├─ SmartInfo.cs        Modelo + parseo del detalle S.M.A.R.T. + umbrales de severidad (SmartLevel)
 │  ├─ SeverityPalette.cs  INVENTARIO de colores semánticos por tema — contraste WCAG medido sobre All()
 │  ├─ FluentTextPalette.cs Los colores de TEXTO que la app toma de Fluent, con su valor real, para medirlos
-│  ├─ HistoryEntry.cs     Parseo del historial + filtro + exportación CSV (anti CSV injection)
+│  ├─ HistoryEntry.cs     Parseo, filtro y CSV del historial (anti CSV injection); HistoryHeadline.cs, su titular traducido
 │  ├─ ReinitPlan.cs       Estilo MBR/GPT por tamaño, tamaños de FAT32 pequeña que caben, parseo de letras
 │  ├─ PartitionPlan.cs    EL LAYOUT COMO DATO: particiones + validación tipada ANTES de borrar nada (T5-01)
 │  ├─ PlanRejection.cs    Rechazo de un plan → clave de texto + valores: qué decirle a quien lo pidió (T13-18)

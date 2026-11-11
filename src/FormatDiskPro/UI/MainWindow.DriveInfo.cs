@@ -186,7 +186,7 @@ public sealed partial class MainWindow
         char letter = item.Letter;
         _healthLetter = letter;
         _lastHealth = null;
-        SetInfo(InfoHealthText, L.T("info.loading"), "info.health");
+        SetHealth(L.T("info.loading"));
         SetInfo(InfoBusText,    L.T("info.loading"), "info.bus");
 
         DiskService.HealthInfo? info;
@@ -214,7 +214,7 @@ public sealed partial class MainWindow
     {
         if (h is null)
         {
-            SetInfo(InfoHealthText, L.T("info.dash"), "info.health");
+            SetHealth(L.T("info.dash"));
             SetInfo(InfoBusText,    L.T("info.dash"), "info.bus");
             ClearHealthColor();
             return;
@@ -234,7 +234,7 @@ public sealed partial class MainWindow
             ? HealthDialog.LevelLabel(level)
             : string.IsNullOrWhiteSpace(h.Health) ? dash : h.Health;
 
-        SetInfo(InfoHealthText, healthText, "info.health");
+        SetHealth(healthText);
         SetInfo(InfoBusText,    conn,        "info.bus");
 
         // Umbrales de #16: el color refuerza lo que el texto ya dice. Desde `T11-03` lo llevan los dos
@@ -272,6 +272,23 @@ public sealed partial class MainWindow
         InfoHealthDot.Fill = HighContrast.IsActive
             ? HighContrast.Ink
             : new SolidColorBrush(SeverityPalette.NeutralFill(_darkMode));
+    }
+
+    /// <summary>
+    /// Pinta la salud y le da al botón que la contiene su nombre: el estado y lo que hace al pulsarlo
+    /// (`AUD-074`).
+    /// </summary>
+    /// <remarks>
+    /// El botón envuelve al texto, así que es el botón lo que anuncia un lector de pantalla: sin esto diría
+    /// solo «Salud del disco…» y se perdería el estado, o solo «Normal» y se perdería que se puede pulsar.
+    /// </remarks>
+    /// <param name="value">Estado ya traducido, o el marcador de «sin dato».</param>
+    private void SetHealth(string value)
+    {
+        SetInfo(InfoHealthText, value, "info.health");
+        string full = $"{L.T("info.health", value)}. {L.T("bar.tip", L.T("menu.health"), "Ctrl+I")}";
+        ToolTipService.SetToolTip(BtnHealth, L.T("bar.tip", L.T("menu.health"), "Ctrl+I"));
+        AutomationProperties.SetName(BtnHealth, full);
     }
 
     /// <summary>
@@ -361,9 +378,9 @@ public sealed partial class MainWindow
     /// </remarks>
     private void ApplyQuickBarLanguage()
     {
-        Label(BtnHealth,    BtnHealthLbl,    "bar.health",    "menu.health",    "Ctrl+I");
         Label(BtnBenchmark, BtnBenchmarkLbl, "bar.benchmark", "menu.benchmark", "Ctrl+B");
         Label(BtnHistory,   BtnHistoryLbl,   "bar.history",   "menu.history",   "Ctrl+H");
+        SetHealth(InfoHealthText.Text);   // la salud no tiene rótulo propio: su nombre lleva el estado (`AUD-074`)
 
         static void Label(Button button, TextBlock text, string shortKey, string longKey, string accelerator)
         {
@@ -539,7 +556,7 @@ public sealed partial class MainWindow
         SetInfo(InfoTotalText,  dash, "info.total");
         SetInfo(InfoFsText,     dash, "info.fs");
         SetInfo(InfoTypeText,   dash, "info.type");
-        SetInfo(InfoHealthText, dash, "info.health");
+        SetHealth(dash);
         SetInfo(InfoBusText,    dash, "info.bus");
         InfoFreeText.Text = L.T("info.usedFree", dash, dash);
         ClearHealthColor();

@@ -91,52 +91,6 @@
             </MenuBarItem>
         </MenuBar>
 
-            <!-- ── Barra de acciones rápidas (T11-02) ─────────────────────────────────────────
-
-                 Hasta aquí, TODA función que no fuera formatear vivía dentro de `MnuTools`: la salud
-                 del disco, el benchmark y el historial no existían para quien no abriera el menú.
-
-                 Suben EXACTAMENTE estas tres, y el criterio no es nuevo: son las mismas que ya tenían
-                 atajo de teclado (Ctrl+I / Ctrl+B / Ctrl+H), y por el mismo motivo que allí —son las
-                 únicas que NO escriben nada—. Formatear, reinicializar, verificar capacidad, quitar
-                 protección y borrado seguro se quedan en el menú: una operación que borra datos no debe
-                 estar a un clic de distancia, y su confirmación reforzada existe precisamente para que
-                 llegar ahí cueste.
-
-                 Ese criterio resuelve además el problema de T7-08 sin repetir su solución: WinUI no
-                 pinta el tooltip de un control deshabilitado, así que un botón de icono apagado sería
-                 mudo. Estos tres solo se apagan cuando NO hay unidad —y entonces el propio selector, a
-                 dos centímetros, ya dice «No hay unidades — conecta un dispositivo»—. El historial no
-                 se apaga nunca.
-
-                 NO llevan KeyboardAccelerator propio: el acelerador ya está en su ítem del menú y
-                 declararlo dos veces lo duplicaría. El atajo se anuncia en el tooltip. -->
-            <Grid x:Name="QuickBar" ColumnDefinitions="*,*,*" ColumnSpacing="8"
-                  Margin="16,2,16,0">
-                <Button x:Name="BtnHealth" HorizontalAlignment="Stretch" Click="MnuHealth_Click">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE95E;" FontSize="15"
-                                  AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Name="BtnHealthLbl" Text="Salud" />
-                    </StackPanel>
-                </Button>
-                <Button x:Name="BtnBenchmark" Grid.Column="1" HorizontalAlignment="Stretch"
-                        Click="MnuBenchmark_Click">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE916;" FontSize="15"
-                                  AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Name="BtnBenchmarkLbl" Text="Benchmark" />
-                    </StackPanel>
-                </Button>
-                <Button x:Name="BtnHistory" Grid.Column="2" HorizontalAlignment="Stretch"
-                        Click="MnuHistory_Click">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE81C;" FontSize="15"
-                                  AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Name="BtnHistoryLbl" Text="Historial" />
-                    </StackPanel>
-                </Button>
-            </Grid>
         </StackPanel>
 
         <!-- Row 2: Scrollable content — cards inspired by Win11Debloat sections -->
@@ -158,10 +112,39 @@
                 <!-- ── Card: Unidad (selección + información) ── -->
                 <Border Style="{StaticResource AppCardStyle}">
                     <StackPanel Spacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <!-- ── Los accesos de la antigua barra rápida (`AUD-074`) ─────────────────────────
+
+                             La barra rápida (`T11-02`) sacó del menú las tres herramientas que NO escriben
+                             nada —salud, benchmark e historial—, y acertó: no existían para quien no abriera
+                             «Herramientas». Pero lo pagó con una fila entera en una ventana de alto fijo, y a
+                             656 DIP la etiqueta del volumen y las opciones quedaban bajo el pliegue. Además la
+                             salud salía tres veces: en el menú, en la barra y en la tarjeta, donde era la única
+                             que no se podía pulsar.
+
+                             Ahora viven donde está aquello de lo que hablan, y el criterio de `T11-02` no
+                             cambia (solo suben las tres que no escriben, sin atajo propio, el suyo en el
+                             tooltip): Benchmark e Historial aquí, como el «Presets» de la tarjeta de abajo, y
+                             la salud es el propio «● Normal», que abre el detalle. Los nombres de los botones
+                             (BtnHealth, BtnBenchmark, BtnHistory) se conservan: los usan el código y las
+                             pruebas de UI. -->
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
                             <FontIcon Glyph="&#xEDA2;" Style="{StaticResource SectionIconStyle}" />
-                            <TextBlock x:Name="UnitGroupLbl" Text="Unidad" Style="{StaticResource SectionTitleStyle}" />
-                        </StackPanel>
+                            <TextBlock x:Name="UnitGroupLbl" Grid.Column="1" Text="Unidad" Style="{StaticResource SectionTitleStyle}" />
+                            <Button x:Name="BtnBenchmark" Grid.Column="3" Padding="10,3" Click="MnuBenchmark_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE916;" FontSize="12"
+                                              AutomationProperties.AccessibilityView="Raw" />
+                                    <TextBlock x:Name="BtnBenchmarkLbl" Text="Benchmark" FontSize="12" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnHistory" Grid.Column="4" Padding="10,3" Click="MnuHistory_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE81C;" FontSize="12"
+                                              AutomationProperties.AccessibilityView="Raw" />
+                                    <TextBlock x:Name="BtnHistoryLbl" Text="Historial" FontSize="12" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
 
                         <Grid ColumnSpacing="8" ColumnDefinitions="*,Auto">
                             <ComboBox x:Name="DrivePicker" HorizontalAlignment="Stretch"
@@ -216,17 +199,27 @@
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                             <TextBlock x:Name="InfoTotalText" Style="{StaticResource DriveCapacityStyle}"
                                        Text="–" />
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7"
-                                        VerticalAlignment="Center">
-                                <!-- El punto repite en color lo que el texto dice en palabras; el color
-                                     nunca es el único portador (WCAG 1.4.1). Va en Raw: un lector de
-                                     pantalla ya recibe «Salud: Normal» del TextBlock de al lado. -->
-                                <Ellipse x:Name="InfoHealthDot" Width="8" Height="8"
-                                         VerticalAlignment="Center"
-                                         AutomationProperties.AccessibilityView="Raw" />
-                                <TextBlock x:Name="InfoHealthText" Style="{StaticResource InfoTextStyle}"
-                                           Text="–" />
-                            </StackPanel>
+                            <!-- La salud abre su detalle (`AUD-074`): es donde se mira, y era lo único de las
+                                 tres veces que salía que no se podía pulsar. Estilo de texto (sin caja) para que
+                                 siga leyéndose como un dato; el galón dice que lleva a algún sitio. El nombre
+                                 accesible lo pone el código con el estado Y la acción: «Salud: Normal. Ver el
+                                 detalle S.M.A.R.T. (Ctrl+I)». -->
+                            <Button x:Name="BtnHealth" Grid.Column="1" VerticalAlignment="Center"
+                                    Style="{StaticResource TextBlockButtonStyle}" Padding="6,2" Margin="0,0,-6,0"
+                                    Click="MnuHealth_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <!-- El punto repite en color lo que el texto dice en palabras; el color
+                                         nunca es el único portador (WCAG 1.4.1). Raw: lo dice el botón. -->
+                                    <Ellipse x:Name="InfoHealthDot" Width="8" Height="8"
+                                             VerticalAlignment="Center"
+                                             AutomationProperties.AccessibilityView="Raw" />
+                                    <TextBlock x:Name="InfoHealthText" Style="{StaticResource InfoTextStyle}"
+                                               Text="–" AutomationProperties.AccessibilityView="Raw" />
+                                    <FontIcon Glyph="&#xE76C;" FontSize="10" VerticalAlignment="Center"
+                                              Foreground="{ThemeResource AppMutedTextBrush}"
+                                              AutomationProperties.AccessibilityView="Raw" />
+                                </StackPanel>
+                            </Button>
                         </Grid>
 
                         <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,-4,0,0">
@@ -407,9 +400,11 @@
 
                  Raw: es una pista visual. Un lector de pantalla ya recorre el contenido entero,
                  desborde o no, y anunciar un galón decorativo solo estorbaría. -->
-            <FontIcon x:Name="ScrollMoreHint" Grid.Row="1" Glyph="&#xE70D;" FontSize="10"
-                      Foreground="{ThemeResource AppMutedTextBrush}"
-                      Margin="0,1,0,3" Visibility="Collapsed"
+            <!-- 12 px y el gris del texto secundario (`AUD-074`): a 10 px y en el gris más callado casi no se
+                 distinguía del borde del pie. -->
+            <FontIcon x:Name="ScrollMoreHint" Grid.Row="1" Glyph="&#xE70D;" FontSize="12"
+                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                      Margin="0,0,0,2" Visibility="Collapsed"
                       AutomationProperties.AccessibilityView="Raw" />
         </Grid>
 

@@ -215,7 +215,6 @@ public static class L
         // ── Barra de acciones rápidas (T11-02) ──
         // Etiquetas CORTAS: las del menú ("Salud del disco (S.M.A.R.T.)…") no caben en un tercio de una
         // ventana de 500 DIP en ningún idioma. La frase larga sigue viva, en el tooltip.
-        ["bar.health"]       = ["Salud", "Health", "Saúde", "Santé", "Stato"],
         ["bar.benchmark"]    = ["Benchmark", "Benchmark", "Benchmark", "Benchmark", "Benchmark"],
         ["bar.history"]      = ["Historial", "History", "Histórico", "Historique", "Cronologia"],
         // Tooltip: la frase larga más el atajo, que el botón no puede anunciar por sí mismo (su

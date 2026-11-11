@@ -26,6 +26,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   G: · Correcto»), con su icono, y el detalle técnico queda debajo, atenuado. Lo que borra un disco o falla
   destaca sobre la actividad interna, y «Vaciar historial» queda aparte de los otros botones. El archivo del
   historial y el CSV exportado no cambian.
+- **Una fila menos arriba.** La salud de la unidad se puede pulsar y abre el detalle S.M.A.R.T., y Benchmark
+  e Historial están en la cabecera de la tarjeta de unidad. Queda más sitio para las opciones de formato.
 
 ## [1.30.4] — 2026-10-20
 
