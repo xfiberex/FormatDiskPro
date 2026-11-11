@@ -472,13 +472,14 @@ public sealed partial class MainWindow
             ? FormatLogic.FormatBytes(plan.EffectiveSizes(diskSizeBytes)[1])
             : "";
 
-        // Confirmación reforzada: escribir la letra de la unidad (reutiliza ConfirmDialog).
-        string summary = smallFat32
+        // Confirmación reforzada: escribir la letra de la unidad (reutiliza ConfirmDialog). Lo que se crea,
+        // en prosa: el borrado y su irreversibilidad ya los dice el aviso de arriba (`AUD-072`).
+        string planText = smallFat32
             ? (second
-                ? L.T("reinit.summaryTwoPartitions", item.Letter,
+                ? L.T("reinit.summaryTwoPartitions",
                       FormatLogic.FormatBytes(partitionSizeBytes!.Value), restFs, restSize)
-                : L.T("reinit.summaryFat32Small", item.Letter, FormatLogic.FormatBytes(partitionSizeBytes!.Value)))
-            : L.T("reinit.summary", item.Letter, style.ToPowerShell(), fs);
+                : L.T("reinit.summaryFat32Small", FormatLogic.FormatBytes(partitionSizeBytes!.Value)))
+            : L.T("reinit.summary", style.ToPowerShell(), fs);
 
         // Qué disco es y qué unidades se van con él (`AUD-035`): Clear-Disk borra el disco físico entero, y
         // en un pendrive con dos particiones la otra letra desaparecía sin que nada la nombrara. El tamaño
@@ -491,10 +492,16 @@ public sealed partial class MainWindow
         string letters = contents is { Letters.Count: > 0 }
             ? DiskContents.FormatLetters(contents.Letters)
             : L.T("reinit.diskLettersUnknown", item.Letter);
-        summary = L.T("reinit.diskLine", model, FormatLogic.FormatBytes(diskSizeBytes), letters) + "\n\n" + summary;
 
         var confirm = new ConfirmDialog(item.Letter, L.T("confirm.titleReinit"),
-                                        L.T("btn.reinit.drive", $"{item.Letter}:"), summary)
+                                        L.T("btn.reinit.drive", $"{item.Letter}:"),
+                                        new ConfirmContent(
+                                            Warning:      L.T("confirm.warnReinit", item.Letter),
+                                            TargetName:   item.DisplayText,
+                                            TargetDetail: TargetDetail(item, model, diskSizeBytes, confirmed),
+                                            AtRisk:       L.T("reinit.lettersLine", letters),
+                                            PlanTitle:    L.T("confirm.planReinit"),
+                                            Plan:         planText))
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await ShowOneAsync(confirm) != ContentDialogResult.Primary) return;
 

@@ -19,29 +19,59 @@
         <!-- Etiqueta de cada fila del detalle (las crea el constructor). Estilo y no un pincel de
              Application.Current.Resources: ver HealthRowLabelStyle en HealthDialog.xaml (`T13-01`). -->
         <Style x:Key="ConfirmRowLabelStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource AppMutedTextBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style x:Key="ConfirmRowValueStyle" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
     </ContentDialog.Resources>
 
+    <!-- ── El mismo esqueleto para las dos operaciones irreversibles (`AUD-072`) ──────────────────
+
+         1. QUÉ SE PIERDE, en un InfoBar de error: es el único aviso de toda la app con ese peso, y el
+            mismo control que ya usa la ventana para la unidad protegida. Antes era «ADVERTENCIA:» en
+            mayúsculas como texto suelto.
+         2. EL OBJETIVO, como lo enseña la tarjeta de unidad: nombre, una línea de contexto (modelo,
+            tamaño, conexión, tipo) y lo que contiene. Escribir la letra prueba la intención, no que la
+            unidad sea la correcta; lo que corta ese error es ver algo que no cuadra con lo esperado
+            («223,6 GB · SSD SATA» cuando se esperaba un pendrive).
+         3. LO QUE SE APLICA, atenuado: son los ajustes que el usuario acaba de elegir, ya los conoce.
+            Antes eran lo único que había, y en negrita.
+         4. La instrucción, en texto normal: el rojo ya lo lleva el aviso de arriba, y una instrucción
+            en rojo se leía como un error antes de que hubiera ninguno. -->
     <StackPanel Spacing="12" Padding="{StaticResource DialogContentPadding}" MinWidth="{StaticResource DialogContentMinWidth}" MaxWidth="{StaticResource DialogContentMaxWidth}">
-        <!-- Prosa en la fuente normal y el detalle en un Grid de dos columnas (`T13-04`). Antes era un único
-             bloque en Consolas alineado con espacios a mano: cuadraba en español y en ningún otro idioma. -->
-        <ScrollViewer MaxHeight="220">
-            <StackPanel Spacing="10">
-                <TextBlock x:Name="SummaryText" TextWrapping="Wrap" />
-                <Grid x:Name="DetailsGrid" ColumnDefinitions="Auto,*" ColumnSpacing="16" RowSpacing="4"
-                      Margin="12,0,0,0" Visibility="Collapsed" />
+        <InfoBar x:Name="WarningBar" Severity="Error" IsOpen="True" IsClosable="False" />
+
+        <ScrollViewer MaxHeight="260">
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="2">
+                    <TextBlock x:Name="TargetNameText" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="TargetDetailText" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource AppMutedTextBrush}" />
+                    <TextBlock x:Name="AtRiskText" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="PlanTitleText" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <!-- Prosa en la fuente normal y el detalle en un Grid de dos columnas (`T13-04`): alinear
+                         con espacios cuadraba en español y en ningún otro idioma. -->
+                    <TextBlock x:Name="SummaryText" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Grid x:Name="DetailsGrid" ColumnDefinitions="Auto,*" ColumnSpacing="16" RowSpacing="2"
+                          Visibility="Collapsed" />
+                </StackPanel>
+
                 <TextBlock x:Name="NoteText" TextWrapping="Wrap" FontSize="12" Visibility="Collapsed"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
         </ScrollViewer>
-        <TextBlock x:Name="PromptText" FontWeight="SemiBold" TextWrapping="Wrap"
-                   Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+
+        <TextBlock x:Name="PromptText" FontWeight="SemiBold" TextWrapping="Wrap" />
         <TextBox x:Name="InputBox" MaxLength="1" HorizontalAlignment="Stretch"
                  PlaceholderText="…" />
     </StackPanel>

@@ -58,6 +58,8 @@ public sealed partial class MainWindow
         // Qué hay detrás de la letra AHORA, antes de preguntar nada. Se lanza ya y se recoge justo antes de
         // abrir la confirmación: corre a la vez que la consulta de solo lectura, así que no añade espera.
         Task<DriveIdentity?> identityTask = _services.Disk.GetIdentityAsync(driveItem.Letter);
+        // El modelo del disco, solo para enseñarlo (`AUD-072`); también en paralelo y sin poder tumbar nada.
+        Task<DiskContents?> contentsTask = _services.Disk.GetDiskContentsAsync(driveItem.Letter);
 
         // Protección de escritura: si el disco está en solo lectura, el formateo fallaría con un error
         // poco claro. Lo detectamos y ofrecemos quitarla antes de continuar.
@@ -80,7 +82,6 @@ public sealed partial class MainWindow
             (secure ? $" + {L.T("confirm.secure")}" + (securePasses > 1 ? $" ×{securePasses}" : "") : "");
         (string, string)[] details =
         [
-            (L.T("confirm.drive"),   driveItem.DisplayText),
             (L.T("confirm.fs"),      fs),
             (L.T("confirm.cluster"), SelectedAllocLabel()),
             (L.T("confirm.label"),   string.IsNullOrEmpty(label) ? L.T("confirm.nolabel") : label),
@@ -88,10 +89,20 @@ public sealed partial class MainWindow
         ];
 
         DriveIdentity? confirmed = await identityTask;
+        DiskContents? contents = null;
+        try { contents = await contentsTask; }
+        catch (Exception ex) { _services.History.Log($"DISKSIZE ERROR {driveItem.Letter}: contenido del disco: {ErrorText.Describe(ex)}"); }
 
         var dlg = new ConfirmDialog(driveItem.Letter, L.T("confirm.title"),
-                                    L.T("btn.start.drive", $"{driveItem.Letter}:"), L.T("confirm.warning"),
-                                    details, smallFat32Ignored ? L.T("confirm.smallFat32Ignored") : null)
+                                    L.T("btn.start.drive", $"{driveItem.Letter}:"),
+                                    new ConfirmContent(
+                                        Warning:      L.T("confirm.warnFormat", driveItem.Letter),
+                                        TargetName:   driveItem.DisplayText,
+                                        TargetDetail: FormatTargetDetail(driveItem, contents?.Model, confirmed),
+                                        AtRisk:       FormatAtRisk(driveItem),
+                                        PlanTitle:    L.T("confirm.planFormat"),
+                                        PlanDetails:  details,
+                                        Note:         smallFat32Ignored ? L.T("confirm.smallFat32Ignored") : null))
             { XamlRoot = Content.XamlRoot, RequestedTheme = CurrentTheme };
         if (await ShowOneAsync(dlg) != ContentDialogResult.Primary) return;
 
@@ -320,5 +331,53 @@ public sealed partial class MainWindow
         {
             EndOperation();
         }
+    }
+
+    /// <summary>
+    /// Línea de contexto del objetivo de una confirmación (`AUD-072`): modelo, tamaño, conexión, medio y
+    /// tipo, sin los que no se sepan.
+    /// </summary>
+    /// <remarks>
+    /// La conexión y el medio son los de la salud ya consultada si es de esta misma unidad (dice «SSD», que
+    /// la identidad no sabe); si no, el bus de la identidad confirmada. El tamaño es el del volumen al
+    /// formatear y el del disco entero al reinicializar: es lo que cada operación borra.
+    /// </remarks>
+    /// <param name="item">Unidad seleccionada.</param>
+    /// <param name="model">Modelo del disco, o <see langword="null"/> si no se pudo leer.</param>
+    /// <param name="sizeBytes">Tamaño de lo que se borra, en bytes; 0 o menos si no se sabe.</param>
+    /// <param name="identity">Identidad confirmada, o <see langword="null"/>.</param>
+    private string TargetDetail(DriveViewModel item, string? model, long sizeBytes, DriveIdentity? identity)
+    {
+        bool sameDrive = _healthLetter == item.Letter && _lastHealth is not null;
+        string? bus   = sameDrive ? _lastHealth!.Bus : identity?.BusType;
+        string? media = sameDrive ? _lastHealth!.Media : null;
+        string type;
+        try { type = DriveTypeName(item.Info.DriveType); } catch { type = ""; }
+        return InfoLine.Join(model, sizeBytes > 0 ? FormatBytes(sizeBytes) : null, bus, media, type);
+    }
+
+    /// <inheritdoc cref="TargetDetail"/>
+    private string FormatTargetDetail(DriveViewModel item, string? model, DriveIdentity? identity)
+    {
+        long size;
+        try { size = item.Info.IsReady ? item.Info.TotalSize : identity?.PartitionSize ?? 0; }
+        catch { size = identity?.PartitionSize ?? 0; }
+        return TargetDetail(item, model, size, identity);
+    }
+
+    /// <summary>
+    /// Lo que contiene el volumen y se va a perder (`AUD-072`). Es el dato que distingue «el pendrive que
+    /// quería borrar» de «el disco con mis fotos», y no salía en ningún sitio de la confirmación.
+    /// </summary>
+    /// <param name="item">Unidad que se va a formatear.</param>
+    private static string FormatAtRisk(DriveViewModel item)
+    {
+        try
+        {
+            if (item.Info.IsReady)
+                return L.T("confirm.contains", FormatBytes(Math.Max(0, item.Info.TotalSize - item.Info.AvailableFreeSpace)));
+        }
+        catch { /* sin sistema de archivos legible: se dice abajo */ }
+        return L.T("confirm.containsUnknown");
     }
 }

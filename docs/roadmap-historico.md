@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-11-10 | `AUD-072` | Las dos confirmaciones destructivas: aviso de error, el disco con su modelo y lo que contiene, y lo que se aplica | sin publicar |
 | 2026-10-20 | `AUD-071` | La guía y la plantilla de PR dicen que se contribuye bajo `GPL-3.0-only`, sin CLA ni DCO | v1.30.4 |
 | 2026-10-20 | `AUD-067` | *Novedades* lee las notas del CHANGELOG embebido: sin red, esté como esté la preferencia | v1.30.4 |
 | 2026-10-20 | `AUD-024` | Licencia real de cada componente redistribuido, sus textos en `{app}\licenses` y el encaje con la GPLv3 por escrito, sin permiso adicional | v1.30.4 |
@@ -661,6 +662,16 @@
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### UI/UX
+
+- [x] **AUD-072 · La confirmación de formato repite los ajustes y calla lo que se va a perder**
+  - **Área:** UI/UX · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/ConfirmDialog.xaml(.cs)` · `src/UI/MainWindow.Format.cs:79-96` · `src/UI/MainWindow.Operations.cs:475-498` · `src/Localization/Localization.cs:445-478`
+  - **Qué pasa:** al formatear `D:` —un SSD SATA interno con 200,2 GB usados— el diálogo enseña sistema, clúster, etiqueta y tipo: lo que el usuario acaba de elegir. No dice que es un disco fijo, ni su modelo, ni cuántos datos hay. Escribir la letra prueba la intención, no que la unidad sea la correcta. «ADVERTENCIA:» en mayúsculas y la instrucción en rojo se leen como un error antes de que haya ninguno, y la confirmación de *Reinicializar* tiene otra estructura (prosa).
+  - **Qué hacer:** las dos confirmaciones con el mismo esqueleto: un `InfoBar` de error con qué se pierde y que no se puede deshacer, luego el **objetivo** (unidad, modelo, tamaño, conexión, tipo y lo que contiene), luego lo que se va a crear en una línea atenuada, y la instrucción en texto normal. «Tipo: rápido» pasa a decir «formato rápido».
+  - **Criterio de aceptación:** formatear una unidad con datos muestra su modelo, su tamaño, su tipo y los bytes usados antes del campo de la letra; *Reinicializar* usa la misma estructura y sigue nombrando todas las unidades del disco (`AUD-035`). Cinco idiomas.
+  - **Antecedente:** `AUD-035` (la de *Reinicializar* ya nombra el disco) y `T6-02` (el campo no lleva la letra dentro: se mantiene)
+  - **Hecho (2026-11-10):** `ConfirmDialog` recibe un `ConfirmContent` y pinta, en este orden, un `InfoBar` de error («Se borrarán todos los datos de D:» / «No se puede deshacer.»), el objetivo —nombre, línea de contexto y lo que contiene— y, atenuado, lo que se aplica. La línea de contexto la une `Core/InfoLine` (modelo, tamaño, conexión, medio y tipo, sin los que falten); el modelo sale de la consulta informativa de `AUD-035`, que ahora también corre al formatear, en paralelo a la identidad. Lo que contiene es lo usado del volumen («Contiene 200,2 GB de datos, que se perderán») o, si no se puede leer, que todo se perderá. *Reinicializar* usa el mismo esqueleto: su aviso dice que se borra el disco físico entero, el objetivo lleva el modelo y el tamaño del disco y lo que se pierde son las unidades («Desaparecerán estas unidades: G:, I:»); sus resúmenes ya solo dicen qué se crea. La instrucción deja el rojo. El campo sigue sin la letra dentro (`T6-02`). Fuera `confirm.warning`, `confirm.drive` y `reinit.diskLine`; cinco idiomas.
+  - **Verificado (2026-11-10, en local, terminal elevada y USB de pruebas):** `FormatConfirm_SaysWhatTheDriveHolds_AndWhichDiskItIs` (nueva) exige que la confirmación de formato diga los mismos bytes usados que la tarjeta y el modelo que da Windows, y que no quede «ADVERTENCIA»; `ReinitConfirm_NamesEveryDriveOnTheDisk_AndItsSize` sigue encontrando las dos letras y el tamaño del disco, ahora en los textos del diálogo. Las dos cancelan. `InfoLineTests` (10) cubre la unión sin guiones ni separadores sueltos. Unitarias: 1005 pasan, 1 omitida. Galería de `confirm` y `reinit` en claro y oscuro revisada.
 
 - [x] **AUD-035 · La confirmación de «Reinicializar» no identifica el disco físico ni las otras unidades que se van a perder**
   - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo

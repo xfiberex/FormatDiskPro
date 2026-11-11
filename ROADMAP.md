@@ -29,16 +29,17 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-10-20 · **Publicado:** v1.30.4 · **1 tarea abierta**,
-bloqueada a propósito: la auditoría del 2026-10-11 está cerrada.
+**Última actualización:** 2026-11-10 · **Publicado:** v1.30.4 · **5 tareas abiertas**: cuatro de la
+crítica de diseño del 2026-11-10 (`AUD-073`–`AUD-076`) y una bloqueada a propósito. La auditoría del
+2026-10-11 está cerrada.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 0 |
-| **3** | Bajo | 0 |
+| **2** | Medio | 1 |
+| **3** | Bajo | 3 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **1** |
+| | **Total** | **5** |
 
 De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **71**
 (`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-024`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-067`, `AUD-068`, `AUD-069`, `AUD-070`, `AUD-071`). Por área:
@@ -58,11 +59,53 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **7
 | Redacción | – | – | – | 0 |
 | **Total** | **–** | **–** | **–** | **0** |
 
-**Siguiente paso:** ninguno pendiente. Las tareas nuevas entran con el siguiente ID libre (`AUD-072`) o con
-la numeración de una auditoría nueva.
+**Siguiente paso:** `AUD-073` (el historial legible) y, después, en orden. Las tareas nuevas entran con
+el siguiente ID libre (`AUD-077`) o con la numeración de una auditoría nueva.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
-> completa una tarea anterior. Todas salen de la auditoría del 2026-10-11.
+> completa una tarea anterior.
+
+---
+
+## 🎨 Crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`)
+
+Salen de una crítica de diseño de toda la interfaz (`/impeccable critique`, 30/40: Buena), hecha sobre la
+galería completa en claro y oscuro y sobre la ventana a 656 DIP. El informe está en
+`.impeccable/critique/`. Siguen la numeración `AUD` porque es la única con IDs libres.
+
+### Tier 2 — Medio
+
+- [ ] **AUD-073 · El historial enseña el log en crudo**
+  - **Área:** UI/UX · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/HistoryDialog.xaml(.cs)` · `src/Core/HistoryEntry.cs` (`Humanize`)
+  - **Qué pasa:** cada fila dice cosas como «UPDATE DOWNLOADED v1.30.2: C:\ProgramData\FormatDiskPro\update\…», en inglés y mayúsculas, con la ruta partida a mitad de palabra; `Humanize` solo formatea bytes. Todas las filas llevan el mismo icono y un formato pesa lo mismo que una descarga. «Vaciar historial» es un botón igual que «Exportar CSV», a su lado.
+  - **Qué hacer:** el historial pasa a ser un diario para el usuario: una frase traducida por tipo de evento en la interfaz, con la ruta o el detalle técnico aparte (recortado, con tooltip), y el archivo y el CSV en crudo como hasta ahora. Icono por categoría; formatos, borrados y fallos destacan sobre la actividad interna. «Vaciar historial» se separa de las acciones que no borran.
+  - **Criterio de aceptación:** ninguna fila de la interfaz empieza por un código en mayúsculas de los conocidos; la búsqueda encuentra tanto la frase como el texto crudo; el CSV no cambia. Cinco idiomas.
+
+### Tier 3 — Bajo
+
+- [ ] **AUD-074 · Arriba sobra una fila: la salud sale tres veces y en una pantalla baja se pierden las opciones**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/MainWindow.xaml:94-140`, `:216-230`, `:410-413`
+  - **Qué pasa:** menú y barra rápida ocupan ~80 DIP; a 656 DIP la etiqueta del volumen y toda la tarjeta de opciones quedan bajo el pliegue. La salud está en el menú, en la barra rápida y en «● Normal», que es la única que no se puede pulsar. El galón de «hay más abajo» mide 10 px.
+  - **Qué hacer:** la salud de la tarjeta abre el detalle S.M.A.R.T.; Benchmark e Historial pasan a la cabecera de la tarjeta de unidad como botones compactos con icono y texto, y la fila de la barra rápida desaparece. Se mantiene el criterio de `T11-02`: solo suben las tres herramientas que no escriben. Galón más visible.
+  - **Criterio de aceptación:** a 656 DIP, la etiqueta del volumen se ve sin desplazar; los tres accesos siguen existiendo, con sus atajos en el tooltip, y se apagan durante una operación (`AUD-033`).
+  - **Antecedente:** `T11-02` (la barra rápida) y `AUD-033`
+
+- [ ] **AUD-075 · Valores desconocidos como guiones y lenguaje interno en textos para el usuario**
+  - **Área:** Redacción · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/MainWindow.DriveInfo.cs` · `src/UI/WhatsNewDialog.xaml(.cs)` · `src/Core/Changelog.cs` · `src/UI/AboutDialog.xaml` · `src/Localization/Localization.cs`
+  - **Qué pasa:** un USB enseña «● –» como salud y «FAT32 · USB / Extraíble · –»; un punto gris con un guion parece un fallo de carga. *Novedades* lleva «(AUD-067)» y la jerga de las auditorías; *Acerca de*, «.NET 10 · WinUI 3» en el texto de presentación y «SIN NINGUNA GARANTÍA» en mayúsculas. El borrado seguro solo se explica en un tooltip y nada dice que desmarcar el formato rápido puede tardar horas.
+  - **Qué hacer:** «Salud no disponible» con tooltip que diga por qué; fuera el segmento vacío de la línea de contexto. *Novedades* sin identificadores de tarea. *Acerca de* con la pila técnica en una línea atenuada y el aviso en minúscula. Pista visible bajo el borrado seguro y bajo un formato completo.
+  - **Criterio de aceptación:** en la galería, ninguna toma enseña un «–» suelto como valor; *Novedades* no muestra ningún `AUD-`/`T`*n*`-`*nn*; pruebas unitarias del filtro. Cinco idiomas.
+
+- [ ] **AUD-076 · Pulido: el botón por defecto de los diálogos y detalles sueltos**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/AboutDialog.xaml` · `src/UI/WhatsNewDialog.xaml` · `src/UI/HistoryDialog.xaml` · `src/UI/PresetsDialog.xaml(.cs)` · `src/UI/Theme/AppTheme.xaml`
+  - **Qué pasa:** el botón de acento cambia sin criterio (en *Acerca de* destaca «Apoyar el proyecto»; en *Novedades*, «Cerrar»; en *Salud* y *Presets*, ninguno); el «48 de 48» del historial flota suelto; *Presets* abre con «Mi preset» escrito, que hay que borrar.
+  - **Qué hacer:** una regla escrita en `AppTheme.xaml` —el acento solo para la acción que el diálogo existe para hacer; un diálogo informativo no lleva ninguno— aplicada a todos; el recuento junto a los filtros; «Mi preset» como texto de ayuda.
+  - **Criterio de aceptación:** la regla está escrita y la cumplen todos los diálogos de la galería.
+  - **Depende de:** `AUD-072`–`AUD-075` (es la pasada final)
 
 ---
 

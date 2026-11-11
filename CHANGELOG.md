@@ -16,6 +16,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **La confirmación de formatear dice qué se va a perder.** Antes repetía los ajustes elegidos; ahora enseña
+  el disco como la tarjeta de unidad —modelo, tamaño, conexión y tipo— y cuántos datos contiene, con el aviso
+  en un recuadro de error. La de reinicializar tiene la misma forma y sigue nombrando todas las unidades del
+  disco.
+
 ## [1.30.4] — 2026-10-20
 
 **Privacidad y licencias, y la auditoría del 2026-10-11 cerrada.** *Novedades* ya no se conecta a Internet:

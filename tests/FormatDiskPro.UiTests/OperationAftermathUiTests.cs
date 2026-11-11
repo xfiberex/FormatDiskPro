@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+﻿// SPDX-License-Identifier: GPL-3.0-only
 using System.Diagnostics;
 using System.Globalization;
 using FlaUI.Core.AutomationElements;
@@ -68,7 +68,9 @@ public sealed class OperationAftermathUiTests(AppFixture fixture, ITestOutputHel
         var dialog = DialogHelper.WaitForDialogContaining(fixture, "InputBox");
         try
         {
-            string summary = DialogHelper.ReadText(DialogHelper.WaitForChild(dialog, "SummaryText"));
+            // Desde `AUD-072` el disco va en la línea del objetivo y las unidades, en la de lo que se pierde.
+            DialogHelper.WaitForChild(dialog, "AtRiskText");
+            string summary = AllText(dialog);
             output.WriteLine(summary);
 
             foreach (char l in lettersOnDisk)
@@ -84,6 +86,48 @@ public sealed class OperationAftermathUiTests(AppFixture fixture, ITestOutputHel
             DialogHelper.SafeCloseAnyDialog(fixture);   // Cancelar: nunca se pulsa Primary
         }
     }
+
+    /// <summary>
+    /// `AUD-072`: la confirmación de formato dice QUÉ se pierde —los datos que contiene— y sobre qué disco,
+    /// no solo los ajustes elegidos. Los bytes usados tienen que ser los mismos que enseña la tarjeta de
+    /// unidad (primera mitad de «16 KB usados · 1020 MB libres»), y el modelo, el que da Windows. Se cancela:
+    /// no borra nada.
+    /// </summary>
+    [TestDriveFact]
+    public void FormatConfirm_SaysWhatTheDriveHolds_AndWhichDiskItIs()
+    {
+        char letter = TestDrive.RequireLetter(TestDrive.PrimaryLabel);
+        string model = PowerShell($"(Get-Partition -DriveLetter {letter} | Get-Disk).FriendlyName");
+
+        Reselect(letter);
+        string usedOnCard = DialogHelper.ReadText(MainWindowActions.Require(Window, "InfoFreeText")).Split(" · ")[0];
+        string usedAmount = string.Join(' ', usedOnCard.Split(' ').Take(2));   // «16 KB», sin «usados»
+        output.WriteLine($"{letter}: tarjeta «{usedOnCard}», disco '{model}'");
+        DialogHelper.SafeCloseAnyDialog(fixture);
+        MainWindowActions.WaitUntilEnabled(Window, "StartButton", TimeSpan.FromSeconds(15));
+        MainWindowActions.Button(Window, "StartButton").Invoke();
+        var dialog = DialogHelper.WaitForDialogContaining(fixture, "InputBox");
+        try
+        {
+            string atRisk = DialogHelper.ReadText(DialogHelper.WaitForChild(dialog, "AtRiskText"));
+            string target = DialogHelper.ReadText(DialogHelper.WaitForChild(dialog, "TargetDetailText"));
+            output.WriteLine(target);
+            output.WriteLine(atRisk);
+
+            Assert.Contains(usedAmount, atRisk);
+            if (!string.IsNullOrWhiteSpace(model)) Assert.Contains(model.Trim(), target);
+            Assert.DoesNotContain("ADVERT", AllText(dialog), StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            DialogHelper.SafeCloseAnyDialog(fixture);   // Cancelar: nunca se pulsa Primary
+        }
+    }
+
+    /// <summary>Todos los textos que contiene un diálogo, uno por línea.</summary>
+    private static string AllText(AutomationElement dialog) => string.Join("\n", dialog
+        .FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
+        .Select(t => t.Name));
 
     /// <summary>
     /// `AUD-038`: con una carpeta <c>__fdp_verify__</c> en la unidad —lo que deja una verificación cuyo

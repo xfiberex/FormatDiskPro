@@ -66,6 +66,24 @@
 
 ## Entradas
 
+### 2026-11-10 — `AUD-072`: una confirmación que dice qué se pierde
+
+**Qué cambia.** Las dos confirmaciones destructivas —formatear y reinicializar— comparten esqueleto: un aviso
+de error con qué se pierde, la unidad como la enseña la tarjeta (modelo, tamaño, conexión, tipo) y lo que
+contiene, y debajo, atenuado, lo que se aplica. Antes la de formato era una tabla con los ajustes que el
+usuario acababa de elegir, y la de reinicializar, prosa.
+
+**Por qué así.** Sale de una crítica de diseño de toda la interfaz (`/impeccable critique`, 30/40), que abrió
+`AUD-072`–`AUD-076`. Escribir la letra prueba la intención, no que la unidad sea la correcta: quien teclea «D»
+creyendo que D: es su pendrive lo teclea igual. Lo único que corta ese error es ver, justo ahí, algo que no
+cuadra con lo esperado: «KINGSTON SA400 · 223,6 GB · SATA · SSD · Disco fijo — Contiene 200,2 GB de datos».
+Por eso los ajustes bajan a segundo plano: ya los conoce. El rojo pasa de la instrucción al aviso, que es
+donde está el peligro; una instrucción en rojo se leía como un error antes de que hubiera ninguno. El campo
+sigue sin la letra dentro: `T6-02` lo decidió así y la razón sigue en pie.
+
+**Una sola regla para «no hay dato».** La línea de contexto la une `Core/InfoLine`, que se salta lo vacío y el
+«–». La necesitará también la tarjeta de unidad (`AUD-075`), que hoy deja un guion suelto en los USB.
+
 ### 2026-10-20 — Corte de la v1.30.4
 
 **Por qué parche.** *Sin publicar* trae *Corregido* (la conexión de *Novedades* y los avisos de terceros) e

@@ -146,14 +146,11 @@ public sealed class OperationAftermathTests
         => Assert.Null(DiskContents.Parse(line));
 
     [Fact]
-    public void ReinitDiskLine_NamesTheDiskAndTheDrivesInEveryLanguage()
+    public void ReinitLettersLine_NamesTheDrivesInEveryLanguage()
     {
-        Assert.All(L.Map["reinit.diskLine"], t =>
-        {
-            Assert.Contains("{0}", t);
-            Assert.Contains("{1}", t);
-            Assert.Contains("{2}", t);
-        });
+        // Desde `AUD-072` el modelo y el tamaño van en la línea de contexto del objetivo; esta solo lleva
+        // las unidades que desaparecen, y no puede perder su marcador en ninguna traducción.
+        Assert.All(L.Map["reinit.lettersLine"], t => Assert.Contains("{0}", t));
         Assert.All(L.Map["reinit.diskLettersUnknown"], t => Assert.Contains("{0}:", t));
     }
 }

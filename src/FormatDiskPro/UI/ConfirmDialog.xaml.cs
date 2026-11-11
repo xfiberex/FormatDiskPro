@@ -30,14 +30,8 @@ public sealed partial class ConfirmDialog : ContentDialog
     /// <param name="primaryButtonText">
     /// Texto del botón que ejecuta la operación: su verbo y la unidad, p. ej. «Reinicializar F:».
     /// </param>
-    /// <param name="summary">Qué se va a destruir, en prosa.</param>
-    /// <param name="details">
-    /// Filas (etiqueta, valor) que se pintan en dos columnas bajo el resumen. Van aparte, y no alineadas
-    /// con espacios dentro del texto, porque la longitud de las etiquetas cambia con el idioma (`T13-04`).
-    /// </param>
-    /// <param name="note">Aclaración opcional al pie del detalle.</param>
-    public ConfirmDialog(char driveLetter, string title, string primaryButtonText, string summary,
-                         IReadOnlyList<(string Label, string Value)>? details = null, string? note = null)
+    /// <param name="content">Qué se pierde, sobre qué unidad y qué se aplica (`AUD-072`).</param>
+    public ConfirmDialog(char driveLetter, string title, string primaryButtonText, ConfirmContent content)
     {
         InitializeComponent();
 
@@ -49,11 +43,24 @@ public sealed partial class ConfirmDialog : ContentDialog
         DefaultButton      = ContentDialogButton.None;
         IsPrimaryButtonEnabled = false;
 
-        SummaryText.Text = summary;
-        AddDetails(details ?? []);
-        if (!string.IsNullOrEmpty(note))
+        WarningBar.Title   = content.Warning;
+        WarningBar.Message = L.T("confirm.irreversible");
+
+        TargetNameText.Text = content.TargetName;
+        TargetDetailText.Text = content.TargetDetail;
+        TargetDetailText.Visibility = string.IsNullOrEmpty(content.TargetDetail) ? Visibility.Collapsed : Visibility.Visible;
+        AtRiskText.Text = content.AtRisk;
+
+        PlanTitleText.Text = content.PlanTitle;
+        if (!string.IsNullOrEmpty(content.Plan))
         {
-            NoteText.Text = note;
+            SummaryText.Text = content.Plan;
+            SummaryText.Visibility = Visibility.Visible;
+        }
+        AddDetails(content.PlanDetails ?? []);
+        if (!string.IsNullOrEmpty(content.Note))
+        {
+            NoteText.Text = content.Note;
             NoteText.Visibility = Visibility.Visible;
         }
         PromptText.Text  = L.T("confirm.prompt", _letter);
@@ -105,3 +112,27 @@ public sealed partial class ConfirmDialog : ContentDialog
         DetailsGrid.Visibility = Visibility.Visible;
     }
 }
+
+/// <summary>
+/// Lo que enseña una confirmación reforzada, en el orden en que se lee (`AUD-072`).
+/// </summary>
+/// <param name="Warning">Qué se pierde, en una frase: título del aviso de error.</param>
+/// <param name="TargetName">La unidad como la nombra el selector, p. ej. «D: (Datos)».</param>
+/// <param name="TargetDetail">
+/// Línea de contexto del objetivo (modelo, tamaño, conexión, tipo), unida con <see cref="InfoLine.Join"/>;
+/// vacía si no se sabe nada más.
+/// </param>
+/// <param name="AtRisk">
+/// Lo que contiene y se va a perder: los datos de un volumen o las unidades de un disco. Nunca vacío: si no
+/// se pudo leer, lo dice.
+/// </param>
+/// <param name="PlanTitle">Rótulo de lo que se va a aplicar.</param>
+/// <param name="Plan">Lo que se va a crear, en prosa (opcional).</param>
+/// <param name="PlanDetails">
+/// Filas (etiqueta, valor) de lo que se aplica, en dos columnas. Van aparte, y no alineadas con espacios,
+/// porque la longitud de las etiquetas cambia con el idioma (`T13-04`).
+/// </param>
+/// <param name="Note">Aclaración opcional al pie.</param>
+public sealed record ConfirmContent(
+    string Warning, string TargetName, string TargetDetail, string AtRisk, string PlanTitle,
+    string? Plan = null, IReadOnlyList<(string Label, string Value)>? PlanDetails = null, string? Note = null);
