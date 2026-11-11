@@ -20,7 +20,7 @@
    las cifras de *Estado*. Este archivo no guarda tareas cerradas.
 2. **Los IDs no se reutilizan nunca**, tampoco los de tareas descartadas: viven en commits e issues. Hay
    tres numeraciones y solo la última tiene tareas abiertas: `#1`–`#45` (producto), `T0-01`–`T13-20`
-   (auditoría del 2026-08-13 y los tiers que la siguieron) y `AUD-001`–`AUD-071` (auditoría del 2026-10-11).
+   (auditoría del 2026-08-13 y los tiers que la siguieron) y `AUD-001`–`AUD-076` (auditoría del 2026-10-11 y, desde `AUD-072`, la crítica de diseño del 2026-11-10).
 3. **Una tarea nueva** toma el siguiente ID libre y va al tier de su severidad: Tier 1 = Alto, Tier 2 =
    Medio, Tier 3 = Bajo. Si cambia de severidad cambia de sección, no de ID.
 4. **Rutas.** `src/…` abrevia `src/FormatDiskPro/…`. Las evidencias (`evidencias/…`, `trabajo/…`) están en
@@ -29,17 +29,17 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-11-10 · **Publicado:** v1.30.4 · **2 tareas abiertas**: una de la
-crítica de diseño del 2026-11-10 (`AUD-076`) y una bloqueada a propósito. La auditoría del
-2026-10-11 está cerrada.
+**Última actualización:** 2026-11-10 · **Publicado:** v1.30.4 · **1 tarea abierta**, bloqueada a propósito.
+La auditoría del 2026-10-11 y la crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`, cerradas las cinco y
+sin publicar) están cerradas.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
 | **2** | Medio | 0 |
-| **3** | Bajo | 1 |
+| **3** | Bajo | 0 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **2** |
+| | **Total** | **1** |
 
 De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **71**
 (`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-024`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-067`, `AUD-068`, `AUD-069`, `AUD-070`, `AUD-071`). Por área:
@@ -59,29 +59,11 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **7
 | Redacción | – | – | – | 0 |
 | **Total** | **–** | **–** | **–** | **0** |
 
-**Siguiente paso:** `AUD-076` (el pulido final). Las tareas nuevas entran con el siguiente
-ID libre (`AUD-077`) o con la numeración de una auditoría nueva.
+**Siguiente paso:** ninguno pendiente. Las tareas nuevas entran con el siguiente ID libre (`AUD-077`) o
+con la numeración de una auditoría nueva.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior.
-
----
-
-## 🎨 Crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`)
-
-Salen de una crítica de diseño de toda la interfaz (`/impeccable critique`, 30/40: Buena), hecha sobre la
-galería completa en claro y oscuro y sobre la ventana a 656 DIP. El informe está en
-`.impeccable/critique/`. Siguen la numeración `AUD` porque es la única con IDs libres.
-
-### Tier 3 — Bajo
-
-- [ ] **AUD-076 · Pulido: el botón por defecto de los diálogos y detalles sueltos**
-  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
-  - **Ubicación:** `src/UI/AboutDialog.xaml` · `src/UI/WhatsNewDialog.xaml` · `src/UI/HistoryDialog.xaml` · `src/UI/PresetsDialog.xaml(.cs)` · `src/UI/Theme/AppTheme.xaml`
-  - **Qué pasa:** el botón de acento cambia sin criterio (en *Acerca de* destaca «Apoyar el proyecto»; en *Novedades*, «Cerrar»; en *Salud* y *Presets*, ninguno); el «48 de 48» del historial flota suelto; *Presets* abre con «Mi preset» escrito, que hay que borrar.
-  - **Qué hacer:** una regla escrita en `AppTheme.xaml` —el acento solo para la acción que el diálogo existe para hacer; un diálogo informativo no lleva ninguno— aplicada a todos; el recuento junto a los filtros; «Mi preset» como texto de ayuda.
-  - **Criterio de aceptación:** la regla está escrita y la cumplen todos los diálogos de la galería.
-  - **Depende de:** `AUD-072`–`AUD-075` (es la pasada final)
 
 ---
 

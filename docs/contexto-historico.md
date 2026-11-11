@@ -66,6 +66,20 @@
 
 ## Entradas
 
+### 2026-11-10 — `AUD-076`: qué botón lleva el acento, por escrito; la crítica de diseño, cerrada
+
+**Qué cambia.** Los diálogos informativos dejan de tener un botón de acento: *Acerca de* destacaba «Apoyar el
+proyecto», por encima del aviso de que la app borra unidades, y *Novedades*, «Cerrar». El recuento del
+historial pasa a la izquierda.
+
+**Por qué así.** El acento cambiaba de un diálogo a otro sin criterio, porque nunca se había escrito. Ahora está
+en `AppTheme.xaml`, junto a la regla de dónde van los botones, y una prueba vigila los informativos. El
+acento dice «esto es lo que se espera que hagas»; donde no se espera nada, sobra.
+
+**La crítica, cerrada.** Con esta quedan hechas las cinco tareas de la crítica de diseño del 2026-11-10
+(`AUD-072`–`AUD-076`). Una parte no salió: a 656 DIP la etiqueta del volumen sigue bajo el pliegue
+(`AUD-074`). Y un punto de la crítica era falso: «Mi preset» ya era texto de ayuda.
+
 ### 2026-11-10 — `AUD-075`: decir «no lo sé» con palabras, y hablarle al usuario
 
 **Qué cambia.** Un USB ya no enseña «● –» como salud ni «· –» al final de la línea de contexto: dice «Salud no

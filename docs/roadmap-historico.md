@@ -12,7 +12,7 @@
 >
 > | Qué | IDs | Estado |
 > |---|---|---|
-> | **Auditoría del 2026-10-11** | `AUD-001`–`AUD-071` | abierta; aquí solo las completadas |
+> | **Auditoría del 2026-10-11** y crítica de diseño del 2026-11-10 | `AUD-001`–`AUD-071` y `AUD-072`–`AUD-076` | abierta; aquí solo las completadas |
 > | **Parte 1** — historial de producto | `#1`–`#45` | cerrada (2026-07-13) |
 > | **Parte 2** — auditoría del 2026-08-13 (`T0`–`T4`) y los tiers que la siguieron (`T5`–`T13`) | `T0-01`–`T13-20` | cerrada, salvo `T10-02` (bloqueada, en `ROADMAP.md`) |
 >
@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-11-10 | `AUD-076` | Regla escrita del botón de acento: los diálogos informativos no llevan ninguno; el recuento del historial, como rótulo | sin publicar |
 | 2026-11-10 | `AUD-075` | «Salud no disponible» en vez de «● –», sin segmentos vacíos; *Novedades* sin IDs de tarea; pistas del formato completo y del borrado seguro | sin publicar |
 | 2026-11-10 | `AUD-074` | Fuera la fila de la barra rápida: la salud de la tarjeta abre el detalle y Benchmark e Historial suben a su cabecera | sin publicar |
 | 2026-11-10 | `AUD-073` | El historial, un diario: titular traducido por fila, icono por categoría, detalle técnico aparte y «Vaciar» separado | sin publicar |
@@ -674,6 +675,16 @@
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### UI/UX
+
+- [x] **AUD-076 · Pulido: el botón por defecto de los diálogos y detalles sueltos**
+  - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Bajo
+  - **Ubicación:** `src/UI/AboutDialog.xaml` · `src/UI/WhatsNewDialog.xaml` · `src/UI/HistoryDialog.xaml` · `src/UI/PresetsDialog.xaml(.cs)` · `src/UI/Theme/AppTheme.xaml`
+  - **Qué pasa:** el botón de acento cambia sin criterio (en *Acerca de* destaca «Apoyar el proyecto»; en *Novedades*, «Cerrar»; en *Salud* y *Presets*, ninguno); el «48 de 48» del historial flota suelto; *Presets* abre con «Mi preset» escrito, que hay que borrar.
+  - **Qué hacer:** una regla escrita en `AppTheme.xaml` —el acento solo para la acción que el diálogo existe para hacer; un diálogo informativo no lleva ninguno— aplicada a todos; el recuento junto a los filtros; «Mi preset» como texto de ayuda.
+  - **Criterio de aceptación:** la regla está escrita y la cumplen todos los diálogos de la galería.
+  - **Depende de:** `AUD-072`–`AUD-075` (es la pasada final)
+  - **Hecho (2026-11-10):** La regla queda escrita en `AppTheme.xaml`, junto a la de dónde van los botones: el acento lo lleva la acción que el diálogo existe para hacer; si esa es la arriesgada, la segura («No» en «¿Cancelar la operación?», «Solo comprobar» en chkdsk); y un diálogo informativo no lleva ninguno, ni en «Cerrar». Se aplica a los dos que la incumplían: *Acerca de* deja de destacar «Apoyar el proyecto» y *Novedades* deja de tener «Cerrar» como botón por defecto (Escape lo sigue cerrando). El resto ya la cumplía. El recuento del historial («48 de 48») pasa a la izquierda, como rótulo de la lista. **Falso positivo de la crítica:** «Mi preset» ya era texto de ayuda (`PlaceholderText`) y no texto escrito; no se toca.
+  - **Verificado (2026-11-10, en local, terminal elevada y USB de pruebas):** `InformativeDialogs_HaveNoAccentButton` (nueva, 5 casos) recorre el XAML y el código de *Acerca de*, *Novedades*, *Salud*, *Historial* y *Licencia*, y falla con el código de antes (el acento de *Acerca de* y el botón por defecto de *Novedades*). Suite de UI completa sin opt-in: 63 (58 pasan, 5 omitidas por opt-in, ninguna falla). Unitarias: 1029 pasan, 1 omitida.
 
 - [x] **AUD-074 · Arriba sobra una fila: la salud sale tres veces y en una pantalla baja se pierden las opciones**
   - **Área:** UI/UX · **Severidad:** Bajo · **Esfuerzo:** Medio

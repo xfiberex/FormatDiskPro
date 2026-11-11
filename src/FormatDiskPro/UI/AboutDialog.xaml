@@ -4,8 +4,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     CornerRadius="8">
 
+    <!-- Sin acento (`AUD-076`): «Acerca de» es informativo y no existe para pedir nada. «Apoyar el proyecto»
+         era lo más llamativo del diálogo, más que el aviso de que la app borra unidades. -->
     <ContentDialog.PrimaryButtonStyle>
-        <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="CornerRadius" Value="4" />
         </Style>
     </ContentDialog.PrimaryButtonStyle>

@@ -76,4 +76,26 @@ public sealed class DialogLayoutTests
         Assert.True(match.Success, "Falta el recurso DialogContentPadding en AppTheme.xaml.");
         Assert.Equal("3", match.Groups[1].Value.Trim());
     }
+
+    /// <summary>
+    /// `AUD-076`: un diálogo informativo no lleva botón de acento, ni siquiera en «Cerrar». La regla está escrita
+    /// en <c>AppTheme.xaml</c>; esto vigila los que hoy son informativos. Acerca de destacaba «Apoyar el
+    /// proyecto» y Novedades, «Cerrar».
+    /// </summary>
+    [Theory]
+    [InlineData("AboutDialog")]
+    [InlineData("WhatsNewDialog")]
+    [InlineData("HealthDialog")]
+    [InlineData("HistoryDialog")]
+    [InlineData("LegalTextDialog")]
+    public void InformativeDialogs_HaveNoAccentButton(string dialog)
+    {
+        string ui = Path.Combine(RepoRoot(), "src", "FormatDiskPro", "UI");
+        string xaml = File.ReadAllText(Path.Combine(ui, dialog + ".xaml"));
+        string code = File.ReadAllText(Path.Combine(ui, dialog + ".xaml.cs"));
+
+        Assert.DoesNotContain("AccentButtonStyle", xaml, StringComparison.Ordinal);
+        // El DefaultButton de un ContentDialog se pinta con el acento.
+        Assert.DoesNotMatch(@"DefaultButton\s*=\s*ContentDialogButton\.(Primary|Secondary|Close)", code);
+    }
 }

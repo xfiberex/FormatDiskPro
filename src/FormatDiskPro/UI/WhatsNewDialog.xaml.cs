@@ -25,7 +25,9 @@ public sealed partial class WhatsNewDialog : ContentDialog
         VersionText.Text  = L.T("whatsnew.version", version);
         PrimaryButtonText = L.T("whatsnew.viewOnGitHub");
         CloseButtonText   = L.T("btn.close");
-        DefaultButton     = ContentDialogButton.Close;
+        // Ninguno por defecto (`AUD-076`): un diálogo informativo no lleva acento, ni siquiera en «Cerrar».
+        // Escape lo sigue cerrando.
+        DefaultButton     = ContentDialogButton.None;
 
         // Sin los identificadores de tarea (`AUD-075`): el CHANGELOG los cita para el proyecto, no para quien
         // acaba de actualizar.

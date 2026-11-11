@@ -29,7 +29,8 @@
             <!-- Cuántas entradas se ven de cuántas hay: con dos filtros y una búsqueda encima, una
                  lista corta no dice por sí sola si el historial está vacío o si lo está ocultando.
                  Polite: cambia con cada tecleo, y no debe interrumpir lo que se está escribiendo. -->
-            <TextBlock x:Name="CountText" FontSize="12" Foreground="{ThemeResource AppMutedTextBrush}" HorizontalAlignment="Right"
+            <!-- A la izquierda, como rótulo de la lista que cuenta (`AUD-076`): a la derecha flotaba suelto. -->
+            <TextBlock x:Name="CountText" FontSize="12" Foreground="{ThemeResource AppMutedTextBrush}" HorizontalAlignment="Left"
                        AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
 
