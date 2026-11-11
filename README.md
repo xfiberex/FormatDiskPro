@@ -60,6 +60,8 @@ máquina: la app usa el tuyo. Ninguna captura está editada: las genera
 **Seguridad**
 - El **disco de sistema** sale como `[Protegido]` y se bloquea dos veces: al listar y al iniciar.
 - Para confirmar hay que **escribir la letra de la unidad**, y el botón nombra el destino (*Formatear H:*).
+  La confirmación enseña el disco —modelo, tamaño, conexión y tipo— y **cuántos datos contiene**, para que
+  se note si no es el que esperabas.
 - Detecta la **protección de escritura** antes de formatear y ofrece quitarla.
 - **Reinicializar unidad** (solo extraíbles) rehace una USB con particiones raras o RAW. Opcionalmente crea
   una FAT32 pequeña primero (1–32 GB, p. ej. para actualizar una BIOS) y deja el resto sin asignar o en
@@ -81,7 +83,8 @@ máquina: la app usa el tuyo. Ninguna captura está editada: las genera
   formato rápido y el completo en ReFS, que ejecuta Windows); velocidad y tiempo restante en las que
   escriben el espacio libre (verificar capacidad y borrado seguro). Aviso (sonido + barra de tareas) al
   terminar si estás en otra ventana.
-- **Historial** con búsqueda, filtros y exportación a CSV.
+- **Historial** en tu idioma, con búsqueda, filtros y exportación a CSV: cada entrada dice qué pasó y sobre
+  qué unidad, y lo que borró un disco o falló destaca sobre lo demás.
 - **Actualizaciones** desde GitHub Releases con sus notas, y verificación del instalador antes de ejecutarlo.
 
 Lo que viene, en la [hoja de ruta](ROADMAP.md); lo que trajo cada versión, en el [changelog](CHANGELOG.md).
@@ -113,8 +116,9 @@ La app busca versiones nuevas al arrancar (desactivable en *Configuración*) y e
 3. Elige sistema de archivos, tamaño de clúster y etiqueta, o aplica un **preset**.
 4. Pulsa **Formatear _X_:**, escribe la letra de la unidad y confirma.
 
-*Salud*, *Benchmark* e *Historial*, que no escriben nada, están a un clic bajo el menú. Lo que borra está
-en *Herramientas*, siempre con confirmación.
+*Benchmark* e *Historial*, que no escriben nada, están a un clic en la cabecera de la tarjeta de unidad, y
+la salud de la unidad (*● Normal*) abre su detalle S.M.A.R.T. al pulsarla. Lo que borra está en
+*Herramientas*, siempre con confirmación.
 
 | Menú | Opciones |
 |---|---|
