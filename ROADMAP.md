@@ -29,9 +29,9 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-11-11 · **Publicado:** v1.31.0 · **1 tarea abierta**, bloqueada a propósito.
+**Última actualización:** 2026-11-11 · **Publicado:** v1.32.0 · **1 tarea abierta**, bloqueada a propósito.
 La auditoría del 2026-10-11, la crítica de diseño del 2026-11-10 (`AUD-072`–`AUD-076`, publicadas en la
-v1.31.0) y la auditoría y el onboarding del 2026-11-11 (`AUD-077`–`AUD-078`, sin publicar) están cerradas.
+v1.31.0) y la auditoría y el onboarding del 2026-11-11 (`AUD-077`–`AUD-078`, publicadas en la v1.32.0) están cerradas.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|

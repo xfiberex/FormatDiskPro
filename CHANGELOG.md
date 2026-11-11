@@ -16,6 +16,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.32.0] — 2026-11-11
+
+**Una guía dentro de la aplicación.** *Ayuda → Guía rápida…*, también con F1, cuenta lo esencial para formatear la
+unidad correcta con el sistema de archivos adecuado, qué herramientas no tocan tus datos y qué hacer si algo
+falla. Y con un tema de contraste de Windows, el botón de formatear se ve como debe.
+
 ### Añadido
 
 - **Guía rápida** en *Ayuda* y con **F1**: cómo formatear en tres pasos, qué sistema de archivos elegir, qué
@@ -1126,7 +1132,8 @@ cambian lo que la app **cuenta** cuando algo va mal.
 
 ---
 
-[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.31.0...HEAD
+[Sin publicar]: https://github.com/xfiberex/FormatDiskPro/compare/v1.32.0...HEAD
+[1.32.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.32.0
 [1.31.0]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.31.0
 [1.30.4]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.4
 [1.30.3]: https://github.com/xfiberex/FormatDiskPro/releases/tag/v1.30.3

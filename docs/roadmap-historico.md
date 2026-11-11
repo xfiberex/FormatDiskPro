@@ -23,8 +23,8 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
-| 2026-11-11 | `AUD-078` | Botones de acento sin la placa de alto contraste (`AppAccentButtonStyle`) y el de salud con 30 DIP de alto | sin publicar |
-| 2026-11-11 | `AUD-077` | Guía rápida en *Ayuda* y en F1: formatear en tres pasos, qué sistema elegir, lo que no borra nada, qué hacer si falla y los atajos | sin publicar |
+| 2026-11-11 | `AUD-078` | Botones de acento sin la placa de alto contraste (`AppAccentButtonStyle`) y el de salud con 30 DIP de alto | v1.32.0 |
+| 2026-11-11 | `AUD-077` | Guía rápida en *Ayuda* y en F1: formatear en tres pasos, qué sistema elegir, lo que no borra nada, qué hacer si falla y los atajos | v1.32.0 |
 | 2026-11-10 | `AUD-076` | Regla escrita del botón de acento: los diálogos informativos no llevan ninguno; el recuento del historial, como rótulo | v1.31.0 |
 | 2026-11-10 | `AUD-075` | «Salud no disponible» en vez de «● –», sin segmentos vacíos; *Novedades* sin IDs de tarea; pistas del formato completo y del borrado seguro | v1.31.0 |
 | 2026-11-10 | `AUD-074` | Fuera la fila de la barra rápida: la salud de la tarjeta abre el detalle y Benchmark e Historial suben a su cabecera | v1.31.0 |

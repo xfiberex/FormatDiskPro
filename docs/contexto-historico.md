@@ -17,6 +17,7 @@
 
 | Versión | Qué trajo |
 |---|---|
+| **1.32.0** | **Una guía dentro de la app.** *Ayuda → Guía rápida…* y F1: formatear en tres pasos, qué sistema de archivos elegir, lo que no borra nada, qué hacer si algo falla y los atajos. Sale de `/impeccable onboard`, que atendió el 2 de la crítica en «Ayuda y documentación». Y `/impeccable audit` (17/20, sobre francés, portugués, alto contraste y texto al 150 %) dejó un arreglo: los botones de acento ya no llevan la placa negra del alto contraste. |
 | **1.31.0** | **La interfaz, revisada, sin funciones nuevas.** Sale de una crítica de diseño (30/40, 31 tras los cambios). Las dos confirmaciones destructivas enseñan el disco —modelo, tamaño, conexión— y lo que contiene, con el aviso en un recuadro de error. El historial lleva un titular traducido por fila y el log queda como detalle. La barra rápida se reparte en la tarjeta de unidad y la ventana gana una fila. «Salud no disponible» en vez de un guion, *Novedades* sin IDs de tarea, y el acento solo en la acción que cada diálogo existe para hacer. |
 | **1.30.4** | **Privacidad y licencias, sin funciones nuevas.** *Novedades* lee las notas del CHANGELOG embebido y no se conecta a nada: la única conexión de la app es buscar actualizaciones. Los avisos de terceros citan la licencia real de cada componente redistribuido, el instalador deja sus textos en `licenses` y el encaje con la GPLv3 queda escrito, sin permiso adicional. La guía dice bajo qué licencia entran las contribuciones. Con ella, las 71 tareas de la auditoría del 2026-10-11 están publicadas |
 | **1.30.3** | **Los textos, sin funciones nuevas.** Tuteo en todo el español y un término por cosa en cada idioma, con un glosario que una prueba hace cumplir. En francés, tamaños en octetos («Go») como Windows; «ETA» y el nombre del CSV, traducidos. El historial se escribe en un formato técnico que no depende del idioma. La prueba que le faltaba al arreglo de `AUD-030` |
@@ -66,6 +67,12 @@
 ---
 
 ## Entradas
+
+### 2026-11-11 — Corte de la v1.32.0
+
+**Por qué menor.** *Sin publicar* trae *Añadido* —la guía rápida, una función nueva— además de *Corregido*. Sale el
+mismo día que la v1.31.0: la guía y el arreglo de contraste salieron de revisar justo lo que esa versión no había
+mirado (otros idiomas, el tema de contraste, el tamaño del texto), y no había motivo para esperar.
 
 ### 2026-11-11 — `AUD-078`: la placa de alto contraste en los botones de acento
 
