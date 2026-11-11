@@ -1,4 +1,4 @@
-﻿# FormatDiskPro — Hoja de ruta
+# FormatDiskPro — Hoja de ruta
 
 > **Qué hay aquí:** solo lo **abierto** —las tareas pendientes, por severidad— y lo que está fuera de
 > alcance **a propósito**.
@@ -29,17 +29,17 @@
 
 ## 🏁 Estado
 
-**Última actualización:** 2026-11-10 · **Publicado:** v1.30.4 · **5 tareas abiertas**: cuatro de la
-crítica de diseño del 2026-11-10 (`AUD-073`–`AUD-076`) y una bloqueada a propósito. La auditoría del
+**Última actualización:** 2026-11-10 · **Publicado:** v1.30.4 · **4 tareas abiertas**: tres de la
+crítica de diseño del 2026-11-10 (`AUD-074`–`AUD-076`) y una bloqueada a propósito. La auditoría del
 2026-10-11 está cerrada.
 
 | Tier | Severidad | Abiertas |
 |---|---|---:|
 | **1** | Alto | 0 |
-| **2** | Medio | 1 |
+| **2** | Medio | 0 |
 | **3** | Bajo | 3 |
 | — | Bloqueada a propósito (`T10-02`) | 1 |
-| | **Total** | **5** |
+| | **Total** | **4** |
 
 De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **71**
 (`AUD-001`, `AUD-002`, `AUD-003`, `AUD-004`, `AUD-005`, `AUD-006`, `AUD-007`, `AUD-008`, `AUD-009`, `AUD-010`, `AUD-011`, `AUD-012`, `AUD-013`, `AUD-014`, `AUD-015`, `AUD-016`, `AUD-017`, `AUD-018`, `AUD-019`, `AUD-020`, `AUD-021`, `AUD-022`, `AUD-023`, `AUD-024`, `AUD-025`, `AUD-026`, `AUD-027`, `AUD-028`, `AUD-029`, `AUD-030`, `AUD-031`, `AUD-032`, `AUD-033`, `AUD-034`, `AUD-035`, `AUD-036`, `AUD-037`, `AUD-038`, `AUD-039`, `AUD-040`, `AUD-041`, `AUD-042`, `AUD-043`, `AUD-044`, `AUD-045`, `AUD-046`, `AUD-047`, `AUD-048`, `AUD-049`, `AUD-050`, `AUD-051`, `AUD-052`, `AUD-053`, `AUD-054`, `AUD-055`, `AUD-056`, `AUD-057`, `AUD-058`, `AUD-059`, `AUD-060`, `AUD-061`, `AUD-062`, `AUD-063`, `AUD-064`, `AUD-065`, `AUD-066`, `AUD-067`, `AUD-068`, `AUD-069`, `AUD-070`, `AUD-071`). Por área:
@@ -59,8 +59,8 @@ De la auditoría del 2026-10-11 (71 hallazgos) quedan **0** y se han cerrado **7
 | Redacción | – | – | – | 0 |
 | **Total** | **–** | **–** | **–** | **0** |
 
-**Siguiente paso:** `AUD-073` (el historial legible) y, después, en orden. Las tareas nuevas entran con
-el siguiente ID libre (`AUD-077`) o con la numeración de una auditoría nueva.
+**Siguiente paso:** `AUD-074` (la fila que sobra arriba). Las tareas nuevas entran con el siguiente
+ID libre (`AUD-077`) o con la numeración de una auditoría nueva.
 
 > En cada tarea, **Depende de** solo aparece si depende de otra, y **Antecedente** solo si reabre o
 > completa una tarea anterior.
@@ -72,15 +72,6 @@ el siguiente ID libre (`AUD-077`) o con la numeración de una auditoría nueva.
 Salen de una crítica de diseño de toda la interfaz (`/impeccable critique`, 30/40: Buena), hecha sobre la
 galería completa en claro y oscuro y sobre la ventana a 656 DIP. El informe está en
 `.impeccable/critique/`. Siguen la numeración `AUD` porque es la única con IDs libres.
-
-### Tier 2 — Medio
-
-- [ ] **AUD-073 · El historial enseña el log en crudo**
-  - **Área:** UI/UX · **Severidad:** Medio · **Esfuerzo:** Medio
-  - **Ubicación:** `src/UI/HistoryDialog.xaml(.cs)` · `src/Core/HistoryEntry.cs` (`Humanize`)
-  - **Qué pasa:** cada fila dice cosas como «UPDATE DOWNLOADED v1.30.2: C:\ProgramData\FormatDiskPro\update\…», en inglés y mayúsculas, con la ruta partida a mitad de palabra; `Humanize` solo formatea bytes. Todas las filas llevan el mismo icono y un formato pesa lo mismo que una descarga. «Vaciar historial» es un botón igual que «Exportar CSV», a su lado.
-  - **Qué hacer:** el historial pasa a ser un diario para el usuario: una frase traducida por tipo de evento en la interfaz, con la ruta o el detalle técnico aparte (recortado, con tooltip), y el archivo y el CSV en crudo como hasta ahora. Icono por categoría; formatos, borrados y fallos destacan sobre la actividad interna. «Vaciar historial» se separa de las acciones que no borran.
-  - **Criterio de aceptación:** ninguna fila de la interfaz empieza por un código en mayúsculas de los conocidos; la búsqueda encuentra tanto la frase como el texto crudo; el CSV no cambia. Cinco idiomas.
 
 ### Tier 3 — Bajo
 

@@ -22,6 +22,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
   el disco como la tarjeta de unidad —modelo, tamaño, conexión y tipo— y cuántos datos contiene, con el aviso
   en un recuadro de error. La de reinicializar tiene la misma forma y sigue nombrando todas las unidades del
   disco.
+- **El historial se lee en tu idioma.** Cada entrada dice qué pasó y sobre qué unidad o versión («Formato ·
+  G: · Correcto»), con su icono, y el detalle técnico queda debajo, atenuado. Lo que borra un disco o falla
+  destaca sobre la actividad interna, y «Vaciar historial» queda aparte de los otros botones. El archivo del
+  historial y el CSV exportado no cambian.
 
 ## [1.30.4] — 2026-10-20
 

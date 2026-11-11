@@ -23,6 +23,7 @@
 
 | Fecha | Tarea | Qué se hizo | Versión |
 |---|---|---|---|
+| 2026-11-10 | `AUD-073` | El historial, un diario: titular traducido por fila, icono por categoría, detalle técnico aparte y «Vaciar» separado | sin publicar |
 | 2026-11-10 | `AUD-072` | Las dos confirmaciones destructivas: aviso de error, el disco con su modelo y lo que contiene, y lo que se aplica | sin publicar |
 | 2026-10-20 | `AUD-071` | La guía y la plantilla de PR dicen que se contribuye bajo `GPL-3.0-only`, sin CLA ni DCO | v1.30.4 |
 | 2026-10-20 | `AUD-067` | *Novedades* lee las notas del CHANGELOG embebido: sin red, esté como esté la preferencia | v1.30.4 |
@@ -662,6 +663,15 @@
   - **Verificado:** `Iops_UseTheThousandsSeparatorOfTheAppLanguage` fija «12.345 IOPS» en es, pt e it y «12,345 IOPS» en en. Para fr, `Iops_InFrench_UseASpaceAsThousandsSeparator` exige el separador de la cultura y que sea un espacio, porque ICU usa el normal o el estrecho según su versión.
 
 ### UI/UX
+
+- [x] **AUD-073 · El historial enseña el log en crudo**
+  - **Área:** UI/UX · **Severidad:** Medio · **Esfuerzo:** Medio
+  - **Ubicación:** `src/UI/HistoryDialog.xaml(.cs)` · `src/Core/HistoryEntry.cs` (`Humanize`)
+  - **Qué pasa:** cada fila dice cosas como «UPDATE DOWNLOADED v1.30.2: C:\ProgramData\FormatDiskPro\update\…», en inglés y mayúsculas, con la ruta partida a mitad de palabra; `Humanize` solo formatea bytes. Todas las filas llevan el mismo icono y un formato pesa lo mismo que una descarga. «Vaciar historial» es un botón igual que «Exportar CSV», a su lado.
+  - **Qué hacer:** el historial pasa a ser un diario para el usuario: una frase traducida por tipo de evento en la interfaz, con la ruta o el detalle técnico aparte (recortado, con tooltip), y el archivo y el CSV en crudo como hasta ahora. Icono por categoría; formatos, borrados y fallos destacan sobre la actividad interna. «Vaciar historial» se separa de las acciones que no borran.
+  - **Criterio de aceptación:** ninguna fila de la interfaz empieza por un código en mayúsculas de los conocidos; la búsqueda encuentra tanto la frase como el texto crudo; el CSV no cambia. Cinco idiomas.
+  - **Hecho (2026-11-10):** Cada fila lleva un titular traducido —«Actualización · Descarga completada · 1.30.2», «Formato · G: · Correcto», «Cierre inesperado · Error»— y debajo la fecha y el detalle técnico en una línea atenuada, entero en su tooltip. Lo calcula `HistoryEntry.Headline()` (`Core/HistoryHeadline.cs`) a partir de la cabecera de la línea: el sustantivo sale de la palabra clave (las operaciones usan el de su categoría; las de la app y las consultas, uno propio: «Configuración», «Tamaño del disco»…), la acción de doce palabras conocidas y el sujeto, de la letra o la versión. Si la cabecera trae una palabra desconocida, el detalle es la línea entera: no se pierde nada. Son rótulos separados por «·», no frases, para no concordar género entre idiomas. El icono pasa a ser el de la categoría, con el color del resultado; lo que escribe en un disco y los fallos van en seminegrita, y la actividad interna correcta en normal. La búsqueda encuentra también el titular. «Vaciar historial» se va a la derecha, separado de «Abrir archivo» y «Exportar CSV». `history.log` y el CSV no cambian. 20 claves nuevas, cinco idiomas.
+  - **Verificado (2026-11-10, en local, terminal elevada y USB de pruebas):** `HistoryHeadlineTests` (9): descarga, formato con tamaños legibles, línea sin detalle, las entradas propias de la app, palabra desconocida, línea ajena y que cada palabra clave tenga sustantivo y cada clave esté traducida. Las 8 pruebas de interfaz del historial pasan (atajo, teclado, nombres de fila, filtros, recuento anunciado, exportar). Galería del historial en claro y oscuro revisada. Unitarias: 1015 pasan, 1 omitida.
 
 - [x] **AUD-072 · La confirmación de formato repite los ajustes y calla lo que se va a perder**
   - **Área:** UI/UX · **Severidad:** Medio · **Esfuerzo:** Medio

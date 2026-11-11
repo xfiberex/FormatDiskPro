@@ -11,7 +11,18 @@ using System.Text;
 namespace FormatDiskPro.UI;
 
 /// <summary>Fila de presentación de una entrada del historial (capa UI, para enlazar con x:Bind).</summary>
-public sealed record HistoryRow(string Time, string Title, string Detail, string Glyph, Brush Accent);
+/// <param name="Time">Fecha y hora, en formato invariable.</param>
+/// <param name="Title">Titular traducido: de qué trata, qué pasó, sobre qué y el resultado (`AUD-073`).</param>
+/// <param name="Detail">Detalle técnico, con los tamaños legibles; puede estar vacío.</param>
+/// <param name="Glyph">Icono de la categoría.</param>
+/// <param name="Accent">Color del resultado: lo llevan el icono y el titular.</param>
+/// <param name="TitleWeight">Seminegrita para lo que cambia un disco o falla; normal para la actividad interna.</param>
+public sealed record HistoryRow(string Time, string Title, string Detail, string Glyph, Brush Accent,
+                                Windows.UI.Text.FontWeight TitleWeight)
+{
+    /// <summary>El detalle no ocupa sitio si no hay nada que decir.</summary>
+    public Visibility DetailVisibility => string.IsNullOrEmpty(Detail) ? Visibility.Collapsed : Visibility.Visible;
+}
 
 /// <summary>
 /// Visor integrado del historial de operaciones: lista las entradas (más recientes primero),
@@ -82,8 +93,17 @@ public sealed partial class HistoryDialog : ContentDialog
     private HistoryResult? SelectedResult()
         => (ResultFilter.SelectedItem as ComboBoxItem)?.Tag is HistoryResult r ? r : null;
 
+    /// <summary>
+    /// Lo que dejan ver los filtros y la búsqueda. Se busca en la línea cruda, en la legible y en el titular
+    /// traducido (`AUD-073`): teclear lo que se está viendo —«Descarga completada»— tiene que encontrarlo.
+    /// </summary>
     private IEnumerable<HistoryEntry> FilteredEntries()
-        => _all.Where(e => e.Matches(SearchBox.Text, SelectedCategory(), SelectedResult()));
+    {
+        string search = SearchBox.Text.Trim();
+        return _all.Where(e => e.Matches(null, SelectedCategory(), SelectedResult())
+                               && (e.Matches(search, null, null)
+                                   || TitleFor(e).Contains(search, StringComparison.CurrentCultureIgnoreCase)));
+    }
 
     private void ApplyFilter()
     {
@@ -187,12 +207,34 @@ public sealed partial class HistoryDialog : ContentDialog
         string time  = e.Time == DateTime.MinValue
             ? ""
             : e.Time.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
-        string title = $"{CategoryText(e.Category)} · {ResultText(e.Result)}";
-        // Solo la fila que se ve lleva los tamaños en legible (T6-05). El CSV (HistoryEntry.ToCsv) y el
-        // propio history.log siguen exportando e.Detail con el byte exacto: son formatos con consumidores.
-        return new HistoryRow(time, title, HistoryEntry.Humanize(e.Detail), GlyphFor(e.Result),
-                              new SolidColorBrush(ColorFor(e.Result, _dark)));
+        // Solo la fila que se ve se traduce y lleva los tamaños en legible (T6-05, `AUD-073`). El CSV
+        // (HistoryEntry.ToCsv) y el propio history.log siguen con la línea cruda: son formatos con consumidores.
+        return new HistoryRow(time, TitleFor(e), e.Headline().Detail, GlyphFor(e.Category),
+                              new SolidColorBrush(ColorFor(e.Result, _dark)),
+                              IsNoteworthy(e) ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal);
     }
+
+    /// <summary>
+    /// El titular traducido: «Formato · G: · Correcto», «Actualización · Descarga completada · 1.30.2». El
+    /// resultado se omite cuando es «Info»: no añade nada a lo que ya dice la acción.
+    /// </summary>
+    private static string TitleFor(HistoryEntry e)
+    {
+        HistoryHeadline h = e.Headline();
+        return InfoLine.Join(L.T(h.NounKey),
+                             h.ActionKey is null ? null : L.T(h.ActionKey),
+                             h.Subject,
+                             e.Result == HistoryResult.Info ? null : ResultText(e.Result));
+    }
+
+    /// <summary>
+    /// Lo que destaca en la lista (`AUD-073`): lo que escribe en un disco y cualquier fallo o cancelación.
+    /// Las consultas, las actualizaciones y la actividad de la propia app, cuando salen bien, van en segundo
+    /// plano: una descarga correcta no debe pesar lo mismo que un formato.
+    /// </summary>
+    private static bool IsNoteworthy(HistoryEntry e) =>
+        e.Result is HistoryResult.Fail or HistoryResult.Error or HistoryResult.Cancelled
+        || e.Category is not (HistoryCategory.Health or HistoryCategory.Update or HistoryCategory.App or HistoryCategory.Other);
 
     /// <summary>
     /// Abre <c>history.log</c> en el editor asociado, y <b>dice si no puede</b>.
@@ -247,13 +289,23 @@ public sealed partial class HistoryDialog : ContentDialog
         _                       => L.T("history.res.info"),
     };
 
-    // Glifos de Segoe Fluent Icons por resultado (code points; sin escapes ni caracteres no-ASCII).
-    private static string GlyphFor(HistoryResult r) => char.ConvertFromUtf32(r switch
+    // Glifos de Segoe Fluent Icons por CATEGORÍA (`AUD-073`); el resultado lo dicen el color y el titular.
+    // Antes eran por resultado, y en un historial de actualizaciones todas las filas llevaban la misma ⓘ.
+    // Los de Salud y Benchmark son los mismos que los de sus botones en la ventana.
+    private static string GlyphFor(HistoryCategory c) => char.ConvertFromUtf32(c switch
     {
-        HistoryResult.Ok                          => 0xE73E,   // CheckMark
-        HistoryResult.Fail or HistoryResult.Error => 0xE783,   // ErrorBadge
-        HistoryResult.Cancelled                   => 0xE711,   // Cancel
-        _                                         => 0xE946,   // Info
+        HistoryCategory.Format       => 0xEDA2,   // HardDrive
+        HistoryCategory.SecureWipe   => 0xE74D,   // Delete
+        HistoryCategory.Reinit       => 0xE72C,   // Refresh
+        HistoryCategory.CheckDisk    => 0xE9D5,   // CheckList
+        HistoryCategory.Verify       => 0xE721,   // Search
+        HistoryCategory.Benchmark    => 0xE916,   // Stopwatch
+        HistoryCategory.Health       => 0xE95E,   // Health
+        HistoryCategory.WriteProtect => 0xE72E,   // Lock
+        HistoryCategory.Eject        => 0xE88E,   // USB
+        HistoryCategory.Update       => 0xE896,   // Download
+        HistoryCategory.App          => 0xE713,   // Settings
+        _                            => 0xE946,   // Info
     });
 
     // El RGB vive en Core/SeverityPalette, donde los tests miden su contraste (WCAG AA). Estos colores

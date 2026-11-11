@@ -41,19 +41,22 @@
                   ContainerContentChanging="EntriesList_ContainerContentChanging">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="ui:HistoryRow">
+                    <!-- Un titular traducido y, debajo, el detalle técnico atenuado (`AUD-073`). Antes la
+                         fila era «Actualización · Info» y la línea del log entera. El icono es el de la
+                         categoría y lleva el color del resultado; el resultado, además, va en palabras. El detalle
+                         ocupa una línea: entero, en su tooltip y en «Abrir archivo». -->
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="0,4">
                         <FontIcon Grid.Column="0" Glyph="{x:Bind Glyph}" Foreground="{x:Bind Accent}"
                                   FontSize="16" VerticalAlignment="Top" Margin="0,2,0,0" />
                         <StackPanel Grid.Column="1" Spacing="2">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="14"
-                                           Foreground="{x:Bind Accent}" />
-                                <TextBlock Text="{x:Bind Time}" FontSize="12"
-                                           Foreground="{ThemeResource AppMutedTextBrush}"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                            <TextBlock Text="{x:Bind Detail}" FontSize="12" TextWrapping="Wrap"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{x:Bind Title}" FontWeight="{x:Bind TitleWeight}" FontSize="14"
+                                       TextWrapping="Wrap" Foreground="{x:Bind Accent}" />
+                            <TextBlock Text="{x:Bind Time}" FontSize="12"
+                                       Foreground="{ThemeResource AppMutedTextBrush}" />
+                            <TextBlock Text="{x:Bind Detail}" FontSize="12" TextWrapping="NoWrap"
+                                       TextTrimming="CharacterEllipsis" Visibility="{x:Bind DetailVisibility}"
+                                       ToolTipService.ToolTip="{x:Bind Detail}"
+                                       Foreground="{ThemeResource AppMutedTextBrush}" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>
@@ -64,16 +67,18 @@
                    VerticalAlignment="Center" Foreground="{ThemeResource AppMutedTextBrush}" Visibility="Collapsed"
                    Text="Sin operaciones registradas." />
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+        <!-- «Vaciar historial» va aparte, a la derecha (`AUD-073`): era un botón igual que «Exportar CSV» y a su
+             lado, y es el único de los tres que borra algo. -->
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
             <Button x:Name="OpenFileButton" Content="Abrir archivo" Click="OpenFile_Click" />
             <!-- Ctrl+E dentro del diálogo (T7-04). Aquí el ToolTip lo pone WinUI solo, con el texto del
                  acelerador, porque el botón no tiene ninguno propio que lo desplace. -->
-            <Button x:Name="ExportButton" Content="Exportar CSV" Click="Export_Click">
+            <Button x:Name="ExportButton" Grid.Column="1" Content="Exportar CSV" Click="Export_Click">
                 <Button.KeyboardAccelerators>
                     <KeyboardAccelerator Modifiers="Control" Key="E" />
                 </Button.KeyboardAccelerators>
             </Button>
-            <Button x:Name="ClearButton" Content="Vaciar historial">
+            <Button x:Name="ClearButton" Grid.Column="3" Content="Vaciar historial">
                 <Button.Flyout>
                     <Flyout x:Name="ClearFlyout">
                         <StackPanel Spacing="10" MinWidth="200">
@@ -85,7 +90,7 @@
                     </Flyout>
                 </Button.Flyout>
             </Button>
-        </StackPanel>
+        </Grid>
 
         <!-- Un ContentDialog no puede abrir otro (WinUI solo permite uno a la vez), así que el fallo de
              la exportación se cuenta AQUÍ dentro. Antes se lo tragaba un catch vacío: el usuario elegía

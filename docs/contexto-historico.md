@@ -66,6 +66,22 @@
 
 ## Entradas
 
+### 2026-11-10 — `AUD-073`: el historial deja de enseñar el log
+
+**Qué cambia.** Cada fila dice de qué trata, qué pasó y sobre qué («Actualización · Descarga completada ·
+1.30.2»), y el detalle técnico queda debajo, atenuado y en una línea. Antes la fila era «Actualización ·
+Info» y la línea del log entera, en inglés y mayúsculas.
+
+**Por qué así.** `T6-05` había decidido no reescribir el registro en prosa y solo formatear los bytes. La
+crítica de diseño lo cuestionó, y se decidió que el historial es un diario para el usuario: se va a él
+después de que algo salga mal, y lo primero que leía era un código. El registro sigue siendo el mismo:
+`history.log` y el CSV no cambian, porque tienen consumidores, y el titular se calcula de la palabra clave al
+leer, así que las líneas antiguas también se ven traducidas. Son rótulos y no frases porque una frase obliga a
+concordar género y número en cinco idiomas, y «Formato · G: · Correcto» no.
+
+**Lo que no se arriesga.** Una cabecera con una palabra que el titular no conoce enseña la línea entera como
+detalle. Prefiere un titular pobre a uno que se calle algo.
+
 ### 2026-11-10 — `AUD-072`: una confirmación que dice qué se pierde
 
 **Qué cambia.** Las dos confirmaciones destructivas —formatear y reinicializar— comparten esqueleto: un aviso
